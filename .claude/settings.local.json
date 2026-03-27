@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://start.spring.io\" -H \"Accept: application/json\")",
+      "Bash(python3 -c \":*)",
+      "Bash(curl \"https://start.spring.io/starter.zip\" --data-urlencode \"type=gradle-project-kotlin\" --data-urlencode \"language=java\" --data-urlencode \"bootVersion=3.3.6\" --data-urlencode \"baseDir=backend\" --data-urlencode \"groupId=com.meeplehearth\" --data-urlencode \"artifactId=meeple-backend\" --data-urlencode \"name=meeple-backend\" --data-urlencode \"description=Meeple Board Game Community API\" --data-urlencode \"packageName=com.meeplehearth\" --data-urlencode \"javaVersion=21\" --data-urlencode \"dependencies=web,security,data-jpa,data-redis,websocket,validation,actuator,flyway,postgresql,webflux,lombok\" -v)"
+    ]
+  }
+}

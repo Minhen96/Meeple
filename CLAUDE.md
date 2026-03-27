@@ -70,12 +70,51 @@ Only implement what the current phase requires. Do not add Phase 2+ code during 
 
 ---
 
+## Git Branching Strategy
+
+```
+main        — production-ready only. Direct push FORBIDDEN.
+develop     — integration branch. All features merge here first.
+feature/*   — individual features (e.g. feature/user-auth, feature/event-create)
+fix/*       — bug fixes (e.g. fix/jwt-expiry)
+chore/*     — non-feature work (deps, config, docs)
+```
+
+**Branch → Environment mapping:**
+| Branch | Deploys To | DB |
+|--------|-----------|-----|
+| `main` | Production (Railway + Cloudflare Pages) | Neon `main` branch |
+| `develop` | Staging (Railway staging + Cloudflare Pages preview) | Neon `staging` branch |
+| `feature/*` | No auto-deploy (Cloudflare Pages PR preview URL only) | — |
+
+**Flow:** `feature/* → develop (staging) → main (production)`
+- Never commit directly to `main` or `develop`
+- Every change goes through a PR
+- Branch off from `develop`, not `main`
+- Delete branch after merge
+
+**Commit format (Conventional Commits):**
+```
+feat: add friend request accept endpoint
+fix: correct JWT expiry calculation
+chore: upgrade Spring Boot to 3.3
+docs: update API endpoint table
+test: add integration test for event creation
+refactor: extract image compression to utility
+```
+
+**PR rules (GitHub branch protection on `main` and `develop`):**
+- Require PR — no direct push
+- Require CI to pass (test + lint + build) before merge
+- Require branch to be up to date before merge
+- Delete branch after merge
+
+---
+
 ## Code Quality Standards
 
 - 70% minimum test coverage (JaCoCo for backend)
 - Integration tests use real Postgres + Redis (no mocking the DB)
-- Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`
-- Branch naming: `feature/`, `fix/`, `chore/`
 - No `TODO` comments in committed code — either implement it or create an issue
 
 ---

@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Material Symbols default style */
+.material-symbols-outlined {
+	font-variation-settings:
+		'FILL' 0,
+		'wght' 400,
+		'GRAD' 0,
+		'opsz' 24;
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+	0% {
+		background-position: -1000px 0;
+	}
+	100% {
+		background-position: 1000px 0;
+	}
+}
+
+.skeleton {
+	background: linear-gradient(90deg, #edeeef 25%, #f3f4f5 50%, #edeeef 75%);
+	background-size: 1000px 100%;
+	animation: shimmer 1.5s infinite linear;
+}
+
+/* Hide scrollbar (horizontal scroll rows) */
+.hide-scrollbar::-webkit-scrollbar {
+	display: none;
+}
+.hide-scrollbar {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+/* Spring bounce — press feedback on interactive elements */
+.spring-bounce:active {
+	transform: scale(0.95);
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1.2);
+}
+
+/* Safe area padding for bottom nav (iOS notch) */
+.pb-safe {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}

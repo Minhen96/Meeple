@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# SvelteKit build
+.svelte-kit/
+build/
+dist/
+
+# Gradle / Spring Boot build
+backend/.gradle/
+backend/build/
+backend/out/
+*.class
+*.jar
+*.war
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Cloudflare
+.wrangler/
+
+# Flutter (Phase 3)
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
