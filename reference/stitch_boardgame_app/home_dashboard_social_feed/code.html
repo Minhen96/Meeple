@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "outline": "#877462",
+              "on-background": "#191c1d",
+              "surface-tint": "#895100",
+              "inverse-surface": "#2e3132",
+              "error": "#ba1a1a",
+              "on-primary-fixed": "#2c1700",
+              "secondary-fixed-dim": "#fabb65",
+              "outline-variant": "#dac2ae",
+              "surface-container-high": "#e7e8e9",
+              "on-primary-container": "#683c00",
+              "on-error": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#643f00",
+              "secondary-fixed": "#ffddb5",
+              "tertiary-container": "#36c9bb",
+              "inverse-primary": "#ffb86b",
+              "on-secondary-fixed": "#2a1800",
+              "background": "#f8f9fa",
+              "surface-container-low": "#f3f4f5",
+              "tertiary-fixed": "#70f8e8",
+              "on-tertiary-container": "#005049",
+              "secondary": "#835401",
+              "on-surface-variant": "#544434",
+              "surface-variant": "#e1e3e4",
+              "tertiary": "#006a62",
+              "secondary-container": "#fdbd68",
+              "primary-container": "#ff9f1c",
+              "surface-container": "#edeeef",
+              "surface": "#f8f9fa",
+              "on-tertiary": "#ffffff",
+              "primary-fixed-dim": "#ffb86b",
+              "on-tertiary-fixed": "#00201d",
+              "on-error-container": "#93000a",
+              "on-primary-fixed-variant": "#683d00",
+              "primary-fixed": "#ffdcbc",
+              "on-surface": "#191c1d",
+              "surface-container-highest": "#e1e3e4",
+              "inverse-on-surface": "#f0f1f2",
+              "surface-dim": "#d9dadb",
+              "surface-bright": "#f8f9fa",
+              "tertiary-fixed-dim": "#4fdbcc",
+              "on-secondary-container": "#764b00",
+              "on-tertiary-fixed-variant": "#005049",
+              "on-primary": "#ffffff",
+              "primary": "#895100",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .spring-bounce:active { transform: scale(0.95); transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1.2); }
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#F8F9FA]/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]">
+<div class="flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#895100] hover:scale-105 transition-transform duration-200 cursor-pointer" data-icon="search">search</span>
+</div>
+<h1 class="font-['Plus_Jakarta_Sans'] text-[#895100] font-black tracking-tighter text-xl">Meeple &amp; Hearth</h1>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-stone-500 hover:scale-105 transition-transform duration-200 cursor-pointer" data-icon="notifications">notifications</span>
+</div>
+</div>
+</header>
+<main class="pt-24 px-4 max-w-lg mx-auto space-y-8">
+<!-- Welcome & Match Suggestion Section -->
+<section class="space-y-6">
+<div class="space-y-1">
+<h2 class="text-3xl font-headline font-extrabold tracking-tight text-on-surface">
+                    Good evening, <span class="text-primary">Alex</span>!
+                </h2>
+<p class="text-on-surface-variant font-medium text-sm">Your next session is in 2 days.</p>
+</div>
+<!-- Match Suggestion Card -->
+<div class="bg-primary-container/10 border border-primary/10 rounded-2xl p-5 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-colors"></div>
+<div class="flex gap-4 items-start relative z-10">
+<div class="w-16 h-16 rounded-xl bg-surface-container overflow-hidden flex-shrink-0 shadow-sm">
+<img alt="Catan" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQ3yafqziuepSGiC95jAUKlS2zq0b0xly5htKmPsikn_W4V5aqyVwaSBia7kodqTltmW16bK8IBigG_4FCktkVYnuqXZN0KApNKRzGNK9eNgYVvkBPnRHAXsq-gIYCAEawp2okWgpE-W7LKWVbjn6yKjg8Y3NACawr46z_mGC1GUtlf9Ohd0A6PFs1Mh2oIrkczaa44_DxAz8hGVkuRqnUQB9F0Te5wPoVWT6PgbpJ7xda9bpzA5OqmKbGmlAKN25l2KsgbdxP6ns"/>
+</div>
+<div class="flex-1 space-y-2">
+<p class="text-sm font-semibold leading-tight">
+<span class="text-primary font-bold">3 friends</span> want to play <span class="italic">Catan</span> this Saturday.
+                        </p>
+<div class="flex gap-2">
+<button class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all">Create Event</button>
+<button class="bg-white/50 backdrop-blur-md text-on-surface-variant px-4 py-2 rounded-lg text-xs font-bold border border-outline-variant/30 hover:bg-white transition-all">Join Them</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Upcoming Highlights -->
+<section class="space-y-4">
+<div class="flex justify-between items-center">
+<h3 class="text-lg font-headline font-bold">Upcoming Events</h3>
+<span class="text-primary text-xs font-bold font-label uppercase tracking-widest cursor-pointer">View Calendar</span>
+</div>
+<div class="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+<!-- Event Card 1 -->
+<div class="flex-shrink-0 w-64 bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 shadow-sm">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">Friday Night</span>
+<span class="material-symbols-outlined text-stone-300 text-sm">more_vert</span>
+</div>
+<h4 class="font-bold text-base mb-1">Heavy Euro Night</h4>
+<p class="text-xs text-stone-500 flex items-center gap-1 mb-3">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+                        The Rookery Cafe
+                    </p>
+<div class="flex -space-x-2">
+<img alt="friend" class="w-6 h-6 rounded-full border-2 border-surface-container-low" src="https://lh3.googleusercontent.com/aida-public/AB6AXuButfbcfUuO7xDm4hBaNtNVha0JZL5L7qiFY6Beujp1xk3ymLL-L6ltjg0E_U4qWiHBckcflvnvxUHgtGq7QVuPk41QGzHbn8dZAJFhvyLLDJ2xWNXQThHpJHxbuutc-tOidpLUvolqUkX2AJDZN5llrboGB8rzEoxDN2IOynfW7EwaZ41d-geyNyQOBmnRCkIXpVO76Z__7x7R-lJzqPcXu35y7fFdK1bMVi0w2VT-tPE5ROQBn5Ti3CwArQnnJ2fAG9BjDsUt2gw"/>
+<img alt="friend" class="w-6 h-6 rounded-full border-2 border-surface-container-low" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQFBNRjzort6i-eHcWdNUcMWIwFlPzTb8hoDrW6WkE1HZbLka7l6QghjhCs6HKtLj_WC5LHOBhtS6sv6HianS8_na2RTd-_QXx7B_wjWHmo3lKXTSjW_ulgUSCHklDFtkaY-Flc8q7qrNDn52NpH4QTGXTFyj2QMzrcsWZo3PB1fHAcgmkAdb2PhqvRcYjY9deLzekYNyw6X3jsqafF1KffzSmaRaoTWqlBGgxZNHSI6e-kwXGnZ3mKcRwV21btTdBsagamqa_hHg"/>
+<div class="w-6 h-6 rounded-full border-2 border-surface-container-low bg-surface-container-high flex items-center justify-center text-[8px] font-bold text-on-surface">+3</div>
+</div>
+</div>
+<!-- Event Card 2 -->
+<div class="flex-shrink-0 w-64 bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 shadow-sm opacity-60">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter">Sun 3:00 PM</span>
+</div>
+<h4 class="font-bold text-base mb-1">Party Games Fun</h4>
+<p class="text-xs text-stone-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">home</span>
+                        Sarah's Hearth
+                    </p>
+</div>
+</div>
+</section>
+<!-- Social Activity Feed -->
+<section class="space-y-6">
+<div class="flex justify-between items-center">
+<h3 class="text-lg font-headline font-bold">Activity Feed</h3>
+<span class="material-symbols-outlined text-stone-400">tune</span>
+</div>
+<!-- Feed Item 1: Session Post -->
+<div class="bg-white rounded-2xl border border-outline-variant/10 overflow-hidden shadow-sm">
+<div class="p-4 flex items-center gap-3">
+<img alt="Sarah" class="w-10 h-10 rounded-full object-cover border border-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiaJwsE97qFuEUP7x8puBvlqQduZKqqb2c9gOmAHv4lxEGnYvTmdwk7ZJZWJNxrdSIEenunlPpBbKLI2Cc66tFoQ2eoE92Xh1feH0hD5kTbAsF5cuMJoldpNHDYVVcBH1xs1MrIj36VcX6tp-dtONLTAXdMfQBpTEyAgosc_bn_9ceXTcrZ-TJnEg-ssD-PZRyxqgNxEGrfUxeX96u8S-Le76xHMWqngR_gIbFoVfB-oU43TQLLEMVSQsiFt_ej3HHAc7qH761Ubs"/>
+<div>
+<p class="text-sm font-bold">Sarah Miller</p>
+<p class="text-[10px] text-stone-400 font-label">5 hours ago • The Rookery Cafe</p>
+</div>
+<button class="ml-auto material-symbols-outlined text-stone-300">more_horiz</button>
+</div>
+<div class="aspect-square bg-surface-container-low overflow-hidden">
+<img alt="Session Photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEWs2Z3MxQwggUoBeycqEizn8HQRpR4iE0KaLhp8OHud7OvtXOj_7ijz7HX4iQmGKfcQsr6l9ve0cr2s-45h7LRFEogDsPo7GUoXybGkxrCGaIp7ExDrgoSu9tIMLQ2Ql8-gC_GSuhyqY-BY9juwgoZJMjvk72zpiMaX9ZlDvmdKIZVW0tz2TpIOsWbU2WW4aiwa2pDdaA6lpDjSSljw81BU2I4H2H-i9GUT4EAECsQ0dfocD0q34MedG5pcCyKzdOrgIdUF96tcE"/>
+</div>
+<div class="p-4 space-y-2">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:text-red-500 transition-colors">favorite</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">chat_bubble</span>
+<span class="material-symbols-outlined cursor-pointer ml-auto">share</span>
+</div>
+<p class="text-sm">
+<span class="font-bold">Sarah Miller</span> finally won a game of Splendor with 15 points! 💎 Great night with <span class="text-primary font-medium">@Leo</span> and <span class="text-primary font-medium">@Marcus</span>.
+                    </p>
+<div class="pt-2 border-t border-outline-variant/5">
+<p class="text-[10px] text-stone-400">View all 12 comments</p>
+</div>
+</div>
+</div>
+<!-- Feed Item 2: Collection Update -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/10 shadow-sm flex gap-4 items-center">
+<img alt="Leo" class="w-12 h-12 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrMV2lFM29uXtk-nA-2p0aQLQjI7eQuZqEnGB4p63Q0YLXwvJ6fabwYo2mB7ecO4leeSNpSspsYcvkSXJsBNtJgYMB3y2n6xliscmAPMwGPc8A0ExUmdysuRbRvpza5noaf8x_fskHunkOP-ml1MrhZ0QgmQSACHzzTXPhkMJyfrp1XvQaPKEioubkPeD4rQU2dTrcrSyhAacCyaU67jHjOtA0TZYymIzUoLAsYfICiLfI8c8pKG4ZwGj0WyH2VUCJFUpeQdsnkw8"/>
+<div class="flex-1">
+<p class="text-xs">
+<span class="font-bold">Leo</span> added <span class="text-primary italic font-semibold">Wingspan</span> to their collection.
+                    </p>
+<p class="text-[10px] text-stone-400 font-label">Yesterday</p>
+</div>
+<div class="w-10 h-10 rounded bg-surface-container overflow-hidden">
+<img alt="game" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDe4VclMHBxeA7lcUojhv1rCBOvj9wPW67JYKQVl7hPkC6qwFpzXKYjyg5O7bP7wZcZ1l9UZ8IMHHA_XLuz_06cW3rpT2hU75DnaQL46oMM7eEyt8bZ8Ylmq-r9UGqixB4mYSJM0Q2QXW5fP964tx7kax7-QA4Ih263Qgve41f6OXdYCwvhODDBvDWyB6UjIWEuXSUA6cwABr0VyeeIKLC99inod1XTrc20faJH9HevfjfpY3zAOmToXfBzAj-E3QsqgyWR4oZigeA"/>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB -->
+<div class="fixed bottom-24 right-6 z-50">
+<button class="w-14 h-14 bg-primary text-white rounded-full shadow-xl flex items-center justify-center transition-transform active:scale-90 spring-bounce hover:scale-110">
+<span class="material-symbols-outlined text-2xl" data-icon="add">add</span>
+</button>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#F8F9FA]/80 backdrop-blur-xl rounded-t-[2rem] z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center bg-[#FF9F1C]/20 text-[#895100] rounded-full p-3 transition-all spring-bounce duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+</a>
+<!-- Rulebooks -->
+<a class="flex flex-col items-center justify-center text-stone-400 p-3 hover:text-[#835401] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+</a>
+<!-- Events -->
+<a class="flex flex-col items-center justify-center text-stone-400 p-3 hover:text-[#835401] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-stone-400 p-3 hover:text-[#835401] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</a>
+</nav>
+</body></html>

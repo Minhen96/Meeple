@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Meeple &amp; Hearth | Board Game Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FF9F1C",
+            "on-primary": "#ffffff",
+            "primary-container": "#ffecb3",
+            "on-primary-container": "#683c00",
+            "secondary": "#835401",
+            "surface": "#f8f9fa",
+            "on-surface": "#191c1d",
+            "on-surface-variant": "#544434",
+            "outline-variant": "#dac2ae",
+            "background": "#f8f9fa",
+          },
+          fontFamily: {
+            "headline": ["Plus Jakarta Sans"],
+            "body": ["Plus Jakarta Sans"],
+            "label": ["Manrope"]
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8f9fa;
+      color: #191c1d;
+      min-height: 100dvh;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .spring-bounce:active {
+      transform: scale(0.95);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .spring-tight:active {
+      transform: scale(1.1);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased">
+<!-- TopAppBar: From COMPONENTS_6 -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-xl shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-orange-600" data-icon="person">person</span>
+</div>
+<span class="text-xl font-bold text-orange-700 dark:text-orange-500 italic tracking-tight font-plus-jakarta">Meeple &amp; Hearth</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-20 pb-32 w-full max-w-7xl mx-auto">
+<!-- 1. Top Section: Tabletop Picks (Hero) -->
+<section class="px-6 mb-8 mt-4">
+<div class="flex items-center justify-between mb-4">
+<div>
+<h2 class="font-headline text-2xl font-extrabold text-on-surface">Tabletop Picks</h2>
+<p class="text-on-surface-variant font-body text-xs">Hand-picked selections for you.</p>
+</div>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-white transition-colors"><span class="material-symbols-outlined text-base" data-icon="chevron_left">chevron_left</span></button>
+<button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-white transition-colors"><span class="material-symbols-outlined text-base" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+<div class="relative h-[400px] rounded-[2rem] overflow-hidden group shadow-xl">
+<img alt="Gloomhaven" class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9OrJ1s0wkQqNwd_2YHUbBl6iHCyN8nOBpB4M5CCRPcCrAdiFtFi6vdGS7g51uWG11sEi2A5xZ224aDw5sUYAf5hAOBolULCapAp1U2NWzEUAn_m7t1eK_1q4g-mM8sv8KTArVqCvmLHfz1szDbFToCottMw8Y9l99X7PAbtnF4V5WjZEeNd784ek1C-GJ2U_pw2-CzblT4s91OMRI2OG9cn0CVbWT5_Dsc7UUa3uasDGIn6zx5pkZN2v-oEsMxd98qQvrdP7Nqw0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="absolute bottom-0 left-0 p-8">
+<span class="inline-block px-3 py-1 rounded-full bg-primary text-on-primary font-bold text-[10px] uppercase tracking-widest mb-3">Game of the Week</span>
+<h3 class="text-white font-headline text-3xl font-extrabold mb-2">Gloomhaven</h3>
+<p class="text-white/80 max-w-sm font-body text-sm mb-6 line-clamp-2">Tactical combat and deep character progression in a massive legacy campaign.</p>
+<div class="flex items-center gap-3">
+<button class="bg-white text-on-background px-6 py-3 rounded-full font-bold text-sm hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg">Explore</button>
+<button class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"><span class="material-symbols-outlined" data-icon="bookmark">bookmark</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Middle Section: Quick Filters -->
+<section class="mb-8 overflow-hidden">
+<div class="px-6 flex items-center justify-between mb-4">
+<h3 class="font-headline font-bold text-lg">Categories</h3>
+<button class="text-primary text-xs font-bold flex items-center gap-1">
+          Filter <span class="material-symbols-outlined text-sm" data-icon="tune">tune</span>
+</button>
+</div>
+<div class="flex items-center gap-3 overflow-x-auto hide-scrollbar px-6 pb-2">
+<button class="px-5 py-2 rounded-full bg-primary text-on-primary font-bold text-sm whitespace-nowrap shadow-md shadow-primary/20">All Games</button>
+<button class="px-5 py-2 rounded-full bg-white border border-outline-variant/30 text-on-surface-variant font-semibold text-sm whitespace-nowrap hover:bg-surface-variant transition-all">Strategy</button>
+<button class="px-5 py-2 rounded-full bg-white border border-outline-variant/30 text-on-surface-variant font-semibold text-sm whitespace-nowrap hover:bg-surface-variant transition-all">Party</button>
+<button class="px-5 py-2 rounded-full bg-white border border-outline-variant/30 text-on-surface-variant font-semibold text-sm whitespace-nowrap hover:bg-surface-variant transition-all">Family</button>
+<button class="px-5 py-2 rounded-full bg-white border border-outline-variant/30 text-on-surface-variant font-semibold text-sm whitespace-nowrap hover:bg-surface-variant transition-all">2 Player</button>
+<button class="px-5 py-2 rounded-full bg-white border border-outline-variant/30 text-on-surface-variant font-semibold text-sm whitespace-nowrap hover:bg-surface-variant transition-all">Abstract</button>
+</div>
+</section>
+<!-- 3. Main Content: All Games (High-density 2-column grid) -->
+<section class="px-6 mb-20">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-headline text-xl font-extrabold text-on-surface">Library Feed</h2>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">2,483 Results</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Game Card 1: Catan -->
+<div class="group">
+<div class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden mb-2 bg-stone-200 shadow-sm transition-all group-hover:-translate-y-1">
+<img alt="Catan" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQUSf1e1BiW1vt9xIKK8sJ8Hyodv4UMpkMdqKhvMPBXlSua_Oe-zhBTvuHT9yK6wjBHBIb5RDLP2NAzZeecyZejzaqeiM6IRACV5An3jrRUaLGVM3W57o7o0hCZsGqqHCQvVAG5iKkQzmgsr5ri48GOmoOoo2WCElU0kCXvHOc-GideJbhf5hQNPpbJyBgoDO143UXUtMldPtcEV3MCb0k1rYRxbd-hG2d5SRtiHISlMW5gARrjniBP6PwZoPYvfMpJUVfe8pJ170"/>
+<div class="absolute top-2 left-2 bg-green-500/90 backdrop-blur text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[10px] font-bold" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[8px] font-black uppercase tracking-tighter">Owned</span>
+</div>
+<div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+<span class="material-symbols-outlined text-orange-400 text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[9px] font-bold">4.8</span>
+</div>
+<button class="absolute bottom-2 right-2 bg-white/90 backdrop-blur w-8 h-8 rounded-full flex items-center justify-center text-primary shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<h3 class="font-headline text-sm font-bold text-on-surface px-1 truncate group-hover:text-primary transition-colors">Catan</h3>
+<p class="text-[10px] font-label text-on-surface-variant px-1">3-4 Players • 60-120 Min</p>
+</div>
+<!-- Game Card 2: Wingspan -->
+<div class="group">
+<div class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden mb-2 bg-stone-200 shadow-sm transition-all group-hover:-translate-y-1">
+<img alt="Wingspan" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnyhh8wFOTy4XnnTHzRhIsrA4dDcw5YH6ZY4KPk4QpJ1hkklW3vfrSgZtyPw6hs9ADtYMULV8uBtXPRJ2RQURAw25BXu4FBd5YgCUqXOce_G0ghFKdsSMFnAv0J_IWY4oYkOV4iZ9_cfNWr5CAPGN7-CzpRyrpeqtqtOUf8nkENiTmLWk2iqLF72jHnfSJOR9gNSzhC20oIp05VHhkVZZJ8-haJw29clY3I2-NBRgT3Obi3GXUGQ38q7zRuYyrz1nzO_h0qxpfvUc"/>
+<div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+<span class="material-symbols-outlined text-orange-400 text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[9px] font-bold">4.9</span>
+</div>
+<button class="absolute bottom-2 right-2 bg-white/90 backdrop-blur w-8 h-8 rounded-full flex items-center justify-center text-stone-400 shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="favorite">favorite</span>
+</button>
+</div>
+<h3 class="font-headline text-sm font-bold text-on-surface px-1 truncate group-hover:text-primary transition-colors">Wingspan</h3>
+<p class="text-[10px] font-label text-on-surface-variant px-1">1-5 Players • 40-70 Min</p>
+</div>
+<!-- Game Card 3: Azul -->
+<div class="group">
+<div class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden mb-2 bg-stone-200 shadow-sm transition-all group-hover:-translate-y-1">
+<img alt="Azul" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdz3hfdfbbrSw3tSW11NLk0zW2XtjkAxBjPMcmRJtYZ9n-6bSnH3QOd_k4YmCx92IG5BSVWRbM3VflAQw1X5pIo9wXGAtkoQgcBMCCNDX6QqxOwobKZlvAxNWQ1B4j8JtaNoNSg0ciw0J37yd4lBeMqF4u42Qr25NJ7DboNzDa1uxi_WIprKqt2fNy04dE1ZZHCGy8mCuAYXdD8n6psKNL3j70_wF6vLIe1j4Z9qxsdx6vlkBxZ2V0iOHC4EAJ8qvX1JrcqSR8Mvw"/>
+<div class="absolute top-2 left-2 bg-green-500/90 backdrop-blur text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[10px] font-bold" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[8px] font-black uppercase tracking-tighter">Owned</span>
+</div>
+<div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+<span class="material-symbols-outlined text-orange-400 text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[9px] font-bold">4.7</span>
+</div>
+<button class="absolute bottom-2 right-2 bg-white/90 backdrop-blur w-8 h-8 rounded-full flex items-center justify-center text-stone-400 shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="favorite">favorite</span>
+</button>
+</div>
+<h3 class="font-headline text-sm font-bold text-on-surface px-1 truncate group-hover:text-primary transition-colors">Azul</h3>
+<p class="text-[10px] font-label text-on-surface-variant px-1">2-4 Players • 30-45 Min</p>
+</div>
+<!-- Game Card 4: Splendor -->
+<div class="group">
+<div class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden mb-2 bg-stone-200 shadow-sm transition-all group-hover:-translate-y-1">
+<img alt="Splendor" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZSHT-PeN1I8L6phfW6Xl6BkR6e8dFr7VZPXodJa57Nyq9drKKxeywaLlEoklSLOgH-3omf4CEInyIrypjYCT5bZi1K4QU77TCezamVtm03Aeaz5eah4YijUyZ7HXA_jp0kIrlpZmMgis3X3gZ8TbBsmnb2EOCtwfBVz4KysiI-m4ORw1gFKklCTD_EA9nTQwxW6-N2tmUgJ7J6zlTQG_T74i2-W0Riv0imVSN7GYUXdck48BNrJ7MdhOhcdrYPtUWuP6Zj28270U"/>
+<div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+<span class="material-symbols-outlined text-orange-400 text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[9px] font-bold">4.6</span>
+</div>
+<button class="absolute bottom-2 right-2 bg-white/90 backdrop-blur w-8 h-8 rounded-full flex items-center justify-center text-primary shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<h3 class="font-headline text-sm font-bold text-on-surface px-1 truncate group-hover:text-primary transition-colors">Splendor</h3>
+<p class="text-[10px] font-label text-on-surface-variant px-1">2-4 Players • 30 Min</p>
+</div>
+</div>
+<!-- Infinite Scroll Trigger -->
+<div class="py-12 flex flex-col items-center justify-center">
+<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+<p class="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Summoning more meeples...</p>
+</div>
+</section>
+</main>
+<!-- BottomNavBar: From COMPONENTS_6 -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-5 py-2 hover:text-orange-500 transition-all active:scale-110 duration-300 spring-tight" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-5 py-2 hover:text-orange-500 transition-all active:scale-110 duration-300 spring-tight" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider">Events</span>
+</a>
+<div class="relative -mt-8">
+<button class="bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all">
+<span class="material-symbols-outlined text-3xl" data-icon="add">add</span>
+</button>
+</div>
+<a class="flex flex-col items-center justify-center bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full px-5 py-2 active:scale-110 duration-300 spring-tight" href="#">
+<span class="material-symbols-outlined" data-icon="style" style="font-variation-settings: 'FILL' 1;">style</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-5 py-2 hover:text-orange-500 transition-all active:scale-110 duration-300 spring-tight" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+</body></html>

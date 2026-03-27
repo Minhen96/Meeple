@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wingspan - Meeple &amp; Hearth</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "outline": "#877462",
+              "on-background": "#191c1d",
+              "surface-tint": "#895100",
+              "inverse-surface": "#2e3132",
+              "error": "#ba1a1a",
+              "on-primary-fixed": "#2c1700",
+              "secondary-fixed-dim": "#fabb65",
+              "outline-variant": "#dac2ae",
+              "surface-container-high": "#e7e8e9",
+              "on-primary-container": "#683c00",
+              "on-error": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#643f00",
+              "secondary-fixed": "#ffddb5",
+              "tertiary-container": "#36c9bb",
+              "inverse-primary": "#ffb86b",
+              "on-secondary-fixed": "#2a1800",
+              "background": "#f8f9fa",
+              "surface-container-low": "#f3f4f5",
+              "tertiary-fixed": "#70f8e8",
+              "on-tertiary-container": "#005049",
+              "secondary": "#835401",
+              "on-surface-variant": "#544434",
+              "surface-variant": "#e1e3e4",
+              "tertiary": "#006a62",
+              "secondary-container": "#fdbd68",
+              "primary-container": "#ff9f1c",
+              "surface-container": "#edeeef",
+              "surface": "#f8f9fa",
+              "on-tertiary": "#ffffff",
+              "primary-fixed-dim": "#ffb86b",
+              "on-tertiary-fixed": "#00201d",
+              "on-error-container": "#93000a",
+              "on-primary-fixed-variant": "#683d00",
+              "primary-fixed": "#ffdcbc",
+              "on-surface": "#191c1d",
+              "surface-container-highest": "#e1e3e4",
+              "inverse-on-surface": "#f0f1f2",
+              "surface-dim": "#d9dadb",
+              "surface-bright": "#f8f9fa",
+              "tertiary-fixed-dim": "#4fdbcc",
+              "on-secondary-container": "#764b00",
+              "on-tertiary-fixed-variant": "#005049",
+              "on-primary": "#ffffff",
+              "primary": "#895100",
+              "surface-container-lowest": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .spring-bounce:active {
+        transform: scale(0.95);
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1.2);
+      }
+      .glass-panel {
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+      }
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container/30">
+<!-- TopAppBar Shell -->
+<nav class="fixed top-0 w-full z-50 bg-[#F8F9FA]/80 dark:bg-stone-900/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.06)] flex justify-between items-center px-6 py-4">
+<div class="flex items-center gap-3">
+<button class="text-stone-500 hover:scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-[#895100] dark:text-[#FF9F1C] font-black tracking-tighter text-xl">Meeple &amp; Hearth</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-stone-500 hover:scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="text-stone-500 hover:scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</nav>
+<main class="pb-32 pt-16">
+<!-- Hero Section -->
+<div class="relative w-full h-[397px] overflow-hidden">
+<img alt="Wingspan Game Artwork" class="w-full h-full object-cover" data-alt="Stunning close-up illustration of a colorful bird in a painterly natural habitat, soft ethereal lighting with pastel blue and pink sky" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcgrocs00ReRSPcXGqN2AdK0rXiQ4KkCwytz2j92-Nyn6wNaKVCBhA1_JC7uHpiVfoyhWnJ0D97XqeyQzLpRpByTm9G0-H5Py-6imlWY3n_7TR81Uuwcd3nt0tSEnSTu6Cm0DHEbdDTcvhboS--c2lIiF_eHFDTTc8p9tWO6Wa8FkixTPI1eQ1JYQwYhJJQDjKS0ro9KTyW69N17uZMsFAdu-pDuc_wvuCkBkZd6bbvzRxrWg2Rn2rArhiAppoMyKoMxbM84Mq9pw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/20 to-transparent"></div>
+<div class="absolute bottom-0 left-0 w-full px-6 pb-8">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-tertiary-container/20 backdrop-blur-md rounded-full mb-4">
+<span class="material-symbols-outlined text-tertiary text-sm" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="text-on-tertiary-container font-label text-xs font-bold uppercase tracking-wider">Top Rated Strategy</span>
+</div>
+<h1 class="text-4xl md:text-6xl font-headline font-extrabold tracking-tight text-on-surface mb-1">Wingspan</h1>
+<p class="text-on-surface-variant font-medium opacity-80 mb-4">Designed by Elizabeth Hargrave • Stonemaier Games</p>
+<!-- Friends who own this -->
+<div class="flex items-center gap-2">
+<div class="flex -space-x-3 overflow-hidden">
+<img alt="Marcus T." class="inline-block h-8 w-8 rounded-full ring-2 ring-surface object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8_KvvWzkJ7_Nasrn8cWj2eFDwCT9jst3Jn2tJht-EvItQhoc_62xGFsU-j8ic9UgNmk7cS3EJYsG19ToMt49kt55z-Vyvm-LRu57CYJe2sQUhSRtNOmzHsA6_FP5f6s00QKF4yfTjKdT7HoRRMV05Zqr_CZy63QCRztcP-sQDN6SbyWSzuwETxmG6wYsoGSeWJQzk6jkO6tFpPBG9osxLwKVEbhPhQ_ZXocWroXJz7RPqMFa54jtUnTUCGKeBTvjtvlO-gtcLQiY"/>
+<img alt="Elena R." class="inline-block h-8 w-8 rounded-full ring-2 ring-surface object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKxz1g-z2AFnaKm9zrBzcFf_-0xYmeAYsAvH8hyXqoI9vnW0YwVkqqNuNA5QjgozW3hzVT_ZN8fILgG4JGUsFmN36eSbpJ38z6cDZ1OUExz-wrSuvxo9ZWRWC4hNKWP5iHdJAGX3isdyEl9ArG9ul0KlARa1xmRAej1HeXGyVAqt-EqAuiqx7JhjzxX__KG9f0izWoz2kkF6syuzXWM5M7SyvDyPtOpODoDvPbZHinseO4GlRako5LCiAHKpYSiUOk5paUMZK7DsU"/>
+<div class="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-surface bg-secondary-container text-[10px] font-bold text-on-secondary-container">+2</div>
+</div>
+<p class="text-xs font-label text-on-surface-variant">Owned by <span class="font-bold">Marcus, Elena</span>, and 2 others</p>
+</div>
+</div>
+</div>
+<!-- Game Info Bar -->
+<section class="px-6 -mt-4 relative z-10">
+<div class="grid grid-cols-3 gap-1 bg-surface-container-lowest p-2 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]">
+<div class="flex flex-col items-center justify-center py-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="groups">groups</span>
+<span class="font-label text-[10px] text-stone-500 uppercase tracking-widest font-bold">Players</span>
+<span class="font-headline font-bold text-on-surface">1-5</span>
+</div>
+<div class="flex flex-col items-center justify-center py-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="schedule">schedule</span>
+<span class="font-label text-[10px] text-stone-500 uppercase tracking-widest font-bold">Duration</span>
+<span class="font-headline font-bold text-on-surface">40-70m</span>
+</div>
+<div class="flex flex-col items-center justify-center py-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="psychology">psychology</span>
+<span class="font-label text-[10px] text-stone-500 uppercase tracking-widest font-bold">Weight</span>
+<span class="font-headline font-bold text-on-surface">Medium</span>
+</div>
+</div>
+</section>
+<!-- Primary Actions -->
+<section class="px-6 py-8 flex flex-col gap-4">
+<div class="flex flex-col md:flex-row gap-4">
+<button class="flex-1 bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 px-8 rounded-full font-headline font-bold text-lg shadow-[0_8px_24px_rgba(137,81,0,0.2)] hover:scale-[1.02] transition-transform active:scale-95 flex items-center justify-center gap-3">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                Add to Collection
+            </button>
+<button class="flex-1 bg-surface-container-high text-on-surface-variant py-4 px-8 rounded-full font-headline font-bold text-lg hover:bg-surface-container-highest transition-colors active:scale-95 flex items-center justify-center gap-3">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span>
+                Wishlist
+            </button>
+</div>
+<!-- AI Rules Assistant Button -->
+<button class="w-full bg-tertiary-container text-on-tertiary-container py-4 px-8 rounded-full font-headline font-bold text-lg hover:bg-tertiary-container/80 transition-colors active:scale-95 flex items-center justify-center gap-3 border border-tertiary/10">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+            AI Rules Assistant
+        </button>
+</section>
+<!-- Tabs Navigation -->
+<section class="px-6">
+<div class="flex items-center gap-8 border-none overflow-x-auto pb-4 mb-6 no-scrollbar">
+<button class="text-[#895100] border-b-4 border-[#895100] pb-2 font-headline font-bold whitespace-nowrap">Overview</button>
+<button class="text-stone-400 font-headline font-bold whitespace-nowrap hover:text-stone-600 transition-colors">Activity</button>
+<button class="text-stone-400 font-headline font-bold whitespace-nowrap hover:text-stone-600 transition-colors">Moments</button>
+<button class="text-stone-400 font-headline font-bold whitespace-nowrap hover:text-stone-600 transition-colors">Gallery</button>
+</div>
+<!-- Bento Content Layout -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Overview Card (Main) -->
+<div class="md:col-span-2 space-y-8">
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+<h3 class="text-2xl font-headline font-extrabold mb-4 text-on-surface">About the Game</h3>
+<p class="text-on-surface-variant leading-relaxed text-lg">
+                        You are bird enthusiasts—researchers, bird watchers, ornithologists, and collectors—seeking to discover and attract the best birds to your network of wildlife preserves. Each bird extends a chain of powerful combinations in one of your habitats (actions). These habitats focus on several key aspects of growth:
+                    </p>
+<div class="mt-6 flex flex-wrap gap-3">
+<span class="px-4 py-2 bg-secondary-container/30 text-on-secondary-container rounded-full text-sm font-bold">Engine Building</span>
+<span class="px-4 py-2 bg-secondary-container/30 text-on-secondary-container rounded-full text-sm font-bold">Card Drafting</span>
+<span class="px-4 py-2 bg-secondary-container/30 text-on-secondary-container rounded-full text-sm font-bold">Dice Rolling</span>
+</div>
+</div>
+</div>
+<!-- Sidebar Activity -->
+<div class="space-y-6">
+<h3 class="text-xl font-headline font-extrabold text-on-surface px-2">Friends Activity</h3>
+<div class="space-y-4">
+<!-- Activity Item 1 -->
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Portrait of a friendly smiling young man with short dark hair in a casual studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8_KvvWzkJ7_Nasrn8cWj2eFDwCT9jst3Jn2tJht-EvItQhoc_62xGFsU-j8ic9UgNmk7cS3EJYsG19ToMt49kt55z-Vyvm-LRu57CYJe2sQUhSRtNOmzHsA6_FP5f6s00QKF4yfTjKdT7HoRRMV05Zqr_CZy63QCRztcP-sQDN6SbyWSzuwETxmG6wYsoGSeWJQzk6jkO6tFpPBG9osxLwKVEbhPhQ_ZXocWroXJz7RPqMFa54jtUnTUCGKeBTvjtvlO-gtcLQiY"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-tertiary rounded-full border-2 border-surface-container-low flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-white" style="font-variation-settings: 'FILL' 1;">emoji_events</span>
+</div>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Marcus T.</p>
+<p class="text-xs text-stone-500 font-label">Won with 84 pts • 2h ago</p>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Portrait of a young woman with a joyful expression and long brown hair, natural soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKxz1g-z2AFnaKm9zrBzcFf_-0xYmeAYsAvH8hyXqoI9vnW0YwVkqqNuNA5QjgozW3hzVT_ZN8fILgG4JGUsFmN36eSbpJ38z6cDZ1OUExz-wrSuvxo9ZWRWC4hNKWP5iHdJAGX3isdyEl9ArG9ul0KlARa1xmRAej1HeXGyVAqt-EqAuiqx7JhjzxX__KG9f0izWoz2kkF6syuzXWM5M7SyvDyPtOpODoDvPbZHinseO4GlRako5LCiAHKpYSiUOk5paUMZK7DsU"/>
+<div>
+<p class="text-sm font-bold text-on-surface">Elena R.</p>
+<p class="text-xs text-stone-500 font-label">Logged a session • 5h ago</p>
+</div>
+</div>
+</div>
+<!-- Quick Stats Card -->
+<div class="bg-primary/5 p-6 rounded-lg border border-primary/10">
+<div class="flex items-center justify-between mb-4">
+<span class="text-primary font-headline font-bold">Community Rank</span>
+<span class="bg-primary text-on-primary px-2 py-1 rounded text-xs font-bold">#14</span>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between text-xs font-label">
+<span class="text-stone-500 uppercase tracking-tighter">Avg. Score</span>
+<span class="text-on-surface font-bold">76 pts</span>
+</div>
+<div class="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[76%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#F8F9FA]/80 dark:bg-stone-900/80 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.04)] rounded-t-[2rem] z-50">
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 p-3 hover:text-[#835401] transition-colors">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-['Manrope'] text-[10px] font-semibold uppercase tracking-widest mt-1">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-[#FF9F1C]/20 dark:bg-[#FF9F1C]/10 text-[#895100] dark:text-[#FF9F1C] rounded-full p-3 spring-bounce">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="font-['Manrope'] text-[10px] font-semibold uppercase tracking-widest mt-1">Library</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 p-3 hover:text-[#835401] transition-colors">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="font-['Manrope'] text-[10px] font-semibold uppercase tracking-widest mt-1">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 p-3 hover:text-[#835401] transition-colors">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+<span class="font-['Manrope'] text-[10px] font-semibold uppercase tracking-widest mt-1">Sessions</span>
+</button>
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 p-3 hover:text-[#835401] transition-colors">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Manrope'] text-[10px] font-semibold uppercase tracking-widest mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

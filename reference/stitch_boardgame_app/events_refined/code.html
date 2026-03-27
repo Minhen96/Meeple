@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Events - Meeple &amp; Hearth</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-fixed-dim": "#ffb86b",
+              "tertiary-fixed-dim": "#4fdbcc",
+              "on-primary": "#ffffff",
+              "on-secondary-fixed-variant": "#643f00",
+              "surface-bright": "#f8f9fa",
+              "surface-variant": "#e1e3e4",
+              "on-tertiary-fixed": "#00201d",
+              "secondary": "#835401",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#f0f1f2",
+              "on-secondary-fixed": "#2a1800",
+              "outline": "#877462",
+              "on-tertiary-container": "#005049",
+              "on-secondary-container": "#764b00",
+              "on-tertiary": "#ffffff",
+              "error": "#ba1a1a",
+              "on-primary-fixed-variant": "#683d00",
+              "outline-variant": "#dac2ae",
+              "on-error": "#ffffff",
+              "on-surface-variant": "#544434",
+              "on-tertiary-fixed-variant": "#005049",
+              "error-container": "#ffdad6",
+              "surface-dim": "#d9dadb",
+              "surface-tint": "#895100",
+              "surface-container": "#edeeef",
+              "primary-fixed": "#ffdcbc",
+              "secondary-fixed": "#ffddb5",
+              "on-primary-fixed": "#2c1700",
+              "on-background": "#191c1d",
+              "tertiary-fixed": "#70f8e8",
+              "surface-container-low": "#f3f4f5",
+              "background": "#f8f9fa",
+              "primary": "#895100",
+              "surface": "#f8f9fa",
+              "primary-container": "#ff9f1c",
+              "on-primary-container": "#683c00",
+              "inverse-surface": "#2e3132",
+              "tertiary": "#006a62",
+              "tertiary-container": "#36c9bb",
+              "on-error-container": "#93000a",
+              "on-surface": "#191c1d",
+              "surface-container-highest": "#e1e3e4",
+              "secondary-fixed-dim": "#fabb65",
+              "inverse-primary": "#ffb86b",
+              "secondary-container": "#fdbd68",
+              "surface-container-high": "#e7e8e9",
+              "on-secondary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .ease-spring {
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1.2);
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .label-font {
+        font-family: 'Manrope', sans-serif;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-orange-50/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-sm dark:shadow-none">
+<div class="flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-zinc-800 transition-colors p-2 rounded-full scale-95 duration-200 ease-spring">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-xl font-bold text-orange-800 dark:text-orange-200 font-plus-jakarta-sans tracking-tight">Meeple &amp; Hearth</h1>
+</div>
+<button class="text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-zinc-800 transition-colors p-2 rounded-full scale-95 duration-200 ease-spring">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-4xl mx-auto">
+<!-- Page Title & Editorial Header -->
+<section class="mb-10">
+<h2 class="text-4xl font-extrabold text-on-surface tracking-tight mb-2">Game Nights</h2>
+<p class="text-on-surface-variant max-w-md">Find your next adventure at a table near you. Join existing parties or host your own.</p>
+</section>
+<!-- Monthly Calendar Strip -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold tracking-tight">November 2024</h3>
+<div class="flex gap-2">
+<button class="p-2 rounded-full bg-surface-container-low hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-2 rounded-full bg-surface-container-low hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Calendar Horizontal Scroll -->
+<div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+<!-- Day Card (Selected) -->
+<button class="flex-shrink-0 w-20 h-28 bg-primary-container text-on-primary-container rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg scale-105 transition-transform">
+<span class="label-font text-xs font-bold uppercase tracking-widest opacity-80">Mon</span>
+<span class="text-3xl font-extrabold">12</span>
+<div class="w-1.5 h-1.5 rounded-full bg-on-primary-container"></div>
+</button>
+<!-- Day Card (With Event) -->
+<button class="flex-shrink-0 w-20 h-28 bg-surface-container-lowest hover:bg-surface-container-low transition-all rounded-xl flex flex-col items-center justify-center gap-1">
+<span class="label-font text-xs font-bold uppercase tracking-widest text-on-surface-variant">Tue</span>
+<span class="text-3xl font-extrabold">13</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary opacity-60"></div>
+</button>
+<!-- Day Card (No Event) -->
+<button class="flex-shrink-0 w-20 h-28 bg-surface-container-lowest hover:bg-surface-container-low transition-all rounded-xl flex flex-col items-center justify-center gap-1">
+<span class="label-font text-xs font-bold uppercase tracking-widest text-on-surface-variant">Wed</span>
+<span class="text-3xl font-extrabold">14</span>
+</button>
+<!-- Day Card (With Event) -->
+<button class="flex-shrink-0 w-20 h-28 bg-surface-container-lowest hover:bg-surface-container-low transition-all rounded-xl flex flex-col items-center justify-center gap-1">
+<span class="label-font text-xs font-bold uppercase tracking-widest text-on-surface-variant">Thu</span>
+<span class="text-3xl font-extrabold">15</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary opacity-60"></div>
+</button>
+<!-- Day Card (With Event) -->
+<button class="flex-shrink-0 w-20 h-28 bg-surface-container-lowest hover:bg-surface-container-low transition-all rounded-xl flex flex-col items-center justify-center gap-1">
+<span class="label-font text-xs font-bold uppercase tracking-widest text-on-surface-variant">Fri</span>
+<span class="text-3xl font-extrabold">16</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary opacity-60"></div>
+</button>
+<!-- Day Card -->
+<button class="flex-shrink-0 w-20 h-28 bg-surface-container-lowest hover:bg-surface-container-low transition-all rounded-xl flex flex-col items-center justify-center gap-1">
+<span class="label-font text-xs font-bold uppercase tracking-widest text-on-surface-variant">Sat</span>
+<span class="text-3xl font-extrabold">17</span>
+</button>
+</div>
+</section>
+<!-- Event List -->
+<section class="space-y-6">
+<div class="flex items-baseline justify-between">
+<h3 class="text-lg font-bold tracking-tight text-on-surface-variant">Events for Monday, Nov 12</h3>
+<span class="text-sm font-medium text-primary">3 Events Found</span>
+</div>
+<!-- Event Card 1 -->
+<div class="group relative bg-surface-container-lowest rounded-lg p-6 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row gap-6">
+<div class="w-full md:w-32 h-32 rounded-md overflow-hidden flex-shrink-0">
+<img alt="Gloomhaven game box" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Top down view of a complex tactical fantasy board game setup with miniatures, hex tiles, and character cards on a dark wooden table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjqj9ZxNpgNKMNhieLUKEGBINNxYXd8gNR8xLHk0Ow1-GwPvli523hFpgwi49KEvVZ8YzSiGLK7-sNo_0Wvf5VLwzqsxC2S-j3GJbrZ6tTcPPoELcQ1qg3-6bqC6Y98RMO_1xBzIJRcFsYJQz3YXaaF8b8mZBmPfS0mUqWjIaiuD5VstRwggDVp8iPl2l6l9WhUDPHGMjaYZWRWS9AS8CaIh_nf3lsxRsfjDqjOeGodmWw0hIE0DR9JwgkHdkAysmBtQAC6eyiStQ"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="label-font text-[10px] font-bold uppercase tracking-widest text-primary mb-1 block">Heavy Strategy</span>
+<h4 class="text-xl font-bold text-on-surface">Gloomhaven: Campaign Night</h4>
+</div>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-widest rounded-full">Open</span>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">person</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Host</span>
+<span class="text-sm font-semibold">Alex River</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">group</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Players</span>
+<span class="text-sm font-semibold">3 / 4</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Time</span>
+<span class="text-sm font-semibold">18:30</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">location_on</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Location</span>
+<span class="text-sm font-semibold">The Hearth Cafe</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex md:flex-col justify-center items-center gap-2">
+<button class="w-full md:w-auto px-6 py-2 bg-primary text-on-primary rounded-full font-bold text-sm hover:shadow-lg transition-all scale-95 hover:scale-100 active:scale-95 duration-200">Join</button>
+</div>
+</div>
+<!-- Event Card 2 (Full) -->
+<div class="group relative bg-surface-container-lowest opacity-80 rounded-lg p-6 shadow-sm flex flex-col md:flex-row gap-6">
+<div class="w-full md:w-32 h-32 rounded-md overflow-hidden flex-shrink-0 grayscale">
+<img alt="Catan game board" class="w-full h-full object-cover" data-alt="Close up of classic hexagon board game tiles representing wood, brick, and wheat resources with small wooden house pieces" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPCaMWiGY2FJTXMdLCiKR7lB5guLLfx_t8wUbHsF-MKWu9R-oCEiDAWJqgWjmC3KhiNhk1X4FvsaLeTcSG1Z_sjiySesLBWTHh4bkH_gXvqWwZWqUm-0bGH5IrIFrgwvtXeYdrozBm_ZGGIRb2LuyFYIQ-Az0d4RU6y5uWRiobxzZxezt1WM235-L6TPyes6iv6PjIgGXTfTD_c4FDXQs6A9ghgotW469rqbC1ND5QYg4hKlrXYmiHV6RZ-AJhrjDjGKYvBhAgy5M"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="label-font text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1 block">Classic</span>
+<h4 class="text-xl font-bold text-on-surface">Catan &amp; Chill</h4>
+</div>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-widest rounded-full">Full</span>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-zinc-400 text-sm">person</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Host</span>
+<span class="text-sm font-semibold">Sarah J.</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-zinc-400 text-sm">group</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Players</span>
+<span class="text-sm font-semibold">4 / 4</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-zinc-400 text-sm">schedule</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Time</span>
+<span class="text-sm font-semibold">19:00</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-zinc-400 text-sm">location_on</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Location</span>
+<span class="text-sm font-semibold">Private Residence</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex md:flex-col justify-center items-center gap-2">
+<button class="w-full md:w-auto px-6 py-2 bg-surface-container-highest text-on-surface-variant rounded-full font-bold text-sm cursor-not-allowed">Waitlist</button>
+</div>
+</div>
+<!-- Event Card 3 -->
+<div class="group relative bg-surface-container-lowest rounded-lg p-6 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row gap-6 border-l-4 border-primary">
+<div class="w-full md:w-32 h-32 rounded-md overflow-hidden flex-shrink-0">
+<img alt="Tabletop roleplaying" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Atmospheric shot of multi-colored translucent polyhedral dice scattered on a character sheet with a leather-bound journal" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6ngajKOqiDsYTtfUIx26AWW1EIfgLhxBL71f9ESGgbJ0HzvvPH13cLf1hR6g2-kO460ywoeF6D2hGA0EkiAMLtUOsxJMFjPvjJng92GLPfKljBOA8DSP-8YDezKyAl41mL-EjBMVeUX9o_gvHbJ1gIjuuDL3LT9REppg9pdiJfFgnMVMn_VFnlW-0Mxbh6na5yioxnZnbIcecmZPP-CiVaTVFMZ5qWewAPHJesirSzxb0Rby_8zp-eeSmirCIbdJiSbLt9YUA5Ug"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="label-font text-[10px] font-bold uppercase tracking-widest text-primary mb-1 block">Roleplaying</span>
+<h4 class="text-xl font-bold text-on-surface">D&amp;D One-Shot: Shadow of the Meeple</h4>
+</div>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-widest rounded-full">Open</span>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">person</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Host</span>
+<span class="text-sm font-semibold">Master Marc</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">group</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Players</span>
+<span class="text-sm font-semibold">1 / 5</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Time</span>
+<span class="text-sm font-semibold">20:00</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">location_on</span>
+<div class="flex flex-col">
+<span class="label-font text-[10px] text-on-surface-variant font-bold uppercase">Location</span>
+<span class="text-sm font-semibold">Library Annex</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex md:flex-col justify-center items-center gap-2">
+<button class="w-full md:w-auto px-6 py-2 bg-primary text-on-primary rounded-full font-bold text-sm hover:shadow-lg transition-all scale-95 hover:scale-100 active:scale-95 duration-200">Join</button>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB: Add/Create -->
+<button class="fixed bottom-28 right-6 w-16 h-16 bg-primary-container text-on-primary-container rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 duration-300 ease-spring z-40">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50">
+<div class="bg-orange-50/80 dark:bg-zinc-950/80 backdrop-blur-2xl rounded-t-[2.5rem] shadow-[0_-8px_32px_rgba(0,0,0,0.06)] flex justify-around items-center px-4 pb-6 pt-3 w-full">
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-5 py-2 hover:text-orange-600 transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-plus-jakarta-sans text-[10px] font-semibold tracking-wide uppercase mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-5 py-2 hover:text-orange-600 transition-colors" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-plus-jakarta-sans text-[10px] font-semibold tracking-wide uppercase mt-1">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-orange-200/50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-100 rounded-full px-5 py-2 scale-110 duration-300 ease-spring" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="font-plus-jakarta-sans text-[10px] font-semibold tracking-wide uppercase mt-1">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-5 py-2 hover:text-orange-600 transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-plus-jakarta-sans text-[10px] font-semibold tracking-wide uppercase mt-1">Profile</span>
+</a>
+</div>
+</nav>
+<style>
+        /* Custom styling for standard HTML components to match the editorial vibe */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>
