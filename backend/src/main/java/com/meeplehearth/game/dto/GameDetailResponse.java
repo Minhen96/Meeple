@@ -5,11 +5,13 @@ import com.meeplehearth.game.entity.Game;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public record GameSummaryResponse(
+public record GameDetailResponse(
         UUID id,
         Long bggId,
         String title,
         String thumbnailUrl,
+        String imageUrl,
+        String description,
         Integer yearPublished,
         Integer minPlayers,
         Integer maxPlayers,
@@ -18,12 +20,14 @@ public record GameSummaryResponse(
         BigDecimal complexityWeight,
         BigDecimal bggRating
 ) {
-    public static GameSummaryResponse from(Game game) {
-        return new GameSummaryResponse(
+    public static GameDetailResponse from(Game game) {
+        return new GameDetailResponse(
                 game.getId(),
                 game.getBggId(),
                 game.getTitle(),
                 game.getThumbnailUrl(),
+                game.getImageUrl(),
+                game.getDescription(),
                 game.getYearPublished(),
                 game.getMinPlayers(),
                 game.getMaxPlayers(),

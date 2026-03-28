@@ -124,3 +124,17 @@ management:
   endpoint:
     health:
       show-details: never
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      bgg:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  timelimiter:
+    instances:
+      bgg:
+        timeoutDuration: 8s

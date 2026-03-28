@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -41,15 +42,20 @@ public class UserGame {
     @Column(name = "play_count", nullable = false)
     private int playCount = 0;
 
-    @Column(name = "user_rating")
-    private Integer userRating;
+    @Column(name = "personal_rating", precision = 3, scale = 1)
+    private BigDecimal personalRating;
 
-    @Column(name = "user_notes", columnDefinition = "TEXT")
-    private String userNotes;
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "added_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 }

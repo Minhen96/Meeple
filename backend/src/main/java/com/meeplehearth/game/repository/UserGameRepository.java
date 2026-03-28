@@ -15,12 +15,15 @@ public interface UserGameRepository extends JpaRepository<UserGame, UUID> {
     Optional<UserGame> findByUserIdAndGameId(UUID userId, UUID gameId);
 
     // No N+1: JOIN FETCH game eagerly
-    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId AND ug.isOwned = true")
+    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId AND ug.owned = true")
     List<UserGame> findOwnedByUserId(UUID userId);
 
-    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId AND ug.isWishlisted = true")
+    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId AND ug.wishlisted = true")
     List<UserGame> findWishlistedByUserId(UUID userId);
 
-    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId AND ug.isFavorited = true")
+    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId AND ug.favorited = true")
     List<UserGame> findFavoritedByUserId(UUID userId);
+
+    @Query("SELECT ug FROM UserGame ug JOIN FETCH ug.game WHERE ug.user.id = :userId")
+    List<UserGame> findAllByUserId(UUID userId);
 }

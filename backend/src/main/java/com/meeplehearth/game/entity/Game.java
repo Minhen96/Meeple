@@ -24,9 +24,10 @@ public class Game {
     @Column(name = "bgg_id", unique = true)
     private Long bggId;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String title;
 
+    // Added via V7 migration
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
@@ -42,13 +43,13 @@ public class Game {
     @Column(name = "max_players")
     private Integer maxPlayers;
 
-    @Column(name = "min_playtime")
+    @Column(name = "min_duration")
     private Integer minPlaytime;
 
-    @Column(name = "max_playtime")
+    @Column(name = "max_duration")
     private Integer maxPlaytime;
 
-    @Column(name = "complexity_weight", precision = 4, scale = 2)
+    @Column(name = "complexity", precision = 3, scale = 2)
     private BigDecimal complexityWeight;
 
     @Column(name = "bgg_rating", precision = 4, scale = 2)
@@ -62,4 +63,9 @@ public class Game {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 }
