@@ -58,4 +58,8 @@ public class ApiException extends RuntimeException {
     public static ApiException unauthorized(String message) {
         return new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", message);
     }
+
+    public static ApiException unauthorized(String code, String message) {
+        return new ApiException(HttpStatus.UNAUTHORIZED, code, message);
+    }
 }

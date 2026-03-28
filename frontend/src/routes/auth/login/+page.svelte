@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
+	import GoogleButton from '$lib/components/ui/GoogleButton.svelte';
 	import { api, ApiRequestError } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -88,6 +89,11 @@
 		<span class="text-xs text-on-surface-variant font-label">or</span>
 		<div class="flex-1 h-px bg-outline-variant/30"></div>
 	</div>
+
+	<GoogleButton
+		redirectTo={redirectTo}
+		onError={(msg) => (error = msg)}
+	/>
 
 	<p class="text-center text-sm text-on-surface-variant">
 		Don't have an account?

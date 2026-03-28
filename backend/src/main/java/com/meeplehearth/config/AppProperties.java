@@ -12,6 +12,7 @@ public class AppProperties {
     private Jwt jwt = new Jwt();
     private R2 r2 = new R2();
     private Cors cors = new Cors();
+    private Google google = new Google();
 
     public Jwt getJwt() {
         return jwt;
@@ -35,6 +36,14 @@ public class AppProperties {
 
     public void setCors(Cors cors) {
         this.cors = cors;
+    }
+
+    public Google getGoogle() {
+        return google;
+    }
+
+    public void setGoogle(Google google) {
+        this.google = google;
     }
 
     // --- Nested classes ---
@@ -126,6 +135,18 @@ public class AppProperties {
 
         public void setAllowedOrigins(List<String> allowedOrigins) {
             this.allowedOrigins = allowedOrigins;
+        }
+    }
+
+    public static class Google {
+        private String clientId = "";
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
         }
     }
 }

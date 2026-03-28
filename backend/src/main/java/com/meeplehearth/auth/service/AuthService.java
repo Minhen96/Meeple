@@ -60,6 +60,7 @@ public class AuthService {
     private final JavaMailSender mailSender;
     private final AppProperties appProperties;
     private final Environment environment;
+    private final GoogleAuthService googleAuthService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
@@ -71,7 +72,8 @@ public class AuthService {
             StringRedisTemplate redisTemplate,
             JavaMailSender mailSender,
             AppProperties appProperties,
-            Environment environment) {
+            Environment environment,
+            GoogleAuthService googleAuthService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
@@ -82,6 +84,7 @@ public class AuthService {
         this.mailSender = mailSender;
         this.appProperties = appProperties;
         this.environment = environment;
+        this.googleAuthService = googleAuthService;
     }
 
     // -------------------------------------------------------------------------
@@ -333,6 +336,59 @@ public class AuthService {
         refreshTokenRepository.deleteByUserId(user.getId());
 
         return new MessageResponse("Password has been reset successfully. Please log in with your new password.");
+    }
+
+    // -------------------------------------------------------------------------
+    // Google OAuth
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public AuthResponse googleLogin(String idToken, HttpServletResponse response) {
+        GoogleAuthService.GoogleUserInfo googleUser = googleAuthService.verify(idToken);
+
+        User user = userRepository.findByGoogleId(googleUser.googleId())
+                .or(() -> userRepository.findByEmailIgnoreCase(googleUser.email())
+                        .map(existing -> {
+                            // Link Google ID to existing email account
+                            if (existing.getGoogleId() == null) {
+                                existing.setGoogleId(googleUser.googleId());
+                                userRepository.save(existing);
+                            }
+                            return existing;
+                        }))
+                .orElseGet(() -> {
+                    // New user — create account (email already verified by Google)
+                    User newUser = new User();
+                    newUser.setGoogleId(googleUser.googleId());
+                    newUser.setEmail(googleUser.email().toLowerCase());
+                    newUser.setUsername(generateUniqueUsername(googleUser.displayName()));
+                    newUser.setDisplayName(googleUser.displayName());
+                    newUser.setAvatarUrl(googleUser.avatarUrl());
+                    newUser.setEmailVerified(true);
+                    newUser.setOnboardingCompleted(false);
+                    return userRepository.save(newUser);
+                });
+
+        if (user.getDeletedAt() != null) {
+            throw ApiException.unauthorized("ACCOUNT_DELETED", "This account has been deleted");
+        }
+
+        return issueTokensAndBuildResponse(user, response);
+    }
+
+    private String generateUniqueUsername(String displayName) {
+        String base = (displayName == null ? "user" : displayName)
+                .toLowerCase()
+                .replaceAll("[^a-z0-9]", "");
+        if (base.length() < 3) base = "user";
+        if (base.length() > 20) base = base.substring(0, 20);
+
+        String candidate = base;
+        int suffix = 1;
+        while (userRepository.existsByUsernameIgnoreCase(candidate)) {
+            candidate = base + suffix++;
+        }
+        return candidate;
     }
 
     // -------------------------------------------------------------------------

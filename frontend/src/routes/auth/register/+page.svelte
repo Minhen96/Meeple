@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
+	import GoogleButton from '$lib/components/ui/GoogleButton.svelte';
 	import { api, ApiRequestError } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 
@@ -129,6 +130,17 @@
 	<Button type="submit" {loading} fullWidth disabled={usernameStatus === 'taken'}>
 		Create Account
 	</Button>
+
+	<div class="relative flex items-center gap-3 py-2">
+		<div class="flex-1 h-px bg-outline-variant/30"></div>
+		<span class="text-xs text-on-surface-variant font-label">or</span>
+		<div class="flex-1 h-px bg-outline-variant/30"></div>
+	</div>
+
+	<GoogleButton
+		redirectTo="/"
+		onError={(msg) => (error = msg)}
+	/>
 
 	<p class="text-center text-sm text-on-surface-variant">
 		Already have an account?

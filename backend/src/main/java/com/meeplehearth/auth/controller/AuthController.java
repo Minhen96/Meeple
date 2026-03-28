@@ -143,6 +143,22 @@ public class AuthController {
     }
 
     /**
+     * POST /api/v1/auth/google
+     * Verifies a Google ID token, upserts the user, and sets auth cookies.
+     * Body: { "idToken": "<Google credential>" }
+     */
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> body,
+                                                    HttpServletResponse response) {
+        String idToken = body.get("idToken");
+        if (idToken == null || idToken.isBlank()) {
+            throw com.meeplehearth.common.exception.ApiException.badRequest("MISSING_TOKEN", "Google ID token is required");
+        }
+        AuthResponse authResponse = authService.googleLogin(idToken, response);
+        return ResponseEntity.ok(authResponse);
+    }
+
+    /**
      * GET /api/v1/auth/check-username?username=...
      * Returns { "available": true/false }
      */
