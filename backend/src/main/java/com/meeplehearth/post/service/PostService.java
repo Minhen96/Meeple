@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,11 +31,11 @@ public class PostService {
     private final AppProperties appProperties;
 
     public PostService(PostRepository postRepository,
-                       PostLikeRepository postLikeRepository,
-                       PostCommentRepository postCommentRepository,
-                       UserRepository userRepository,
-                       GameRepository gameRepository,
-                       AppProperties appProperties) {
+            PostLikeRepository postLikeRepository,
+            PostCommentRepository postCommentRepository,
+            UserRepository userRepository,
+            GameRepository gameRepository,
+            AppProperties appProperties) {
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
         this.postCommentRepository = postCommentRepository;
@@ -142,7 +141,8 @@ public class PostService {
     @Transactional
     public void likePost(UUID userId, UUID postId) {
         PostLikeId likeId = new PostLikeId(postId, userId);
-        if (postLikeRepository.existsById(likeId)) return;
+        if (postLikeRepository.existsById(likeId))
+            return;
 
         postLikeRepository.save(new PostLike(likeId));
 
@@ -154,7 +154,8 @@ public class PostService {
     @Transactional
     public void unlikePost(UUID userId, UUID postId) {
         PostLikeId likeId = new PostLikeId(postId, userId);
-        if (!postLikeRepository.existsById(likeId)) return;
+        if (!postLikeRepository.existsById(likeId))
+            return;
 
         postLikeRepository.deleteById(likeId);
 
@@ -204,7 +205,8 @@ public class PostService {
     }
 
     private Set<UUID> likedPostIds(UUID userId, Page<Post> posts) {
-        if (userId == null) return Set.of();
+        if (userId == null)
+            return Set.of();
         Set<UUID> postIds = posts.stream().map(Post::getId).collect(Collectors.toSet());
         return postLikeRepository.findByIdPostIdInAndIdUserId(postIds, userId)
                 .stream().map(PostLikeId::getPostId).collect(Collectors.toSet());

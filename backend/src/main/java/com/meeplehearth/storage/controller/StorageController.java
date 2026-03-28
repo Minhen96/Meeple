@@ -26,7 +26,7 @@ import java.util.UUID;
 public class StorageController {
 
     private static final Duration PRESIGN_EXPIRY = Duration.ofMinutes(10);
-    private static final long MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    // private static final long MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
     private final S3Presigner s3Presigner;
     private final AppProperties appProperties;
@@ -42,8 +42,9 @@ public class StorageController {
      * Returns a presigned PUT URL for direct Cloudflare R2 upload.
      * Client uploads directly to R2, then passes the returned key to the API.
      *
-     * Body:     { "contentType": "image/jpeg" }
-     * Response: { "uploadUrl": "https://...", "key": "uploads/uuid/uuid.jpg", "publicUrl": "https://cdn.../..." }
+     * Body: { "contentType": "image/jpeg" }
+     * Response: { "uploadUrl": "https://...", "key": "uploads/uuid/uuid.jpg",
+     * "publicUrl": "https://cdn.../..." }
      */
     @PostMapping("/presign")
     public ResponseEntity<Map<String, String>> presign(
@@ -70,27 +71,21 @@ public class StorageController {
         return ResponseEntity.ok(Map.of(
                 "uploadUrl", uploadUrl,
                 "key", key,
-                "publicUrl", publicUrl
-        ));
+                "publicUrl", publicUrl));
     }
 
     private String extensionFor(String contentType) {
         return switch (contentType) {
             case "image/jpeg" -> "jpg";
-            case "image/png"  -> "png";
+            case "image/png" -> "png";
             case "image/webp" -> "webp";
-            case "image/gif"  -> "gif";
+            case "image/gif" -> "gif";
             default -> throw ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE",
                     "Only image/jpeg, image/png, image/webp, and image/gif are allowed");
         };
     }
 
     public record PresignRequest(
-            @NotBlank
-            @Pattern(
-                regexp = "image/(jpeg|png|webp|gif)",
-                message = "contentType must be one of: image/jpeg, image/png, image/webp, image/gif"
-            )
-            String contentType
-    ) {}
+            @NotBlank @Pattern(regexp = "image/(jpeg|png|webp|gif)", message = "contentType must be one of: image/jpeg, image/png, image/webp, image/gif") String contentType) {
+    }
 }

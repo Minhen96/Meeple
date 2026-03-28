@@ -111,9 +111,9 @@ public class GameService {
                     return newUg;
                 });
 
-        ug.setOwned(req.isOwned());
-        ug.setWishlisted(req.isWishlisted());
-        ug.setFavorited(req.isFavorited());
+        if (req.isOwned() != null)        ug.setOwned(req.isOwned());
+        if (req.isWishlisted() != null)   ug.setWishlisted(req.isWishlisted());
+        if (req.isFavorited() != null)    ug.setFavorited(req.isFavorited());
         if (req.personalRating() != null) ug.setPersonalRating(req.personalRating());
         if (req.notes() != null)          ug.setNotes(req.notes());
 

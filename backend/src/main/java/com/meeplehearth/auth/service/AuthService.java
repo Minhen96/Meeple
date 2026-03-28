@@ -37,7 +37,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -64,15 +63,15 @@ public class AuthService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
-                       RefreshTokenRepository refreshTokenRepository,
-                       EmailVerificationTokenRepository emailVerificationTokenRepository,
-                       PasswordResetTokenRepository passwordResetTokenRepository,
-                       JwtUtil jwtUtil,
-                       PasswordEncoder passwordEncoder,
-                       StringRedisTemplate redisTemplate,
-                       JavaMailSender mailSender,
-                       AppProperties appProperties,
-                       Environment environment) {
+            RefreshTokenRepository refreshTokenRepository,
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            JwtUtil jwtUtil,
+            PasswordEncoder passwordEncoder,
+            StringRedisTemplate redisTemplate,
+            JavaMailSender mailSender,
+            AppProperties appProperties,
+            Environment environment) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
@@ -257,7 +256,8 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
         // Always return success to prevent email enumeration
         if (userOpt.isEmpty() || userOpt.get().isEmailVerified()) {
-            return new MessageResponse("If that email exists and is unverified, a new verification email has been sent.");
+            return new MessageResponse(
+                    "If that email exists and is unverified, a new verification email has been sent.");
         }
 
         User user = userOpt.get();
@@ -390,8 +390,7 @@ public class AuthService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getAvatarUrl(),
-                user.getEmail()
-        );
+                user.getEmail());
     }
 
     private void clearAuthCookies(HttpServletResponse response) {
@@ -533,6 +532,7 @@ public class AuthService {
                     </p>
                   </body>
                 </html>
-                """.formatted(resetUrl);
+                """
+                .formatted(resetUrl);
     }
 }
