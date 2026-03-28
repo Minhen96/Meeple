@@ -25,6 +25,7 @@ repositories {
 }
 
 dependencies {
+	// Spring Boot starters
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
@@ -33,11 +34,34 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
+	implementation("org.springframework.boot:spring-boot-starter-mail")
+
+	// Database
+	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.flywaydb:flyway-core")
 	implementation("org.flywaydb:flyway-database-postgresql")
+
+	// JWT
+	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
+	// Cloudflare R2 (S3-compatible)
+	implementation(platform("software.amazon.awssdk:bom:2.29.0"))
+	implementation("software.amazon.awssdk:s3")
+
+	// Resilience4j circuit breakers
+	implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
+	implementation("io.github.resilience4j:resilience4j-reactor:2.2.0")
+
+	// API documentation
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+
+	// Lombok
 	compileOnly("org.projectlombok:lombok")
-	runtimeOnly("org.postgresql:postgresql")
 	annotationProcessor("org.projectlombok:lombok")
+
+	// Test
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.security:spring-security-test")

@@ -1,0 +1,125 @@
+spring:
+  application:
+    name: meeple-backend
+  profiles:
+    active: local
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      url: ${REDIS_URL}
+
+  mail:
+    host: smtp.resend.com
+    port: 465
+    username: resend
+    password: ${RESEND_API_KEY}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/meeple_dev}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-256-bits-long-xx}
+    access-token-expiry-ms: 900000       # 15 minutes
+    refresh-token-expiry-days: 30
+  cors:
+    allowed-origins: http://localhost:5173
+  r2:
+    endpoint: ${R2_ENDPOINT:}
+    access-key: ${R2_ACCESS_KEY:}
+    secret-key: ${R2_SECRET_KEY:}
+    bucket: ${R2_BUCKET:meeple-media}
+    public-url: ${R2_PUBLIC_URL:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiry-ms: 900000
+    refresh-token-expiry-days: 30
+  cors:
+    allowed-origins: ${FRONTEND_URL}
+  r2:
+    endpoint: ${R2_ENDPOINT}
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+    bucket: ${R2_BUCKET}
+    public-url: ${R2_PUBLIC_URL}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiry-ms: 900000
+    refresh-token-expiry-days: 30
+  cors:
+    allowed-origins: ${FRONTEND_URL}
+  r2:
+    endpoint: ${R2_ENDPOINT}
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+    bucket: ${R2_BUCKET}
+    public-url: ${R2_PUBLIC_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never

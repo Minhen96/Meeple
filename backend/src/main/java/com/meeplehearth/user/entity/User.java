@@ -8,7 +8,6 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.Instant;
 import java.util.UUID;
 
-// TODO: Add full column definitions per DB schema in PLAN.md
 @Entity
 @Table(name = "users")
 @Getter
@@ -32,11 +31,17 @@ public class User {
     @Column(name = "display_name", length = 50)
     private String displayName;
 
-    @Column(name = "avatar_url")
+    @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
     @Column(name = "bio", length = 300)
     private String bio;
+
+    @Column(name = "location", length = 100)
+    private String location;
+
+    @Column(name = "google_id", unique = true, length = 255)
+    private String googleId;
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
@@ -49,4 +54,9 @@ public class User {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 }
