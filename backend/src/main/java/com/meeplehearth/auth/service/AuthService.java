@@ -481,7 +481,7 @@ public class AuthService {
             String frontendUrl = appProperties.getCors().getAllowedOrigins().isEmpty()
                     ? "http://localhost:5173"
                     : appProperties.getCors().getAllowedOrigins().get(0);
-            String resetUrl = frontendUrl + "/reset-password?token=" + rawToken;
+            String resetUrl = frontendUrl + "/auth/reset-password?token=" + rawToken;
 
             jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
