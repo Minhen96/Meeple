@@ -1,0 +1,51 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # Riverpod-generated *Ref subtypes are deprecated in favour of Ref (v3).
+    # Suppressed here because they are emitted by the code generator itself.
+    deprecated_member_use_from_same_package: ignore
+    # Generated .g.dart files occasionally miss trailing commas.
+    require_trailing_commas: ignore
+  exclude:
+    - lib/firebase_options.dart   # placeholder — replaced by flutterfire configure
+linter:
+  rules:
+    # Style
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    sort_pub_dependencies: false
+    always_use_package_imports: true
+
+    # Correctness
+    avoid_print: true
+    avoid_empty_else: true
+    avoid_slow_async_io: true
+    cancel_subscriptions: true
+    close_sinks: true
+    literal_only_boolean_expressions: true
+    no_adjacent_strings_in_list: true
+    test_types_in_equals: true
+    throw_in_finally: true
+    unnecessary_statements: true
+
+    # Design
+    avoid_positional_boolean_parameters: true
+    avoid_classes_with_only_static_members: false
+    prefer_constructors_over_static_methods: true
+    use_enums: true
+
+    # Flutter specific
+    use_build_context_synchronously: true
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
+    use_colored_box: true
+    use_decorated_box: true
+
+    # Pub
+    depend_on_referenced_packages: true
+    secure_pubspec_urls: true
