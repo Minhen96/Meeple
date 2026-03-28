@@ -39,10 +39,11 @@ public class UserService {
     public UserProfileResponse updateMe(UUID userId, UpdateProfileRequest req) {
         User user = findActiveUser(userId);
 
-        if (req.displayName() != null) user.setDisplayName(req.displayName());
-        if (req.bio() != null)         user.setBio(req.bio());
-        if (req.location() != null)    user.setLocation(req.location());
-        if (req.avatarUrl() != null)   user.setAvatarUrl(req.avatarUrl());
+        if (req.displayName() != null)          user.setDisplayName(req.displayName());
+        if (req.bio() != null)                  user.setBio(req.bio());
+        if (req.location() != null)             user.setLocation(req.location());
+        if (req.avatarUrl() != null)            user.setAvatarUrl(req.avatarUrl());
+        if (Boolean.TRUE.equals(req.onboardingCompleted())) user.setOnboardingCompleted(true);
 
         return UserProfileResponse.from(userRepository.save(user));
     }

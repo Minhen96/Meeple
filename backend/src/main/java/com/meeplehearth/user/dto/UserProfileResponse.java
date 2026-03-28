@@ -12,6 +12,7 @@ public record UserProfileResponse(
         String avatarUrl,
         String bio,
         String location,
+        boolean onboardingCompleted,
         Instant createdAt
 ) {
     public static UserProfileResponse from(User user) {
@@ -22,6 +23,7 @@ public record UserProfileResponse(
                 user.getAvatarUrl(),
                 user.getBio(),
                 user.getLocation(),
+                user.isOnboardingCompleted(),
                 user.getCreatedAt()
         );
     }
