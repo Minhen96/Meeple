@@ -16,7 +16,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
 
 	try {
 		const apiUrl = import.meta.env.VITE_API_URL as string;
-		const res = await fetch(`${apiUrl}/api/v1/me`, {
+		const res = await fetch(`${apiUrl}/api/v1/users/me`, {
 			headers: { Cookie: `access_token=${accessToken}` }
 		});
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
+	import { goto } from '$app/navigation';
 </script>
 
 <svelte:head><title>Welcome — Meeple & Hearth</title></svelte:head>
@@ -26,7 +27,7 @@
 		{/each}
 	</div>
 
-	<Button fullWidth onclick={() => history.pushState({}, '', '/onboarding/profile')}>
+	<Button fullWidth onclick={() => goto('/onboarding/profile')}>
 		Get Started
 	</Button>
 </div>

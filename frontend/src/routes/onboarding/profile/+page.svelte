@@ -1,23 +1,48 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import { goto } from '$app/navigation';
+	import { usersApi } from '$lib/api/users';
+	import { setUser } from '$lib/stores/auth';
+	import { ApiRequestError } from '$lib/api/client';
 
 	let displayName = $state('');
+	let bio = $state('');
 	let location = $state('');
 	let loading = $state(false);
+	let error = $state('');
+
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
+		error = '';
+		loading = true;
+		try {
+			const updated = await usersApi.updateMe({
+				displayName: displayName || undefined,
+				bio: bio || undefined,
+				location: location || undefined
+			});
+			setUser(updated);
+			goto('/onboarding/bgg-import');
+		} catch (err) {
+			if (err instanceof ApiRequestError) {
+				error = err.message;
+			} else {
+				error = 'Something went wrong.';
+			}
+		} finally {
+			loading = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Set Up Profile — Meeple & Hearth</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-6">Set up your profile</h2>
 
-<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); goto('/onboarding/bgg-import'); }}>
-	<!-- Avatar placeholder -->
-	<div class="flex justify-center mb-4">
-		<div class="w-24 h-24 rounded-full bg-primary-fixed flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
-			<span class="material-symbols-outlined text-primary text-3xl">add_a_photo</span>
-		</div>
-	</div>
+<form class="space-y-4" onsubmit={handleSubmit}>
+	{#if error}
+		<p class="text-sm text-error bg-error-container rounded-xl px-4 py-3">{error}</p>
+	{/if}
 
 	<input
 		type="text"
@@ -26,6 +51,13 @@
 		required
 		class="w-full bg-surface-container-highest rounded-xl px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/20 focus:outline-none font-body text-sm"
 	/>
+
+	<textarea
+		placeholder="Bio (optional)"
+		bind:value={bio}
+		rows="2"
+		class="w-full bg-surface-container-highest rounded-xl px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/20 focus:outline-none font-body text-sm resize-none"
+	></textarea>
 
 	<input
 		type="text"

@@ -20,8 +20,10 @@
 		usernameStatus = 'checking';
 		usernameTimer = setTimeout(async () => {
 			try {
-				await api.get(`/api/v1/users/check-username?username=${username}`);
-				usernameStatus = 'available';
+				const res = await api.get<{ data: { available: boolean } }>(
+					`/api/v1/auth/check-username?username=${encodeURIComponent(username)}`
+				);
+				usernameStatus = res.data.available ? 'available' : 'taken';
 			} catch {
 				usernameStatus = 'taken';
 			}

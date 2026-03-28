@@ -20,24 +20,17 @@ export interface PaginatedResponse<T> {
 }
 
 // ─── User ──────────────────────────────────────────────────────────────────
+// Maps to UserProfileResponse
 
 export interface User {
 	id: string;
 	username: string;
-	email: string;
-	displayName: string;
+	displayName: string | null;
 	avatarUrl: string | null;
 	bio: string | null;
 	location: string | null;
 	onboardingCompleted: boolean;
 	createdAt: string;
-}
-
-export interface UserProfile extends User {
-	gamesOwned: number;
-	sessionCount: number;
-	friendCount: number;
-	friendshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'friends';
 }
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -54,102 +47,99 @@ export interface RegisterRequest {
 }
 
 // ─── Game ──────────────────────────────────────────────────────────────────
+// GameSummary maps to GameSummaryResponse
 
-export interface Game {
+export interface GameSummary {
 	id: string;
 	bggId: number;
-	name: string;
-	description: string | null;
-	imageUrl: string | null;
+	title: string;
+	thumbnailUrl: string | null;
+	yearPublished: number | null;
 	minPlayers: number | null;
 	maxPlayers: number | null;
-	playingTime: number | null;
+	minPlaytime: number | null;
+	maxPlaytime: number | null;
 	complexityWeight: number | null;
-	yearPublished: number | null;
 	bggRating: number | null;
-	categories: string[];
-	mechanics: string[];
-	hasRulebook: boolean;
 }
 
+// GameDetail maps to GameDetailResponse
+export interface GameDetail extends GameSummary {
+	imageUrl: string | null;
+	description: string | null;
+}
+
+// GameSearchResult maps to GameSearchResult
+export interface GameSearchResult {
+	id: string | null; // null if not yet cached in DB
+	bggId: number;
+	title: string;
+	yearPublished: number | null;
+	thumbnailUrl: string | null;
+}
+
+// UserGame maps to UserGameResponse
 export interface UserGame {
 	id: string;
-	gameId: string;
-	game: Game;
+	game: GameSummary;
 	isOwned: boolean;
 	isWishlisted: boolean;
 	isFavorited: boolean;
-	personalRating: number | null;
 	playCount: number;
+	personalRating: number | null;
 	notes: string | null;
 }
 
 // ─── Event ─────────────────────────────────────────────────────────────────
-
-export type EventVisibility = 'invite_only' | 'friends' | 'public';
-export type EventStatus = 'open' | 'full' | 'completed' | 'cancelled';
-export type RsvpStatus = 'invited' | 'accepted' | 'declined';
+// Maps to EventResponse — backend returns uppercase enum names
 
 export interface Event {
 	id: string;
-	hostId: string;
-	host: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
-	gameId: string | null;
-	game: Game | null;
+	host: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+	game: GameSummary | null;
 	title: string;
 	description: string | null;
-	scheduledAt: string;
 	location: string | null;
-	maxPlayers: number;
-	currentPlayers: number;
-	visibility: EventVisibility;
-	status: EventStatus;
-	myRsvpStatus: RsvpStatus | null;
+	scheduledAt: string;
+	maxParticipants: number;
+	participantCount: number;
+	visibility: 'PUBLIC' | 'FRIENDS' | 'INVITE_ONLY';
+	status: 'OPEN' | 'FULL' | 'COMPLETED' | 'CANCELLED';
+	myRsvp: 'ACCEPTED' | 'DECLINED' | 'INVITED' | null;
 	createdAt: string;
-}
-
-export interface EventParticipant {
-	userId: string;
-	user: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
-	status: RsvpStatus;
 }
 
 // ─── Post ──────────────────────────────────────────────────────────────────
+// Maps to PostResponse
 
 export interface Post {
 	id: string;
-	authorId: string;
-	author: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
+	author: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 	caption: string | null;
-	images: PostImage[];
-	gameId: string | null;
-	game: Pick<Game, 'id' | 'name' | 'imageUrl'> | null;
 	location: string | null;
 	playedAt: string | null;
+	imageUrls: string[];
+	game: GameSummary | null;
+	taggedUsers: { id: string; username: string; avatarUrl: string | null }[];
 	likeCount: number;
 	commentCount: number;
-	isLiked: boolean;
-	taggedUsers: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>[];
+	likedByMe: boolean;
 	createdAt: string;
 }
 
-export interface PostImage {
-	id: string;
-	url: string;
-	order: number;
-}
-
+// Maps to PostCommentResponse
 export interface Comment {
 	id: string;
 	authorId: string;
-	author: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
-	content: string;
+	authorUsername: string;
+	authorAvatarUrl: string | null;
+	body: string;
 	createdAt: string;
 }
 
 // ─── Friend Request ────────────────────────────────────────────────────────
 
-export type FriendRequestStatus = 'pending' | 'accepted' | 'declined';
+export type FriendRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
 
 export interface FriendRequest {
 	id: string;
@@ -186,26 +176,5 @@ export interface Notification {
 	isRead: boolean;
 	data: Record<string, string>;
 	path: string | null;
-	createdAt: string;
-}
-
-// ─── Match ─────────────────────────────────────────────────────────────────
-
-export interface MatchRequest {
-	id: string;
-	userId: string;
-	gameId: string;
-	game: Pick<Game, 'id' | 'name' | 'imageUrl'>;
-	availableFrom: string;
-	availableUntil: string;
-	status: 'active' | 'matched' | 'expired' | 'cancelled';
-	createdAt: string;
-}
-
-export interface MatchGroup {
-	id: string;
-	gameId: string;
-	game: Pick<Game, 'id' | 'name' | 'imageUrl'>;
-	players: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>[];
 	createdAt: string;
 }
