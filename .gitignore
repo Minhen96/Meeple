@@ -2,6 +2,7 @@
 node_modules/
 .pnp
 .pnp.js
+frontend/package-lock.json
 
 # SvelteKit build
 .svelte-kit/
