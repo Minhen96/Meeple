@@ -27,4 +27,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @EntityGraph(attributePaths = {"author", "game", "images"})
     @Query("SELECT p FROM Post p WHERE p.author.id = :userId AND p.deletedAt IS NULL ORDER BY p.createdAt DESC")
     Page<Post> findByAuthorId(UUID userId, Pageable pageable);
+
+    // Phase 1: global feed (Phase 2 will filter by friends)
+    @EntityGraph(attributePaths = {"author", "game", "images"})
+    @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL ORDER BY p.createdAt DESC")
+    Page<Post> findGlobalFeed(Pageable pageable);
 }

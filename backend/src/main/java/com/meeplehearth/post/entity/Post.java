@@ -39,6 +39,13 @@ public class Post {
     @Column(columnDefinition = "TEXT")
     private String caption;
 
+    @Column(name = "location")
+    private String location;
+
+    @Column(name = "played_at")
+    private Instant playedAt;
+
+    // Denormalized counters — incremented/decremented in service to avoid COUNT queries
     @Column(name = "like_count", nullable = false)
     private int likeCount = 0;
 
@@ -46,6 +53,7 @@ public class Post {
     private int commentCount = 0;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
     private List<PostImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -59,4 +67,9 @@ public class Post {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 }

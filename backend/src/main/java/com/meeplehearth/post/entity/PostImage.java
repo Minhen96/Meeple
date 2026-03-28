@@ -22,9 +22,9 @@ public class PostImage {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    @Column(name = "r2_key", nullable = false)
-    private String r2Key;
+    @Column(name = "url", nullable = false)
+    private String url;
 
-    @Column(name = "sort_order", nullable = false)
-    private int sortOrder = 0;
+    @Column(name = "display_order", nullable = false)
+    private int displayOrder = 0;
 }
