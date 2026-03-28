@@ -57,7 +57,8 @@ app:
     access-token-expiry-ms: 900000       # 15 minutes
     refresh-token-expiry-days: 30
   cors:
-    allowed-origins: http://localhost:5173
+    allowed-origins:
+      - http://localhost:5173
   r2:
     endpoint: ${R2_ENDPOINT:}
     access-key: ${R2_ACCESS_KEY:}
