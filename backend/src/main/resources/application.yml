@@ -60,11 +60,11 @@ app:
     allowed-origins:
       - http://localhost:5173
   r2:
-    endpoint: ${R2_ENDPOINT:}
-    access-key: ${R2_ACCESS_KEY:}
-    secret-key: ${R2_SECRET_KEY:}
+    endpoint: ${R2_ENDPOINT:http://localhost:9000}
+    access-key: ${R2_ACCESS_KEY:mock-access-key}
+    secret-key: ${R2_SECRET_KEY:mock-secret-key}
     bucket: ${R2_BUCKET:meeple-media}
-    public-url: ${R2_PUBLIC_URL:}
+    public-url: ${R2_PUBLIC_URL:http://localhost:9000/meeple-media}
 
 ---
 spring:

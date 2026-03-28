@@ -8,7 +8,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 // TODO: Configure STOMP endpoint, topic prefix, app destination prefix, and JWT handshake interceptor
 @Configuration
-@EnableWebSocketMessageBroker
+// @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
