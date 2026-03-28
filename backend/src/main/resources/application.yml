@@ -3,6 +3,8 @@ spring:
     name: meeple-backend
   profiles:
     active: local
+  main:
+    lazy-initialization: true
 
   jpa:
     hibernate:
@@ -65,6 +67,8 @@ app:
     secret-key: ${R2_SECRET_KEY:mock-secret-key}
     bucket: ${R2_BUCKET:meeple-media}
     public-url: ${R2_PUBLIC_URL:http://localhost:9000/meeple-media}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
 
 ---
 spring:
@@ -90,6 +94,8 @@ app:
     secret-key: ${R2_SECRET_KEY}
     bucket: ${R2_BUCKET}
     public-url: ${R2_PUBLIC_URL}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
 
 ---
 spring:
@@ -115,6 +121,8 @@ app:
     secret-key: ${R2_SECRET_KEY}
     bucket: ${R2_BUCKET}
     public-url: ${R2_PUBLIC_URL}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
 
 management:
   endpoints:
