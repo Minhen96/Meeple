@@ -9,12 +9,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record CreateEventRequest(
-        @NotBlank @Size(min = 3, max = 100) String title,
+        @NotBlank @Size(min = 3, max = 255) String title,
         @Size(max = 1000) String description,
-        @Size(max = 200) String location,
+        @Size(max = 255) String location,
         @NotNull @Future Instant scheduledAt,
         UUID gameId,
-        Integer maxPlayers,
-        boolean isPublic
+        Integer maxParticipants,
+        @NotNull String visibility   // "INVITE_ONLY" | "FRIENDS" | "PUBLIC"
 ) {
 }
