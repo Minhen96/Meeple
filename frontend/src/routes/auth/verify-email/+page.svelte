@@ -22,7 +22,7 @@
 				await api.post('/api/v1/auth/verify-email', { token });
 				verified = true;
 				// Auto-login cookies are set — redirect after short delay
-				setTimeout(() => goto('/'), 1500);
+				setTimeout(() => { window.location.href = '/'; }, 1500);
 			} catch (err) {
 				if (err instanceof ApiRequestError) {
 					error = err.message;

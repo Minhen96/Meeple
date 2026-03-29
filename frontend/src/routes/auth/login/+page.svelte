@@ -20,7 +20,7 @@
 
 		try {
 			await api.post('/api/v1/auth/login', { emailOrUsername, password });
-			goto(redirectTo);
+			window.location.href = redirectTo;
 		} catch (err) {
 			if (err instanceof ApiRequestError) {
 				error = err.message;
