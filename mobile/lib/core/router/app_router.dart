@@ -6,8 +6,11 @@ import 'package:meeple_hearth/features/auth/presentation/register_screen.dart';
 import 'package:meeple_hearth/features/auth/presentation/reset_password_screen.dart';
 import 'package:meeple_hearth/features/auth/presentation/verify_email_screen.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/features/events/presentation/create_event_screen.dart';
+import 'package:meeple_hearth/features/events/presentation/event_detail_screen.dart';
 import 'package:meeple_hearth/features/events/presentation/events_screen.dart';
 import 'package:meeple_hearth/features/home/presentation/home_screen.dart';
+import 'package:meeple_hearth/features/library/presentation/game_detail_screen.dart';
 import 'package:meeple_hearth/features/library/presentation/library_screen.dart';
 import 'package:meeple_hearth/features/notifications/presentation/notifications_screen.dart';
 import 'package:meeple_hearth/features/onboarding/presentation/onboarding_add_game_screen.dart';
@@ -51,6 +54,14 @@ abstract final class AppRoutes {
 
   /// Build a post detail path — e.g. `AppRoutes.postDetail('abc123')`.
   static String postDetail(String postId) => '/posts/$postId';
+
+  /// Build a game detail path — e.g. `AppRoutes.gameDetail('abc123')`.
+  static String gameDetail(String gameId) => '/library/$gameId';
+
+  static const createEvent = '/events/create';
+
+  /// Build an event detail path — e.g. `AppRoutes.eventDetail('abc123')`.
+  static String eventDetail(String eventId) => '/events/$eventId';
 }
 
 @Riverpod(keepAlive: true)
@@ -176,6 +187,22 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: '/search',
         builder: (_, __) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/library/:gameId',
+        builder: (_, state) => GameDetailScreen(
+          gameId: state.pathParameters['gameId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/events/create',
+        builder: (_, __) => const CreateEventScreen(),
+      ),
+      GoRoute(
+        path: '/events/:eventId',
+        builder: (_, state) => EventDetailScreen(
+          eventId: state.pathParameters['eventId']!,
+        ),
       ),
     ],
   );

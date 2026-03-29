@@ -47,11 +47,17 @@ abstract final class ApiConstants {
   static const String games = '$v1/games';
   static const String myCollection = '$v1/users/me/games';
 
+  // ── Feed ──────────────────────────────────────────────────────────────────
+  static const String feed = '$v1/feed';
+
   // ── Posts ─────────────────────────────────────────────────────────────────
   static const String posts = '$v1/posts';
 
   // ── Events ────────────────────────────────────────────────────────────────
   static const String events = '$v1/events';
+
+  // ── BGG ───────────────────────────────────────────────────────────────────
+  static const String bgg = '$v1/users/me/bgg';
 
   // ── FCM ───────────────────────────────────────────────────────────────────
   static const String fcmToken = '$v1/users/me/fcm-token';
