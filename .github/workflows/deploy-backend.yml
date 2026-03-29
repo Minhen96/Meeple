@@ -36,8 +36,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: Meeple
-          environment_name: Meeple-prod
+          application_name: Meeple-backend
+          environment_name: Meeple-backend-env
           region: ap-southeast-1
           version_label: ${{ github.sha }}
           deployment_package: backend/Dockerrun.aws.json
