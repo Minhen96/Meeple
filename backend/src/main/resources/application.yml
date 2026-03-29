@@ -69,6 +69,8 @@ app:
     public-url: ${R2_PUBLIC_URL:http://localhost:9000/meeple-media}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+  email:
+    from: ${EMAIL_FROM:noreply@meeple.yapminhen.com}
 
 ---
 spring:
@@ -96,6 +98,8 @@ app:
     public-url: ${R2_PUBLIC_URL}
   google:
     client-id: ${GOOGLE_CLIENT_ID}
+  email:
+    from: ${EMAIL_FROM}
 
 ---
 spring:
@@ -123,6 +127,8 @@ app:
     public-url: ${R2_PUBLIC_URL}
   google:
     client-id: ${GOOGLE_CLIENT_ID}
+  email:
+    from: ${EMAIL_FROM}
 
 management:
   endpoints:

@@ -517,11 +517,11 @@ public class AuthService {
             String frontendUrl = appProperties.getCors().getAllowedOrigins().isEmpty()
                     ? "http://localhost:5173"
                     : appProperties.getCors().getAllowedOrigins().get(0);
-            String verifyUrl = frontendUrl + "/verify-email?token=" + rawToken;
+            String verifyUrl = frontendUrl + "/auth/verify-email?token=" + rawToken;
 
             jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom("noreply@meeplehearth.com");
+            helper.setFrom(appProperties.getEmail().getFrom());
             helper.setTo(toEmail);
             helper.setSubject("Verify your Meeple account");
             helper.setText(buildVerificationEmailHtml(verifyUrl), true);
@@ -541,7 +541,7 @@ public class AuthService {
 
             jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom("noreply@meeplehearth.com");
+            helper.setFrom(appProperties.getEmail().getFrom());
             helper.setTo(toEmail);
             helper.setSubject("Reset your Meeple password");
             helper.setText(buildPasswordResetEmailHtml(resetUrl), true);

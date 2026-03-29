@@ -54,6 +54,9 @@ dependencies {
 	implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
 	implementation("io.github.resilience4j:resilience4j-reactor:2.2.0")
 
+	// Load .env file in local dev (safe no-op if file doesn't exist)
+	implementation("me.paulschwarz:spring-dotenv:4.0.0")
+
 	// Google OAuth (ID token verification)
 	implementation("com.google.auth:google-auth-library-oauth2-http:1.30.0")
 

@@ -13,6 +13,7 @@ public class AppProperties {
     private R2 r2 = new R2();
     private Cors cors = new Cors();
     private Google google = new Google();
+    private Email email = new Email();
 
     public Jwt getJwt() {
         return jwt;
@@ -44,6 +45,14 @@ public class AppProperties {
 
     public void setGoogle(Google google) {
         this.google = google;
+    }
+
+    public Email getEmail() {
+        return email;
+    }
+
+    public void setEmail(Email email) {
+        this.email = email;
     }
 
     // --- Nested classes ---
@@ -147,6 +156,18 @@ public class AppProperties {
 
         public void setClientId(String clientId) {
             this.clientId = clientId;
+        }
+    }
+
+    public static class Email {
+        private String from = "noreply@meeple.yapminhen.com";
+
+        public String getFrom() {
+            return from;
+        }
+
+        public void setFrom(String from) {
+            this.from = from;
         }
     }
 }
