@@ -1,4 +1,4 @@
-import { redirect } from '@sveltejs/kit';
+import { redirect, isRedirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 const PUBLIC_PREFIXES = ['/auth', '/onboarding'];
@@ -35,7 +35,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
 
 		return { user };
 	} catch (e) {
-		if (e instanceof Response) throw e; // rethrow SvelteKit redirects
+		if (isRedirect(e)) throw e;
 		if (!isPublic) {
 			throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
 		}
