@@ -64,8 +64,16 @@
 	const isUsernameValid = $derived(
 		username.length >= 3 &&
 			username.length <= 20 &&
-			/^[a-z][a-z0-9_]*$/.test(username),
+			/^[a-z0-9][a-z0-9_]*$/.test(username),
 	);
+	const usernameError = $derived((): string => {
+		if (!touched.username || username.length === 0) return '';
+		if (username.length < 3) return 'Too short — minimum 3 characters';
+		if (username.length > 20) return 'Too long — maximum 20 characters';
+		if (!/^[a-z0-9]/.test(username)) return 'Must start with a letter or number';
+		if (!/^[a-z0-9][a-z0-9_]*$/.test(username)) return 'Only letters, numbers, and underscores allowed';
+		return '';
+	})();
 	const isPasswordValid = $derived(
 		password.length >= 8 &&
 			password.length <= 128 &&
@@ -143,7 +151,8 @@
 				type="text"
 				placeholder="Username"
 				bind:value={username}
-				oninput={() => {
+				oninput={(e) => {
+					username = (e.target as HTMLInputElement).value.toLowerCase();
 					touched.username = true;
 					onUsernameInput();
 				}}
@@ -168,22 +177,16 @@
 				>
 			{/if}
 		</div>
-		<p
-			class="text-[11px] mt-1 px-1 transition-colors {touched.username &&
-			!isUsernameValid
-				? 'text-error'
-				: 'text-on-surface-variant'}"
-		>
-			3-20 characters
-		</p>
-		{#if usernameStatus === "taken"}
-			<p class="text-xs text-error mt-1 px-1">Username already taken</p>
+		{#if usernameError}
+			<p class="text-[11px] mt-1 px-1 text-error">{usernameError}</p>
+		{:else if usernameStatus === "taken"}
+			<p class="text-[11px] mt-1 px-1 text-error">Username already taken</p>
 		{:else if usernameStatus === "available"}
-			<p class="text-xs text-tertiary mt-1 px-1">Username available</p>
+			<p class="text-[11px] mt-1 px-1 text-tertiary">Username available</p>
 		{:else if usernameStatus === "error"}
-			<p class="text-xs text-error mt-1 px-1">
-				Failed to check username. Is the backend running?
-			</p>
+			<p class="text-[11px] mt-1 px-1 text-error">Failed to check username. Is the backend running?</p>
+		{:else}
+			<p class="text-[11px] mt-1 px-1 text-on-surface-variant">3-20 characters, letters, numbers, underscores</p>
 		{/if}
 	</div>
 
