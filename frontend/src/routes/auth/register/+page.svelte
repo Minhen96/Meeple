@@ -66,14 +66,14 @@
 			username.length <= 20 &&
 			/^[a-z0-9][a-z0-9_]*$/.test(username),
 	);
-	const usernameError = $derived((): string => {
+	const usernameError = $derived.by((): string => {
 		if (!touched.username || username.length === 0) return '';
 		if (username.length < 3) return 'Too short — minimum 3 characters';
 		if (username.length > 20) return 'Too long — maximum 20 characters';
 		if (!/^[a-z0-9]/.test(username)) return 'Must start with a letter or number';
 		if (!/^[a-z0-9][a-z0-9_]*$/.test(username)) return 'Only letters, numbers, and underscores allowed';
 		return '';
-	})();
+	});
 	const isPasswordValid = $derived(
 		password.length >= 8 &&
 			password.length <= 128 &&
