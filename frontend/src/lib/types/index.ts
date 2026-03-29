@@ -137,6 +137,27 @@ export interface Comment {
 	createdAt: string;
 }
 
+// ─── Match ─────────────────────────────────────────────────────────────────
+
+export interface MatchRequest {
+	id: string;
+	game: GameSummary;
+	availableFrom: string | null;
+	availableTo: string | null;
+	status: 'ACTIVE' | 'MATCHED' | 'CANCELLED' | 'EXPIRED';
+	createdAt: string;
+}
+
+export interface MatchGroup {
+	id: string;
+	game: GameSummary;
+	overlapStart: string | null;
+	overlapEnd: string | null;
+	status: 'PENDING' | 'ACCEPTED' | 'DISMISSED' | 'EXPIRED';
+	members: User[];
+	createdAt: string;
+}
+
 // ─── Friend Request ────────────────────────────────────────────────────────
 
 export type FriendRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getGreeting } from '$lib/utils/date';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import type { PageData } from './$types';
 	import type { Post } from '$lib/types';
 	import { postsApi } from '$lib/api/posts';
@@ -14,6 +15,11 @@
 	const greeting = getGreeting();
 
 	let posts = $state(data.posts);
+	let matchSuggestions = $state(data.matchSuggestions);
+
+	function onGroupDismiss(id: string) {
+		matchSuggestions = matchSuggestions.filter((g) => g.id !== id);
+	}
 
 	async function toggleLike(post: Post) {
 		// Optimistic update — like/unlike return 204 void
@@ -77,6 +83,15 @@
 			</a>
 		{/each}
 	</div>
+{/if}
+
+<!-- Match suggestions -->
+{#if matchSuggestions.length > 0}
+	<section class="space-y-3 mb-6">
+		{#each matchSuggestions as group (group.id)}
+			<MatchSuggestionCard {group} onDismiss={onGroupDismiss} />
+		{/each}
+	</section>
 {/if}
 
 <!-- Feed -->

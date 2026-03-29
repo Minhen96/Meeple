@@ -4,7 +4,7 @@
 
 	const navItems = [
 		{ href: '/', icon: 'home', label: 'Home' },
-		{ href: '/library', icon: 'library_books', label: 'Library' },
+		{ href: '/match', icon: 'groups', label: 'Match' },
 		{ href: null as string | null, icon: 'add', label: '', isFab: true },
 		{ href: '/people', icon: 'group', label: 'People' },
 		{ href: '/profile', icon: 'person', label: 'Profile' }
