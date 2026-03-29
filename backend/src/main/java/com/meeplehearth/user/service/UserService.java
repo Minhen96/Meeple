@@ -1,15 +1,19 @@
 package com.meeplehearth.user.service;
 
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
+import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.common.exception.ApiException;
+import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.dto.UpdateProfileRequest;
 import com.meeplehearth.user.dto.UserProfileResponse;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -17,11 +21,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final FriendRequestRepository friendRequestRepository;
 
     public UserService(UserRepository userRepository,
-                       RefreshTokenRepository refreshTokenRepository) {
+                       RefreshTokenRepository refreshTokenRepository,
+                       FriendRequestRepository friendRequestRepository) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.friendRequestRepository = friendRequestRepository;
     }
 
     public UserProfileResponse getMe(UUID userId) {
@@ -53,8 +60,25 @@ public class UserService {
         User user = findActiveUser(userId);
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
-        // Revoke all sessions
         refreshTokenRepository.deleteByUserId(userId);
+    }
+
+    public PageResponse<UserProfileResponse> search(String q, int page, int size) {
+        return PageResponse.of(
+                userRepository.searchByUsernameOrDisplayName(q.trim(), PageRequest.of(page, size)),
+                UserProfileResponse::from
+        );
+    }
+
+    public PageResponse<UserProfileResponse> getSuggestions(UUID currentUserId, int page, int size) {
+        List<UUID> friendIds = friendRequestRepository.findFriendIds(currentUserId);
+        // Exclude self + existing friends
+        List<UUID> excludeIds = new java.util.ArrayList<>(friendIds);
+        excludeIds.add(currentUserId);
+        return PageResponse.of(
+                userRepository.findSuggestions(currentUserId, excludeIds, PageRequest.of(page, size)),
+                UserProfileResponse::from
+        );
     }
 
     private User findActiveUser(UUID userId) {

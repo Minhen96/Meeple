@@ -5,7 +5,7 @@ export const notifications = writable<Notification[]>([]);
 
 export const notificationCount = derived(
 	notifications,
-	($notifications) => $notifications.filter((n) => !n.isRead).length
+	($notifications) => $notifications.filter((n) => !n.read).length
 );
 
 export function addNotification(notification: Notification) {
@@ -14,10 +14,10 @@ export function addNotification(notification: Notification) {
 
 export function markRead(id: string) {
 	notifications.update((list) =>
-		list.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+		list.map((n) => (n.id === id ? { ...n, read: true } : n))
 	);
 }
 
 export function markAllRead() {
-	notifications.update((list) => list.map((n) => ({ ...n, isRead: true })));
+	notifications.update((list) => list.map((n) => ({ ...n, read: true })));
 }

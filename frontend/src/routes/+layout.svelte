@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { Toaster } from 'svelte-sonner';
 	import { setUser } from '$lib/stores/auth';
-	import { connectWS } from '$lib/stores/websocket';
+	import { connectWS, disconnectWS } from '$lib/stores/websocket';
 
 	interface Props {
 		data: { user: import('$lib/types').User | null };
@@ -13,10 +13,13 @@
 
 	$effect(() => {
 		setUser(data.user);
-		// WebSocket connection is set up here when user is authenticated.
-		// The access token is managed by the httpOnly cookie — the WS store
-		// reads it via the STOMP connect header after a separate token fetch
-		// in Phase 2. For now, WS is wired but not auto-connected on load.
+		if (data.user) {
+			// Cookie is sent automatically with the WS upgrade request
+			// Pass userId so we can subscribe to the right topic
+			connectWS(data.user.id, '');
+		} else {
+			disconnectWS();
+		}
 	});
 </script>
 

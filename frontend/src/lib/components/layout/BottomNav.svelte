@@ -6,7 +6,7 @@
 		{ href: '/', icon: 'home', label: 'Home' },
 		{ href: '/library', icon: 'library_books', label: 'Library' },
 		{ href: null as string | null, icon: 'add', label: '', isFab: true },
-		{ href: '/events', icon: 'event', label: 'Events' },
+		{ href: '/people', icon: 'group', label: 'People' },
 		{ href: '/profile', icon: 'person', label: 'Profile' }
 	];
 

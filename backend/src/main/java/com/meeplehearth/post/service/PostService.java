@@ -8,6 +8,7 @@ import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.post.dto.*;
 import com.meeplehearth.post.entity.*;
 import com.meeplehearth.post.repository.*;
+import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -29,19 +32,22 @@ public class PostService {
     private final UserRepository userRepository;
     private final GameRepository gameRepository;
     private final AppProperties appProperties;
+    private final FriendRequestRepository friendRequestRepository;
 
     public PostService(PostRepository postRepository,
             PostLikeRepository postLikeRepository,
             PostCommentRepository postCommentRepository,
             UserRepository userRepository,
             GameRepository gameRepository,
-            AppProperties appProperties) {
+            AppProperties appProperties,
+            FriendRequestRepository friendRequestRepository) {
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
         this.postCommentRepository = postCommentRepository;
         this.userRepository = userRepository;
         this.gameRepository = gameRepository;
         this.appProperties = appProperties;
+        this.friendRequestRepository = friendRequestRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -49,7 +55,10 @@ public class PostService {
     // -------------------------------------------------------------------------
 
     public PageResponse<PostResponse> getFeed(UUID currentUserId, int page, int size) {
-        Page<Post> posts = postRepository.findGlobalFeed(PageRequest.of(page, size));
+        List<UUID> friendIds = friendRequestRepository.findFriendIds(currentUserId);
+        List<UUID> feedIds = new ArrayList<>(friendIds);
+        feedIds.add(currentUserId);
+        Page<Post> posts = postRepository.findFeedForUser(feedIds, PageRequest.of(page, size));
         Set<UUID> likedPostIds = likedPostIds(currentUserId, posts);
         return PageResponse.of(posts, p -> PostResponse.from(p, likedPostIds.contains(p.getId())));
     }

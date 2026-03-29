@@ -38,4 +38,8 @@ public record PageResponse<T>(List<T> data, PageMeta meta) {
         );
         return new PageResponse<>(mapped, meta);
     }
+
+    public static <T> PageResponse<T> empty() {
+        return new PageResponse<>(List.of(), new PageMeta(1, 20, 0, false));
+    }
 }

@@ -140,41 +140,38 @@ export interface Comment {
 // ─── Friend Request ────────────────────────────────────────────────────────
 
 export type FriendRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+export type FriendStatusValue = 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'FRIENDS' | 'BLOCKED';
 
 export interface FriendRequest {
 	id: string;
-	senderId: string;
-	sender: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
-	receiverId: string;
+	sender: User;
+	receiver: User;
 	status: FriendRequestStatus;
 	createdAt: string;
+}
+
+export interface FriendStatus {
+	status: FriendStatusValue;
+	requestId: string | null;
 }
 
 // ─── Notification ──────────────────────────────────────────────────────────
 
 export type NotificationType =
-	| 'event_invite'
-	| 'event_reminder'
-	| 'event_cancelled'
-	| 'event_joined'
-	| 'match_found'
-	| 'friend_request'
-	| 'friend_accepted'
-	| 'post_like'
-	| 'post_comment'
-	| 'comment_mention'
-	| 'post_tagged'
-	| 'friend_activity'
-	| 'system';
+	| 'EVENT_INVITE'
+	| 'EVENT_RSVP'
+	| 'POST_LIKE'
+	| 'POST_COMMENT'
+	| 'FRIEND_REQUEST'
+	| 'FRIEND_ACCEPTED'
+	| 'MATCH_FOUND';
 
 export interface Notification {
 	id: string;
-	recipientId: string;
 	type: NotificationType;
-	title: string;
-	body: string;
-	isRead: boolean;
-	data: Record<string, string>;
-	path: string | null;
+	actorId: string | null;
+	referenceId: string | null;
+	referenceType: string | null;
+	read: boolean;
 	createdAt: string;
 }

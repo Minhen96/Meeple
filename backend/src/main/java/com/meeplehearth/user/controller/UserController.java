@@ -1,5 +1,6 @@
 package com.meeplehearth.user.controller;
 
+import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.user.dto.UpdateProfileRequest;
 import com.meeplehearth.user.dto.UserProfileResponse;
 import com.meeplehearth.user.service.UserService;
@@ -45,6 +46,25 @@ public class UserController {
         UUID userId = UUID.fromString(userDetails.getUsername());
         userService.deleteMe(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** GET /api/v1/users/search?q= — search by username or display name */
+    @GetMapping("/search")
+    public ResponseEntity<PageResponse<UserProfileResponse>> search(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(userService.search(q, page, size));
+    }
+
+    /** GET /api/v1/users/suggestions — people you may know */
+    @GetMapping("/suggestions")
+    public ResponseEntity<PageResponse<UserProfileResponse>> getSuggestions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(userService.getSuggestions(userId, page, size));
     }
 
     /** GET /api/v1/users/{id} — public profile of any user */
