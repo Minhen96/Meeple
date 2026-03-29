@@ -10,6 +10,7 @@ import java.util.List;
 public class AppProperties {
 
     private Jwt jwt = new Jwt();
+    private Auth auth = new Auth();
     private R2 r2 = new R2();
     private Cors cors = new Cors();
     private Google google = new Google();
@@ -21,6 +22,14 @@ public class AppProperties {
 
     public void setJwt(Jwt jwt) {
         this.jwt = jwt;
+    }
+
+    public Auth getAuth() {
+        return auth;
+    }
+
+    public void setAuth(Auth auth) {
+        this.auth = auth;
     }
 
     public R2 getR2() {
@@ -56,6 +65,18 @@ public class AppProperties {
     }
 
     // --- Nested classes ---
+
+    public static class Auth {
+        private String cookieDomain;
+
+        public String getCookieDomain() {
+            return cookieDomain;
+        }
+
+        public void setCookieDomain(String cookieDomain) {
+            this.cookieDomain = cookieDomain;
+        }
+    }
 
     public static class Jwt {
         private String secret;

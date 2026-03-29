@@ -422,21 +422,31 @@ public class AuthService {
         boolean isSecure = isProductionEnvironment();
         long refreshMaxAgeSeconds = refreshExpiryDays * 24 * 60 * 60;
 
-        ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
+        ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("access_token", accessToken)
                 .httpOnly(true)
                 .secure(isSecure)
                 .path("/")
                 .maxAge(ACCESS_COOKIE_MAX_AGE_SECONDS)
-                .sameSite("Strict")
-                .build();
+                .sameSite("Lax");
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", rawRefreshToken)
+        if (appProperties.getAuth().getCookieDomain() != null && !appProperties.getAuth().getCookieDomain().isBlank()) {
+            accessCookieBuilder.domain(appProperties.getAuth().getCookieDomain());
+        }
+
+        ResponseCookie accessCookie = accessCookieBuilder.build();
+
+        ResponseCookie.ResponseCookieBuilder refreshCookieBuilder = ResponseCookie.from("refresh_token", rawRefreshToken)
                 .httpOnly(true)
                 .secure(isSecure)
                 .path("/api/v1/auth")
                 .maxAge(refreshMaxAgeSeconds)
-                .sameSite("Strict")
-                .build();
+                .sameSite("Lax");
+
+        if (appProperties.getAuth().getCookieDomain() != null && !appProperties.getAuth().getCookieDomain().isBlank()) {
+            refreshCookieBuilder.domain(appProperties.getAuth().getCookieDomain());
+        }
+
+        ResponseCookie refreshCookie = refreshCookieBuilder.build();
 
         response.addHeader("Set-Cookie", accessCookie.toString());
         response.addHeader("Set-Cookie", refreshCookie.toString());
