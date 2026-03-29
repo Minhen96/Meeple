@@ -9,7 +9,6 @@ spring:
   datasource:
     hikari:
       max-lifetime: 240000        # 4 min — below Neon's 5 min idle timeout
-      keepalive-time: 120000      # ping every 2 min to keep connection alive
       connection-timeout: 30000
 
   jpa:
