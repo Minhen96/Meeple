@@ -58,7 +58,8 @@ dependencies {
 	implementation("me.paulschwarz:spring-dotenv:4.0.0")
 
 	// Google OAuth (ID token verification)
-	implementation("com.google.auth:google-auth-library-oauth2-http:1.30.0")
+	implementation("com.google.api-client:google-api-client:1.32.1")
+	implementation("com.google.http-client:google-http-client-gson:1.45.3")
 
 	// API documentation
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
