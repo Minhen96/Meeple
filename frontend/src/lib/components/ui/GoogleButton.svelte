@@ -12,8 +12,12 @@
 	const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 	let container: HTMLDivElement;
 
+	let initialized = false;
+
 	onMount(() => {
 		if (!clientId || typeof window.google === 'undefined') return;
+		if (initialized) return;
+		initialized = true;
 
 		window.google.accounts.id.initialize({
 			client_id: clientId,
