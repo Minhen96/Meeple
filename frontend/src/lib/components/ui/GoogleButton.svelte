@@ -1,12 +1,14 @@
 <script module lang="ts">
-	// Module-level: persists across component instances and page navigations
+	// Module-level vars: updated on every mount so the once-initialized
+	// GSI callback always uses the current component's props.
 	let gsiInitialized = false;
+	let currentRedirectTo = '/';
+	let currentOnError: ((msg: string) => void) | undefined;
 </script>
 
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api, ApiRequestError } from '$lib/api/client';
-	import { goto } from '$app/navigation';
 
 	interface Props {
 		redirectTo?: string;
@@ -20,6 +22,10 @@
 	onMount(() => {
 		if (!clientId || typeof window.google === 'undefined') return;
 
+		// Keep module-level refs current for this mount
+		currentRedirectTo = redirectTo;
+		currentOnError = onError;
+
 		if (!gsiInitialized) {
 			gsiInitialized = true;
 			window.google.accounts.id.initialize({
@@ -27,11 +33,12 @@
 				callback: async (response: { credential: string }) => {
 					try {
 						await api.post('/api/v1/auth/google', { idToken: response.credential });
-						goto(redirectTo);
+						// Hard navigation ensures the server-side layout load sees the new cookie
+						window.location.href = currentRedirectTo;
 					} catch (err) {
 						const message =
 							err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';
-						onError?.(message);
+						currentOnError?.(message);
 					}
 				}
 			});
