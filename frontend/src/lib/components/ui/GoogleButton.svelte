@@ -1,3 +1,8 @@
+<script module lang="ts">
+	// Module-level: persists across component instances and page navigations
+	let gsiInitialized = false;
+</script>
+
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api, ApiRequestError } from '$lib/api/client';
@@ -12,26 +17,25 @@
 	const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 	let container: HTMLDivElement;
 
-	let initialized = false;
-
 	onMount(() => {
 		if (!clientId || typeof window.google === 'undefined') return;
-		if (initialized) return;
-		initialized = true;
 
-		window.google.accounts.id.initialize({
-			client_id: clientId,
-			callback: async (response: { credential: string }) => {
-				try {
-					await api.post('/api/v1/auth/google', { idToken: response.credential });
-					goto(redirectTo);
-				} catch (err) {
-					const message =
-						err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';
-					onError?.(message);
+		if (!gsiInitialized) {
+			gsiInitialized = true;
+			window.google.accounts.id.initialize({
+				client_id: clientId,
+				callback: async (response: { credential: string }) => {
+					try {
+						await api.post('/api/v1/auth/google', { idToken: response.credential });
+						goto(redirectTo);
+					} catch (err) {
+						const message =
+							err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';
+						onError?.(message);
+					}
 				}
-			}
-		});
+			});
+		}
 
 		window.google.accounts.id.renderButton(container, {
 			theme: 'outline',
