@@ -34,25 +34,63 @@ boardgame/
 ## Getting Started
 
 ### Prerequisites
-
-- Java 21
-- Node.js 20+
-- PostgreSQL (or use Docker)
-- Redis (or use Docker)
-
-### 1. Start local services (Docker)
-
-```bash
-docker run -d --name meeple-postgres \
-  -p 5432:5432 \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=meeple_dev \
-  postgres:16-alpine
-
-docker run -d --name meeple-redis \
-  -p 6379:6379 \
-  redis:alpine
-```
+ 
+ - Java 21
+ - Node.js 20+
+ - PostgreSQL (or use Docker)
+ - Redis (or use Docker)
+ - MailHog (optional, for local email testing)
+ 
+ ### 1. Start local services (recommended)
+ 
+ The easiest way is using Docker Compose (starts PostgreSQL, Redis, and MailHog):
+ 
+ ```bash
+ docker compose up -d
+ ```
+ 
+ > [!NOTE]
+ > **Local Email Testing:** All emails sent by the app in `local` mode are captured by MailHog. You can view them by visiting [**http://localhost:8025**](http://localhost:8025) in your browser.
+ 
+ #### Manual Docker commands (Alternative)
+ 
+ For Bash (Linux, macOS, Git Bash):
+ 
+ ```bash
+ docker run -d --name meeple-postgres \
+   -p 5432:5432 \
+   -e POSTGRES_PASSWORD=postgres \
+   -e POSTGRES_DB=meeple_dev \
+   pgvector/pgvector:pg16
+ 
+ docker run -d --name meeple-redis \
+   -p 6379:6379 \
+   redis:alpine
+ 
+ docker run -d --name meeple-mailhog \
+   -p 1025:1025 \
+   -p 8025:8025 \
+   mailhog/mailhog
+ ```
+ 
+ For PowerShell (Windows):
+ 
+ ```powershell
+ docker run -d --name meeple-postgres `
+   -p 5432:5432 `
+   -e POSTGRES_PASSWORD=postgres `
+   -e POSTGRES_DB=meeple_dev `
+   pgvector/pgvector:pg16
+ 
+ docker run -d --name meeple-redis `
+   -p 6379:6379 `
+   redis:alpine
+ 
+ docker run -d --name meeple-mailhog `
+   -p 1025:1025 `
+   -p 8025:8025 `
+   mailhog/mailhog
+ ```
 
 ### 2. Configure backend env
 
@@ -87,7 +125,7 @@ EMAIL_FROM=noreply@meeple.yapminhen.com
 ```bash
 cd backend
 ./gradlew bootRun
-# Runs on http://localhost:8080
+# Runs on http://localhost:8081
 ```
 
 ### 4. Run frontend
@@ -195,8 +233,8 @@ JAVA_TOOL_OPTIONS=-Xms512m -Xmx1024m
 
 ```
 NODE_VERSION=20
-VITE_API_URL=https://api.meeple.yapminhen.com
-VITE_WS_URL=wss://api.meeple.yapminhen.com/ws
+VITE_API_URL=https://meeple.api-prod.yapminhen.com
+VITE_WS_URL=wss://meeple.api-prod.yapminhen.com/ws
 VITE_R2_PUBLIC_URL=https://cdn.yapminhen.com
 VITE_GOOGLE_CLIENT_ID=<google-oauth-client-id>
 ```
