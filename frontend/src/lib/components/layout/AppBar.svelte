@@ -36,9 +36,9 @@
 		<div class="flex items-center gap-3">
 			{#if !showBack}
 				<button
-					onclick={() => goto('/library?search=1')}
+					onclick={() => goto('/people')}
 					class="text-on-surface-variant hover:text-on-surface transition-transform hover:scale-105 duration-200"
-					aria-label="Search"
+					aria-label="Search people"
 				>
 					<span class="material-symbols-outlined">search</span>
 				</button>
