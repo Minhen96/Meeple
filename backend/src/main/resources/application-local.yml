@@ -1,0 +1,45 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/meeple_dev}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+      mail.smtp.ssl.enable: false
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-256-bits-long-xx}
+    access-token-expiry-ms: 900000
+    refresh-token-expiry-days: 30
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+  r2:
+    endpoint: ${R2_ENDPOINT:http://localhost:9000}
+    access-key: ${R2_ACCESS_KEY:mock-access-key}
+    secret-key: ${R2_SECRET_KEY:mock-secret-key}
+    bucket: ${R2_BUCKET:meeple-media}
+    public-url: ${R2_PUBLIC_URL:http://localhost:9000/meeple-media}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+  email:
+    from: ${EMAIL_FROM:noreply@meeple.yapminhen.com}
