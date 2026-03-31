@@ -140,7 +140,7 @@
 
 <!-- Hero cover image -->
 {#if game.imageUrl || game.thumbnailUrl}
-	<div class="relative -mx-4 -mt-24 mb-6">
+	<div class="relative -mx-4 mb-6">
 		<img
 			src={game.imageUrl ?? game.thumbnailUrl ?? ""}
 			alt={game.title}

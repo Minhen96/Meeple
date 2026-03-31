@@ -40,22 +40,32 @@
 	const collection = $derived(data.collection);
 
 	const filtered = $derived.by(() => {
-		if (query.length >= 2) return [];
+		let items: UserGame[];
 		switch (activeTab) {
 			case "owned":
-				return collection.filter((g) => g.isOwned);
+				items = collection.filter((g) => g.isOwned);
+				break;
 			case "played":
-				return [...collection.filter((g) => g.playCount > 0)].sort(
+				items = [...collection.filter((g) => g.playCount > 0)].sort(
 					(a, b) => b.playCount - a.playCount,
 				);
+				break;
 			case "favorites":
-				return collection.filter((g) => g.isFavorited);
+				items = collection.filter((g) => g.isFavorited);
+				break;
 			default:
-				return collection;
+				items = collection;
+				break;
 		}
+		if (query.length >= 2 && activeTab !== "all") {
+			const q = query.toLowerCase();
+			items = items.filter((ug) => ug.game.title?.toLowerCase().includes(q));
+		}
+		return items;
 	});
 
-	const showSearch = $derived(query.length >= 2);
+	// Only show the search-results panel for collection tabs (all-tab uses gamesPage directly)
+	const showSearch = $derived(query.length >= 2 && activeTab !== "all");
 
 	let loadingMore = $state(false);
 	let observerNode = $state<HTMLElement | null>(null);
@@ -745,16 +755,12 @@
 							</div>
 
 							<!-- Main Box Art -->
-							<div
-								class="relative w-full h-full p-3 flex items-center justify-center"
-							>
-								<img
-									src={game.thumbnailUrl}
-									alt={game.title}
-									class="max-w-full max-h-full object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.2)] group-hover:scale-[1.03] transition-transform duration-700"
-									loading="lazy"
-								/>
-							</div>
+							<img
+								src={game.thumbnailUrl}
+								alt={game.title}
+								class="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-700"
+								loading="lazy"
+							/>
 						{:else}
 							<div
 								class="w-full h-full flex items-center justify-center"

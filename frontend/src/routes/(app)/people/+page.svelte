@@ -2,206 +2,172 @@
 	import { onMount } from 'svelte';
 	import { friendsApi } from '$lib/api/friends';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
-	import type { User, FriendRequest } from '$lib/types';
+	import { peopleSearchHistory } from '$lib/stores/peopleSearch';
+	import type { User } from '$lib/types';
 
-	let tab = $state<'discover' | 'requests' | 'friends'>('discover');
 	let searchQuery = $state('');
 	let searchResults = $state<User[]>([]);
 	let suggestions = $state<User[]>([]);
-	let received = $state<FriendRequest[]>([]);
-	let friends = $state<User[]>([]);
 	let loading = $state(false);
-	let sentRequestIds = $state(new Set<string>());
 	let searchTimeout: ReturnType<typeof setTimeout>;
 
 	onMount(async () => {
-		const [suggestRes, receivedRes] = await Promise.all([
-			friendsApi.getSuggestions(),
-			friendsApi.getReceived()
-		]);
+		const suggestRes = await friendsApi.getSuggestions();
 		suggestions = suggestRes.data;
-		received = receivedRes.data;
 	});
-
-	async function loadFriends() {
-		if (friends.length > 0) return;
-		loading = true;
-		try {
-			const res = await friendsApi.getFriends();
-			friends = res.data;
-		} finally {
-			loading = false;
-		}
-	}
-
-	function onTabChange(t: typeof tab) {
-		tab = t;
-		if (t === 'friends') loadFriends();
-	}
 
 	function onSearch() {
 		clearTimeout(searchTimeout);
-		if (!searchQuery.trim()) { searchResults = []; return; }
+		if (!searchQuery.trim()) {
+			searchResults = [];
+			return;
+		}
+		loading = true;
 		searchTimeout = setTimeout(async () => {
-			const res = await friendsApi.searchUsers(searchQuery);
-			searchResults = res.data;
+			try {
+				const res = await friendsApi.searchUsers(searchQuery);
+				searchResults = res.data;
+			} finally {
+				loading = false;
+			}
 		}, 300);
 	}
 
-	async function sendRequest(userId: string) {
-		await friendsApi.sendRequest(userId);
-		suggestions = suggestions.filter(u => u.id !== userId);
-		sentRequestIds = new Set([...sentRequestIds, userId]);
-	}
-
-	async function acceptRequest(requestId: string, senderId: string) {
-		await friendsApi.accept(requestId);
-		received = received.filter(r => r.id !== requestId);
-	}
-
-	async function declineRequest(requestId: string) {
-		await friendsApi.decline(requestId);
-		received = received.filter(r => r.id !== requestId);
+	function handleUserClick(user: User) {
+		peopleSearchHistory.add(user);
 	}
 </script>
 
-<svelte:head><title>People — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Search — Meeple & Hearth</title></svelte:head>
 
-<h2 class="text-2xl font-extrabold font-headline mb-4">People</h2>
+<h2 class="text-2xl font-extrabold font-headline mb-4">Search</h2>
 
-<!-- Tabs -->
-<div class="flex gap-1 bg-surface-container-low p-1 rounded-xl mb-5">
-	{#each [['discover', 'Discover'], ['requests', `Requests${received.length ? ` (${received.length})` : ''}`], ['friends', 'Friends']] as [value, label]}
-		<button
-			onclick={() => onTabChange(value as typeof tab)}
-			class="flex-1 text-sm font-semibold py-2 rounded-lg transition-colors {tab === value ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}"
-		>
-			{label}
-		</button>
-	{/each}
+<!-- Search Input -->
+<div class="relative mb-6">
+	<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">
+		search
+	</span>
+	<input
+		type="text"
+		bind:value={searchQuery}
+		oninput={onSearch}
+		placeholder="Search for people…"
+		class="w-full bg-surface-container-low pl-10 pr-4 py-3.5 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
+		autofocus
+	/>
 </div>
 
-{#if tab === 'discover'}
-	<!-- Search -->
-	<div class="relative mb-4">
-		<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">search</span>
-		<input
-			type="text"
-			bind:value={searchQuery}
-			oninput={onSearch}
-			placeholder="Search by name or username…"
-			class="w-full bg-surface-container-low pl-10 pr-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-		/>
-	</div>
-
-	{#if searchQuery.trim()}
-		{#if searchResults.length === 0}
-			<p class="text-sm text-on-surface-variant text-center py-8">No users found</p>
-		{:else}
-			<div class="space-y-2">
-				{#each searchResults as user}
-					<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl">
-						<a href="/profile/{user.id}"><Avatar src={user.avatarUrl} size="sm" /></a>
-						<div class="flex-1 min-w-0">
-							<a href="/profile/{user.id}" class="font-semibold text-sm">{user.displayName ?? user.username}</a>
-							<p class="text-xs text-on-surface-variant">@{user.username}</p>
-						</div>
-						{#if sentRequestIds.has(user.id)}
-							<span class="text-xs font-semibold text-on-surface-variant px-3 py-1.5">Pending</span>
-						{:else}
-							<button
-								onclick={() => sendRequest(user.id)}
-								class="text-xs font-semibold text-primary px-3 py-1.5 rounded-lg bg-primary/10"
-							>Add</button>
-						{/if}
-					</div>
-				{/each}
-			</div>
-		{/if}
-	{:else}
-		<h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-3">Suggestions</h3>
-		{#if suggestions.length === 0}
-			<p class="text-sm text-on-surface-variant text-center py-8">No suggestions right now</p>
-		{:else}
-			<div class="space-y-2">
-				{#each suggestions as user}
-					<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl">
-						<a href="/profile/{user.id}"><Avatar src={user.avatarUrl} size="sm" /></a>
-						<div class="flex-1 min-w-0">
-							<a href="/profile/{user.id}" class="font-semibold text-sm">{user.displayName ?? user.username}</a>
-							<p class="text-xs text-on-surface-variant">@{user.username}</p>
-						</div>
-						<button
-							onclick={() => sendRequest(user.id)}
-							class="text-xs font-semibold text-primary px-3 py-1.5 rounded-lg bg-primary/10"
-						>
-							Add
-						</button>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	{/if}
-
-{:else if tab === 'requests'}
-	{#if received.length === 0}
-		<div class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant">
-			<span class="material-symbols-outlined text-5xl">person_add</span>
-			<p class="font-semibold">No pending requests</p>
+{#if searchQuery.trim()}
+	{#if loading && searchResults.length === 0}
+		<div class="space-y-4">
+			{#each Array(3) as _}
+				<div class="h-16 bg-surface-container-low rounded-xl animate-pulse"></div>
+			{/each}
+		</div>
+	{:else if searchResults.length === 0}
+		<div class="text-center py-12">
+			<span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2">person_off</span>
+			<p class="text-sm text-on-surface-variant">No users found for "{searchQuery}"</p>
 		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each received as req}
-				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl">
-					<a href="/profile/{req.sender.id}"><Avatar src={req.sender.avatarUrl} size="sm" /></a>
+			{#each searchResults as user}
+				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
+					<a href="/profile/{user.id}" onclick={() => handleUserClick(user)}>
+						<Avatar src={user.avatarUrl} size="sm" />
+					</a>
 					<div class="flex-1 min-w-0">
-						<p class="font-semibold text-sm">{req.sender.displayName ?? req.sender.username}</p>
-						<p class="text-xs text-on-surface-variant">@{req.sender.username}</p>
+						<a href="/profile/{user.id}" onclick={() => handleUserClick(user)} class="font-semibold text-sm">
+							{user.displayName ?? user.username}
+						</a>
+						<p class="text-xs text-on-surface-variant">@{user.username}</p>
 					</div>
-					<div class="flex gap-2">
-						<button
-							onclick={() => acceptRequest(req.id, req.sender.id)}
-							class="text-xs font-semibold text-primary px-3 py-1.5 rounded-lg bg-primary/10"
-						>
-							Accept
-						</button>
-						<button
-							onclick={() => declineRequest(req.id)}
-							class="text-xs font-semibold text-on-surface-variant px-3 py-1.5 rounded-lg bg-surface-container"
-						>
-							Decline
-						</button>
-					</div>
+					<a
+						href="/profile/{user.id}"
+						onclick={() => handleUserClick(user)}
+						class="material-symbols-outlined text-on-surface-variant"
+					>
+						chevron_right
+					</a>
 				</div>
 			{/each}
 		</div>
 	{/if}
+{:else}
+	<!-- History -->
+	{#if $peopleSearchHistory.length > 0}
+		<div class="mb-8">
+			<div class="flex justify-between items-center mb-3 px-1">
+				<h3 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Recent</h3>
+				<button 
+					onclick={() => peopleSearchHistory.clear()}
+					class="text-xs font-semibold text-primary hover:underline"
+				>
+					Clear All
+				</button>
+			</div>
+			<div class="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide">
+				{#each $peopleSearchHistory as user}
+					<div class="flex flex-col items-center gap-1.5 min-w-[72px] relative group">
+						<button 
+							onclick={() => peopleSearchHistory.remove(user.id)}
+							class="absolute -top-1 -right-1 bg-surface-container rounded-full p-0.5 text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity z-10"
+							aria-label="Remove from history"
+						>
+							<span class="material-symbols-outlined text-[14px]">close</span>
+						</button>
+						<a href="/profile/{user.id}" onclick={() => handleUserClick(user)} class="flex flex-col items-center gap-1.5">
+							<Avatar src={user.avatarUrl} size="md" />
+							<span class="text-[10px] font-semibold text-center line-clamp-1 w-full max-w-[64px]">
+								{user.displayName ?? user.username}
+							</span>
+						</a>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 
-{:else if tab === 'friends'}
-	{#if loading}
+	<!-- Suggestions -->
+	<h3 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3 px-1">
+		Suggested
+	</h3>
+	{#if suggestions.length === 0}
 		<div class="space-y-2">
-			{#each Array(5) as _}
+			{#each Array(3) as _}
 				<div class="h-16 bg-surface-container-low rounded-xl animate-pulse"></div>
 			{/each}
 		</div>
-	{:else if friends.length === 0}
-		<div class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant">
-			<span class="material-symbols-outlined text-5xl">group</span>
-			<p class="font-semibold">No friends yet</p>
-			<p class="text-sm">Discover people in the Discover tab</p>
-		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each friends as friend}
-				<a href="/profile/{friend.id}" class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl">
-					<Avatar src={friend.avatarUrl} size="sm" />
+			{#each suggestions as user}
+				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
+					<a href="/profile/{user.id}" onclick={() => handleUserClick(user)}><Avatar src={user.avatarUrl} size="sm" /></a>
 					<div class="flex-1 min-w-0">
-						<p class="font-semibold text-sm">{friend.displayName ?? friend.username}</p>
-						<p class="text-xs text-on-surface-variant">@{friend.username}</p>
+						<a href="/profile/{user.id}" onclick={() => handleUserClick(user)} class="font-semibold text-sm">
+							{user.displayName ?? user.username}
+						</a>
+						<p class="text-xs text-on-surface-variant">@{user.username}</p>
 					</div>
-					<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
-				</a>
+					<a
+						href="/profile/{user.id}"
+						onclick={() => handleUserClick(user)}
+						class="text-xs font-semibold text-primary px-4 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+					>
+						View
+					</a>
+				</div>
 			{/each}
 		</div>
 	{/if}
 {/if}
+
+<style>
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none;
+	}
+	.scrollbar-hide {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+</style>

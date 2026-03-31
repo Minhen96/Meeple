@@ -18,6 +18,9 @@
 		)
 	);
 
+	// Game detail page gets no AppBar — floating back button only
+	const isGameDetail = $derived(/^\/library\/[^/]+$/.test($page.url.pathname));
+
 	let fabOpen = $state(false);
 
 	const fabActions = [
@@ -32,11 +35,24 @@
 	}
 </script>
 
-<AppBar showBack={isDetailPage} />
+{#if !isGameDetail}
+	<AppBar showBack={isDetailPage} />
+{/if}
 
-<main class="pt-16 px-4 max-w-lg mx-auto pb-32">
+<main class="{isGameDetail ? '' : 'pt-16'} px-4 max-w-lg mx-auto pb-32">
 	{@render children?.()}
 </main>
+
+<!-- Floating back button on game detail pages -->
+{#if isGameDetail}
+	<button
+		onclick={() => history.back()}
+		class="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md text-white flex items-center justify-center shadow-md"
+		aria-label="Go back"
+	>
+		<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+	</button>
+{/if}
 
 <!-- FAB backdrop -->
 {#if fabOpen}
