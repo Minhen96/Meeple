@@ -1,4 +1,4 @@
-# Meeple
+# Meeple & Hearth
 
 A board game community app for discovering games, tracking your collection, connecting with players, and organising game nights.
 
@@ -26,9 +26,9 @@ boardgame/
 
 ## Development Phases
 
-- **Phase 1 (done):** Auth, Game Library (BGG), Collection, Posts, Events, Notifications, WebSocket, Matching
-- **Phase 2 (current):** Friend requests, i18n, FCM push notifications
-- **Phase 3:** AI rule assistant (RAG + conversation), Flutter mobile
+- **Phase 1 (done):** Auth (email + Google OAuth), Game Library (BGG catalog), Collection, Play logs, Posts, Events, Matching, Friend requests, Notifications (in-app + WebSocket)
+- **Phase 2 (current):** AI rule assistant (RAG + conversation), i18n (zh-CN), FCM push notifications
+- **Phase 3:** Flutter mobile
 - **Phase 4:** Stories, DMs, Leaderboards
 
 ## Getting Started
