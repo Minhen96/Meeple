@@ -35,9 +35,12 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.security.open-admin-endpoints:false}")
+    private boolean openAdminEndpoints;
+
     public SecurityConfig(AppProperties appProperties,
-                          JwtUtil jwtUtil,
-                          UserDetailsServiceImpl userDetailsService) {
+            JwtUtil jwtUtil,
+            UserDetailsServiceImpl userDetailsService) {
         this.appProperties = appProperties;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
@@ -53,32 +56,34 @@ public class SecurityConfig {
         ObjectMapper objectMapper = new ObjectMapper();
 
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/ws/**",
-                    "/actuator/health",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    response.getWriter().write(
-                        objectMapper.writeValueAsString(
-                            Map.of("error", "Authentication required", "code", "UNAUTHORIZED")
-                        )
-                    );
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> {
+                        auth.requestMatchers(
+                                "/api/v1/auth/**",
+                                "/api/v1/games",
+                                "/ws/**",
+                                "/actuator/health",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**")
+                                .permitAll();
+                        if (openAdminEndpoints) {
+                            auth.requestMatchers("/api/v1/games/import", "/api/v1/games/hydrate-images").permitAll();
+                        } else {
+                            auth.requestMatchers("/api/v1/games/import", "/api/v1/games/hydrate-images").hasRole("ADMIN");
+                        }
+                        auth.anyRequest().authenticated();
                 })
-            );
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write(
+                                    objectMapper.writeValueAsString(
+                                            Map.of("error", "Authentication required", "code", "UNAUTHORIZED")));
+                        }));
 
         return http.build();
     }

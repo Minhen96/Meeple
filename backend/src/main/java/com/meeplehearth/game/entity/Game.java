@@ -24,18 +24,21 @@ public class Game {
     @Column(name = "bgg_id", unique = true)
     private Long bggId;
 
-    @Column(name = "name", nullable = false)
-    private String title;
+    @Column(name = "name_en", nullable = false)
+    private String nameEn;
 
-    // Added via V7 migration
+    @Column(name = "name_zh")
+    private String nameZh;
+
+    @Column(name = "alias_names", columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private java.util.List<String> aliasNames = new java.util.ArrayList<>();
+
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
     @Column(name = "image_url")
     private String imageUrl;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
 
     @Column(name = "min_players")
     private Integer minPlayers;
@@ -43,20 +46,29 @@ public class Game {
     @Column(name = "max_players")
     private Integer maxPlayers;
 
-    @Column(name = "min_duration")
-    private Integer minPlaytime;
+    @Column(name = "min_age")
+    private Integer minAge;
 
-    @Column(name = "max_duration")
-    private Integer maxPlaytime;
+    @Column(name = "rank")
+    private Integer rank;
 
-    @Column(name = "complexity", precision = 3, scale = 2)
-    private BigDecimal complexityWeight;
+    @Column(name = "users_rated")
+    private Integer usersRated;
+
+    @Column(name = "play_time")
+    private Integer playTime;
 
     @Column(name = "bgg_rating", precision = 4, scale = 2)
     private BigDecimal bggRating;
 
     @Column(name = "year_published")
     private Integer yearPublished;
+
+    @Column(name = "game_type", length = 30)
+    private String gameType = "boardgame";
+
+    @OneToOne(mappedBy = "game", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private GameDetail gameDetail;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();

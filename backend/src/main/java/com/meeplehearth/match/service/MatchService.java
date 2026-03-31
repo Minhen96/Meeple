@@ -147,7 +147,7 @@ public class MatchService {
 
         // Build event from match group — host is the accepting user
         CreateEventRequest req = new CreateEventRequest(
-                group.getGame().getTitle() + " Night",
+                group.getGame().getNameEn() + " Night",
                 null,
                 null,
                 group.getOverlapStart() != null ? group.getOverlapStart() : Instant.now().plus(1, ChronoUnit.DAYS),
@@ -324,7 +324,7 @@ public class MatchService {
         }
 
         log.info("Created match group {} for game {} with {} members",
-                saved.getId(), saved.getGame().getTitle(), requests.size());
+                saved.getId(), saved.getGame().getNameEn(), requests.size());
     }
 
     private void expireOldGroups() {

@@ -7,8 +7,13 @@
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-	const game = data.game;
-	let myEntry = $state<UserGame | null>(data.myEntry);
+	const game = $derived(data.game);
+	let myEntry = $state<UserGame | null>(null);
+
+	$effect(() => {
+		myEntry = data.myEntry;
+	});
+
 	let saving = $state(false);
 
 	async function toggle(flag: 'isOwned' | 'isWishlisted' | 'isFavorited') {
@@ -76,7 +81,7 @@
 <div class="grid grid-cols-4 gap-2 mb-6">
 	{#each [
 		{ label: 'Players', value: game.minPlayers && game.maxPlayers ? `${game.minPlayers}–${game.maxPlayers}` : '—' },
-		{ label: 'Time', value: game.minPlaytime ? `${game.minPlaytime}m` : '—' },
+		{ label: 'Time', value: game.playTime ? `${game.playTime}m` : '—' },
 		{ label: 'Complexity', value: game.complexityWeight ? game.complexityWeight.toFixed(1) : '—' },
 		{ label: 'BGG', value: game.bggRating ? game.bggRating.toFixed(1) : '—' }
 	] as stat}

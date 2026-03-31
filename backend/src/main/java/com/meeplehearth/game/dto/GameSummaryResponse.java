@@ -13,23 +13,25 @@ public record GameSummaryResponse(
         Integer yearPublished,
         Integer minPlayers,
         Integer maxPlayers,
-        Integer minPlaytime,
-        Integer maxPlaytime,
-        BigDecimal complexityWeight,
+        Integer playTime,
+        Integer minAge,
+        Integer rank,
+        Integer usersRated,
         BigDecimal bggRating
 ) {
     public static GameSummaryResponse from(Game game) {
         return new GameSummaryResponse(
                 game.getId(),
                 game.getBggId(),
-                game.getTitle(),
+                game.getNameEn(),
                 game.getThumbnailUrl(),
                 game.getYearPublished(),
                 game.getMinPlayers(),
                 game.getMaxPlayers(),
-                game.getMinPlaytime(),
-                game.getMaxPlaytime(),
-                game.getComplexityWeight(),
+                game.getPlayTime(),
+                game.getMinAge(),
+                game.getRank(),
+                game.getUsersRated(),
                 game.getBggRating()
         );
     }

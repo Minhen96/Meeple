@@ -137,6 +137,30 @@ npm run dev
 # Runs on http://localhost:5173
 ```
 
+### 5. Import Initial Board Game Dataset
+
+The application's global catalog uses a SQLite dataset of ~90,000 board games from BoardGameGeek. This is a **one-time setup** — run these two steps after first launch.
+
+**Step 1 — place the dataset:**
+
+Put `database.sqlite` into `reference/dataset/`.
+
+**Step 2 — run the import** (wipes existing catalog and re-imports from SQLite, ~1–2 min):
+
+```powershell
+Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/v1/games/import"
+```
+
+**Step 3 — hydrate images** (fetches thumbnail URLs from BGG API for all games, runs in background, ~3 hours):
+
+```powershell
+Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/v1/games/hydrate-images"
+```
+
+> Images appear progressively as the hydration job runs. You do not need to wait for it to finish — browse the app normally and images will fill in over time. Watch backend logs (`Bulk hydration progress: X games hydrated...`) to track progress.
+>
+> The hydration job only needs to be re-run if you re-import the dataset.
+
 ## Staging / Production Setup
 
 ### 1. Neon PostgreSQL

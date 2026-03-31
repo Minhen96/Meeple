@@ -1,6 +1,8 @@
 package com.meeplehearth.game.controller;
 
 import com.meeplehearth.game.dto.*;
+import com.meeplehearth.game.service.GameDataImportService;
+import com.meeplehearth.game.service.GameHydrationService;
 import com.meeplehearth.game.service.GameService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -10,8 +12,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -19,9 +26,44 @@ import java.util.UUID;
 public class GameController {
 
     private final GameService gameService;
+    private final GameDataImportService importService;
+    private final GameHydrationService gameHydrationService;
 
-    public GameController(GameService gameService) {
+    public GameController(GameService gameService, GameDataImportService importService, GameHydrationService gameHydrationService) {
         this.gameService = gameService;
+        this.importService = importService;
+        this.gameHydrationService = gameHydrationService;
+    }
+
+    /** POST /api/v1/games/import — trigger data ingestion from boardgames.csv dataset */
+    @PostMapping("/games/import")
+    public ResponseEntity<Void> runImport() throws Exception {
+        importService.runImport(
+                "c:\\Users\\Minhen\\boardgame\\reference\\dataset\\boardgames.csv"
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    /** POST /api/v1/games/hydrate-images — bulk-fill thumbnail_url for all games missing images */
+    @PostMapping("/games/hydrate-images")
+    public ResponseEntity<Void> hydrateImages() {
+        gameHydrationService.hydrateAllMissingImages();
+        return ResponseEntity.ok().build();
+    }
+
+    /** GET /api/v1/games — browse fully loaded catalog with filters & pagination */
+    @GetMapping("/games")
+    public ResponseEntity<Page<GameSummaryResponse>> browse(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer minPlayers,
+            @RequestParam(required = false) Integer maxPlayers,
+            @RequestParam(required = false) Integer minPlaytime,
+            @RequestParam(required = false) Integer maxPlaytime,
+            @RequestParam(required = false) BigDecimal minComplexity,
+            @RequestParam(required = false) BigDecimal maxComplexity,
+            @RequestParam(required = false) BigDecimal minRating,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(gameService.browse(q, minPlayers, maxPlayers, minPlaytime, maxPlaytime, minComplexity, maxComplexity, minRating, pageable));
     }
 
     /** GET /api/v1/games/search?q=catan — search BGG, overlay local cache */

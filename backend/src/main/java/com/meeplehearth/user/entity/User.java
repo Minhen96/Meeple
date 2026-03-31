@@ -55,6 +55,9 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @Column(name = "role", nullable = false, length = 20)
+    private String role = "USER";
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

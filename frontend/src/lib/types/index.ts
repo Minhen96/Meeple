@@ -57,9 +57,10 @@ export interface GameSummary {
 	yearPublished: number | null;
 	minPlayers: number | null;
 	maxPlayers: number | null;
-	minPlaytime: number | null;
-	maxPlaytime: number | null;
-	complexityWeight: number | null;
+	playTime: number | null;
+	minAge: number | null;
+	rank: number | null;
+	usersRated: number | null;
 	bggRating: number | null;
 }
 
@@ -67,6 +68,9 @@ export interface GameSummary {
 export interface GameDetail extends GameSummary {
 	imageUrl: string | null;
 	description: string | null;
+	complexityWeight: number | null;
+	categories: string[] | null;
+	mechanics: string[] | null;
 }
 
 // GameSearchResult maps to GameSearchResult

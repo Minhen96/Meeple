@@ -1,30 +1,37 @@
 package com.meeplehearth.game.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * BGG API client using api.geekdo.com JSON API.
+ *
+ * BGG migrated xmlapi2 to require Bearer auth (401). The public JSON API at
+ * api.geekdo.com/api/geekitems works without authentication and returns proper
+ * https://cf.geekdo-images.com/... image URLs. Does not support batch lookups —
+ * each game requires a separate request.
+ */
 @Component
 public class BggApiClient {
+    private static final Logger log = LoggerFactory.getLogger(BggApiClient.class);
 
-    private static final int TIMEOUT_MS = 8000;
-    private static final int POLL_RETRIES = 3;
-    private static final long POLL_DELAY_MS = 2000;
+    private static final int TIMEOUT_MS = 10000;
+    /** Delay between calls inside a batch to avoid rate-limiting. */
+    private static final long INTER_CALL_DELAY_MS = 150;
 
     private final RestClient restClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public BggApiClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -32,19 +39,22 @@ public class BggApiClient {
         factory.setReadTimeout(TIMEOUT_MS);
 
         this.restClient = RestClient.builder()
-                .baseUrl("https://boardgamegeek.com/xmlapi2")
+                .baseUrl("https://api.geekdo.com")
                 .requestFactory(factory)
-                .defaultHeader("User-Agent", "MeepleApp/1.0")
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MeepleHearth/1.0")
+                .defaultHeader("Accept", "application/json")
                 .build();
     }
 
+    /**
+     * Search BGG for games by name.
+     * Note: BGG's search API is unavailable without auth; callers should fall back
+     * to local DB search when this returns an empty list.
+     */
     @CircuitBreaker(name = "bgg", fallbackMethod = "searchFallback")
     public List<BggSearchResult> search(String query) {
-        String xml = restClient.get()
-                .uri("/search?query={q}&type=boardgame", query)
-                .retrieve()
-                .body(String.class);
-        return parseSearchResults(xml);
+        // BGG search endpoints require auth — return empty to trigger local DB fallback.
+        return List.of();
     }
 
     @SuppressWarnings("unused")
@@ -52,26 +62,44 @@ public class BggApiClient {
         throw new BggUnavailableException("BGG search unavailable: " + e.getMessage());
     }
 
+    /**
+     * Fetch details (primarily image URLs) for a list of BGG IDs.
+     * Makes one HTTP call per ID to api.geekdo.com/api/geekitems with a short
+     * inter-call delay. Per-game failures are swallowed so one bad ID does not
+     * abort the whole batch.
+     */
+    @CircuitBreaker(name = "bgg", fallbackMethod = "getDetailsFallback")
+    public List<BggGameDetail> getDetails(List<Long> bggIds) {
+        if (bggIds == null || bggIds.isEmpty()) return List.of();
+        List<BggGameDetail> results = new ArrayList<>();
+        for (Long id : bggIds) {
+            try {
+                String json = restClient.get()
+                        .uri("/api/geekitems?nosession=1&objecttype=thing&objectid={id}", id)
+                        .retrieve()
+                        .body(String.class);
+                parseGeekItem(json).ifPresent(results::add);
+                if (bggIds.size() > 1) {
+                    Thread.sleep(INTER_CALL_DELAY_MS);
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                log.warn("BGG: failed to fetch game id={}: {}", id, e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    @SuppressWarnings("unused")
+    private List<BggGameDetail> getDetailsFallback(List<Long> bggIds, Exception e) {
+        throw new BggUnavailableException("BGG details unavailable: " + e.getMessage());
+    }
+
     @CircuitBreaker(name = "bgg", fallbackMethod = "getDetailFallback")
     public Optional<BggGameDetail> getDetail(Long bggId) {
-        for (int attempt = 0; attempt < POLL_RETRIES; attempt++) {
-            var response = restClient.get()
-                    .uri("/thing?id={id}&stats=1", bggId)
-                    .retrieve()
-                    .toEntity(String.class);
-
-            if (response.getStatusCode().value() == 202) {
-                try {
-                    Thread.sleep(POLL_DELAY_MS);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                continue;
-            }
-            return parseGameDetail(response.getBody());
-        }
-        return Optional.empty();
+        return getDetails(List.of(bggId)).stream().findFirst();
     }
 
     @SuppressWarnings("unused")
@@ -80,119 +108,101 @@ public class BggApiClient {
     }
 
     // -------------------------------------------------------------------------
-    // XML parsing
+    // JSON parsing
     // -------------------------------------------------------------------------
 
-    private List<BggSearchResult> parseSearchResults(String xml) {
-        List<BggSearchResult> results = new ArrayList<>();
-        if (xml == null) return results;
-
-        Document doc = parseXml(xml);
-        NodeList items = doc.getElementsByTagName("item");
-
-        for (int i = 0; i < items.getLength(); i++) {
-            Element item = (Element) items.item(i);
-            long bggId = Long.parseLong(item.getAttribute("id"));
-
-            String title = null;
-            NodeList names = item.getElementsByTagName("name");
-            for (int j = 0; j < names.getLength(); j++) {
-                Element name = (Element) names.item(j);
-                if ("primary".equals(name.getAttribute("type"))) {
-                    title = name.getAttribute("value");
-                    break;
-                }
-            }
-            if (title == null) continue;
-
-            Integer year = null;
-            NodeList yearNodes = item.getElementsByTagName("yearpublished");
-            if (yearNodes.getLength() > 0) {
-                String val = ((Element) yearNodes.item(0)).getAttribute("value");
-                if (!val.isEmpty()) year = Integer.parseInt(val);
-            }
-
-            results.add(new BggSearchResult(bggId, title, year));
-        }
-        return results;
-    }
-
-    private Optional<BggGameDetail> parseGameDetail(String xml) {
-        if (xml == null) return Optional.empty();
-
-        Document doc = parseXml(xml);
-        NodeList items = doc.getElementsByTagName("item");
-        if (items.getLength() == 0) return Optional.empty();
-
-        Element item = (Element) items.item(0);
-        long bggId = Long.parseLong(item.getAttribute("id"));
-
-        String title = null;
-        NodeList names = item.getElementsByTagName("name");
-        for (int j = 0; j < names.getLength(); j++) {
-            Element name = (Element) names.item(j);
-            if ("primary".equals(name.getAttribute("type"))) {
-                title = name.getAttribute("value");
-                break;
-            }
-        }
-
-        String thumbnail   = textContent(item, "thumbnail");
-        String image       = textContent(item, "image");
-        String description = textContent(item, "description");
-        Integer year = intAttr(item, "yearpublished");
-        Integer minP = intAttr(item, "minplayers");
-        Integer maxP = intAttr(item, "maxplayers");
-        Integer minT = intAttr(item, "minplaytime");
-        Integer maxT = intAttr(item, "maxplaytime");
-
-        BigDecimal rating = null;
-        BigDecimal weight = null;
-        NodeList statsNodes = item.getElementsByTagName("ratings");
-        if (statsNodes.getLength() > 0) {
-            Element ratings = (Element) statsNodes.item(0);
-            rating = decimalAttr(ratings, "average");
-            weight = decimalAttr(ratings, "averageweight");
-        }
-
-        return Optional.of(new BggGameDetail(
-                bggId, title, thumbnail, image, description,
-                year, minP, maxP, minT, maxT, rating, weight
-        ));
-    }
-
-    private String textContent(Element parent, String tagName) {
-        NodeList nodes = parent.getElementsByTagName(tagName);
-        if (nodes.getLength() == 0) return null;
-        String text = nodes.item(0).getTextContent();
-        return text.isBlank() ? null : text.strip();
-    }
-
-    private Integer intAttr(Element parent, String tagName) {
-        NodeList nodes = parent.getElementsByTagName(tagName);
-        if (nodes.getLength() == 0) return null;
-        String val = ((Element) nodes.item(0)).getAttribute("value");
-        if (val.isEmpty()) return null;
-        try { return Integer.parseInt(val); } catch (NumberFormatException e) { return null; }
-    }
-
-    private BigDecimal decimalAttr(Element parent, String tagName) {
-        NodeList nodes = parent.getElementsByTagName(tagName);
-        if (nodes.getLength() == 0) return null;
-        String val = ((Element) nodes.item(0)).getAttribute("value");
-        if (val.isEmpty() || "0".equals(val)) return null;
-        try { return new BigDecimal(val); } catch (NumberFormatException e) { return null; }
-    }
-
-    private Document parseXml(String xml) {
+    private Optional<BggGameDetail> parseGeekItem(String json) {
+        if (json == null) return Optional.empty();
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            return builder.parse(new InputSource(new StringReader(xml)));
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode item = root.path("item");
+            if (item.isMissingNode() || item.isNull()) return Optional.empty();
+
+            String idStr = item.path("objectid").asText(null);
+            if (idStr == null) return Optional.empty();
+            long bggId = Long.parseLong(idStr);
+
+            String name = item.path("name").asText(null);
+
+            // Images — prefer previewthumb (300×320) for thumbnail, original for full
+            JsonNode images = item.path("images");
+            String thumbnail = images.path("previewthumb").asText(null);
+            if (thumbnail == null) thumbnail = images.path("thumb").asText(null);
+            if (thumbnail == null) thumbnail = images.path("square200").asText(null);
+
+            String image = images.path("original").asText(null);
+            if (image == null || image.isBlank()) image = item.path("imageurl").asText(null);
+            if (image == null || image.isBlank()) image = thumbnail;
+
+            // Basic metadata
+            Integer year = intField(item, "yearpublished");
+            Integer minP = intField(item, "minplayers");
+            Integer maxP = intField(item, "maxplayers");
+            Integer minT = intField(item, "minplaytime");
+            Integer maxT = intField(item, "maxplaytime");
+
+            // Strip HTML from description
+            String description = item.path("description").asText(null);
+            if (description != null) {
+                description = description.replaceAll("<[^>]+>", "").strip();
+                if (description.isBlank()) description = null;
+            }
+
+            // Links
+            JsonNode links = item.path("links");
+            String[] mechanics   = linkNames(links, "boardgamemechanic");
+            String[] categories  = linkNames(links, "boardgamecategory");
+            String[] subdomains  = linkNames(links, "boardgamesubdomain");
+            String[] designers   = linkNames(links, "boardgamedesigner");
+            String[] artists     = linkNames(links, "boardgameartist");
+            String[] publishers  = linkNames(links, "boardgamepublisher");
+            String[] honors      = linkNames(links, "boardgamehonor");
+            // Store expansion BGG IDs (as strings) for in-app linking
+            String[] expansions  = linkIds(links, "boardgameexpansion");
+
+            String subtype = item.path("subtype").asText(null);
+            String bggUrl  = item.path("href").asText(null);
+
+            return Optional.of(new BggGameDetail(
+                    bggId, name, thumbnail, image, description,
+                    year, minP, maxP, minT, maxT, null, null,
+                    mechanics, categories, subdomains, designers, artists, publishers,
+                    honors, expansions, subtype, bggUrl
+            ));
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse BGG XML response", e);
+            log.warn("BGG: failed to parse geekitem response: {}", e.getMessage());
+            return Optional.empty();
         }
+    }
+
+    private String[] linkNames(JsonNode links, String key) {
+        JsonNode arr = links.path(key);
+        if (arr.isMissingNode() || !arr.isArray() || arr.isEmpty()) return new String[0];
+        List<String> names = new ArrayList<>();
+        for (JsonNode n : arr) {
+            String val = n.path("name").asText(null);
+            if (val != null && !val.isBlank()) names.add(val);
+        }
+        return names.toArray(new String[0]);
+    }
+
+    private String[] linkIds(JsonNode links, String key) {
+        JsonNode arr = links.path(key);
+        if (arr.isMissingNode() || !arr.isArray() || arr.isEmpty()) return new String[0];
+        List<String> ids = new ArrayList<>();
+        for (JsonNode n : arr) {
+            String id = n.path("objectid").asText(null);
+            if (id != null && !id.isBlank()) ids.add(id);
+        }
+        return ids.toArray(new String[0]);
+    }
+
+    private Integer intField(JsonNode node, String field) {
+        JsonNode n = node.path(field);
+        if (n.isMissingNode() || n.isNull()) return null;
+        String s = n.isTextual() ? n.asText() : null;
+        if (s == null || s.isBlank()) return null;
+        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return null; }
     }
 
     // -------------------------------------------------------------------------
@@ -213,7 +223,17 @@ public class BggApiClient {
             Integer minPlaytime,
             Integer maxPlaytime,
             BigDecimal bggRating,
-            BigDecimal complexityWeight
+            BigDecimal complexityWeight,
+            String[] mechanics,
+            String[] categories,
+            String[] subdomains,
+            String[] designers,
+            String[] artists,
+            String[] publishers,
+            String[] honors,
+            String[] expansions,
+            String subtype,
+            String bggUrl
     ) {}
 
     public static class BggUnavailableException extends RuntimeException {

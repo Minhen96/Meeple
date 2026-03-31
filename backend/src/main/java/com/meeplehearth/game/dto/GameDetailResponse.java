@@ -15,26 +15,29 @@ public record GameDetailResponse(
         Integer yearPublished,
         Integer minPlayers,
         Integer maxPlayers,
-        Integer minPlaytime,
-        Integer maxPlaytime,
+        Integer playTime,
         BigDecimal complexityWeight,
-        BigDecimal bggRating
+        BigDecimal bggRating,
+        String[] categories,
+        String[] mechanics
 ) {
     public static GameDetailResponse from(Game game) {
+        var detail = game.getGameDetail();
         return new GameDetailResponse(
                 game.getId(),
                 game.getBggId(),
-                game.getTitle(),
+                game.getNameEn(),
                 game.getThumbnailUrl(),
                 game.getImageUrl(),
-                game.getDescription(),
+                detail != null ? detail.getDescription() : null,
                 game.getYearPublished(),
                 game.getMinPlayers(),
                 game.getMaxPlayers(),
-                game.getMinPlaytime(),
-                game.getMaxPlaytime(),
-                game.getComplexityWeight(),
-                game.getBggRating()
+                game.getPlayTime(),
+                detail != null ? detail.getComplexity() : null,
+                game.getBggRating(),
+                detail != null ? detail.getCategories() : null,
+                detail != null ? detail.getMechanics() : null
         );
     }
 }

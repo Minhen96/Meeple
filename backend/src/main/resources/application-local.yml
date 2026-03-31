@@ -26,6 +26,8 @@ spring:
     show-sql: false
 
 app:
+  security:
+    open-admin-endpoints: true
   jwt:
     secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-256-bits-long-xx}
     access-token-expiry-ms: 900000
