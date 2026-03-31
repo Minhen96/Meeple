@@ -32,8 +32,8 @@
 			<Avatar
 				src={data.user?.avatarUrl}
 				name={data.user?.displayName ?? data.user?.username ?? '?'}
-				size="xl"
-				class="w-full h-full object-cover scale-105"
+				size="none"
+				class="w-full h-full object-cover scale-105 rounded-none"
 			/>
 		</div>
 		<!-- Verified-style badge -->

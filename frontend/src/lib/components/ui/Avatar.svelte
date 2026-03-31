@@ -2,17 +2,19 @@
 	interface Props {
 		src?: string | null;
 		name?: string;
-		size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+		size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'none';
+		class?: string;
 	}
 
-	let { src = null, name = '', size = 'md' }: Props = $props();
+	let { src = null, name = '', size = 'md', class: className = '' }: Props = $props();
 
 	const sizes = {
 		xs: 'w-6 h-6 text-[8px]',
 		sm: 'w-8 h-8 text-[10px]',
 		md: 'w-10 h-10 text-sm',
 		lg: 'w-12 h-12 text-base',
-		xl: 'w-16 h-16 text-lg'
+		xl: 'w-16 h-16 text-lg',
+		none: ''
 	};
 
 	const initials = $derived(
@@ -25,7 +27,7 @@
 </script>
 
 <div
-	class="rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center flex-shrink-0 {sizes[size]}"
+	class="rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center flex-shrink-0 {sizes[size]} {className}"
 >
 	{#if src}
 		<img {src} alt={name} class="w-full h-full object-cover" />

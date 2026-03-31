@@ -263,20 +263,9 @@
 		<span class="text-xs font-bold">Ask AI</span>
 	</a>
 </div>
-{#if myEntry}
-	<button
-		onclick={remove}
-		disabled={saving}
-		class="w-full text-center text-xs text-on-surface-variant mb-4 py-1"
-	>
-		Remove from collection
-	</button>
-{:else}
-	<div class="mb-4"></div>
-{/if}
 
 <!-- Tabs -->
-<div class="flex gap-6 border-b border-outline-variant/20 mb-4">
+<div class="mt-6 flex gap-6 border-b border-outline-variant/20 mb-4">
 	{#each [{ id: "overview", label: "Overview" }, { id: "details", label: "Details" }, { id: "mystats", label: "My Stats" }] as tab}
 		<button
 			onclick={() =>
