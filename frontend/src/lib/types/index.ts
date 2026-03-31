@@ -69,8 +69,16 @@ export interface GameDetail extends GameSummary {
 	imageUrl: string | null;
 	description: string | null;
 	complexityWeight: number | null;
+	ownedCount: number | null;
+	gameType: string | null;
+	bggUrl: string | null;
 	categories: string[] | null;
 	mechanics: string[] | null;
+	families: string[] | null;
+	designers: string[] | null;
+	publishers: string[] | null;
+	honors: string[] | null;
+	expansions: string[] | null;
 }
 
 // GameSearchResult maps to GameSearchResult
@@ -82,12 +90,24 @@ export interface GameSearchResult {
 	thumbnailUrl: string | null;
 }
 
+// PlayLog maps to PlayLogResponse
+export interface PlayLog {
+	id: string;
+	playedAt: string;
+}
+
+// ActivityLog maps to ActivityLogResponse — play log with game context
+export interface ActivityLog {
+	id: string;
+	game: GameSummary;
+	playedAt: string;
+}
+
 // UserGame maps to UserGameResponse
 export interface UserGame {
 	id: string;
 	game: GameSummary;
 	isOwned: boolean;
-	isWishlisted: boolean;
 	isFavorited: boolean;
 	playCount: number;
 	personalRating: number | null;

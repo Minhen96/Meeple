@@ -1,9 +1,8 @@
 import { api } from './client';
-import type { ApiResponse, GameDetail, GameSearchResult, UserGame } from '$lib/types';
+import type { ActivityLog, ApiResponse, GameDetail, GameSearchResult, PlayLog, UserGame } from '$lib/types';
 
 export interface UpdateCollectionPayload {
 	isOwned?: boolean;
-	isWishlisted?: boolean;
 	isFavorited?: boolean;
 	personalRating?: number | null;
 	notes?: string | null;
@@ -19,6 +18,7 @@ export const gamesApi = {
 
 	browse: async (params: { 
 		q?: string; 
+		genre?: string;
 		minPlayers?: number; maxPlayers?: number;
 		minPlaytime?: number; maxPlaytime?: number;
 		minComplexity?: number; maxComplexity?: number;
@@ -28,6 +28,7 @@ export const gamesApi = {
 	}) => {
 		const searchParams = new URLSearchParams();
 		if (params.q) searchParams.set('q', params.q);
+		if (params.genre) searchParams.set('genre', params.genre);
 		if (params.minPlayers) searchParams.set('minPlayers', params.minPlayers.toString());
 		if (params.maxPlayers) searchParams.set('maxPlayers', params.maxPlayers.toString());
 		if (params.minPlaytime) searchParams.set('minPlaytime', params.minPlaytime.toString());
@@ -58,5 +59,20 @@ export const gamesApi = {
 	},
 
 	removeFromCollection: (gameId: string) =>
-		api.delete<void>(`/api/v1/users/me/games/${gameId}`)
+		api.delete<void>(`/api/v1/users/me/games/${gameId}`),
+
+	logPlay: async (gameId: string): Promise<UserGame> => {
+		const res = await api.post<ApiResponse<UserGame>>(`/api/v1/users/me/games/${gameId}/log-play`, {});
+		return res.data;
+	},
+
+	getPlays: async (gameId: string): Promise<PlayLog[]> => {
+		const res = await api.get<ApiResponse<PlayLog[]>>(`/api/v1/users/me/games/${gameId}/plays`);
+		return res.data;
+	},
+
+	getActivity: async (): Promise<ActivityLog[]> => {
+		const res = await api.get<ApiResponse<ActivityLog[]>>('/api/v1/users/me/plays');
+		return res.data;
+	}
 };

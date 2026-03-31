@@ -55,6 +55,7 @@ public class GameController {
     @GetMapping("/games")
     public ResponseEntity<Page<GameSummaryResponse>> browse(
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) String genre,
             @RequestParam(required = false) Integer minPlayers,
             @RequestParam(required = false) Integer maxPlayers,
             @RequestParam(required = false) Integer minPlaytime,
@@ -63,7 +64,7 @@ public class GameController {
             @RequestParam(required = false) BigDecimal maxComplexity,
             @RequestParam(required = false) BigDecimal minRating,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(gameService.browse(q, minPlayers, maxPlayers, minPlaytime, maxPlaytime, minComplexity, maxComplexity, minRating, pageable));
+        return ResponseEntity.ok(gameService.browse(q, genre, minPlayers, maxPlayers, minPlaytime, maxPlaytime, minComplexity, maxComplexity, minRating, pageable));
     }
 
     /** GET /api/v1/games/search?q=catan — search BGG, overlay local cache */
@@ -101,6 +102,32 @@ public class GameController {
             @Valid @RequestBody UserGameRequest request) {
         UUID userId = UUID.fromString(userDetails.getUsername());
         return ResponseEntity.ok(gameService.updateCollection(userId, gameId, request));
+    }
+
+    /** GET /api/v1/users/me/plays — recent play activity across all games (latest 50) */
+    @GetMapping("/users/me/plays")
+    public ResponseEntity<List<ActivityLogResponse>> getActivity(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(gameService.getActivity(userId));
+    }
+
+    /** GET /api/v1/users/me/games/{gameId}/plays — play history for this game */
+    @GetMapping("/users/me/games/{gameId}/plays")
+    public ResponseEntity<List<PlayLogResponse>> getPlays(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID gameId) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(gameService.getPlays(userId, gameId));
+    }
+
+    /** POST /api/v1/users/me/games/{gameId}/log-play — increment play count by 1 */
+    @PostMapping("/users/me/games/{gameId}/log-play")
+    public ResponseEntity<UserGameResponse> logPlay(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID gameId) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(gameService.logPlay(userId, gameId));
     }
 
     /** DELETE /api/v1/users/me/games/{gameId} — remove from collection entirely */

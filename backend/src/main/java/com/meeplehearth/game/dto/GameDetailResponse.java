@@ -16,28 +16,50 @@ public record GameDetailResponse(
         Integer minPlayers,
         Integer maxPlayers,
         Integer playTime,
+        Integer minAge,
         BigDecimal complexityWeight,
         BigDecimal bggRating,
+        Integer usersRated,
+        Integer rank,
+        Integer ownedCount,
+        String gameType,
+        String bggUrl,
         String[] categories,
-        String[] mechanics
+        String[] mechanics,
+        String[] families,
+        String[] designers,
+        String[] publishers,
+        String[] honors,
+        String[] expansions
 ) {
     public static GameDetailResponse from(Game game) {
-        var detail = game.getGameDetail();
+        var d = game.getGameDetail();
         return new GameDetailResponse(
                 game.getId(),
                 game.getBggId(),
                 game.getNameEn(),
                 game.getThumbnailUrl(),
                 game.getImageUrl(),
-                detail != null ? detail.getDescription() : null,
+                d != null ? d.getDescription() : null,
                 game.getYearPublished(),
                 game.getMinPlayers(),
                 game.getMaxPlayers(),
                 game.getPlayTime(),
-                detail != null ? detail.getComplexity() : null,
+                game.getMinAge(),
+                d != null ? d.getComplexity() : null,
                 game.getBggRating(),
-                detail != null ? detail.getCategories() : null,
-                detail != null ? detail.getMechanics() : null
+                game.getUsersRated(),
+                game.getRank(),
+                d != null ? d.getOwned() : null,
+                game.getGameType(),
+                d != null ? d.getBggUrl() : null,
+                d != null ? d.getCategories() : null,
+                d != null ? d.getMechanics() : null,
+                d != null ? d.getFamilies() : null,
+                d != null ? d.getDesigners() : null,
+                d != null ? d.getPublishers() : null,
+                d != null ? d.getHonors() : null,
+                d != null ? d.getExpansions() : null
         );
     }
 }

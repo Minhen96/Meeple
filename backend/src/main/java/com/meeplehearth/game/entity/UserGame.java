@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-// Multi-boolean collection model: is_owned / is_wishlisted / is_favorited (not a status enum)
+// Multi-boolean collection model: is_owned / is_favorited (wishlist removed)
 @Entity
 @Table(name = "user_games", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "game_id"}))
 @Getter
@@ -32,9 +32,6 @@ public class UserGame {
 
     @Column(name = "is_owned", nullable = false)
     private boolean isOwned = false;
-
-    @Column(name = "is_wishlisted", nullable = false)
-    private boolean isWishlisted = false;
 
     @Column(name = "is_favorited", nullable = false)
     private boolean isFavorited = false;

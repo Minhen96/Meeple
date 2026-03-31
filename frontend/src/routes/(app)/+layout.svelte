@@ -17,19 +17,57 @@
 			(r) => $page.url.pathname.startsWith(r) && $page.url.pathname !== r.slice(0, -1)
 		)
 	);
+
+	let fabOpen = $state(false);
+
+	const fabActions = [
+		{ icon: 'sports_esports', label: 'Log Play',     action: () => goto('/log-play') },
+		{ icon: 'event',          label: 'Create Event', action: () => goto('/events/create') },
+		{ icon: 'add_photo_alternate', label: 'Create Post', action: () => goto('/posts/create') },
+	];
+
+	function handleAction(fn: () => void) {
+		fabOpen = false;
+		fn();
+	}
 </script>
 
 <AppBar showBack={isDetailPage} />
 
-<main class="pt-24 px-4 max-w-lg mx-auto pb-32">
+<main class="pt-16 px-4 max-w-lg mx-auto pb-32">
 	{@render children?.()}
 </main>
 
-<!-- Floating Create Button -->
-<div class="fixed bottom-24 right-6 z-50">
+<!-- FAB backdrop -->
+{#if fabOpen}
 	<button
-		onclick={() => goto('/posts/create')}
-		class="w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_8px_24px_rgba(137,81,0,0.35)] flex items-center justify-center hover:scale-110 active:scale-90 transition-all duration-150"
+		class="fixed inset-0 z-40"
+		onclick={() => { fabOpen = false; }}
+		aria-label="Close menu"
+	></button>
+{/if}
+
+<!-- Floating Action Button -->
+<div class="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
+	<!-- Mini action buttons (shown when open) -->
+	{#if fabOpen}
+		{#each fabActions as item}
+			<button
+				onclick={() => handleAction(item.action)}
+				class="flex items-center gap-2 pr-3 pl-2 py-2 rounded-full bg-surface-container-highest text-on-surface shadow-md text-sm font-bold transition-all"
+			>
+				<span class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
+					<span class="material-symbols-outlined text-[18px]">{item.icon}</span>
+				</span>
+				{item.label}
+			</button>
+		{/each}
+	{/if}
+
+	<!-- Main FAB -->
+	<button
+		onclick={() => { fabOpen = !fabOpen; }}
+		class="w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_8px_24px_rgba(137,81,0,0.35)] flex items-center justify-center transition-all duration-200 {fabOpen ? 'rotate-45' : ''}"
 		aria-label="Create"
 	>
 		<span class="material-symbols-outlined text-2xl">add</span>

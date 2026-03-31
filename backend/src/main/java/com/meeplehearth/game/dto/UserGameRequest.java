@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 // Partial update — only non-null fields are applied
 public record UserGameRequest(
         Boolean isOwned,
-        Boolean isWishlisted,
         Boolean isFavorited,
         @DecimalMin("1.0") @DecimalMax("10.0") BigDecimal personalRating,
         @Size(max = 1000) String notes

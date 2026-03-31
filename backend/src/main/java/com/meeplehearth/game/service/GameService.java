@@ -5,8 +5,10 @@ import com.meeplehearth.game.client.BggApiClient;
 import com.meeplehearth.game.dto.*;
 import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.entity.GameDetail;
+import com.meeplehearth.game.entity.PlayLog;
 import com.meeplehearth.game.entity.UserGame;
 import com.meeplehearth.game.repository.GameRepository;
+import com.meeplehearth.game.repository.PlayLogRepository;
 import com.meeplehearth.game.repository.UserGameRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
@@ -26,17 +28,20 @@ public class GameService {
 
     private final GameRepository gameRepository;
     private final UserGameRepository userGameRepository;
+    private final PlayLogRepository playLogRepository;
     private final UserRepository userRepository;
     private final BggApiClient bggApiClient;
     private final GameHydrationService gameHydrationService;
 
     public GameService(GameRepository gameRepository,
                        UserGameRepository userGameRepository,
+                       PlayLogRepository playLogRepository,
                        UserRepository userRepository,
                        BggApiClient bggApiClient,
                        GameHydrationService gameHydrationService) {
         this.gameRepository = gameRepository;
         this.userGameRepository = userGameRepository;
+        this.playLogRepository = playLogRepository;
         this.userRepository = userRepository;
         this.bggApiClient = bggApiClient;
         this.gameHydrationService = gameHydrationService;
@@ -46,13 +51,37 @@ public class GameService {
     // Browse - Local DB with dynamic filters
     // -------------------------------------------------------------------------
 
-    public Page<GameSummaryResponse> browse(String query, Integer minPlayers, Integer maxPlayers,
+    public Page<GameSummaryResponse> browse(String query, String genre, Integer minPlayers, Integer maxPlayers,
                                             Integer minPlaytime, Integer maxPlaytime,
                                             java.math.BigDecimal minComplexity, java.math.BigDecimal maxComplexity,
                                             java.math.BigDecimal minRating, Pageable pageable) {
         Specification<Game> spec = Specification.where(
                 (root, cq, cb) -> cb.equal(root.get("gameType"), "boardgame")
         );
+        if (genre != null && !genre.isBlank()) {
+            if ("2 Player".equalsIgnoreCase(genre)) {
+                spec = spec.and((root, cq, cb) -> cb.and(
+                        cb.le(root.get("minPlayers"), 2),
+                        cb.ge(root.get("maxPlayers"), 2)
+                ));
+            } else {
+                spec = spec.and((root, cq, cb) -> {
+                    Join<Game, GameDetail> join = root.join("gameDetail");
+                    if ("Strategy".equalsIgnoreCase(genre)) {
+                        return cb.or(cb.isNotNull(join.get("rankStrategy")),
+                                cb.like(cb.function("array_to_string", String.class, join.get("families"), cb.literal(",")), "%Strategy Games%"));
+                    } else if ("Party".equalsIgnoreCase(genre)) {
+                        return cb.or(cb.isNotNull(join.get("rankParty")),
+                                cb.like(cb.function("array_to_string", String.class, join.get("families"), cb.literal(",")), "%Party Games%"));
+                    } else if ("Family".equalsIgnoreCase(genre)) {
+                        return cb.or(cb.isNotNull(join.get("rankFamily")),
+                                cb.like(cb.function("array_to_string", String.class, join.get("families"), cb.literal(",")), "%Family Games%"));
+                    }
+                    return null;
+                });
+            }
+        }
+
         if (query != null && !query.isBlank()) {
             String likeQ = "%" + query.toLowerCase() + "%";
             spec = spec.and((root, cq, cb) -> cb.or(
@@ -154,10 +183,9 @@ public class GameService {
 
     public List<UserGameResponse> getCollection(UUID userId, String filter) {
         List<UserGame> entries = switch (filter) {
-            case "owned"      -> userGameRepository.findOwnedByUserId(userId);
-            case "wishlisted" -> userGameRepository.findWishlistedByUserId(userId);
-            case "favorited"  -> userGameRepository.findFavoritedByUserId(userId);
-            default           -> userGameRepository.findAllByUserId(userId);
+            case "owned"     -> userGameRepository.findOwnedByUserId(userId);
+            case "favorited" -> userGameRepository.findFavoritedByUserId(userId);
+            default          -> userGameRepository.findAllByUserId(userId);
         };
         return entries.stream().map(UserGameResponse::from).toList();
     }
@@ -178,12 +206,48 @@ public class GameService {
                 });
 
         if (req.isOwned() != null)        ug.setOwned(req.isOwned());
-        if (req.isWishlisted() != null)   ug.setWishlisted(req.isWishlisted());
         if (req.isFavorited() != null)    ug.setFavorited(req.isFavorited());
         if (req.personalRating() != null) ug.setPersonalRating(req.personalRating());
         if (req.notes() != null)          ug.setNotes(req.notes());
 
         return UserGameResponse.from(userGameRepository.save(ug));
+    }
+
+    @Transactional
+    public UserGameResponse logPlay(UUID userId, UUID gameId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ApiException.notFound("User not found"));
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
+
+        UserGame ug = userGameRepository.findByUserIdAndGameId(userId, gameId)
+                .orElseGet(() -> {
+                    UserGame newUg = new UserGame();
+                    newUg.setUser(user);
+                    newUg.setGame(game);
+                    return newUg;
+                });
+
+        ug.setPlayCount(ug.getPlayCount() + 1);
+        userGameRepository.save(ug);
+
+        PlayLog log = new PlayLog();
+        log.setUser(user);
+        log.setGame(game);
+        playLogRepository.save(log);
+
+        return UserGameResponse.from(ug);
+    }
+
+    public List<PlayLogResponse> getPlays(UUID userId, UUID gameId) {
+        return playLogRepository.findByUserIdAndGameIdOrderByPlayedAtDesc(userId, gameId)
+                .stream().map(PlayLogResponse::from).toList();
+    }
+
+    public List<ActivityLogResponse> getActivity(UUID userId) {
+        return playLogRepository.findByUserIdOrderByPlayedAtDesc(userId,
+                        org.springframework.data.domain.PageRequest.of(0, 50))
+                .stream().map(ActivityLogResponse::from).toList();
     }
 
     @Transactional
