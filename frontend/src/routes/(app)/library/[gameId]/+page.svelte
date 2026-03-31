@@ -25,17 +25,26 @@
 	});
 
 	$effect(() => {
-		if (activeTab === 'mystats') {
+		if (activeTab === "mystats") {
 			loadingLogs = true;
-			gamesApi.getPlays(game.id)
-				.then(logs => { playLogs = logs; })
+			gamesApi
+				.getPlays(game.id)
+				.then((logs) => {
+					playLogs = logs;
+				})
 				.catch(() => {})
-				.finally(() => { loadingLogs = false; });
+				.finally(() => {
+					loadingLogs = false;
+				});
 		}
 	});
 
 	function formatPlayDate(iso: string) {
-		return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		return new Date(iso).toLocaleDateString(undefined, {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
 	}
 
 	async function toggle(flag: "isOwned" | "isFavorited") {
@@ -104,12 +113,26 @@
 	}
 
 	const flagLabel = {
-		isOwned:     { icon: 'check_box', label: 'Own' },
-		isFavorited: { icon: 'favorite',  label: 'Favorite' },
+		isOwned: { icon: "check_box", label: "Own" },
+		isFavorited: { icon: "favorite", label: "Favorite" },
 	} as const;
 
 	function hasChips(arr: string[] | null | undefined) {
 		return arr && arr.length > 0;
+	}
+
+	function decodeHtml(s: string): string {
+		return s
+			.replace(/&quot;/g, '"')
+			.replace(/&#34;/g, '"')
+			.replace(/&amp;/g, "&")
+			.replace(/&lt;/g, "<")
+			.replace(/&gt;/g, ">")
+			.replace(/&#39;/g, "'")
+			.replace(/&apos;/g, "'")
+			.replace(/&ndash;/g, "–")
+			.replace(/&mdash;/g, "—")
+			.replace(/&nbsp;/g, " ");
 	}
 </script>
 
@@ -209,19 +232,9 @@
 	{/if}
 </div>
 
-<!-- AI Assistant -->
-<a
-	href="/assistant?game={game.id}"
-	class="flex items-center gap-2 w-full py-2.5 px-4 mb-5 rounded-xl bg-tertiary-container text-on-tertiary-container text-sm font-bold"
->
-	<span class="material-symbols-outlined text-[18px]">smart_toy</span>
-	Ask AI about this game
-	<span class="material-symbols-outlined text-[16px] ml-auto opacity-60">chevron_right</span>
-</a>
-
-<!-- Collection action buttons -->
+<!-- Collection action buttons + AI -->
 <div class="flex gap-2 mb-2">
-	{#each (["isOwned", "isFavorited"] as const) as flag}
+	{#each ["isFavorited", "isOwned"] as const as flag}
 		<button
 			onclick={() => toggle(flag)}
 			disabled={saving}
@@ -242,6 +255,13 @@
 			<span class="text-xs font-bold">{flagLabel[flag].label}</span>
 		</button>
 	{/each}
+	<a
+		href="/assistant?game={game.id}"
+		class="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl transition-colors bg-tertiary-container text-on-tertiary-container"
+	>
+		<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+		<span class="text-xs font-bold">Ask AI</span>
+	</a>
 </div>
 {#if myEntry}
 	<button
@@ -291,7 +311,7 @@
 					? ''
 					: 'line-clamp-4'}"
 			>
-				{game.description}
+				{decodeHtml(game.description!)}
 			</p>
 			<button
 				onclick={() => (descExpanded = !descExpanded)}
@@ -304,7 +324,7 @@
 
 	<!-- Categories -->
 	{#if hasChips(game.categories)}
-		<div class="mb-4">
+		<div class="mb-4 mt-2">
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
@@ -323,7 +343,7 @@
 
 	<!-- Mechanics -->
 	{#if hasChips(game.mechanics)}
-		<div class="mb-4">
+		<div class="mb-4 mt-2">
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
@@ -342,7 +362,7 @@
 
 	<!-- Honors / Awards -->
 	{#if hasChips(game.honors)}
-		<div class="mb-4">
+		<div class="mb-4 mt-2">
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
@@ -365,28 +385,43 @@
 
 	<!-- My Stats tab -->
 {:else if activeTab === "mystats"}
-	<!-- Play count summary -->
-	<div class="bg-surface-container-low rounded-xl p-4 mb-4">
-		<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-0.5">Times Played</p>
-		<p class="text-3xl font-extrabold font-headline">{myEntry?.playCount ?? 0}</p>
-	</div>
-
 	<!-- Play history timeline -->
-	<div class="mb-5">
-		<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Play History</p>
+	<div class="my-5">
+		<p
+			class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3"
+		>
+			Play History ({myEntry?.playCount ?? 0})
+		</p>
 		{#if loadingLogs}
-			<p class="text-sm text-on-surface-variant text-center py-4">Loading…</p>
+			<p class="text-sm text-on-surface-variant text-center py-4">
+				Loading…
+			</p>
 		{:else if playLogs.length === 0}
-			<p class="text-sm text-on-surface-variant text-center py-4">No plays logged yet.<br>Use the + button to log one.</p>
+			<p class="text-sm text-on-surface-variant text-center py-4">
+				No plays logged yet.<br />Use the + button to log one.
+			</p>
 		{:else}
 			<div class="relative pl-5">
-				<div class="absolute left-1.5 top-0 bottom-0 w-px bg-outline-variant/30"></div>
+				<div
+					class="absolute left-1.5 top-0 bottom-0 w-px bg-outline-variant/30"
+				></div>
 				{#each playLogs as log, i}
 					<div class="relative mb-3 last:mb-0">
-						<div class="absolute -left-[14px] top-1 w-2.5 h-2.5 rounded-full bg-primary {i === 0 ? 'ring-2 ring-primary/30' : ''}"></div>
-						<p class="text-sm font-medium text-on-surface">{formatPlayDate(log.playedAt)}</p>
+						<div
+							class="absolute -left-[14px] top-1 w-2.5 h-2.5 rounded-full bg-primary {i ===
+							0
+								? 'ring-2 ring-primary/30'
+								: ''}"
+						></div>
+						<p class="text-sm font-medium text-on-surface">
+							{formatPlayDate(log.playedAt)}
+						</p>
 						{#if i === 0}
-							<p class="text-[10px] text-primary font-bold uppercase tracking-widest">Latest</p>
+							<p
+								class="text-[10px] text-primary font-bold uppercase tracking-widest"
+							>
+								Latest
+							</p>
 						{/if}
 					</div>
 				{/each}
@@ -395,7 +430,7 @@
 	</div>
 
 	<!-- Personal rating -->
-	<div class="mb-4">
+	<div class="mb-4 mt-2">
 		<p
 			class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3"
 		>
@@ -431,7 +466,7 @@
 	</div>
 
 	<!-- Notes -->
-	<div class="mb-4">
+	<div class="mb-4 mt-2">
 		<p
 			class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 		>
@@ -479,7 +514,7 @@
 	{/if}
 
 	{#if hasChips(game.publishers)}
-		<div class="mb-4">
+		<div class="mb-4 mt-2">
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
@@ -498,7 +533,7 @@
 
 	<!-- Sub-domains -->
 	{#if hasChips(game.families)}
-		<div class="mb-4">
+		<div class="mb-4 mt-2">
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
@@ -516,7 +551,7 @@
 	{/if}
 
 	<!-- Extra stats -->
-	<div class="space-y-3 mb-4">
+	<div class="space-y-3 mb-4 mt-2">
 		{#if game.minAge}
 			<div class="flex justify-between text-sm">
 				<span class="text-on-surface-variant font-medium">Min Age</span>

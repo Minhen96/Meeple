@@ -4,6 +4,8 @@
 	import { gamesApi } from "$lib/api/games";
 	import { libraryStore } from "$lib/stores/library";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
+	import { goto } from "$app/navigation";
+	import { toast } from "svelte-sonner";
 
 	interface Props {
 		data: PageData;
@@ -110,7 +112,12 @@
 
 	// Initial load
 	$effect(() => {
-		if (activeTab === "all" && gamesPage.number === 0 && gamesPage.totalElements === 0 && !loadingCatalog) {
+		if (
+			activeTab === "all" &&
+			gamesPage.number === 0 &&
+			gamesPage.totalElements === 0 &&
+			!loadingCatalog
+		) {
 			fetchCatalogPage(0);
 		}
 	});
@@ -138,6 +145,7 @@
 
 	const activeFilterCount = $derived.by(() => {
 		let count = 0;
+		if (store.selectedGenre) count++;
 		if (store.minPlayers || store.maxPlayers) count++;
 		if (store.minPlaytime || store.maxPlaytime) count++;
 		if (store.minComplexity || store.maxComplexity) count++;
@@ -176,6 +184,29 @@
 	};
 
 	const categories = ["Strategy", "Party", "Family", "2 Player", "Abstract"];
+
+	let spotlightSaving = $state(false);
+
+	async function exploreSpotlight() {
+		const results = await gamesApi.search(spotlight.title).catch(() => []);
+		const hit = results.find((r) => r.id);
+		if (hit?.id) goto(`/library/${hit.id}`);
+	}
+
+	async function saveSpotlight() {
+		const results = await gamesApi.search(spotlight.title).catch(() => []);
+		const hit = results.find((r) => r.id);
+		if (!hit?.id) return;
+		spotlightSaving = true;
+		try {
+			await gamesApi.updateCollection(hit.id, { isFavorited: true });
+			toast.success(`${spotlight.title} added to favorites!`);
+		} catch {
+			toast.error('Could not save');
+		} finally {
+			spotlightSaving = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Library — Meeple & Hearth</title></svelte:head>
@@ -311,55 +342,23 @@
 						</div>
 						<div class="flex items-center gap-2 shrink-0">
 							<button
+								onclick={exploreSpotlight}
 								class="bg-white text-on-background px-5 py-2 rounded-full font-bold text-xs hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg"
 							>
 								Explore
 							</button>
 							<button
-								class="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all font-variation-settings-fill"
+								onclick={saveSpotlight}
+								disabled={spotlightSaving}
+								class="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-50"
 							>
-								<span
-									class="material-symbols-outlined text-[20px] transition-transform group-hover:scale-110"
-									>bookmark</span
-								>
+								<span class="material-symbols-outlined text-[20px]">bookmark</span>
 							</button>
 						</div>
 					</div>
 				</div>
 			</div>
 		</section>
-	{/if}
-	{#if activeTab === "all" && !query}
-		<!-- Category chips -->
-		<div
-			class="flex items-center gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-2 mb-6"
-		>
-			<button
-				onclick={() => {
-					store = { ...store, selectedGenre: "" };
-					fetchCatalogPage(0);
-				}}
-				class="px-6 py-2.5 rounded-full font-bold text-sm whitespace-nowrap shadow-lg transition-all {!selectedGenre
-					? 'bg-primary text-on-primary shadow-primary/20'
-					: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
-			>
-				All Categories
-			</button>
-			{#each categories as cat}
-				<button
-					onclick={() => {
-						store = { ...store, selectedGenre: cat };
-						fetchCatalogPage(0);
-					}}
-					class="px-6 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all border border-outline-variant/5 {selectedGenre ===
-					cat
-						? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
-						: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
-				>
-					{cat}
-				</button>
-			{/each}
-		</div>
 	{/if}
 </div>
 
@@ -397,6 +396,24 @@
 				<div
 					class="space-y-8 max-h-[60vh] overflow-y-auto pr-2 hide-scrollbar"
 				>
+					<!-- Genre -->
+					<div class="space-y-3">
+						<span class="text-xs font-black uppercase tracking-widest text-on-surface-variant">Genre</span>
+						<div class="flex flex-wrap gap-2">
+							{#each ['Strategy', 'Party', 'Family', '2 Player', 'Abstract'] as cat}
+								<button
+									onclick={() => {
+										store = { ...store, selectedGenre: selectedGenre === cat ? '' : cat };
+										fetchCatalogPage(0);
+									}}
+									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {selectedGenre === cat ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant'}"
+								>
+									{cat}
+								</button>
+							{/each}
+						</div>
+					</div>
+
 					<!-- Player Count -->
 					<div class="space-y-4">
 						<div class="flex items-center justify-between">
@@ -568,6 +585,7 @@
 						onclick={() => {
 							store = {
 								...store,
+								selectedGenre: '',
 								minPlayers: undefined,
 								maxPlayers: undefined,
 								minPlaytime: undefined,

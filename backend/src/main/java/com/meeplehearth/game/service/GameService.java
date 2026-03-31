@@ -76,8 +76,11 @@ public class GameService {
                     } else if ("Family".equalsIgnoreCase(genre)) {
                         return cb.or(cb.isNotNull(join.get("rankFamily")),
                                 cb.like(cb.function("array_to_string", String.class, join.get("families"), cb.literal(",")), "%Family Games%"));
+                    } else if ("Abstract".equalsIgnoreCase(genre)) {
+                        return cb.or(cb.isNotNull(join.get("rankAbstract")),
+                                cb.like(cb.function("array_to_string", String.class, join.get("families"), cb.literal(",")), "%Abstract Games%"));
                     }
-                    return null;
+                    return cb.conjunction();
                 });
             }
         }
