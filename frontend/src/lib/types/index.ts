@@ -79,6 +79,7 @@ export interface GameDetail extends GameSummary {
 	publishers: string[] | null;
 	honors: string[] | null;
 	expansions: string[] | null;
+	hasRulebook: boolean;
 }
 
 // GameSearchResult maps to GameSearchResult
@@ -88,6 +89,7 @@ export interface GameSearchResult {
 	title: string;
 	yearPublished: number | null;
 	thumbnailUrl: string | null;
+	translatedFrom: string | null; // e.g. if the user searched for '卡坦岛'
 }
 
 // PlayLog maps to PlayLogResponse

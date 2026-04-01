@@ -300,6 +300,7 @@
 				class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
 			>
 				<option value="">Sort</option>
+				<option value="recommended">Recommended ✨</option>
 				<option value="rank,asc">Rank</option>
 				<option value="bggRating,desc">Rating</option>
 				<option value="yearPublished,desc">Newest</option>
@@ -652,6 +653,14 @@
 			</p>
 		</div>
 	{:else}
+		{#if searchResults[0]?.translatedFrom}
+			<div class="px-1 mb-4 flex items-center gap-2 text-primary animate-in fade-in slide-in-from-left-4">
+				<span class="material-symbols-outlined text-[18px]">translate</span>
+				<p class="text-xs font-bold uppercase tracking-widest">
+					Showing results for: <span class="italic text-on-surface">{searchResults[0].title}</span>
+				</p>
+			</div>
+		{/if}
 		<div class="space-y-3 mt-6">
 			{#each searchResults as result (result.bggId)}
 				<a
@@ -730,10 +739,17 @@
 				class="material-symbols-outlined text-6xl text-primary/20 mb-4 block"
 				>explore_off</span
 			>
-			<p class="font-bold text-lg">The library feels empty</p>
-			<p class="text-sm text-on-surface-variant mt-1">
-				Adjust your filters to see more games.
-			</p>
+			{#if store.sortOption === 'recommended'}
+				<p class="font-bold text-lg">No recommendations yet</p>
+				<p class="text-sm text-on-surface-variant mt-1">
+					Favorite or log some plays to get personalized suggestions.
+				</p>
+			{:else}
+				<p class="font-bold text-lg">The library feels empty</p>
+				<p class="text-sm text-on-surface-variant mt-1">
+					Adjust your filters to see more games.
+				</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="grid grid-cols-2 gap-5">

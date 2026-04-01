@@ -3,6 +3,8 @@
 	import type { PlayLog, UserGame } from "$lib/types";
 	import { gamesApi } from "$lib/api/games";
 	import { toast } from "svelte-sonner";
+	import HowToPlayTab from "$lib/components/game/HowToPlayTab.svelte";
+	import AiAssistantDrawer from "$lib/components/game/AiAssistantDrawer.svelte";
 
 	interface Props {
 		data: PageData;
@@ -11,7 +13,8 @@
 
 	const game = $derived(data.game);
 	let myEntry = $state<UserGame | null>(null);
-	let activeTab = $state<"overview" | "details" | "mystats">("overview");
+	let activeTab = $state<"overview" | "details" | "mystats" | "howtoplay">("overview");
+	let showAssistant = $state(false);
 	let descExpanded = $state(false);
 	let saving = $state(false);
 	let savingNotes = $state(false);
@@ -255,21 +258,21 @@
 			<span class="text-xs font-bold">{flagLabel[flag].label}</span>
 		</button>
 	{/each}
-	<a
-		href="/assistant?game={game.id}"
+	<button
+		onclick={() => (showAssistant = true)}
 		class="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl transition-colors bg-tertiary-container text-on-tertiary-container"
 	>
 		<span class="material-symbols-outlined text-[20px]">smart_toy</span>
 		<span class="text-xs font-bold">Ask AI</span>
-	</a>
+	</button>
 </div>
 
 <!-- Tabs -->
 <div class="mt-6 flex gap-6 border-b border-outline-variant/20 mb-4">
-	{#each [{ id: "overview", label: "Overview" }, { id: "details", label: "Details" }, { id: "mystats", label: "My Stats" }] as tab}
+	{#each [{ id: "overview", label: "Overview" }, { id: "howtoplay", label: "How to Play" }, { id: "details", label: "Details" }, { id: "mystats", label: "My Stats" }] as tab}
 		<button
 			onclick={() =>
-				(activeTab = tab.id as "overview" | "details" | "mystats")}
+				(activeTab = tab.id as any)}
 			class="relative pb-3 text-sm font-bold transition-colors {activeTab ===
 			tab.id
 				? 'text-primary'
@@ -482,7 +485,10 @@
 	{/if}
 
 	<!-- Details tab -->
+{:else if activeTab === "howtoplay"}
+	<HowToPlayTab gameId={game.id} onOpenAssistant={() => (showAssistant = true)} />
 {:else}
+	<!-- Details tab -->
 	<!-- Designers & Publishers -->
 	{#if hasChips(game.designers)}
 		<div class="mb-4">
@@ -570,3 +576,9 @@
 		</a>
 	{/if}
 {/if}
+
+<AiAssistantDrawer
+	bind:show={showAssistant}
+	gameId={game.id}
+	gameTitle={game.title}
+/>

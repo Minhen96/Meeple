@@ -288,6 +288,24 @@ Stored permanently once done
 Re-generated when rulebook is replaced (RulebookIngestionService triggers it)
 ```
 
+### Extraction Prompt (System)
+```text
+You are a rule extraction engine. Analyze the provided game rules for {gameTitle} and output a structured JSON representing the "How to Play" guide. 
+Focus on:
+1. Setup: Step-by-step physical arrangement.
+2. Gameplay: Detailed turn structure and core actions.
+3. Scoring: How to win and final tallying.
+Omit fields that are not applicable to this specific game.
+```
+
+### JSONB Mapping (Spring Boot)
+Use `@JdbcTypeCode(SqlTypes.JSON)` for the `content` field in `HowToPlay` entity to map directly to PostgreSQL `JSONB`.
+```java
+@JdbcTypeCode(SqlTypes.JSON)
+@Column(name = "content", columnDefinition = "jsonb")
+private HowToPlayData data; 
+```
+
 ### Source modes
 ```
 Rulebook mode  — game_rules rows exist → RAG extraction
@@ -298,19 +316,9 @@ General mode   — no game_rules → GPT general knowledge + BGG description
                  Show: [+ Submit Rulebook] button
 ```
 
-### UI sections (render only if data present)
-```
-Overview · Objective
-Game Structure (phase cards)
-Components · Resources · Card System · Actions
-Board · Pieces · Roles · Scenarios
-Rules (core + special + edge cases accordion)
-Player Interaction · Win/Lose Conditions
-Scoring · End Condition · Variants
-FAQ accordion · Tips
-── divider ──
-AI Chat Button (opens Sidebar/Drawer, source badge)
-```
+### AI Assistant Call-to-action
+- Located at bottom of "How to Play" tab.
+- Triggers `AiAssistantDrawer` with `gameTitle` context.
 
 ### New files
 ```
@@ -371,13 +379,19 @@ POST /api/v1/ai/rules
    INSERT INTO ai_rule_queries { userId, gameId, question, answer, sourceMode }
    → Used to improve rules and FAQ over time.
 
-8. Return
-   { answer, cached: false, mode: "rulebook"|"general", disclaimer }
-
 ### Memory & Persistence
-- **Memory**: The system uses LLM **Query Rewriting** to turn follow-up questions into standalone queries based on history before searching the rulebook.
-- **Frontend Persistence**: Chat history is kept in **localStorage** (survives refreshes) but remains session-based (not synced to DB for the user).
-```
+- **Query Rewriting**: Before RAG search, use the LLM to consolidate `conversationHistory` + `question` into a standalone query.
+  - **Prompt**: "Given the chat history: {history}, rewrite the user's latest question '{question}' as a self-contained search query for a rulebook."
+- **Frontend Persistence**: Store message array in `localStorage` keyed by `ai_chat_{gameId}`.
+- **Backend Logging**: Every non-cached query MUST be logged to `ai_rule_queries` for dataset collection.
+
+### Error Codes
+| Code | Meaning |
+|------|---------|
+| `AI_CONTEXT_BUSY` | Rulebook ingestion/extraction in progress |
+| `AI_PROVIDER_ERROR` | OpenAI / LLM provider failed (Circuit record) |
+| `AI_RATE_LIMIT` | User exceeded daily question quota |
+| `RULE_NOT_FOUND` | RAG score too low, no relevant context found |
 
 ### Disclaimers
 ```
@@ -485,6 +499,21 @@ Step 15 Frontend: library page (Recommended chip, search translation hint)
 Step 16 Frontend: admin rulebook page
 Step 17 Frontend: profile page (Admin button)
 ```
+
+---
+
+## Security & Rate Limiting
+
+### Backend (Security)
+- **Role-based Access**: Admin endpoints (`/api/v1/admin/**`) must be protected with `PreAuthorize("hasRole('ROLE_ADMIN')")`.
+- **Upload Sanitization**: PDF uploads must be checked for `application/pdf` magic bytes. Max size: 25MB.
+- **Data Privacy**: Ensure user-specific chat logs in `ai_rule_queries` do not leak PII (only store `userId` as reference, not name/email).
+
+### Rate Limiting (Redis)
+- **AI Questions**: 20 per user/day.
+- **Rulebook Uploads**: 5 per user/day to prevent spam ingestion.
+- **Search Translation**: 50 per user/day (low cost but prevent abuse).
+- **Implementation**: Use a Spring `HandlerInterceptor` or a dedicated `RateLimitService` with Redis `INCR` + `EXPIRE`.
 
 ---
 
