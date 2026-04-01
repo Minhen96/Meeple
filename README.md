@@ -137,7 +137,25 @@ npm run dev
 # Runs on http://localhost:5173
 ```
 
-### 5. Import Initial Board Game Dataset
+### 5. Configure AI providers (Phase 2)
+
+Add to `backend/.env`:
+
+```env
+# Completion (DeepSeek, OpenAI, Groq, or any OpenAI-compatible provider)
+AI_COMPLETION_BASE_URL=https://api.deepseek.com
+AI_COMPLETION_API_KEY=sk-...
+AI_COMPLETION_MODEL=deepseek-chat
+
+# Embeddings (OpenAI only — DeepSeek has no embedding API)
+AI_EMBEDDING_BASE_URL=https://api.openai.com
+AI_EMBEDDING_API_KEY=sk-...
+AI_EMBEDDING_MODEL=text-embedding-3-small
+```
+
+> If you skip this step, AI features (How to Play, AI Assistant, smart search) will not work, but the rest of the app runs normally.
+
+### 6. Import Initial Board Game Dataset
 
 The application's global catalog uses a SQLite dataset of ~90,000 board games from BoardGameGeek. This is a **one-time setup** — run these two steps after first launch.
 
@@ -160,6 +178,17 @@ Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/v1/games/hydrate-
 > Images appear progressively as the hydration job runs. You do not need to wait for it to finish — browse the app normally and images will fill in over time. Watch backend logs (`Bulk hydration progress: X games hydrated...`) to track progress.
 >
 > The hydration job only needs to be re-run if you re-import the dataset.
+
+**Step 4 — rulebook startup pump** (runs automatically on first boot, requires AI env vars):
+
+On the **first startup after the dataset import**, the backend automatically fetches rulebook PDFs for the top 10,000 games by BGG rank. It scrapes [rule-book.org](https://rule-book.org) and [1jour1jeu](https://en.1jour-1jeu.com), downloads each PDF, chunks it into 375-word overlapping segments, and embeds them with `text-embedding-3-small`.
+
+- Runs **once** — a Redis flag (`init:rulebook-fetch`) prevents re-runs on subsequent restarts
+- **Crash-safe** — if the server restarts mid-run, already-processed games are skipped and the job resumes from where it left off
+- **Estimated cost** — ~$0.40 one-time (text-embedding-3-small at $0.02/1M tokens for 10,000 games)
+- **Watch progress** in the logs: `Rulebook auto-fetch starting`, `Queued ingestion for '...'`, `Rulebook auto-fetch complete — fetched X/Y`
+
+For games not covered by the startup pump, users can trigger rulebook fetching manually via the **"Generate Rules"** button in the How to Play tab, or upload a PDF themselves (goes to admin review queue).
 
 ## Staging / Production Setup
 
@@ -244,6 +273,16 @@ R2_SECRET_KEY=...
 R2_BUCKET=meeple-prod
 R2_PUBLIC_URL=https://cdn.yapminhen.com
 
+# AI — Completion (DeepSeek / OpenAI / Groq)
+AI_COMPLETION_BASE_URL=https://api.deepseek.com
+AI_COMPLETION_API_KEY=sk-...
+AI_COMPLETION_MODEL=deepseek-chat
+
+# AI — Embeddings (OpenAI text-embedding-3-small)
+AI_EMBEDDING_BASE_URL=https://api.openai.com
+AI_EMBEDDING_API_KEY=sk-...
+AI_EMBEDDING_MODEL=text-embedding-3-small
+
 # Email (Resend)
 RESEND_API_KEY=re_...
 EMAIL_FROM=noreply@meeple.yapminhen.com
@@ -312,3 +351,4 @@ Commit format: `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`
 | `docs/FEATURES_COMPLETE.md`     | Business rules and edge cases for every feature |
 | `docs/SCREENS_AND_STATES.md`    | Every screen and UI state                       |
 | `docs/ENGINEERING_STANDARDS.md` | Environments, CI/CD, monitoring, code quality   |
+| `docs/AI_PLAN.md`               | AI feature build order, cost estimates, RAG pipeline design |
