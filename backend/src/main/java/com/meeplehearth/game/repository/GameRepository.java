@@ -22,6 +22,8 @@ public interface GameRepository extends JpaRepository<Game, UUID>, JpaSpecificat
 
     List<Game> findByMinPlayersIsNull(Pageable pageable);
 
+    long countByMinPlayersIsNull();
+
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "gameDetail")
     List<Game> findByBggIdIn(Collection<Long> bggIds);
 

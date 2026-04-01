@@ -16,6 +16,7 @@ public class AppProperties {
     private Google google = new Google();
     private Email email = new Email();
     private Ai ai = new Ai();
+    private Seed seed = new Seed();
 
     public Jwt getJwt() {
         return jwt;
@@ -199,6 +200,15 @@ public class AppProperties {
         public void setFrom(String from) {
             this.from = from;
         }
+    }
+
+    public Seed getSeed() { return seed; }
+    public void setSeed(Seed s) { this.seed = s; }
+
+    public static class Seed {
+        private String csvUrl;
+        public String getCsvUrl() { return csvUrl; }
+        public void setCsvUrl(String v) { this.csvUrl = v; }
     }
 
     /**

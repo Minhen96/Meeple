@@ -29,6 +29,8 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
 
     int countByGame_IdAndStatus(UUID gameId, String status);
 
+    long countByStatus(String status);
+
     /**
      * Games that have no approved rulebook yet, ordered by BGG rank (highest-ranked first).
      * Used by RulebookAutoFetchJob to prioritize popular games.

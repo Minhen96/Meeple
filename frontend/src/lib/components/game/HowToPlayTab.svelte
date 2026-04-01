@@ -2,8 +2,10 @@
 	import { onMount } from 'svelte';
 	import { rulebookApi } from '$lib/api/rulebook';
 	import { adminApi } from '$lib/api/admin';
+	import { howToPlayApi } from '$lib/api/howtoplay';
 	import { currentUser } from '$lib/stores/auth';
 	import { toast } from 'svelte-sonner';
+	import type { HowToPlayContent } from '$lib/types';
 
 	interface Props {
 		gameId: string;
@@ -19,15 +21,34 @@
 	let uploading: boolean = $state(false);
 	let myQueuePosition: number | null = $state(null);
 
-	// File input ref for user upload
+	// How-to-play content
+	type HowToPlayState = 'idle' | 'loading' | 'generating' | 'ready' | 'error';
+	let howToPlayState: HowToPlayState = $state('idle');
+	let howToPlayData: HowToPlayContent | null = $state(null);
+	let howToPlaySourceMode: string | null = $state(null);
+	let howToPlayDisclaimer: string | null = $state(null);
+	let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+	// FAQ expand state
+	let expandedFaq = $state<Set<number>>(new Set());
+
+	// File input refs
 	let fileInput: HTMLInputElement = $state() as HTMLInputElement;
 	let adminFileInput: HTMLInputElement = $state() as HTMLInputElement;
 
-	onMount(async () => {
+	onMount(() => {
+		initRulebookStatus();
+		return () => {
+			if (pollInterval !== null) clearInterval(pollInterval);
+		};
+	});
+
+	async function initRulebookStatus() {
 		try {
 			const status = await rulebookApi.getStatus(gameId);
 			if (status.hasRulebook) {
 				rulebookState = 'ready';
+				fetchHowToPlay();
 			} else if (status.myStatus === 'pending_review') {
 				rulebookState = 'pending_review';
 				myQueuePosition = status.myQueuePosition;
@@ -37,7 +58,46 @@
 		} catch {
 			rulebookState = 'error';
 		}
-	});
+	}
+
+	async function fetchHowToPlay() {
+		howToPlayState = 'loading';
+		try {
+			const res = await howToPlayApi.get(gameId);
+			if (res.status === 'ready' && res.data) {
+				howToPlayState = 'ready';
+				howToPlayData = res.data;
+				howToPlaySourceMode = res.sourceMode;
+				howToPlayDisclaimer = res.disclaimer;
+			} else {
+				howToPlayState = 'generating';
+				startPolling();
+			}
+		} catch {
+			howToPlayState = 'error';
+		}
+	}
+
+	function startPolling() {
+		if (pollInterval !== null) return;
+		pollInterval = setInterval(async () => {
+			try {
+				const res = await howToPlayApi.get(gameId);
+				if (res.status === 'ready' && res.data) {
+					clearInterval(pollInterval!);
+					pollInterval = null;
+					howToPlayState = 'ready';
+					howToPlayData = res.data;
+					howToPlaySourceMode = res.sourceMode;
+					howToPlayDisclaimer = res.disclaimer;
+				}
+			} catch {
+				clearInterval(pollInterval!);
+				pollInterval = null;
+				howToPlayState = 'error';
+			}
+		}, 2000);
+	}
 
 	async function handleGenerate() {
 		generating = true;
@@ -47,8 +107,8 @@
 				rulebookState = 'generating';
 			} else if (result.status === 'already_done') {
 				rulebookState = 'ready';
+				fetchHowToPlay();
 			}
-			// not_found stays on no_rulebook — show upload option
 		} catch {
 			toast.error('Could not fetch rulebook');
 		} finally {
@@ -68,6 +128,7 @@
 				toast.success('PDF submitted! An admin will review it shortly.');
 			} else if (result.status === 'already_done') {
 				rulebookState = 'ready';
+				fetchHowToPlay();
 			}
 		} catch {
 			toast.error('Upload failed. File must be a PDF under 25 MB.');
@@ -92,6 +153,13 @@
 			adminFileInput.value = '';
 		}
 	}
+
+	function toggleFaq(i: number) {
+		const next = new Set(expandedFaq);
+		if (next.has(i)) next.delete(i);
+		else next.add(i);
+		expandedFaq = next;
+	}
 </script>
 
 <div class="py-4 space-y-8 pb-12">
@@ -115,7 +183,7 @@
 		<div class="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
 	</div>
 
-	<!-- States -->
+	<!-- Rulebook status section -->
 	{#if rulebookState === 'loading'}
 		<div class="space-y-6">
 			{#each [1, 2, 3] as _}
@@ -144,7 +212,6 @@
 				</p>
 			</div>
 
-			<!-- Auto-fetch -->
 			<button
 				onclick={handleGenerate}
 				disabled={generating || uploading}
@@ -159,7 +226,6 @@
 				{/if}
 			</button>
 
-			<!-- User upload -->
 			<div class="w-full">
 				<input
 					bind:this={fileInput}
@@ -191,9 +257,9 @@
 				<span class="material-symbols-outlined text-[36px] animate-spin">progress_activity</span>
 			</div>
 			<div class="space-y-1">
-				<h3 class="font-bold text-on-surface">Generating rules…</h3>
+				<h3 class="font-bold text-on-surface">Processing rulebook…</h3>
 				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-					We found the rulebook PDF and are processing it. This usually takes under a minute. Check back shortly.
+					The PDF is being indexed. This usually takes under a minute. Check back shortly.
 				</p>
 			</div>
 		</div>
@@ -212,17 +278,274 @@
 		</div>
 
 	{:else if rulebookState === 'ready'}
-		<div class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4">
-			<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-				<span class="material-symbols-outlined text-[36px]">check_circle</span>
+		<!-- How-to-Play content -->
+		{#if howToPlayState === 'loading'}
+			<div class="space-y-5">
+				{#each [1, 2, 3] as _}
+					<div class="rounded-2xl bg-surface-container-low/40 p-5 space-y-3 animate-pulse">
+						<div class="flex items-center gap-3">
+							<div class="w-8 h-8 rounded-lg bg-surface-container-high"></div>
+							<div class="h-3.5 w-28 rounded-full bg-surface-container-high"></div>
+						</div>
+						<div class="space-y-2 pl-11">
+							<div class="h-3 rounded-full bg-surface-container-low/60 w-full"></div>
+							<div class="h-3 rounded-full bg-surface-container-low/60 w-4/5"></div>
+							<div class="h-3 rounded-full bg-surface-container-low/60 w-3/5"></div>
+						</div>
+					</div>
+				{/each}
 			</div>
-			<div class="space-y-1">
-				<h3 class="font-bold text-on-surface">Rulebook ready</h3>
-				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-					The rulebook has been indexed. Use the AI Assistant below to ask any question about the rules.
-				</p>
+
+		{:else if howToPlayState === 'generating'}
+			<div class="rounded-3xl border border-tertiary/20 bg-tertiary/5 p-8 flex flex-col items-center text-center gap-4">
+				<div class="w-16 h-16 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+					<span class="material-symbols-outlined text-[36px] animate-spin">progress_activity</span>
+				</div>
+				<div class="space-y-1">
+					<h3 class="font-bold text-on-surface">Generating your guide…</h3>
+					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+						AI is reading the rulebook and extracting key information. This takes about 20–30 seconds.
+					</p>
+				</div>
 			</div>
-		</div>
+
+		{:else if howToPlayState === 'ready' && howToPlayData}
+			<!-- Source mode badge -->
+			{#if howToPlaySourceMode}
+				<div class="flex items-center gap-2">
+					<span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full
+						{howToPlaySourceMode === 'rulebook' ? 'bg-primary/10 text-primary' : 'bg-amber-400/10 text-amber-500'}">
+						<span class="material-symbols-outlined text-[12px]">
+							{howToPlaySourceMode === 'rulebook' ? 'menu_book' : 'psychology'}
+						</span>
+						{howToPlaySourceMode === 'rulebook' ? 'From Official Rulebook' : 'AI General Knowledge'}
+					</span>
+					{#if howToPlayDisclaimer}
+						<span class="text-[10px] text-on-surface-variant opacity-60">{howToPlayDisclaimer}</span>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- Overview / Objective -->
+			{#if howToPlayData.overview || howToPlayData.objective}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+							<span class="material-symbols-outlined text-[16px]">info</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Overview</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-11">
+						{howToPlayData.overview ?? howToPlayData.objective}
+					</p>
+					{#if howToPlayData.overview && howToPlayData.objective}
+						<p class="text-sm text-on-surface leading-relaxed pl-11 pt-1">
+							<strong>Goal:</strong> {howToPlayData.objective}
+						</p>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- Win Condition -->
+			{#if howToPlayData.winCondition?.details || howToPlayData.winCondition?.type}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500">
+							<span class="material-symbols-outlined text-[16px]">emoji_events</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">How to Win</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-11">
+						{howToPlayData.winCondition.details ?? howToPlayData.winCondition.type}
+					</p>
+				</div>
+			{/if}
+
+			<!-- Game Structure / Phases -->
+			{#if howToPlayData.gameStructure?.phases?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+							<span class="material-symbols-outlined text-[16px]">view_timeline</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Game Flow</h3>
+					</div>
+					<div class="pl-11 space-y-4">
+						{#if howToPlayData.gameStructure.turnOrder}
+							<p class="text-xs text-on-surface-variant leading-relaxed">
+								{howToPlayData.gameStructure.turnOrder}
+							</p>
+						{/if}
+						{#each howToPlayData.gameStructure.phases as phase, i}
+							<div class="relative pl-5">
+								<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center">
+									<span class="text-[8px] font-black text-secondary">{i + 1}</span>
+								</div>
+								<p class="text-sm font-bold text-on-surface">{phase.name}</p>
+								{#if phase.description}
+									<p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">{phase.description}</p>
+								{/if}
+								{#if phase.actions?.length}
+									<ul class="mt-1.5 space-y-0.5">
+										{#each phase.actions as action}
+											<li class="text-xs text-on-surface-variant flex items-start gap-1.5">
+												<span class="material-symbols-outlined text-[10px] mt-0.5 text-secondary/60">arrow_forward</span>
+												{action}
+											</li>
+										{/each}
+									</ul>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Core Rules -->
+			{#if howToPlayData.rules?.coreRules}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
+							<span class="material-symbols-outlined text-[16px]">gavel</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Core Rules</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line">
+						{howToPlayData.rules.coreRules}
+					</p>
+				</div>
+			{/if}
+
+			<!-- Special Rules -->
+			{#if howToPlayData.rules?.specialRules?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+							<span class="material-symbols-outlined text-[16px]">stars</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Special Rules</h3>
+					</div>
+					<div class="pl-11 space-y-3">
+						{#each howToPlayData.rules.specialRules as rule}
+							<div>
+								<p class="text-sm font-bold text-on-surface">{rule.name}</p>
+								<p class="text-xs text-on-surface-variant leading-relaxed">{rule.description}</p>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Scoring -->
+			{#if howToPlayData.scoring?.methods?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500">
+							<span class="material-symbols-outlined text-[16px]">scoreboard</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Scoring</h3>
+					</div>
+					<div class="pl-11 space-y-1">
+						{#each howToPlayData.scoring.methods as method}
+							<div class="flex justify-between items-center text-sm py-1.5 border-b border-outline-variant/10 last:border-none">
+								<span class="text-on-surface">{method.item}</span>
+								<span class="font-bold text-primary text-xs">{method.points}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Components -->
+			{#if howToPlayData.components?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+							<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">What's in the Box</h3>
+					</div>
+					<div class="pl-11 flex flex-wrap gap-2">
+						{#each howToPlayData.components as comp}
+							<span class="text-xs bg-surface-container-high text-on-surface px-3 py-1.5 rounded-xl font-medium">
+								{comp.quantity ? `${comp.quantity}× ` : ''}{comp.name}
+							</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Tips -->
+			{#if howToPlayData.tips?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+							<span class="material-symbols-outlined text-[16px]">lightbulb</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Tips for New Players</h3>
+					</div>
+					<ul class="pl-11 space-y-2">
+						{#each howToPlayData.tips as tip}
+							<li class="flex items-start gap-2 text-sm text-on-surface leading-relaxed">
+								<span class="material-symbols-outlined text-[14px] mt-0.5 text-secondary flex-shrink-0">check_circle</span>
+								{tip}
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
+
+			<!-- FAQ -->
+			{#if howToPlayData.faq?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
+							<span class="material-symbols-outlined text-[16px]">quiz</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">FAQ</h3>
+					</div>
+					<div class="pl-0 space-y-2">
+						{#each howToPlayData.faq as item, i}
+							<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 overflow-hidden">
+								<button
+									onclick={() => toggleFaq(i)}
+									class="w-full flex items-center justify-between gap-3 p-4 text-left"
+								>
+									<span class="text-sm font-semibold text-on-surface leading-snug">{item.question}</span>
+									<span class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0 transition-transform duration-200
+										{expandedFaq.has(i) ? 'rotate-180' : ''}">
+										expand_more
+									</span>
+								</button>
+								{#if expandedFaq.has(i)}
+									<div class="px-4 pb-4">
+										<p class="text-sm text-on-surface-variant leading-relaxed">{item.answer}</p>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Raw fallback (if JSON parse failed on backend) -->
+			{#if howToPlayData.raw}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+							<span class="material-symbols-outlined text-[16px]">article</span>
+						</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Rules Summary</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line">{howToPlayData.raw}</p>
+				</div>
+			{/if}
+
+		{:else if howToPlayState === 'error'}
+			<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-5 text-center">
+				<p class="text-sm text-on-surface-variant">Could not load guide. Use the AI Assistant below for help.</p>
+			</div>
+		{/if}
 
 	{:else if rulebookState === 'error'}
 		<p class="text-center text-xs text-error py-8">Failed to load rulebook status. Try refreshing.</p>
@@ -255,7 +578,7 @@
 		</div>
 	{/if}
 
-	<!-- AI Assistant Call-to-action -->
+	<!-- AI Assistant CTA -->
 	<button
 		onclick={onOpenAssistant}
 		class="w-full bg-tertiary-container/30 rounded-3xl p-6 border border-tertiary/10 flex flex-col items-center text-center gap-3 mt-4 hover:bg-tertiary-container/40 transition-colors"
@@ -266,7 +589,7 @@
 		<div class="space-y-1">
 			<h4 class="font-bold text-on-tertiary-container">Still have questions?</h4>
 			<p class="text-[11px] text-on-tertiary-container/70 leading-relaxed px-4">
-				Our AI Assistant has read the full rulebook and can answer specific edge cases.
+				Our AI Assistant can answer specific edge cases and unusual situations.
 			</p>
 		</div>
 	</button>

@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { fade, fly } from "svelte/transition";
-	import { tick } from "svelte";
+	import { tick, onMount } from "svelte";
+	import { aiApi } from "$lib/api/ai";
+	import { ApiRequestError } from "$lib/api/client";
+	import type { ConversationTurn } from "$lib/types";
 
 	interface Message {
 		role: "user" | "assistant";
 		content: string;
+		sourceMode?: "rulebook" | "general";
+		disclaimer?: string;
 	}
 
 	interface Props {
@@ -14,23 +19,69 @@
 	}
 	let { show = $bindable(), gameId, gameTitle }: Props = $props();
 
-	let messages = $state<Message[]>([
-		{
+	const STORAGE_KEY = $derived(`ai_chat_${gameId}`);
+
+	function makeWelcome(): Message {
+		return {
 			role: "assistant",
-			content: `Hi! I've read the rules for **${gameTitle}**. You can ask me anything about game setup, turns, or specific card effects!`
-		}
-	]);
+			content: `Hi! I'm ready to answer questions about **${gameTitle}**. Ask me about setup, turn order, rules, or tricky edge cases!`
+		};
+	}
+
+	let messages = $state<Message[]>([makeWelcome()]);
 	let inputValue = $state("");
 	let isTyping = $state(false);
 	let scrollContainer = $state<HTMLDivElement>();
 
+	onMount(() => {
+		const stored = localStorage.getItem(STORAGE_KEY);
+		if (stored) {
+			try {
+				const parsed = JSON.parse(stored) as Message[];
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					messages = parsed;
+				}
+			} catch {
+				// ignore corrupt storage
+			}
+		}
+	});
+
+	$effect(() => {
+		if (show) {
+			tick().then(() => {
+				if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+			});
+		}
+	});
+
+	function getHistory(): ConversationTurn[] {
+		const pairs: ConversationTurn[] = [];
+		for (let i = 0; i < messages.length - 1; i++) {
+			if (messages[i].role === "user" && messages[i + 1]?.role === "assistant") {
+				pairs.push({ question: messages[i].content, answer: messages[i + 1].content });
+			}
+		}
+		return pairs.slice(-3);
+	}
+
+	function saveToStorage() {
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+		} catch {
+			// quota exceeded — ignore
+		}
+	}
+
+	function clearChat() {
+		messages = [makeWelcome()];
+		localStorage.removeItem(STORAGE_KEY);
+	}
+
 	async function scrollToBottom() {
 		await tick();
 		if (scrollContainer) {
-			scrollContainer.scrollTo({
-				top: scrollContainer.scrollHeight,
-				behavior: "smooth"
-			});
+			scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: "smooth" });
 		}
 	}
 
@@ -43,16 +94,34 @@
 		await scrollToBottom();
 
 		isTyping = true;
-		
-		// Simulate API delay
-		setTimeout(async () => {
+		try {
+			const history = getHistory();
+			const res = await aiApi.askRules(gameId, userMessage, history);
 			messages.push({
 				role: "assistant",
-				content: `I'm still learning the deep strategy for **${gameTitle}**, but based on the rulebook, that action is allowed during the Harvest phase as long as you have enough resources. (Backend API integration coming soon!)`
+				content: res.answer,
+				sourceMode: res.sourceMode,
+				disclaimer: res.disclaimer
 			});
+			saveToStorage();
+		} catch (e) {
+			let content: string;
+			if (e instanceof ApiRequestError) {
+				if (e.status === 429) {
+					content = "You've reached the daily limit (20 questions). Come back tomorrow!";
+				} else if (e.status === 400) {
+					content = "Question too long — please keep it under 500 characters.";
+				} else {
+					content = "Something went wrong. Please try again.";
+				}
+			} else {
+				content = "Could not reach the server. Check your connection and try again.";
+			}
+			messages.push({ role: "assistant", content });
+		} finally {
 			isTyping = false;
 			await scrollToBottom();
-		}, 1000);
+		}
 	}
 
 	function close() {
@@ -60,9 +129,19 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === "Enter") {
-			sendMessage();
-		}
+		if (e.key === "Enter") sendMessage();
+	}
+
+	// Simple inline markdown: escape HTML, then convert **bold** and *italic*
+	function renderMd(text: string): string {
+		const escaped = text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
+		return escaped
+			.replace(/\*\*(.*?)\*\*/gs, "<strong>$1</strong>")
+			.replace(/\*(.*?)\*/gs, "<em>$1</em>")
+			.replace(/\n/g, "<br>");
 	}
 </script>
 
@@ -76,7 +155,7 @@
 		onclick={close}
 	></div>
 
-	<!-- Drawer / Sidebar -->
+	<!-- Drawer -->
 	<div
 		transition:fly={{ x: 400, duration: 400, opacity: 1 }}
 		class="fixed right-0 top-0 h-full w-full max-w-[420px] bg-surface border-l border-outline-variant/20 z-[101] shadow-2xl flex flex-col"
@@ -90,34 +169,67 @@
 				<div>
 					<h3 class="font-bold text-on-surface leading-tight text-sm">Rules Assistant</h3>
 					<p class="text-[10px] uppercase font-black tracking-widest text-on-surface-variant opacity-70">
-						Context: {gameTitle}
+						{gameTitle}
 					</p>
 				</div>
 			</div>
-			<button
-				onclick={close}
-				class="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center transition-colors"
-			>
-				<span class="material-symbols-outlined text-on-surface-variant">close</span>
-			</button>
+			<div class="flex items-center gap-1">
+				{#if messages.length > 1}
+					<button
+						onclick={clearChat}
+						title="Clear chat"
+						class="w-9 h-9 rounded-full hover:bg-surface-container-high flex items-center justify-center transition-colors text-on-surface-variant"
+					>
+						<span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+					</button>
+				{/if}
+				<button
+					onclick={close}
+					class="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center transition-colors"
+				>
+					<span class="material-symbols-outlined text-on-surface-variant">close</span>
+				</button>
+			</div>
 		</div>
 
 		<!-- Chat Content -->
-		<div 
+		<div
 			bind:this={scrollContainer}
 			class="flex-1 overflow-y-auto p-4 space-y-6 bg-surface-container-lowest/30"
 		>
-			{#each messages as msg}
+			{#each messages as msg, i}
 				<div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
 					<div class="max-w-[85%] space-y-1">
 						<div class="
 							p-4 rounded-2xl text-sm leading-relaxed
-							{msg.role === 'user' 
-								? 'bg-primary text-on-primary rounded-tr-none shadow-md shadow-primary/10' 
+							{msg.role === 'user'
+								? 'bg-primary text-on-primary rounded-tr-none shadow-md shadow-primary/10'
 								: 'bg-surface-container-low text-on-surface rounded-tl-none border border-outline-variant/10 shadow-sm'}
 						">
-							{msg.content}
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+							{@html renderMd(msg.content)}
 						</div>
+
+						<!-- Source mode badge — only on real assistant answers (not the welcome msg) -->
+						{#if msg.role === 'assistant' && msg.sourceMode && i > 0}
+							<div class="flex items-center gap-2 px-1 flex-wrap">
+								<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full
+									{msg.sourceMode === 'rulebook'
+										? 'bg-primary/10 text-primary'
+										: 'bg-amber-400/10 text-amber-500'}">
+									<span class="material-symbols-outlined text-[10px]">
+										{msg.sourceMode === 'rulebook' ? 'menu_book' : 'psychology'}
+									</span>
+									{msg.sourceMode === 'rulebook' ? 'Rulebook' : 'General AI'}
+								</span>
+							</div>
+							{#if msg.disclaimer}
+								<p class="text-[9px] text-on-surface-variant opacity-50 px-1 leading-snug max-w-[260px]">
+									{msg.disclaimer}
+								</p>
+							{/if}
+						{/if}
+
 						<p class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant opacity-40 px-1">
 							{msg.role === 'user' ? 'You' : 'Assistant'}
 						</p>
@@ -143,10 +255,11 @@
 					type="text"
 					bind:value={inputValue}
 					onkeydown={handleKeydown}
-					placeholder="Ask a rule question..."
+					placeholder="Ask a rule question…"
+					maxlength="500"
 					class="flex-1 bg-transparent border-none text-sm py-2 focus:outline-none"
 				/>
-				<button 
+				<button
 					onclick={sendMessage}
 					disabled={!inputValue.trim() || isTyping}
 					class="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-lg shadow-primary/20 disabled:opacity-30 disabled:shadow-none transition-all active:scale-95"
@@ -155,14 +268,13 @@
 				</button>
 			</div>
 			<p class="text-[9px] text-center text-on-surface-variant mt-3 opacity-50 font-medium">
-				AI can make mistakes. Check the rulebook for competitive play.
+				AI can make mistakes. Verify critical rules with the official rulebook.
 			</p>
 		</div>
 	</div>
 {/if}
 
 <style>
-	/* Hide scrollbar for cleaner look */
 	.overflow-y-auto {
 		scrollbar-width: none;
 		-ms-overflow-style: none;

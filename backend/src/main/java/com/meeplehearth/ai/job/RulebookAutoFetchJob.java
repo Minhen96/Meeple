@@ -93,6 +93,11 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
                 ingestingCutoff, PageRequest.of(0, limit));
         log.info("Found {} games without an approved rulebook", games.size());
 
+        if (games.isEmpty()) {
+            log.info("No games found — catalog may not be imported yet. Skipping flag set.");
+            return;
+        }
+
         int fetched = 0;
         for (Game game : games) {
             if (fetchForGame(game))

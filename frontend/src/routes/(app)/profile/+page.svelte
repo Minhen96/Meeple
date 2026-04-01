@@ -1,9 +1,12 @@
 <script lang="ts">
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import SetupStatusModal from '$lib/components/admin/SetupStatusModal.svelte';
 	import type { PageData } from './$types';
 
 	interface Props { data: PageData }
 	let { data }: Props = $props();
+
+	let showSetupModal = $state(false);
 
 	const gamesOwned  = $derived(data.collection.filter((g: { isOwned: boolean }) => g.isOwned).length);
 	const totalPlays  = $derived(data.collection.reduce((sum: number, g: { playCount: number }) => sum + g.playCount, 0));
@@ -23,6 +26,10 @@
 </script>
 
 <svelte:head><title>Profile — Meeple & Hearth</title></svelte:head>
+
+{#if showSetupModal}
+	<SetupStatusModal onClose={() => (showSetupModal = false)} />
+{/if}
 
 <!-- Profile Header -->
 <section class="flex flex-col items-center gap-6 mb-8 pt-2">
@@ -72,6 +79,13 @@
 				<span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
 				Admin
 			</a>
+			<button
+				onclick={() => (showSetupModal = true)}
+				class="px-5 py-2.5 bg-surface-container-high text-on-surface font-bold text-sm rounded-full flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+			>
+				<span class="material-symbols-outlined text-[16px]">monitoring</span>
+				System
+			</button>
 		{/if}
 	</div>
 </section>

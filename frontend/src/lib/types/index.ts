@@ -230,6 +230,60 @@ export interface RulebookQueuePage {
 	last: boolean;
 }
 
+// ─── AI ────────────────────────────────────────────────────────────────────
+
+export interface ConversationTurn {
+	question: string;
+	answer: string;
+}
+
+export interface AiAnswerResponse {
+	answer: string;
+	sourceMode: 'rulebook' | 'general';
+	disclaimer: string;
+	cached: boolean;
+}
+
+export interface HowToPlayContent {
+	overview?: string;
+	objective?: string;
+	gameStructure?: {
+		mode?: string;
+		phases?: Array<{ name: string; description: string; actions?: string[] }>;
+		turnOrder?: string;
+	};
+	components?: Array<{ name: string; type?: string; description?: string; quantity?: number }>;
+	board?: { exists?: boolean; type?: string; description?: string };
+	resources?: Array<{ name: string; usedFor?: string; gainedBy?: string }>;
+	cardSystem?: {
+		exists?: boolean;
+		cardTypes?: Array<{ name: string; description: string }>;
+		deckRules?: string;
+		handRules?: string;
+	};
+	actions?: Array<{ name: string; type?: string; cost?: string; effect?: string }>;
+	rules?: {
+		coreRules?: string;
+		specialRules?: Array<{ name: string; description: string }>;
+		edgeCases?: string;
+	};
+	winCondition?: { type?: string; details?: string };
+	scoring?: { exists?: boolean; methods?: Array<{ item: string; points: string }> };
+	endCondition?: { trigger?: string; notes?: string };
+	roles?: { exists?: boolean; list?: Array<{ name: string; abilities: string; winCondition?: string }> };
+	variants?: Array<{ name: string; description: string }>;
+	faq?: Array<{ question: string; answer: string }>;
+	tips?: string[];
+	raw?: string;
+}
+
+export interface HowToPlayApiResponse {
+	status: 'ready' | 'generating';
+	data: HowToPlayContent | null;
+	sourceMode: 'rulebook' | 'general' | null;
+	disclaimer: string | null;
+}
+
 // ─── Notification ──────────────────────────────────────────────────────────
 
 export type NotificationType =

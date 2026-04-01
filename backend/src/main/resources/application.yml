@@ -48,6 +48,8 @@ management:
       show-details: never
 
 app:
+  seed:
+    csv-url: ${SEED_CSV_URL:}
   ai:
     completion:
       base-url: ${AI_COMPLETION_BASE_URL:https://api.openai.com}
