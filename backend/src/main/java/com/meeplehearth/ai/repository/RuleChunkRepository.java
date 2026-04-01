@@ -15,6 +15,9 @@ public interface RuleChunkRepository extends JpaRepository<RuleChunk, UUID> {
 
     boolean existsByGame_Id(UUID gameId);
 
+    /** First N chunks for a game in document order — used by HowToPlayExtractionService. */
+    List<RuleChunk> findByGame_IdOrderByChunkIndexAsc(UUID gameId, org.springframework.data.domain.Pageable pageable);
+
     /**
      * pgvector HNSW cosine similarity search.
      *
