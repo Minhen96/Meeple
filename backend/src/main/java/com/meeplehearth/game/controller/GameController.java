@@ -67,10 +67,18 @@ public class GameController {
         return ResponseEntity.ok(gameService.browse(q, genre, minPlayers, maxPlayers, minPlaytime, maxPlaytime, minComplexity, maxComplexity, minRating, pageable));
     }
 
-    /** GET /api/v1/games/search?q=catan — search BGG, overlay local cache */
+    /** GET /api/v1/games/search?q=catan — fuzzy search with CJK translation */
     @GetMapping("/games/search")
     public ResponseEntity<List<GameSearchResult>> search(@RequestParam @NotBlank String q) {
         return ResponseEntity.ok(gameService.search(q));
+    }
+
+    /** GET /api/v1/games/recommended — personalized recommendations for the authenticated user */
+    @GetMapping("/games/recommended")
+    public ResponseEntity<List<GameSummaryResponse>> recommended(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(gameService.getRecommended(userId));
     }
 
     /** GET /api/v1/games/{gameId} — get by our UUID (must already be cached) */

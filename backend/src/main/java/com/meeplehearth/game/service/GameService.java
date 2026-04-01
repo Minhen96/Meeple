@@ -34,6 +34,7 @@ public class GameService {
     private final BggApiClient bggApiClient;
     private final GameHydrationService gameHydrationService;
     private final SearchTranslationService searchTranslationService;
+    private final RecommendationService recommendationService;
 
     public GameService(GameRepository gameRepository,
                        UserGameRepository userGameRepository,
@@ -41,7 +42,8 @@ public class GameService {
                        UserRepository userRepository,
                        BggApiClient bggApiClient,
                        GameHydrationService gameHydrationService,
-                       SearchTranslationService searchTranslationService) {
+                       SearchTranslationService searchTranslationService,
+                       RecommendationService recommendationService) {
         this.gameRepository = gameRepository;
         this.userGameRepository = userGameRepository;
         this.playLogRepository = playLogRepository;
@@ -49,6 +51,15 @@ public class GameService {
         this.bggApiClient = bggApiClient;
         this.gameHydrationService = gameHydrationService;
         this.searchTranslationService = searchTranslationService;
+        this.recommendationService = recommendationService;
+    }
+
+    // -------------------------------------------------------------------------
+    // Recommendations
+    // -------------------------------------------------------------------------
+
+    public List<GameSummaryResponse> getRecommended(UUID userId) {
+        return recommendationService.getRecommended(userId);
     }
 
     // -------------------------------------------------------------------------
@@ -242,7 +253,9 @@ public class GameService {
         if (req.personalRating() != null) ug.setPersonalRating(req.personalRating());
         if (req.notes() != null)          ug.setNotes(req.notes());
 
-        return UserGameResponse.from(userGameRepository.save(ug));
+        UserGameResponse saved = UserGameResponse.from(userGameRepository.save(ug));
+        recommendationService.invalidateCache(userId);
+        return saved;
     }
 
     @Transactional
@@ -268,6 +281,7 @@ public class GameService {
         log.setGame(game);
         playLogRepository.save(log);
 
+        recommendationService.invalidateCache(userId);
         return UserGameResponse.from(ug);
     }
 
