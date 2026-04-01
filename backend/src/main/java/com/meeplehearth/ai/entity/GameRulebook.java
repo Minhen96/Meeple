@@ -29,7 +29,7 @@ public class GameRulebook {
     @Column(nullable = false, length = 20)
     private String source;
 
-    /** approved | pending_review | rejected */
+    /** ingesting | approved | pending_review | rejected */
     @Column(nullable = false, length = 20)
     private String status = "pending_review";
 
