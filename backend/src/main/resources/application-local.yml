@@ -28,6 +28,15 @@ spring:
 app:
   security:
     open-admin-endpoints: true
+  # AI provider — set these in .env.local
+  # To use DeepSeek:  AI_COMPLETION_BASE_URL=https://api.deepseek.com  AI_COMPLETION_MODEL=deepseek-chat
+  # To use Groq:      AI_COMPLETION_BASE_URL=https://api.groq.com/openai  AI_COMPLETION_MODEL=llama-3.3-70b-versatile
+  # Embedding stays on OpenAI (most providers don't offer embedding APIs)
+  ai:
+    completion:
+      api-key: ${AI_COMPLETION_API_KEY:}
+    embedding:
+      api-key: ${AI_EMBEDDING_API_KEY:}
   jwt:
     secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-256-bits-long-xx}
     access-token-expiry-ms: 900000

@@ -1,5 +1,6 @@
 package com.meeplehearth.game.service;
 
+import com.meeplehearth.ai.service.SearchTranslationService;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.client.BggApiClient;
 import com.meeplehearth.game.dto.*;
@@ -32,19 +33,22 @@ public class GameService {
     private final UserRepository userRepository;
     private final BggApiClient bggApiClient;
     private final GameHydrationService gameHydrationService;
+    private final SearchTranslationService searchTranslationService;
 
     public GameService(GameRepository gameRepository,
                        UserGameRepository userGameRepository,
                        PlayLogRepository playLogRepository,
                        UserRepository userRepository,
                        BggApiClient bggApiClient,
-                       GameHydrationService gameHydrationService) {
+                       GameHydrationService gameHydrationService,
+                       SearchTranslationService searchTranslationService) {
         this.gameRepository = gameRepository;
         this.userGameRepository = userGameRepository;
         this.playLogRepository = playLogRepository;
         this.userRepository = userRepository;
         this.bggApiClient = bggApiClient;
         this.gameHydrationService = gameHydrationService;
+        this.searchTranslationService = searchTranslationService;
     }
 
     // -------------------------------------------------------------------------
@@ -134,10 +138,34 @@ public class GameService {
     }
 
     // -------------------------------------------------------------------------
-    // Search — local DB (BGG search API requires auth since 2025)
+    // Search — LIKE primary, CJK translation, trigram fallback for typos
 
     public List<GameSearchResult> search(String query) {
         if (query == null || query.isBlank()) return List.of();
+
+        // Step 1: translate CJK queries to English (only fires when CJK detected)
+        SearchTranslationService.TranslationResult translation =
+                searchTranslationService.translateIfNeeded(query);
+        String effectiveQuery = translation.query();
+
+        // Step 2: fast LIKE search (no AI cost)
+        List<GameSearchResult> results = likeSearch(effectiveQuery, translation.translatedFrom());
+
+        // Step 3: trigram fallback — only when LIKE found nothing (handles typos like "cata" → Catan)
+        if (results.isEmpty()) {
+            results = gameRepository.searchTrigram(effectiveQuery)
+                    .stream()
+                    .map(p -> new GameSearchResult(
+                            p.getId(), p.getBggId(), p.getNameEn(),
+                            p.getYearPublished(), p.getThumbnailUrl(),
+                            translation.translatedFrom()))
+                    .toList();
+        }
+
+        return results;
+    }
+
+    private List<GameSearchResult> likeSearch(String query, String translatedFrom) {
         String likeQ = "%" + query.toLowerCase() + "%";
         Specification<Game> spec = Specification.<Game>where(
                 (root, cq, cb) -> cb.or(
@@ -150,7 +178,8 @@ public class GameService {
                 .stream()
                 .map(g -> new GameSearchResult(
                         g.getId(), g.getBggId(), g.getNameEn(),
-                        g.getYearPublished(), g.getThumbnailUrl()))
+                        g.getYearPublished(), g.getThumbnailUrl(),
+                        translatedFrom))
                 .toList();
     }
 

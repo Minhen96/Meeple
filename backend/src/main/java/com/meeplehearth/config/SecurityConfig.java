@@ -70,9 +70,15 @@ public class SecurityConfig {
                                 "/v3/api-docs/**")
                                 .permitAll();
                         if (openAdminEndpoints) {
-                            auth.requestMatchers("/api/v1/games/import", "/api/v1/games/hydrate-images").permitAll();
+                            auth.requestMatchers(
+                                    "/api/v1/games/import",
+                                    "/api/v1/games/hydrate-images",
+                                    "/api/v1/admin/**").permitAll();
                         } else {
-                            auth.requestMatchers("/api/v1/games/import", "/api/v1/games/hydrate-images").hasRole("ADMIN");
+                            auth.requestMatchers(
+                                    "/api/v1/games/import",
+                                    "/api/v1/games/hydrate-images",
+                                    "/api/v1/admin/**").hasRole("ADMIN");
                         }
                         auth.anyRequest().authenticated();
                 })

@@ -15,6 +15,7 @@ public class AppProperties {
     private Cors cors = new Cors();
     private Google google = new Google();
     private Email email = new Email();
+    private Ai ai = new Ai();
 
     public Jwt getJwt() {
         return jwt;
@@ -62,6 +63,14 @@ public class AppProperties {
 
     public void setEmail(Email email) {
         this.email = email;
+    }
+
+    public Ai getAi() {
+        return ai;
+    }
+
+    public void setAi(Ai ai) {
+        this.ai = ai;
     }
 
     // --- Nested classes ---
@@ -189,6 +198,61 @@ public class AppProperties {
 
         public void setFrom(String from) {
             this.from = from;
+        }
+    }
+
+    /**
+     * AI provider config — provider-agnostic.
+     *
+     * Completion and embedding are configured separately so providers can be mixed:
+     *   e.g. DeepSeek for chat + OpenAI for embeddings.
+     *
+     * All values come from application.yml / application-local.yml — nothing hardcoded here.
+     *
+     * Supported (OpenAI-compatible REST format — Bearer token):
+     *   OpenAI:   https://api.openai.com
+     *   DeepSeek: https://api.deepseek.com
+     *   Groq:     https://api.groq.com/openai
+     *   Together: https://api.together.xyz
+     */
+    public static class Ai {
+        private Completion completion = new Completion();
+        private Embedding embedding = new Embedding();
+
+        public Completion getCompletion() { return completion; }
+        public void setCompletion(Completion c) { this.completion = c; }
+
+        public Embedding getEmbedding() { return embedding; }
+        public void setEmbedding(Embedding e) { this.embedding = e; }
+
+        public static class Completion {
+            private String baseUrl;
+            private String apiKey;
+            private String model;
+
+            public String getBaseUrl() { return baseUrl; }
+            public void setBaseUrl(String v) { this.baseUrl = v; }
+
+            public String getApiKey() { return apiKey; }
+            public void setApiKey(String v) { this.apiKey = v; }
+
+            public String getModel() { return model; }
+            public void setModel(String v) { this.model = v; }
+        }
+
+        public static class Embedding {
+            private String baseUrl;
+            private String apiKey;
+            private String model;
+
+            public String getBaseUrl() { return baseUrl; }
+            public void setBaseUrl(String v) { this.baseUrl = v; }
+
+            public String getApiKey() { return apiKey; }
+            public void setApiKey(String v) { this.apiKey = v; }
+
+            public String getModel() { return model; }
+            public void setModel(String v) { this.model = v; }
         }
     }
 }

@@ -42,6 +42,17 @@ management:
     health:
       show-details: never
 
+app:
+  ai:
+    completion:
+      base-url: ${AI_COMPLETION_BASE_URL:https://api.openai.com}
+      api-key: ${AI_COMPLETION_API_KEY:}
+      model: ${AI_COMPLETION_MODEL:gpt-4o-mini}
+    embedding:
+      base-url: ${AI_EMBEDDING_BASE_URL:https://api.openai.com}
+      api-key: ${AI_EMBEDDING_API_KEY:}
+      model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -51,7 +62,15 @@ resilience4j:
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
+      openai:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
   timelimiter:
     instances:
       bgg:
         timeoutDuration: 8s
+      openai:
+        timeoutDuration: 30s

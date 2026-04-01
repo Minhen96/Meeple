@@ -8,7 +8,6 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.util.UUID;
 
-// Phase 3 entity — stores game rule text chunks + pgvector embeddings
 @Entity
 @Table(name = "game_rules")
 @Getter
@@ -24,13 +23,25 @@ public class RuleChunk {
     @JoinColumn(name = "game_id", nullable = false)
     private Game game;
 
+    // FK to game_rulebooks — stored as raw UUID to avoid circular dependency with GameRulebook entity
+    @Column(name = "rulebook_id")
+    private UUID rulebookId;
+
     @Column(name = "chunk_text", nullable = false, columnDefinition = "TEXT")
     private String chunkText;
 
     @Column(name = "section_title")
     private String sectionTitle;
 
-    // embedding stored as vector(1536) — pgvector type, mapped as String here until a pgvector dialect is wired
+    // Position of this chunk within the document (0-based)
+    @Column(name = "chunk_index", nullable = false)
+    private int chunkIndex;
+
+    @Column(name = "token_count")
+    private Integer tokenCount;
+
+    // Stored as pgvector literal: "[v1,v2,...,v1536]"
+    // Use EmbeddingService.toVectorString(float[]) to convert before setting.
     @Column(name = "embedding", columnDefinition = "vector(1536)")
     private String embedding;
 }

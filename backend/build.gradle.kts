@@ -67,6 +67,10 @@ dependencies {
 	// CSV parsing (import-time only)
 	implementation("org.apache.commons:commons-csv:1.12.0")
 
+	// AI — rulebook ingestion
+	implementation("org.apache.pdfbox:pdfbox:3.0.3")   // PDF text extraction
+	implementation("org.jsoup:jsoup:1.18.1")            // 1jour1jeu HTML scraping
+
 	// Lombok
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
