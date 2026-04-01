@@ -6,6 +6,11 @@ spring:
   main:
     lazy-initialization: true
 
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 26MB
+
   datasource:
     hikari:
       max-lifetime: 240000        # 4 min — below Neon's 5 min idle timeout

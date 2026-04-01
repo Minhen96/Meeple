@@ -23,6 +23,8 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
 
     List<GameRulebook> findByGame_IdAndStatusOrderByQueuePositionAsc(UUID gameId, String status);
 
+    Optional<GameRulebook> findFirstByGame_IdAndUploadedBy_IdAndStatusIn(UUID gameId, UUID uploadedById, List<String> statuses);
+
     Page<GameRulebook> findByStatusOrderByCreatedAtAsc(String status, Pageable pageable);
 
     int countByGame_IdAndStatus(UUID gameId, String status);
