@@ -30,6 +30,7 @@ export interface User {
 	bio: string | null;
 	location: string | null;
 	onboardingCompleted: boolean;
+	isAdmin: boolean;
 	createdAt: string;
 }
 
@@ -200,6 +201,33 @@ export interface FriendRequest {
 export interface FriendStatus {
 	status: FriendStatusValue;
 	requestId: string | null;
+}
+
+// ─── Rulebook ──────────────────────────────────────────────────────────────
+
+export interface RulebookStatus {
+	hasRulebook: boolean;
+	myStatus: string | null;
+	myQueuePosition: number | null;
+}
+
+export interface RulebookQueueItem {
+	id: string;
+	gameId: string;
+	gameName: string;
+	source: string;
+	fileUrl: string | null;
+	uploaderUsername: string | null;
+	queuePosition: number | null;
+	createdAt: string;
+}
+
+export interface RulebookQueuePage {
+	content: RulebookQueueItem[];
+	totalElements: number;
+	totalPages: number;
+	number: number;
+	last: boolean;
 }
 
 // ─── Notification ──────────────────────────────────────────────────────────

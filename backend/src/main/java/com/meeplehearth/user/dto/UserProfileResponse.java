@@ -13,6 +13,7 @@ public record UserProfileResponse(
         String bio,
         String location,
         boolean onboardingCompleted,
+        boolean isAdmin,
         Instant createdAt
 ) {
     public static UserProfileResponse from(User user) {
@@ -24,6 +25,7 @@ public record UserProfileResponse(
                 user.getBio(),
                 user.getLocation(),
                 user.isOnboardingCompleted(),
+                "ADMIN".equals(user.getRole()),
                 user.getCreatedAt()
         );
     }

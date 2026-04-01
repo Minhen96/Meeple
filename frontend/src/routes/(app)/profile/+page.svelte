@@ -57,13 +57,23 @@
 		{/if}
 	</div>
 
-	<!-- Edit Profile button - gradient style -->
-	<a
-		href="/settings"
-		class="px-8 py-2.5 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm rounded-full shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-200"
-	>
-		Edit Profile
-	</a>
+	<div class="flex gap-3">
+		<a
+			href="/settings"
+			class="px-8 py-2.5 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm rounded-full shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-200"
+		>
+			Edit Profile
+		</a>
+		{#if data.user?.isAdmin}
+			<a
+				href="/admin/rulebooks"
+				class="px-5 py-2.5 bg-surface-container-high text-on-surface font-bold text-sm rounded-full flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+			>
+				<span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+				Admin
+			</a>
+		{/if}
+	</div>
 </section>
 
 <!-- Stats Bento — 3 col, middle highlighted -->
