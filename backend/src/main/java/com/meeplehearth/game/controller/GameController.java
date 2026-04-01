@@ -13,6 +13,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 
@@ -51,7 +53,7 @@ public class GameController {
         return ResponseEntity.ok().build();
     }
 
-    /** GET /api/v1/games — browse fully loaded catalog with filters & pagination */
+    /** GET /api/v1/games — browse catalog; sort=recommended returns personalized results */
     @GetMapping("/games")
     public ResponseEntity<Page<GameSummaryResponse>> browse(
             @RequestParam(required = false) String q,
@@ -63,8 +65,18 @@ public class GameController {
             @RequestParam(required = false) BigDecimal minComplexity,
             @RequestParam(required = false) BigDecimal maxComplexity,
             @RequestParam(required = false) BigDecimal minRating,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(gameService.browse(q, genre, minPlayers, maxPlayers, minPlaytime, maxPlaytime, minComplexity, maxComplexity, minRating, pageable));
+            @RequestParam(required = false) String sort,
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if ("recommended".equalsIgnoreCase(sort) && userDetails != null) {
+            UUID userId = UUID.fromString(userDetails.getUsername());
+            List<GameSummaryResponse> recs = gameService.getRecommended(userId);
+            return ResponseEntity.ok(new PageImpl<>(recs, PageRequest.of(0, Math.max(recs.size(), 1)), recs.size()));
+        }
+
+        return ResponseEntity.ok(gameService.browse(q, genre, minPlayers, maxPlayers,
+                minPlaytime, maxPlaytime, minComplexity, maxComplexity, minRating, pageable));
     }
 
     /** GET /api/v1/games/search?q=catan — fuzzy search with CJK translation */
@@ -73,15 +85,7 @@ public class GameController {
         return ResponseEntity.ok(gameService.search(q));
     }
 
-    /** GET /api/v1/games/recommended — personalized recommendations for the authenticated user */
-    @GetMapping("/games/recommended")
-    public ResponseEntity<List<GameSummaryResponse>> recommended(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(gameService.getRecommended(userId));
-    }
-
-    /** GET /api/v1/games/{gameId} — get by our UUID (must already be cached) */
+/** GET /api/v1/games/{gameId} — get by our UUID (must already be cached) */
     @GetMapping("/games/{gameId}")
     public ResponseEntity<GameDetailResponse> getGame(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gameService.getGame(gameId));
