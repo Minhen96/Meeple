@@ -1,9 +1,6 @@
 <script lang="ts">
-	interface Section {
-		title: string;
-		content: string;
-		icon: string;
-	}
+	import { onMount } from 'svelte';
+	import { rulebookApi } from '$lib/api/rulebook';
 
 	interface Props {
 		gameId: string;
@@ -11,24 +8,37 @@
 	}
 	let { gameId, onOpenAssistant }: Props = $props();
 
-	// Mock data for now - will be fetched from API later
-	const sections: Section[] = [
-		{
-			title: "Game Setup",
-			icon: "grid_view",
-			content: "Place the game board in the center. Each player chooses a color and takes the corresponding components. Shuffle the action cards and deal 3 to each player..."
-		},
-		{
-			title: "Player Turn",
-			icon: "play_circle",
-			content: "On your turn, you must perform two different actions from the following list: Move your meeple, Harvest resources, or Construct a building..."
-		},
-		{
-			title: "Scoring & Game End",
-			icon: "military_tech",
-			content: "The game ends when the last building is constructed. Players then tally their victory points from buildings, resources, and secret objectives..."
+	type RulebookState = 'loading' | 'no_rulebook' | 'generating' | 'ready' | 'error';
+	let rulebookState: RulebookState = $state('loading');
+	let generating: boolean = $state(false);
+
+	onMount(async () => {
+		try {
+			const { hasRulebook } = await rulebookApi.getStatus(gameId);
+			rulebookState = hasRulebook ? 'ready' : 'no_rulebook';
+		} catch {
+			rulebookState = 'error';
 		}
-	];
+	});
+
+	async function handleGenerate() {
+		generating = true;
+		try {
+			const result = await rulebookApi.generate(gameId);
+			if (result.status === 'generating') {
+				rulebookState = 'generating';
+			} else if (result.status === 'already_done') {
+				rulebookState = 'ready';
+			} else {
+				// not_found — no PDF source available
+				rulebookState = 'no_rulebook';
+			}
+		} catch {
+			// keep current state, stop spinner
+		} finally {
+			generating = false;
+		}
+	}
 </script>
 
 <div class="py-4 space-y-8 pb-12">
@@ -49,31 +59,88 @@
 				<span class="material-symbols-outlined text-[40px]">menu_book</span>
 			</div>
 		</div>
-		<!-- Abstract background shapes -->
 		<div class="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
 	</div>
 
-	<!-- Rule Sections -->
-	<div class="space-y-6">
-		{#each sections as section}
-			<section class="group">
-				<div class="flex items-center gap-3 mb-3">
-					<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-all duration-300">
-						<span class="material-symbols-outlined text-[20px]">{section.icon}</span>
+	<!-- States -->
+	{#if rulebookState === 'loading'}
+		<!-- Skeleton -->
+		<div class="space-y-6">
+			{#each [1, 2, 3] as _}
+				<div class="space-y-3 animate-pulse">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 rounded-xl bg-surface-container-high"></div>
+						<div class="h-4 w-32 rounded-full bg-surface-container-high"></div>
 					</div>
-					<h3 class="font-bold text-on-surface tracking-tight">{section.title}</h3>
-				</div>
-				<div class="pl-13">
-					<div class="bg-surface-container-low/50 rounded-2xl p-4 border border-outline-variant/5 text-sm text-on-surface-variant leading-relaxed">
-						{section.content}
+					<div class="pl-13 space-y-2">
+						<div class="h-3 rounded-full bg-surface-container-low/50 w-full"></div>
+						<div class="h-3 rounded-full bg-surface-container-low/50 w-5/6"></div>
 					</div>
 				</div>
-			</section>
-		{/each}
-	</div>
+			{/each}
+		</div>
+
+	{:else if rulebookState === 'no_rulebook'}
+		<!-- Generate Rules CTA -->
+		<div class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4">
+			<div class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant/40">
+				<span class="material-symbols-outlined text-[36px]">find_in_page</span>
+			</div>
+			<div class="space-y-1">
+				<h3 class="font-bold text-on-surface">No rulebook yet</h3>
+				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+					Generate AI-powered rules by fetching the official rulebook PDF.
+				</p>
+			</div>
+			<button
+				onclick={handleGenerate}
+				disabled={generating}
+				class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
+			>
+				{#if generating}
+					<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+					Fetching…
+				{:else}
+					<span class="material-symbols-outlined text-[18px]">bolt</span>
+					Generate Rules
+				{/if}
+			</button>
+		</div>
+
+	{:else if rulebookState === 'generating'}
+		<!-- Ingestion in progress -->
+		<div class="rounded-3xl border border-primary/20 bg-primary/5 p-8 flex flex-col items-center text-center gap-4">
+			<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+				<span class="material-symbols-outlined text-[36px] animate-spin">progress_activity</span>
+			</div>
+			<div class="space-y-1">
+				<h3 class="font-bold text-on-surface">Generating rules…</h3>
+				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+					We found the rulebook PDF and are processing it. This usually takes under a minute. Check back shortly.
+				</p>
+			</div>
+		</div>
+
+	{:else if rulebookState === 'ready'}
+		<!-- Placeholder until HowToPlayExtractionService (Step 10) is built -->
+		<div class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4">
+			<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+				<span class="material-symbols-outlined text-[36px]">check_circle</span>
+			</div>
+			<div class="space-y-1">
+				<h3 class="font-bold text-on-surface">Rulebook ready</h3>
+				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+					The rulebook has been indexed. Use the AI Assistant below to ask any question about the rules.
+				</p>
+			</div>
+		</div>
+
+	{:else if rulebookState === 'error'}
+		<p class="text-center text-xs text-error py-8">Failed to load rulebook status. Try refreshing.</p>
+	{/if}
 
 	<!-- AI Assistant Call-to-action -->
-	<button 
+	<button
 		onclick={onOpenAssistant}
 		class="w-full bg-tertiary-container/30 rounded-3xl p-6 border border-tertiary/10 flex flex-col items-center text-center gap-3 mt-4 hover:bg-tertiary-container/40 transition-colors"
 	>
@@ -83,7 +150,7 @@
 		<div class="space-y-1">
 			<h4 class="font-bold text-on-tertiary-container">Still have questions?</h4>
 			<p class="text-[11px] text-on-tertiary-container/70 leading-relaxed px-4">
-				Our AI Assistant has read the full {gameId} rulebook and can answer specific edge cases.
+				Our AI Assistant has read the full rulebook and can answer specific edge cases.
 			</p>
 		</div>
 	</button>

@@ -5,9 +5,9 @@ CREATE TABLE game_rulebooks (
     -- Source: rule_book_org/onj = auto-fetched; user/admin = uploaded
     source         VARCHAR(20)  NOT NULL
                    CHECK (source IN ('rule_book_org', 'onj', 'user', 'admin')),
-    -- Auto-fetched: approved immediately. User uploads: pending_review.
+    -- ingesting: PDF found, chunks being written. approved: chunks ready. pending_review: user upload awaiting admin.
     status         VARCHAR(20)  NOT NULL DEFAULT 'pending_review'
-                   CHECK (status IN ('approved', 'pending_review', 'rejected')),
+                   CHECK (status IN ('ingesting', 'approved', 'pending_review', 'rejected')),
     pdf_url        TEXT,        -- original CDN URL (auto-fetched sources)
     storage_key    TEXT,        -- R2 object key (user/admin uploads)
     public_url     TEXT,        -- R2 public URL (user/admin uploads)
