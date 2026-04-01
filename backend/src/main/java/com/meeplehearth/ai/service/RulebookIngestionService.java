@@ -39,14 +39,17 @@ public class RulebookIngestionService {
     private final GameRulebookRepository rulebookRepository;
     private final RuleChunkRepository ruleChunkRepository;
     private final EmbeddingService embeddingService;
+    private final HowToPlayExtractionService extractionService;
     private final RestClient httpClient;
 
     public RulebookIngestionService(GameRulebookRepository rulebookRepository,
                                     RuleChunkRepository ruleChunkRepository,
-                                    EmbeddingService embeddingService) {
+                                    EmbeddingService embeddingService,
+                                    HowToPlayExtractionService extractionService) {
         this.rulebookRepository = rulebookRepository;
         this.ruleChunkRepository = ruleChunkRepository;
         this.embeddingService = embeddingService;
+        this.extractionService = extractionService;
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(15_000);
@@ -114,6 +117,9 @@ public class RulebookIngestionService {
             rulebookRepository.save(rulebook);
 
             log.info("Ingested {} chunks for game '{}'", ruleChunks.size(), rulebook.getGame().getNameEn());
+
+            // 6. Re-generate How-to-Play from the fresh chunks
+            extractionService.extractAsync(rulebook.getGame().getId(), rulebook.getGame());
 
         } catch (Exception e) {
             log.error("Ingestion failed for rulebook {}: {}", rulebook.getId(), e.getMessage(), e);

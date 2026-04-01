@@ -1,5 +1,6 @@
 package com.meeplehearth.game.service;
 
+import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.ai.service.SearchTranslationService;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.client.BggApiClient;
@@ -35,6 +36,7 @@ public class GameService {
     private final GameHydrationService gameHydrationService;
     private final SearchTranslationService searchTranslationService;
     private final RecommendationService recommendationService;
+    private final GameRulebookRepository rulebookRepository;
 
     public GameService(GameRepository gameRepository,
                        UserGameRepository userGameRepository,
@@ -43,7 +45,8 @@ public class GameService {
                        BggApiClient bggApiClient,
                        GameHydrationService gameHydrationService,
                        SearchTranslationService searchTranslationService,
-                       RecommendationService recommendationService) {
+                       RecommendationService recommendationService,
+                       GameRulebookRepository rulebookRepository) {
         this.gameRepository = gameRepository;
         this.userGameRepository = userGameRepository;
         this.playLogRepository = playLogRepository;
@@ -52,6 +55,7 @@ public class GameService {
         this.gameHydrationService = gameHydrationService;
         this.searchTranslationService = searchTranslationService;
         this.recommendationService = recommendationService;
+        this.rulebookRepository = rulebookRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -205,7 +209,8 @@ public class GameService {
         if (game.getMinPlayers() == null) {
             gameHydrationService.hydrateImageSync(game);
         }
-        return GameDetailResponse.from(game);
+        boolean hasRulebook = rulebookRepository.existsByGame_IdAndStatus(gameId, "approved");
+        return GameDetailResponse.from(game, hasRulebook);
     }
 
     @Transactional

@@ -30,9 +30,15 @@ public record GameDetailResponse(
         String[] designers,
         String[] publishers,
         String[] honors,
-        String[] expansions
+        String[] expansions,
+        boolean hasRulebook
 ) {
+    /** Use when rulebook status is unknown (e.g. ensureGame — not yet in collection). */
     public static GameDetailResponse from(Game game) {
+        return from(game, false);
+    }
+
+    public static GameDetailResponse from(Game game, boolean hasRulebook) {
         var d = game.getGameDetail();
         return new GameDetailResponse(
                 game.getId(),
@@ -59,7 +65,8 @@ public record GameDetailResponse(
                 d != null ? d.getDesigners() : null,
                 d != null ? d.getPublishers() : null,
                 d != null ? d.getHonors() : null,
-                d != null ? d.getExpansions() : null
+                d != null ? d.getExpansions() : null,
+                hasRulebook
         );
     }
 }
