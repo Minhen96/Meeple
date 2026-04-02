@@ -2,7 +2,6 @@
 	// Module-level vars: updated on every mount so the once-initialized
 	// GSI callback always uses the current component's props.
 	let gsiInitialized = false;
-	let currentRedirectTo = '/';
 	let currentOnError: ((msg: string) => void) | undefined;
 </script>
 
@@ -11,10 +10,9 @@
 	import { api, ApiRequestError } from '$lib/api/client';
 
 	interface Props {
-		redirectTo?: string;
 		onError?: (message: string) => void;
 	}
-	let { redirectTo = '/', onError }: Props = $props();
+	let { onError }: Props = $props();
 
 	const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 	let container: HTMLDivElement;
@@ -23,7 +21,6 @@
 		if (!clientId || typeof window.google === 'undefined') return;
 
 		// Keep module-level refs current for this mount
-		currentRedirectTo = redirectTo;
 		currentOnError = onError;
 
 		if (!gsiInitialized) {
@@ -33,8 +30,8 @@
 				callback: async (response: { credential: string }) => {
 					try {
 						await api.post('/api/v1/auth/google', { idToken: response.credential });
-						// Hard navigation ensures the server-side layout load sees the new cookie
-						window.location.href = currentRedirectTo;
+						// Always redirect to home as requested
+						window.location.href = '/';
 					} catch (err) {
 						const message =
 							err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';

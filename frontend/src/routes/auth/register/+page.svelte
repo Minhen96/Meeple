@@ -432,7 +432,7 @@
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
 				</div>
 
-				<GoogleButton redirectTo="/" onError={(msg) => (error = msg)} />
+				<GoogleButton onError={(msg) => (error = msg)} />
 			</form>
 		</div>
 	</div>

@@ -5,6 +5,7 @@
 	import { howToPlayApi } from "$lib/api/howtoplay";
 	import { ruleNotesApi } from "$lib/api/ruleNotes";
 	import { currentUser } from "$lib/stores/auth";
+	import { subscribeToHowToPlayProgress } from "$lib/stores/websocket";
 	import { toast } from "svelte-sonner";
 	import type { HowToPlayContent, RuleNote, MyRuleNote } from "$lib/types";
 
@@ -35,8 +36,9 @@
 	let howToPlaySourceMode: string | null = $state(null);
 	let howToPlayDisclaimer: string | null = $state(null);
 	let howToPlayRulebookUrl: string | null = $state(null);
-	let pollInterval: ReturnType<typeof setInterval> | null = null;
+	let howToPlayProgress: number = $state(0);
 	let rulebookPollInterval: ReturnType<typeof setInterval> | null = null;
+	let unsubscribeHtp: (() => void) | null = null;
 
 	// FAQ expand state
 	let expandedFaq = $state<Set<number>>(new Set());
@@ -56,8 +58,8 @@
 	onMount(() => {
 		initRulebookStatus();
 		return () => {
-			if (pollInterval !== null) clearInterval(pollInterval);
 			if (rulebookPollInterval !== null) clearInterval(rulebookPollInterval);
+			unsubscribeHtp?.();
 		};
 	});
 
@@ -89,44 +91,62 @@
 		try {
 			const res = await howToPlayApi.get(gameId);
 			if (res.status === "ready" && res.data) {
-				howToPlayState = "ready";
-				howToPlayData = res.data;
-				howToPlaySourceMode = res.sourceMode;
-				howToPlayDisclaimer = res.disclaimer;
-				howToPlayRulebookUrl = res.rulebookUrl;
-				approvedNotes = res.approvedNotes ?? [];
-				fetchMyNote();
-			} else {
+				applyHowToPlayReady(res);
+			} else if (res.status === "generating") {
 				howToPlayState = "generating";
-				startPolling();
+				howToPlayProgress = res.progress ?? 0;
+				startHtpWsSubscription();
+			} else {
+				// not_generated
+				howToPlayState = "idle";
 			}
 		} catch {
 			howToPlayState = "error";
 		}
 	}
 
-	function startPolling() {
-		if (pollInterval !== null) return;
-		pollInterval = setInterval(async () => {
-			try {
-				const res = await howToPlayApi.get(gameId);
-				if (res.status === "ready" && res.data) {
-					clearInterval(pollInterval!);
-					pollInterval = null;
-					howToPlayState = "ready";
-					howToPlayData = res.data;
-					howToPlaySourceMode = res.sourceMode;
-					howToPlayDisclaimer = res.disclaimer;
-					howToPlayRulebookUrl = res.rulebookUrl;
-					approvedNotes = res.approvedNotes ?? [];
-					fetchMyNote();
+	function applyHowToPlayReady(res: import("$lib/types").HowToPlayApiResponse) {
+		howToPlayState = "ready";
+		howToPlayData = res.data;
+		howToPlaySourceMode = res.sourceMode;
+		howToPlayDisclaimer = res.disclaimer;
+		howToPlayRulebookUrl = res.rulebookUrl;
+		approvedNotes = res.approvedNotes ?? [];
+		fetchMyNote();
+	}
+
+	function startHtpWsSubscription() {
+		unsubscribeHtp?.();
+		unsubscribeHtp = subscribeToHowToPlayProgress(gameId, async (msg) => {
+			if (msg.status === "generating") {
+				howToPlayProgress = msg.progress;
+			} else if (msg.status === "ready") {
+				unsubscribeHtp?.();
+				unsubscribeHtp = null;
+				try {
+					const res = await howToPlayApi.get(gameId);
+					if (res.status === "ready" && res.data) applyHowToPlayReady(res);
+				} catch {
+					howToPlayState = "error";
 				}
-			} catch {
-				clearInterval(pollInterval!);
-				pollInterval = null;
+			} else if (msg.status === "error") {
+				unsubscribeHtp?.();
+				unsubscribeHtp = null;
 				howToPlayState = "error";
 			}
-		}, 2000);
+		});
+	}
+
+	async function handleGenerateHowToPlay() {
+		howToPlayState = "generating";
+		howToPlayProgress = 0;
+		try {
+			await howToPlayApi.generate(gameId);
+			startHtpWsSubscription();
+		} catch {
+			howToPlayState = "error";
+			toast.error("Could not start generation.");
+		}
 	}
 
 	function startRulebookPolling() {
@@ -176,12 +196,10 @@
 		uploading = true;
 		try {
 			const result = await rulebookApi.upload(gameId, file);
-			if (result.status === "queued") {
-				rulebookState = "pending_review";
-				myQueuePosition = result.queuePosition ?? null;
-				toast.success(
-					"PDF submitted! An admin will review it shortly.",
-				);
+			if (result.status === "ingesting") {
+				rulebookState = "generating";
+				toast.success("PDF validated! Processing rulebook…");
+				startRulebookPolling();
 			} else if (result.status === "already_done") {
 				rulebookState = "ready";
 				fetchHowToPlay();
@@ -202,6 +220,7 @@
 			await adminApi.uploadRulebookForGame(gameId, file);
 			rulebookState = "generating";
 			toast.success("Uploading and ingesting…");
+			startRulebookPolling();
 		} catch {
 			toast.error("Admin upload failed.");
 		} finally {
@@ -387,7 +406,7 @@
 				<p
 					class="text-[10px] text-on-surface-variant text-center mt-1.5"
 				>
-					PDF only · max 25 MB · goes to admin review
+					PDF only · max 25 MB · AI-validated instantly
 				</p>
 			</div>
 		</div>
@@ -436,7 +455,30 @@
 		</div>
 	{:else if rulebookState === "ready"}
 		<!-- How-to-Play content -->
-		{#if howToPlayState === "loading"}
+		{#if howToPlayState === "idle"}
+			<div
+				class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4"
+			>
+				<div
+					class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary/60"
+				>
+					<span class="material-symbols-outlined text-[36px]">auto_awesome</span>
+				</div>
+				<div class="space-y-1">
+					<h3 class="font-bold text-on-surface">No guide yet</h3>
+					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+						Generate a quick-start guide from the rulebook using AI.
+					</p>
+				</div>
+				<button
+					onclick={handleGenerateHowToPlay}
+					class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
+				>
+					<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+					Generate with AI
+				</button>
+			</div>
+		{:else if howToPlayState === "loading"}
 			<div class="space-y-5">
 				{#each [1, 2, 3] as _}
 					<div
@@ -466,7 +508,7 @@
 			</div>
 		{:else if howToPlayState === "generating"}
 			<div
-				class="rounded-3xl border border-tertiary/20 bg-tertiary/5 p-8 flex flex-col items-center text-center gap-4"
+				class="rounded-3xl border border-tertiary/20 bg-tertiary/5 p-8 flex flex-col items-center text-center gap-5"
 			>
 				<div
 					class="w-16 h-16 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary"
@@ -486,6 +528,15 @@
 						AI is reading the rulebook and extracting key
 						information. This takes about 20–30 seconds.
 					</p>
+				</div>
+				<div class="w-full max-w-[240px] space-y-1.5">
+					<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
+						<div
+							class="bg-tertiary h-2 rounded-full transition-all duration-500"
+							style="width: {howToPlayProgress}%"
+						></div>
+					</div>
+					<p class="text-[11px] font-bold text-tertiary text-right">{howToPlayProgress}%</p>
 				</div>
 			</div>
 		{:else if howToPlayState === "ready" && howToPlayData}

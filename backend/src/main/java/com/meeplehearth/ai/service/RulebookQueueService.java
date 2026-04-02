@@ -45,17 +45,20 @@ public class RulebookQueueService {
 
     private final GameRulebookRepository rulebookRepository;
     private final RulebookIngestionService ingestionService;
+    private final PdfValidationService pdfValidationService;
     private final S3Client s3Client;
     private final AppProperties appProperties;
     private final StringRedisTemplate redisTemplate;
 
     public RulebookQueueService(GameRulebookRepository rulebookRepository,
                                 RulebookIngestionService ingestionService,
+                                PdfValidationService pdfValidationService,
                                 S3Client s3Client,
                                 AppProperties appProperties,
                                 StringRedisTemplate redisTemplate) {
         this.rulebookRepository = rulebookRepository;
         this.ingestionService = ingestionService;
+        this.pdfValidationService = pdfValidationService;
         this.s3Client = s3Client;
         this.appProperties = appProperties;
         this.redisTemplate = redisTemplate;
@@ -67,32 +70,42 @@ public class RulebookQueueService {
 
     /**
      * Handles a user PDF upload for a game.
-     * Validates the file, rate-limits, uploads to R2, and queues for admin review.
+     * Validates the file, rate-limits, runs LLM rulebook check, then starts
+     * ingestion directly — no admin review queue needed.
      *
-     * @return the saved GameRulebook (status = pending_review)
+     * @return the saved GameRulebook (status = ingesting)
+     * @throws ApiException with INVALID_RULEBOOK if the LLM rejects the PDF
      */
     @Transactional
     public GameRulebook handleUserUpload(Game game, User uploader, MultipartFile file) {
         byte[] bytes = validatePdf(file);
         checkUserRateLimit(uploader.getId());
 
+        // LLM check: is this actually a rulebook for the game?
+        if (!pdfValidationService.isRulebook(bytes, game.getNameEn())) {
+            throw ApiException.badRequest("INVALID_RULEBOOK",
+                    "This PDF does not appear to be a rulebook for \"" + game.getNameEn() + "\". Please upload the correct file.");
+        }
+
         String key = "rulebooks/" + game.getId() + "/" + UUID.randomUUID() + ".pdf";
         String publicUrl = uploadToR2(key, bytes);
 
-        int position = rulebookRepository.countByGame_IdAndStatus(game.getId(), "pending_review");
+        // Cancel any existing pending_review — this upload supersedes them
+        cancelAllPendingForGame(game.getId(), "Superseded by newer user upload");
 
         GameRulebook rulebook = new GameRulebook();
         rulebook.setGame(game);
         rulebook.setSource("user");
-        rulebook.setStatus("pending_review");
+        rulebook.setStatus("ingesting");
         rulebook.setStorageKey(key);
         rulebook.setPublicUrl(publicUrl);
         rulebook.setUploadedBy(uploader);
-        rulebook.setQueuePosition(position);
         rulebookRepository.save(rulebook);
 
-        log.info("User '{}' uploaded rulebook for '{}' at queue position {}",
-                uploader.getUsername(), game.getNameEn(), position);
+        ingestionService.ingestAsync(rulebook.getId());
+
+        log.info("User '{}' uploaded validated rulebook for '{}' — ingestion started",
+                uploader.getUsername(), game.getNameEn());
         return rulebook;
     }
 

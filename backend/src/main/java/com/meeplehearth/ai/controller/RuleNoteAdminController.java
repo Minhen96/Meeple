@@ -4,6 +4,8 @@ import com.meeplehearth.ai.dto.RuleNoteAdminItem;
 import com.meeplehearth.ai.entity.GameRuleNote;
 import com.meeplehearth.ai.repository.GameRuleNoteRepository;
 import com.meeplehearth.common.exception.ApiException;
+import com.meeplehearth.notification.entity.Notification;
+import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -30,11 +32,14 @@ public class RuleNoteAdminController {
 
     private final GameRuleNoteRepository ruleNoteRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public RuleNoteAdminController(GameRuleNoteRepository ruleNoteRepository,
-                                    UserRepository userRepository) {
+                                    UserRepository userRepository,
+                                    NotificationService notificationService) {
         this.ruleNoteRepository = ruleNoteRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     // -------------------------------------------------------------------------
@@ -75,6 +80,10 @@ public class RuleNoteAdminController {
         note.setUpdatedAt(Instant.now());
 
         ruleNoteRepository.save(note);
+
+        notificationService.send(note.getUser().getId(),
+                Notification.NotificationType.RULE_NOTE_APPROVED, admin.getId(), note.getId(), "RULE_NOTE");
+
         return ResponseEntity.ok(Map.of("status", "approved"));
     }
 
@@ -99,6 +108,10 @@ public class RuleNoteAdminController {
         note.setUpdatedAt(Instant.now());
 
         ruleNoteRepository.save(note);
+
+        notificationService.send(note.getUser().getId(),
+                Notification.NotificationType.RULE_NOTE_REJECTED, admin.getId(), note.getId(), "RULE_NOTE");
+
         return ResponseEntity.ok(Map.of("status", "rejected"));
     }
 

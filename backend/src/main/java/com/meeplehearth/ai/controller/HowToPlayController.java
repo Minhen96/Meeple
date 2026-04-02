@@ -17,11 +17,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * GET /api/v1/games/{gameId}/how-to-play
+ * GET  /api/v1/games/{gameId}/how-to-play        — fetch current state (never auto-triggers)
+ * POST /api/v1/games/{gameId}/how-to-play/generate — explicitly start AI extraction
  *
- * Returns the AI-extracted How-to-Play guide for a game.
- * If not yet generated, triggers async extraction and returns { status: "generating" }.
- * Frontend polls every 2s while status = "generating".
+ * Progress is pushed over WebSocket (/topic/how-to-play/{gameId}) so the
+ * frontend does not need to poll.  The GET endpoint remains available as a
+ * one-time status check on page load.
  */
 @RestController
 @RequestMapping("/api/v1/games")
@@ -45,10 +46,14 @@ public class HowToPlayController {
         this.gameRuleNoteRepository = gameRuleNoteRepository;
     }
 
+    // -------------------------------------------------------------------------
+    // GET — status check (no side-effects)
+    // -------------------------------------------------------------------------
+
     @GetMapping("/{gameId}/how-to-play")
     public ResponseEntity<HowToPlayResponse> getHowToPlay(@PathVariable UUID gameId) {
 
-        // Already generated — return immediately
+        // Already generated — return content immediately
         var existing = howToPlayRepository.findByGame_Id(gameId);
         if (existing.isPresent()) {
             String rulebookUrl = resolveRulebookUrl(gameId);
@@ -58,18 +63,45 @@ public class HowToPlayController {
             return ResponseEntity.ok(HowToPlayResponse.from(existing.get(), rulebookUrl, notes));
         }
 
-        // Extraction running — tell frontend to keep polling
+        // Extraction in progress — return current progress (frontend already subscribed to WS)
         if (extractionService.isGenerating(gameId)) {
-            return ResponseEntity.ok(HowToPlayResponse.generating());
+            return ResponseEntity.ok(HowToPlayResponse.generating(extractionService.getProgress(gameId)));
         }
 
-        // Trigger extraction
+        // Nothing yet — let the frontend show the generate button
+        return ResponseEntity.ok(HowToPlayResponse.notGenerated());
+    }
+
+    // -------------------------------------------------------------------------
+    // POST — explicit generate trigger
+    // -------------------------------------------------------------------------
+
+    @PostMapping("/{gameId}/how-to-play/generate")
+    public ResponseEntity<HowToPlayResponse> generate(@PathVariable UUID gameId) {
+
+        // Already done
+        var existing = howToPlayRepository.findByGame_Id(gameId);
+        if (existing.isPresent()) {
+            String rulebookUrl = resolveRulebookUrl(gameId);
+            List<RuleNoteResponse> notes = gameRuleNoteRepository
+                    .findByGame_IdAndStatusOrderByCreatedAtAsc(gameId, "approved")
+                    .stream().map(RuleNoteResponse::from).collect(Collectors.toList());
+            return ResponseEntity.ok(HowToPlayResponse.from(existing.get(), rulebookUrl, notes));
+        }
+
+        // Already running
+        if (extractionService.isGenerating(gameId)) {
+            return ResponseEntity.ok(HowToPlayResponse.generating(extractionService.getProgress(gameId)));
+        }
+
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
 
         extractionService.extractAsync(gameId, game);
-        return ResponseEntity.ok(HowToPlayResponse.generating());
+        return ResponseEntity.ok(HowToPlayResponse.generating(0));
     }
+
+    // -------------------------------------------------------------------------
 
     private String resolveRulebookUrl(UUID gameId) {
         return rulebookRepository.findFirstByGame_IdAndStatus(gameId, "approved")

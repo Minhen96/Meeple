@@ -12,7 +12,6 @@
 	let loading = $state(false);
 	let error = $state("");
 
-	const redirectTo = $derived($page.url.searchParams.get("redirect") ?? "/");
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -21,7 +20,7 @@
 
 		try {
 			await api.post("/api/v1/auth/login", { emailOrUsername, password });
-			window.location.href = redirectTo;
+			window.location.href = "/";
 		} catch (err) {
 			if (err instanceof ApiRequestError) {
 				error = err.message;
@@ -233,7 +232,7 @@
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
 				</div>
 
-				<GoogleButton {redirectTo} onError={(msg) => (error = msg)} />
+				<GoogleButton onError={(msg) => (error = msg)} />
 			</form>
 		</div>
 	</div>

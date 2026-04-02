@@ -8,6 +8,8 @@ import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.post.dto.*;
 import com.meeplehearth.post.entity.*;
 import com.meeplehearth.post.repository.*;
+import com.meeplehearth.notification.entity.Notification;
+import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
@@ -33,6 +35,7 @@ public class PostService {
     private final GameRepository gameRepository;
     private final AppProperties appProperties;
     private final FriendRequestRepository friendRequestRepository;
+    private final NotificationService notificationService;
 
     public PostService(PostRepository postRepository,
             PostLikeRepository postLikeRepository,
@@ -40,7 +43,8 @@ public class PostService {
             UserRepository userRepository,
             GameRepository gameRepository,
             AppProperties appProperties,
-            FriendRequestRepository friendRequestRepository) {
+            FriendRequestRepository friendRequestRepository,
+            NotificationService notificationService) {
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
         this.postCommentRepository = postCommentRepository;
@@ -48,6 +52,7 @@ public class PostService {
         this.gameRepository = gameRepository;
         this.appProperties = appProperties;
         this.friendRequestRepository = friendRequestRepository;
+        this.notificationService = notificationService;
     }
 
     // -------------------------------------------------------------------------
@@ -158,6 +163,12 @@ public class PostService {
         Post post = findActivePost(postId);
         post.setLikeCount(post.getLikeCount() + 1);
         postRepository.save(post);
+
+        // Notify author (not if liking own post)
+        UUID authorId = post.getAuthor().getId();
+        if (!userId.equals(authorId)) {
+            notificationService.send(authorId, Notification.NotificationType.POST_LIKE, userId, postId, "POST");
+        }
     }
 
     @Transactional
@@ -191,6 +202,12 @@ public class PostService {
 
         post.setCommentCount(post.getCommentCount() + 1);
         postRepository.save(post);
+
+        // Notify post author (not if commenting on own post)
+        UUID authorId = post.getAuthor().getId();
+        if (!userId.equals(authorId)) {
+            notificationService.send(authorId, Notification.NotificationType.POST_COMMENT, userId, postId, "POST");
+        }
 
         return PostCommentResponse.from(saved);
     }

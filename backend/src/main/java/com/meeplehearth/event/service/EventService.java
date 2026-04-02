@@ -9,6 +9,8 @@ import com.meeplehearth.event.entity.EventParticipantId;
 import com.meeplehearth.event.repository.EventParticipantRepository;
 import com.meeplehearth.event.repository.EventRepository;
 import com.meeplehearth.game.repository.GameRepository;
+import com.meeplehearth.notification.entity.Notification;
+import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -26,15 +28,18 @@ public class EventService {
     private final EventParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final GameRepository gameRepository;
+    private final NotificationService notificationService;
 
     public EventService(EventRepository eventRepository,
                         EventParticipantRepository participantRepository,
                         UserRepository userRepository,
-                        GameRepository gameRepository) {
+                        GameRepository gameRepository,
+                        NotificationService notificationService) {
         this.eventRepository = eventRepository;
         this.participantRepository = participantRepository;
         this.userRepository = userRepository;
         this.gameRepository = gameRepository;
+        this.notificationService = notificationService;
     }
 
     // -------------------------------------------------------------------------
@@ -164,6 +169,12 @@ public class EventService {
             event.setStatus(Event.EventStatus.OPEN);
         }
         eventRepository.save(event);
+
+        // Notify host when someone accepts (not the host themselves)
+        UUID hostId = event.getHost().getId();
+        if (newStatus == EventParticipant.RsvpStatus.ACCEPTED && !userId.equals(hostId)) {
+            notificationService.send(hostId, Notification.NotificationType.EVENT_RSVP, userId, eventId, "EVENT");
+        }
 
         return toResponse(event, userId);
     }

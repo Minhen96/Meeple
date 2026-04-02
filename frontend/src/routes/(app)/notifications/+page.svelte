@@ -27,9 +27,11 @@
 			case 'POST_LIKE':       return 'liked your post';
 			case 'POST_COMMENT':    return 'commented on your post';
 			case 'EVENT_INVITE':    return 'invited you to an event';
-			case 'EVENT_RSVP':      return 'joined your event';
-			case 'MATCH_FOUND':     return 'A match was found for you!';
-			default:                return 'sent you a notification';
+			case 'EVENT_RSVP':           return 'joined your event';
+			case 'MATCH_FOUND':          return 'A match was found for you!';
+			case 'RULE_NOTE_APPROVED':   return 'Your rule note was approved';
+			case 'RULE_NOTE_REJECTED':   return 'Your rule note was rejected';
+			default:                     return 'sent you a notification';
 		}
 	}
 
@@ -41,8 +43,10 @@
 			case 'POST_COMMENT':    return 'chat_bubble';
 			case 'EVENT_INVITE':
 			case 'EVENT_RSVP':      return 'event';
-			case 'MATCH_FOUND':     return 'groups';
-			default:                return 'notifications';
+			case 'MATCH_FOUND':          return 'groups';
+			case 'RULE_NOTE_APPROVED':
+			case 'RULE_NOTE_REJECTED':   return 'rate_review';
+			default:                     return 'notifications';
 		}
 	}
 
@@ -54,8 +58,10 @@
 			case 'POST_COMMENT':    return 'border-l-secondary';
 			case 'EVENT_INVITE':
 			case 'EVENT_RSVP':      return 'border-l-primary-container';
-			case 'MATCH_FOUND':     return 'border-l-tertiary';
-			default:                return 'border-l-outline-variant';
+			case 'MATCH_FOUND':          return 'border-l-tertiary';
+			case 'RULE_NOTE_APPROVED':   return 'border-l-primary';
+			case 'RULE_NOTE_REJECTED':   return 'border-l-error';
+			default:                     return 'border-l-outline-variant';
 		}
 	}
 
@@ -67,8 +73,10 @@
 			case 'POST_COMMENT':    return 'text-secondary';
 			case 'EVENT_INVITE':
 			case 'EVENT_RSVP':      return 'text-primary-container';
-			case 'MATCH_FOUND':     return 'text-tertiary';
-			default:                return 'text-on-surface-variant';
+			case 'MATCH_FOUND':          return 'text-tertiary';
+			case 'RULE_NOTE_APPROVED':   return 'text-primary';
+			case 'RULE_NOTE_REJECTED':   return 'text-error';
+			default:                     return 'text-on-surface-variant';
 		}
 	}
 

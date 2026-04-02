@@ -18,6 +18,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,11 +37,11 @@ public class RulebookUserController {
     private final GameHowToPlayRepository howToPlayRepository;
 
     public RulebookUserController(GameRepository gameRepository,
-                                  GameRulebookRepository rulebookRepository,
-                                  RulebookAutoFetchJob autoFetchJob,
-                                  RulebookQueueService queueService,
-                                  UserRepository userRepository,
-                                  GameHowToPlayRepository howToPlayRepository) {
+            GameRulebookRepository rulebookRepository,
+            RulebookAutoFetchJob autoFetchJob,
+            RulebookQueueService queueService,
+            UserRepository userRepository,
+            GameHowToPlayRepository howToPlayRepository) {
         this.gameRepository = gameRepository;
         this.rulebookRepository = rulebookRepository;
         this.autoFetchJob = autoFetchJob;
@@ -49,12 +51,13 @@ public class RulebookUserController {
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/v1/games/{gameId}/rulebook  — user PDF upload
+    // POST /api/v1/games/{gameId}/rulebook — user PDF upload
     // -------------------------------------------------------------------------
 
     /**
      * Authenticated users can submit a rulebook PDF for admin review.
-     * Returns immediately with queue position; content goes live only after admin approval.
+     * Returns immediately with queue position; content goes live only after admin
+     * approval.
      */
     @PostMapping(value = "/{gameId}/rulebook", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> uploadRulebook(
@@ -73,19 +76,18 @@ public class RulebookUserController {
         GameRulebook rulebook = queueService.handleUserUpload(game, uploader, file);
 
         return ResponseEntity.ok(Map.of(
-                "status", "queued",
-                "rulebookId", rulebook.getId(),
-                "queuePosition", rulebook.getQueuePosition()
-        ));
+                "status", "ingesting",
+                "rulebookId", rulebook.getId()));
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/v1/games/{gameId}/rulebook/generate  — on-demand auto-fetch
+    // POST /api/v1/games/{gameId}/rulebook/generate — on-demand auto-fetch
     // -------------------------------------------------------------------------
 
     /**
      * Triggers an auto-fetch from rule-book.org / 1jour1jeu for games that
-     * don't yet have a rulebook. Returns status immediately; poll /status for result.
+     * don't yet have a rulebook. Returns status immediately; poll /status for
+     * result.
      */
     @PostMapping("/{gameId}/rulebook/generate")
     public ResponseEntity<Map<String, String>> generate(@PathVariable UUID gameId) {
@@ -114,12 +116,16 @@ public class RulebookUserController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         boolean hasRulebook = rulebookRepository.existsByGame_IdAndStatus(gameId, "approved");
-        boolean isIngesting = !hasRulebook && rulebookRepository.existsByGame_IdAndStatus(gameId, "ingesting");
+        Instant ingestingCutoff = Instant.now().minus(Duration.ofMinutes(5));
+        boolean isIngesting = !hasRulebook
+                && rulebookRepository.existsByGame_IdAndStatusAndCreatedAtAfter(gameId, "ingesting", ingestingCutoff);
         boolean hasHowToPlay = howToPlayRepository.existsByGame_Id(gameId);
 
         if (userDetails == null) {
-            if (hasRulebook) return ResponseEntity.ok(RulebookStatusResponse.approved(hasHowToPlay));
-            if (isIngesting) return ResponseEntity.ok(RulebookStatusResponse.ingesting(hasHowToPlay));
+            if (hasRulebook)
+                return ResponseEntity.ok(RulebookStatusResponse.approved(hasHowToPlay));
+            if (isIngesting)
+                return ResponseEntity.ok(RulebookStatusResponse.ingesting(hasHowToPlay));
             return ResponseEntity.ok(RulebookStatusResponse.noRulebook(hasHowToPlay));
         }
 

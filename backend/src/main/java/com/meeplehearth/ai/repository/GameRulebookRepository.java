@@ -22,6 +22,8 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
 
     boolean existsByGame_IdAndStatus(UUID gameId, String status);
 
+    boolean existsByGame_IdAndStatusAndCreatedAtAfter(UUID gameId, String status, Instant cutoff);
+
     Optional<GameRulebook> findFirstByGame_IdAndStatus(UUID gameId, String status);
 
     List<GameRulebook> findByGame_IdAndStatusOrderByQueuePositionAsc(UUID gameId, String status);

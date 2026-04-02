@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -25,17 +26,17 @@ import java.util.stream.Collectors;
  * Pass 1 — structure: extracts setup, gameplay, components, win condition, etc. as JSON.
  * Pass 2 — FAQ + tips: generates 3–5 beginner Q&A pairs and practical tips.
  *
- * Result stored in game_how_to_play as JSONB.
- * Re-runs automatically whenever a new rulebook is ingested (called by RulebookIngestionService).
- *
- * A 10-minute Redis lock prevents concurrent extractions for the same game.
+ * Progress is tracked in Redis (0–100) and pushed over WebSocket to
+ * /topic/how-to-play/{gameId} so the frontend can show a live progress bar
+ * without polling.
  */
 @Service
 public class HowToPlayExtractionService {
 
     private static final Logger log = LoggerFactory.getLogger(HowToPlayExtractionService.class);
-    private static final int TOP_CHUNKS = 20;
+    private static final int TOP_CHUNKS = 10;
     private static final String LOCK_PREFIX = "lock:how-to-play:";
+    private static final String PROGRESS_PREFIX = "progress:how-to-play:";
     private static final Duration LOCK_TTL = Duration.ofMinutes(10);
 
     private final GameHowToPlayRepository howToPlayRepository;
@@ -43,17 +44,20 @@ public class HowToPlayExtractionService {
     private final AiCompletionService completionService;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public HowToPlayExtractionService(GameHowToPlayRepository howToPlayRepository,
                                       RuleChunkRepository ruleChunkRepository,
                                       AiCompletionService completionService,
                                       StringRedisTemplate redisTemplate,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      SimpMessagingTemplate messagingTemplate) {
         this.howToPlayRepository = howToPlayRepository;
         this.ruleChunkRepository = ruleChunkRepository;
         this.completionService = completionService;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // -------------------------------------------------------------------------
@@ -74,15 +78,21 @@ public class HowToPlayExtractionService {
         }
 
         try {
+            pushProgress(gameId, 5);
+
             boolean hasChunks = ruleChunkRepository.existsByGame_Id(gameId);
             String sourceMode = hasChunks ? "rulebook" : "general";
             String context = buildContext(gameId, game, hasChunks);
 
+            pushProgress(gameId, 15);
+
             // Pass 1: structure extraction
             Map<String, Object> structure = extractStructure(game.getNameEn(), context);
+            pushProgress(gameId, 60);
 
             // Pass 2: FAQ + tips
             Map<String, Object> faqAndTips = extractFaqAndTips(game.getNameEn(), context);
+            pushProgress(gameId, 90);
 
             // Merge pass 2 into pass 1
             structure.putAll(faqAndTips);
@@ -99,16 +109,44 @@ public class HowToPlayExtractionService {
 
             log.debug("How-to-play extracted for '{}' (mode={})", game.getNameEn(), sourceMode);
 
+            // Signal completion over WebSocket
+            redisTemplate.delete(PROGRESS_PREFIX + gameId);
+            messagingTemplate.convertAndSend(
+                    "/topic/how-to-play/" + gameId,
+                    Map.of("status", "ready", "progress", 100));
+
         } catch (Exception e) {
             log.error("How-to-play extraction failed for game {}: {}", gameId, e.getMessage(), e);
+            messagingTemplate.convertAndSend(
+                    "/topic/how-to-play/" + gameId,
+                    Map.of("status", "error", "progress", 0));
         } finally {
             redisTemplate.delete(lockKey);
+            redisTemplate.delete(PROGRESS_PREFIX + gameId);
         }
     }
 
     /** Returns true if an extraction is currently running for this game. */
     public boolean isGenerating(UUID gameId) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(LOCK_PREFIX + gameId));
+    }
+
+    /** Returns the current progress (0–100) from Redis; 0 if not tracked. */
+    public int getProgress(UUID gameId) {
+        String val = redisTemplate.opsForValue().get(PROGRESS_PREFIX + gameId);
+        if (val == null) return 0;
+        try { return Integer.parseInt(val); } catch (NumberFormatException e) { return 0; }
+    }
+
+    // -------------------------------------------------------------------------
+    // Progress helpers
+    // -------------------------------------------------------------------------
+
+    private void pushProgress(UUID gameId, int pct) {
+        redisTemplate.opsForValue().set(PROGRESS_PREFIX + gameId, String.valueOf(pct), LOCK_TTL);
+        messagingTemplate.convertAndSend(
+                "/topic/how-to-play/" + gameId,
+                Map.of("status", "generating", "progress", pct));
     }
 
     // -------------------------------------------------------------------------
@@ -164,7 +202,7 @@ public class HowToPlayExtractionService {
                 """.formatted(gameName) + context;
 
         String json = completionService.complete(
-                List.of(Map.of("role", "user", "content", prompt)), 3500, 0.2);
+                List.of(Map.of("role", "user", "content", prompt)), 2500, 0.2);
 
         return parseJson(json);
     }
@@ -189,7 +227,7 @@ public class HowToPlayExtractionService {
                 """.formatted(gameName) + context;
 
         String json = completionService.complete(
-                List.of(Map.of("role", "user", "content", prompt)), 800, 0.3);
+                List.of(Map.of("role", "user", "content", prompt)), 700, 0.3);
 
         return parseJson(json);
     }
@@ -199,12 +237,11 @@ public class HowToPlayExtractionService {
     // -------------------------------------------------------------------------
 
     private Map<String, Object> parseJson(String raw) {
-        // Strip markdown code fences if the LLM wrapped the output
         String cleaned = raw.strip();
         if (cleaned.startsWith("```")) {
             cleaned = cleaned.replaceAll("^```[a-z]*\\n?", "").replaceAll("```$", "").strip();
         }
-        
+
         try {
             return new HashMap<>(objectMapper.readValue(cleaned, new TypeReference<Map<String, Object>>() {}));
         } catch (Exception e) {
@@ -221,24 +258,17 @@ public class HowToPlayExtractionService {
         }
     }
 
-    /**
-     * Minimal effort to close open strings and braces in truncated JSON.
-     */
     private String repairJson(String json) {
         String result = json.strip();
-        
-        // Count unclosed quotes
+
         long quotes = result.chars().filter(ch -> ch == '"').count();
-        if (quotes % 2 != 0) {
-            result += "\"";
-        }
-        
-        // Close braces/brackets
+        if (quotes % 2 != 0) result += "\"";
+
         int openBraces = 0;
         int openBrackets = 0;
         boolean inString = false;
         char prev = '\0';
-        
+
         for (char c : result.toCharArray()) {
             if (c == '"' && prev != '\\') inString = !inString;
             if (!inString) {
@@ -249,10 +279,10 @@ public class HowToPlayExtractionService {
             }
             prev = c;
         }
-        
+
         while (openBrackets > 0) { result += "]"; openBrackets--; }
         while (openBraces > 0) { result += "}"; openBraces--; }
-        
+
         return result;
     }
 }

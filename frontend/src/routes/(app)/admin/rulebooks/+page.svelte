@@ -157,8 +157,15 @@
 
 <div class="py-4 space-y-6 pb-24">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div>
+	<div class="flex items-center gap-4">
+		<button 
+			onclick={() => history.back()}
+			class="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95"
+			aria-label="Back"
+		>
+			<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+		</button>
+		<div class="flex-1">
 			<p class="text-[10px] font-bold uppercase tracking-widest text-primary mb-0.5">Admin</p>
 			<h1 class="text-2xl font-extrabold font-headline">Review Queue</h1>
 		</div>

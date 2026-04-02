@@ -99,11 +99,14 @@ export interface PlayLog {
 	playedAt: string;
 }
 
-// ActivityLog maps to ActivityLogResponse — play log with game context
+// ActivityLog maps to ActivityLogResponse — play log or event participation
 export interface ActivityLog {
 	id: string;
-	game: GameSummary;
+	type: 'play' | 'event';
+	game: GameSummary | null;
 	playedAt: string;
+	eventTitle: string | null;
+	eventId: string | null;
 }
 
 // UserGame maps to UserGameResponse
@@ -280,12 +283,13 @@ export interface HowToPlayContent {
 }
 
 export interface HowToPlayApiResponse {
-	status: 'ready' | 'generating';
+	status: 'ready' | 'generating' | 'not_generated';
 	data: HowToPlayContent | null;
 	sourceMode: 'rulebook' | 'general' | null;
 	disclaimer: string | null;
 	rulebookUrl: string | null;
 	approvedNotes: RuleNote[];
+	progress: number | null;
 }
 
 export interface RuleNote {
@@ -328,7 +332,9 @@ export type NotificationType =
 	| 'POST_COMMENT'
 	| 'FRIEND_REQUEST'
 	| 'FRIEND_ACCEPTED'
-	| 'MATCH_FOUND';
+	| 'MATCH_FOUND'
+	| 'RULE_NOTE_APPROVED'
+	| 'RULE_NOTE_REJECTED';
 
 export interface Notification {
 	id: string;

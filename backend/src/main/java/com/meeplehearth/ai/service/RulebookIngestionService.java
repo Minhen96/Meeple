@@ -88,6 +88,8 @@ public class RulebookIngestionService {
             String text = extractText(pdfBytes);
             if (text.isBlank()) {
                 log.warn("PDF for rulebook {} produced no extractable text", rulebook.getId());
+                rulebook.setStatus("failed");
+                rulebookRepository.save(rulebook);
                 return;
             }
 
@@ -123,6 +125,12 @@ public class RulebookIngestionService {
 
         } catch (Exception e) {
             log.error("Ingestion failed for rulebook {}: {}", rulebook.getId(), e.getMessage(), e);
+            try {
+                rulebook.setStatus("failed");
+                rulebookRepository.save(rulebook);
+            } catch (Exception ex) {
+                log.error("Could not update rulebook {} status to failed: {}", rulebook.getId(), ex.getMessage());
+            }
         }
     }
 

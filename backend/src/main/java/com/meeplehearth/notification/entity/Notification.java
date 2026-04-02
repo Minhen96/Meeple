@@ -45,6 +45,7 @@ public class Notification {
 
     public enum NotificationType {
         EVENT_INVITE, EVENT_RSVP, POST_LIKE, POST_COMMENT,
-        FRIEND_REQUEST, FRIEND_ACCEPTED, MATCH_FOUND
+        FRIEND_REQUEST, FRIEND_ACCEPTED, MATCH_FOUND,
+        RULE_NOTE_APPROVED, RULE_NOTE_REJECTED
     }
 }
