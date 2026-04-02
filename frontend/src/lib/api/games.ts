@@ -10,10 +10,10 @@ export interface UpdateCollectionPayload {
 
 export const gamesApi = {
 	search: async (query: string): Promise<GameSearchResult[]> => {
-		const res = await api.get<ApiResponse<GameSearchResult[]>>(
+		const res = await api.get<GameSearchResult[]>(
 			`/api/v1/games/search?q=${encodeURIComponent(query)}`
 		);
-		return res.data;
+		return res;
 	},
 
 	browse: async (params: {
@@ -40,39 +40,39 @@ export const gamesApi = {
 		if (params.page !== undefined) searchParams.set('page', params.page.toString());
 		if (params.sort) searchParams.set('sort', params.sort);
 		const res = await api.get<any>(`/api/v1/games?${searchParams.toString()}`);
-		return res.data;
+		return res;
 	},
 
 	getGame: async (id: string): Promise<GameDetail> => {
-		const res = await api.get<ApiResponse<GameDetail>>(`/api/v1/games/${id}`);
-		return res.data;
+		const res = await api.get<GameDetail>(`/api/v1/games/${id}`);
+		return res;
 	},
 
 	getMyCollection: async (): Promise<UserGame[]> => {
-		const res = await api.get<ApiResponse<UserGame[]>>('/api/v1/users/me/games');
-		return res.data;
+		const res = await api.get<UserGame[]>('/api/v1/users/me/games');
+		return res;
 	},
 
 	updateCollection: async (gameId: string, payload: UpdateCollectionPayload): Promise<UserGame> => {
-		const res = await api.put<ApiResponse<UserGame>>(`/api/v1/users/me/games/${gameId}`, payload);
-		return res.data;
+		const res = await api.put<UserGame>(`/api/v1/users/me/games/${gameId}`, payload);
+		return res;
 	},
 
 	removeFromCollection: (gameId: string) =>
 		api.delete<void>(`/api/v1/users/me/games/${gameId}`),
 
 	logPlay: async (gameId: string): Promise<UserGame> => {
-		const res = await api.post<ApiResponse<UserGame>>(`/api/v1/users/me/games/${gameId}/log-play`, {});
-		return res.data;
+		const res = await api.post<UserGame>(`/api/v1/users/me/games/${gameId}/log-play`, {});
+		return res;
 	},
 
 	getPlays: async (gameId: string): Promise<PlayLog[]> => {
-		const res = await api.get<ApiResponse<PlayLog[]>>(`/api/v1/users/me/games/${gameId}/plays`);
-		return res.data;
+		const res = await api.get<PlayLog[]>(`/api/v1/users/me/games/${gameId}/plays`);
+		return res;
 	},
 
 	getActivity: async (): Promise<ActivityLog[]> => {
-		const res = await api.get<ApiResponse<ActivityLog[]>>('/api/v1/users/me/plays');
-		return res.data;
+		const res = await api.get<ActivityLog[]>('/api/v1/users/me/plays');
+		return res;
 	}
 };

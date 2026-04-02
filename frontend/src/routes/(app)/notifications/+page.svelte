@@ -9,7 +9,7 @@
 	onMount(async () => {
 		try {
 			const res = await notificationsApi.getAll();
-			notifications.set(res.data);
+			notifications.set(res ?? []);
 		} finally {
 			loading = false;
 		}

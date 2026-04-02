@@ -60,7 +60,7 @@
 			let gameId = selectedGame.id;
 			if (!gameId && selectedGame.bggId) {
 				const res = await api.get<ApiResponse<GameDetail>>(`/api/v1/games/bgg/${selectedGame.bggId}`).catch(() => null);
-				gameId = res?.data?.id ?? null;
+				gameId = res?.id ?? null;
 			}
 			if (!gameId) return;
 			const req = await matchesApi.createRequest({

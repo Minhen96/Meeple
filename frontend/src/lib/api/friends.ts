@@ -3,23 +3,23 @@ import type { FriendRequest, FriendStatus, PaginatedResponse, User } from '$lib/
 
 export const friendsApi = {
 	sendRequest: async (userId: string): Promise<FriendRequest> => {
-		const res = await api.post<{ data: FriendRequest }>(`/api/v1/users/${userId}/friend-request`, {});
-		return res.data;
+		const res = await api.post<FriendRequest>(`/api/v1/users/${userId}/friend-request`, {});
+		return res;
 	},
 
 	getStatus: async (userId: string): Promise<FriendStatus> => {
-		const res = await api.get<{ data: FriendStatus }>(`/api/v1/users/${userId}/friend-status`);
-		return res.data;
+		const res = await api.get<FriendStatus>(`/api/v1/users/${userId}/friend-status`);
+		return res;
 	},
 
 	accept: async (requestId: string): Promise<FriendRequest> => {
-		const res = await api.post<{ data: FriendRequest }>(`/api/v1/friend-requests/${requestId}/accept`, {});
-		return res.data;
+		const res = await api.post<FriendRequest>(`/api/v1/friends/requests/${requestId}/accept`, {});
+		return res;
 	},
 
 	decline: async (requestId: string): Promise<FriendRequest> => {
-		const res = await api.post<{ data: FriendRequest }>(`/api/v1/friend-requests/${requestId}/decline`, {});
-		return res.data;
+		const res = await api.post<FriendRequest>(`/api/v1/friends/requests/${requestId}/decline`, {});
+		return res;
 	},
 
 	unfriend: (userId: string) => api.delete<void>(`/api/v1/friends/${userId}`),

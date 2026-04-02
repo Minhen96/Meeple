@@ -33,7 +33,7 @@
 				const res = await api.get<{ data: { available: boolean } }>(
 					`/api/v1/auth/check-username?username=${encodeURIComponent(username)}`,
 				);
-				usernameStatus = res.data.available ? "available" : "taken";
+				usernameStatus = res.available ? "available" : "taken";
 			} catch {
 				usernameStatus = "error";
 			}
@@ -85,7 +85,23 @@
 			/[0-9]/.test(password) &&
 			/[^A-Za-z0-9]/.test(password),
 	);
+	const passwordError = $derived.by((): string => {
+		if (!touched.password || password.length === 0) return "";
+		if (password.length < 8) return "Must be at least 8 characters";
+		if (!/[A-Z]/.test(password)) return "Include an uppercase letter";
+		if (!/[a-z]/.test(password)) return "Include a lowercase letter";
+		if (!/[0-9]/.test(password)) return "Include a number";
+		if (!/[^A-Za-z0-9]/.test(password))
+			return "Include a special character (!@#$ etc.)";
+		return "";
+	});
+
 	const doPasswordsMatch = $derived(password === confirmPassword);
+	const confirmPasswordError = $derived.by((): string => {
+		if (!touched.confirmPassword || confirmPassword.length === 0) return "";
+		if (!doPasswordsMatch) return "Passwords do not match";
+		return "";
+	});
 	const canSubmit = $derived(
 		email.includes("@") &&
 			isUsernameValid &&
@@ -311,6 +327,13 @@
 								>
 							{/if}
 						</div>
+						{#if (touched.username && usernameError) || usernameStatus === "taken"}
+							<p
+								class="text-[10px] text-error font-bold mt-1.5 animate-in fade-in slide-in-from-top-1 px-1"
+							>
+								{usernameError || "Nickname is already taken"}
+							</p>
+						{/if}
 					</div>
 				</div>
 
@@ -342,6 +365,13 @@
 								></div>
 							</div>
 						{/if}
+						{#if touched.password && passwordError}
+							<p
+								class="text-[10px] text-error font-bold mt-1.5 animate-in fade-in slide-in-from-top-1 px-1"
+							>
+								{passwordError}
+							</p>
+						{/if}
 					</div>
 
 					<div class="space-y-1.5 px-0.5">
@@ -360,6 +390,13 @@
 							autocomplete="new-password"
 							class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
 						/>
+						{#if touched.confirmPassword && confirmPasswordError}
+							<p
+								class="text-[10px] text-error font-bold mt-1.5 animate-in fade-in slide-in-from-top-1 px-1"
+							>
+								{confirmPasswordError}
+							</p>
+						{/if}
 					</div>
 				</div>
 

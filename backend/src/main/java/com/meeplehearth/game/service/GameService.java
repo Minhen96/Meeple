@@ -65,8 +65,8 @@ public class GameService {
     // Recommendations
     // -------------------------------------------------------------------------
 
-    public List<GameSummaryResponse> getRecommended(UUID userId) {
-        return recommendationService.getRecommended(userId);
+    public org.springframework.data.domain.Page<GameSummaryResponse> getRecommended(UUID userId, org.springframework.data.domain.Pageable pageable) {
+        return recommendationService.getRecommended(userId, pageable);
     }
 
     // -------------------------------------------------------------------------

@@ -40,9 +40,9 @@ export interface CsvCheckResult {
 
 export const setupApi = {
 	getStatus: () =>
-		api.get<ApiResponse<SetupStatus>>('/api/v1/admin/setup/status').then((r) => r.data),
+		api.get<SetupStatus>('/api/v1/admin/setup/status'),
 	checkCsv: () =>
-		api.get<ApiResponse<CsvCheckResult>>('/api/v1/admin/setup/check-csv').then((r) => r.data),
+		api.get<CsvCheckResult>('/api/v1/admin/setup/check-csv'),
 	start: (step: 'import' | 'hydrate' | 'rulebooks') =>
 		api.post<ApiResponse<{ message: string }>>(`/api/v1/admin/setup/start/${step}`),
 	stop: (step: 'hydrate' | 'rulebooks') =>

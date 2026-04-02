@@ -39,11 +39,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 	const body = await res.json();
 	
 	// Normalize Spring Boot 3 Page serialization universally
-	// We unwrap the 'data' field if it's an ApiResponse, but NOT if it's a PageResponse (which has 'meta')
-	const target = (body && typeof body === 'object' && 'data' in body && body.data && !('meta' in body)) 
-		? body.data 
-		: body;
+	// We unwrap the 'data' field only if it's a generic ApiResponse wrapper
+	let target = body;
+	if (body && typeof body === 'object' && 'data' in body && body.data !== undefined) {
+		const keys = Object.keys(body);
+		// Only unwrap if it's a simple wrapper (has data, but no pagination metadata at the top level)
+		const isGenericWrapper = !keys.includes('meta') && !keys.includes('content') && !keys.includes('page');
+		if (isGenericWrapper) {
+			target = body.data;
+		}
+	}
 	
+	// Ensure target is valid before further normalization
 	if (target && typeof target === 'object' && target.page && Array.isArray(target.content)) {
 		if (target.number === undefined) {
 			target.number = target.page.number;
@@ -54,7 +61,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 		}
 	}
 	
-	return target as T;
+	// Default to body if target somehow became null/undefined but body is valid
+	return (target ?? body) as T;
 }
 
 export const api = {

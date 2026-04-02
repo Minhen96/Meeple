@@ -2,7 +2,7 @@
 	import type { PageData } from "./$types";
 	import type { GameSearchResult, UserGame } from "$lib/types";
 	import { gamesApi } from "$lib/api/games";
-	import { libraryStore } from "$lib/stores/library";
+	import { libraryStore, defaultState } from "$lib/stores/library";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
 	import { goto } from "$app/navigation";
 	import { toast } from "svelte-sonner";
@@ -93,17 +93,19 @@
 			});
 
 			if (append) {
-				const seen = new Set(store.gamesPage.content.map((g) => g.id));
-				const uniqueNew = result.content.filter((g) => !seen.has(g.id));
+				const currentContent = store.gamesPage?.content ?? [];
+				const seen = new Set(currentContent.map((g) => g.id));
+				const resultContent = result?.content ?? [];
+				const uniqueNew = resultContent.filter((g) => !seen.has(g.id));
 				store = {
 					...store,
 					gamesPage: {
 						...result,
-						content: [...store.gamesPage.content, ...uniqueNew],
+						content: [...currentContent, ...uniqueNew],
 					},
 				};
 			} else {
-				store = { ...store, gamesPage: result };
+				store = { ...store, gamesPage: result ?? defaultState.gamesPage };
 				if (typeof window !== 'undefined') {
 					window.scrollTo({ top: 0, behavior: 'smooth' });
 				}
@@ -127,8 +129,8 @@
 	$effect(() => {
 		if (
 			activeTab === "all" &&
-			gamesPage.number === 0 &&
-			gamesPage.totalElements === 0 &&
+			(gamesPage?.number ?? 0) === 0 &&
+			(gamesPage?.totalElements ?? 0) === 0 &&
 			!loadingCatalog
 		) {
 			fetchCatalogPage(0);
@@ -145,9 +147,9 @@
 					entries[0].isIntersecting &&
 					!loadingMore &&
 					!loadingCatalog &&
-					!gamesPage.last
+					!gamesPage?.last
 				) {
-					fetchCatalogPage(gamesPage.number + 1, true);
+					fetchCatalogPage((gamesPage?.number ?? 0) + 1, true);
 				}
 			},
 			{ rootMargin: "400px" },
@@ -700,12 +702,12 @@
 			<span
 				class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mt-1 opacity-70"
 			>
-				{gamesPage.totalElements || "0"} Results
+				{gamesPage?.totalElements ?? "0"} Results
 			</span>
 		</div>
 	</div>
 
-	{#if loadingCatalog && gamesPage.content.length === 0}
+	{#if loadingCatalog && (gamesPage?.content?.length ?? 0) === 0}
 		<div class="grid grid-cols-2 gap-5">
 			{#each { length: 6 } as _}
 				<div class="space-y-3">
@@ -715,7 +717,7 @@
 				</div>
 			{/each}
 		</div>
-	{:else if gamesPage.content.length === 0}
+	{:else if (gamesPage?.content?.length ?? 0) === 0}
 		<div
 			class="text-center py-20 bg-surface-container-lowest rounded-[2rem] border border-outline-variant/10"
 		>
@@ -737,7 +739,7 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-2 gap-5">
-			{#each gamesPage.content as game (game.id)}
+			{#each gamesPage?.content ?? [] as game (game.id)}
 				<a href="/library/{game.id}" class="group space-y-3">
 					<div
 						class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden bg-surface-container-lowest/80 shadow-[0_8px_32px_rgba(0,0,0,0.05)] group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-700"

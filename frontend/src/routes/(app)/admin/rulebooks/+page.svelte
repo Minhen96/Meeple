@@ -26,7 +26,7 @@
 		loading = true;
 		try {
 			const res = await adminApi.getRulebookQueue('pending_review', p, 20);
-			items = p === 0 ? res.content : [...items, ...res.content];
+			items = p === 0 ? (res.content ?? []) : [...items, ...(res.content ?? [])];
 			page = res.number;
 			hasMore = !res.last;
 		} catch {

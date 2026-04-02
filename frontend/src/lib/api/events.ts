@@ -13,35 +13,35 @@ export interface CreateEventPayload {
 
 export const eventsApi = {
 	getUpcoming: async (): Promise<Event[]> => {
-		const res = await api.get<ApiResponse<Event[]>>('/api/v1/events');
-		return res.data;
+		const res = await api.get<Event[]>('/api/v1/events');
+		return res;
 	},
 
 	getMyEvents: async (): Promise<Event[]> => {
-		const res = await api.get<ApiResponse<Event[]>>('/api/v1/events/me');
-		return res.data;
+		const res = await api.get<Event[]>('/api/v1/events/mine');
+		return res;
 	},
 
 	getEvent: async (id: string): Promise<Event> => {
-		const res = await api.get<ApiResponse<Event>>(`/api/v1/events/${id}`);
-		return res.data;
+		const res = await api.get<Event>(`/api/v1/events/${id}`);
+		return res;
 	},
 
 	createEvent: async (payload: CreateEventPayload): Promise<Event> => {
-		const res = await api.post<ApiResponse<Event>>('/api/v1/events', payload);
-		return res.data;
+		const res = await api.post<Event>('/api/v1/events', payload);
+		return res;
 	},
 
 	updateEvent: async (id: string, payload: Partial<CreateEventPayload>): Promise<Event> => {
-		const res = await api.put<ApiResponse<Event>>(`/api/v1/events/${id}`, payload);
-		return res.data;
+		const res = await api.put<Event>(`/api/v1/events/${id}`, payload);
+		return res;
 	},
 
 	deleteEvent: (id: string) => api.delete<void>(`/api/v1/events/${id}`),
 
 	rsvp: async (id: string, status: 'ACCEPTED' | 'DECLINED' | 'INVITED'): Promise<Event> => {
-		const res = await api.post<ApiResponse<Event>>(`/api/v1/events/${id}/rsvp?status=${status}`);
-		return res.data;
+		const res = await api.post<Event>(`/api/v1/events/${id}/rsvp?status=${status}`);
+		return res;
 	},
 
 	leaveEvent: (id: string) => api.delete<void>(`/api/v1/events/${id}/rsvp`)

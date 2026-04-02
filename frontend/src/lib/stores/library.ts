@@ -22,7 +22,7 @@ interface LibraryState {
 	selectedGenre?: string;
 }
 
-const defaultState: LibraryState = {
+export const defaultState: LibraryState = {
 	gamesPage: { content: [], number: 0, last: true, totalPages: 1, totalElements: 0 },
 	activeTab: 'all',
 	sortOption: '',

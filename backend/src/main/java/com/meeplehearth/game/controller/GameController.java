@@ -13,8 +13,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 
@@ -71,8 +69,7 @@ public class GameController {
 
         if ("recommended".equalsIgnoreCase(sort) && userDetails != null) {
             UUID userId = UUID.fromString(userDetails.getUsername());
-            List<GameSummaryResponse> recs = gameService.getRecommended(userId);
-            return ResponseEntity.ok(new PageImpl<>(recs, PageRequest.of(0, Math.max(recs.size(), 1)), recs.size()));
+            return ResponseEntity.ok(gameService.getRecommended(userId, pageable));
         }
 
         return ResponseEntity.ok(gameService.browse(q, genre, minPlayers, maxPlayers,

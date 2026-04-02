@@ -30,7 +30,7 @@ public class RecommendationService {
 
     private static final String CACHE_KEY_PREFIX = "rec:";
     private static final Duration CACHE_TTL = Duration.ofHours(1);
-    private static final int RECOMMEND_LIMIT = 20;
+    private static final int MAX_POOL_SIZE = 500; // Large enough pool for deep scrolling
 
     private final JdbcTemplate jdbcTemplate;
     private final GameRepository gameRepository;
@@ -49,10 +49,30 @@ public class RecommendationService {
     // Public API
     // -------------------------------------------------------------------------
 
-    public List<GameSummaryResponse> getRecommended(UUID userId) {
+    public org.springframework.data.domain.Page<GameSummaryResponse> getRecommended(UUID userId, org.springframework.data.domain.Pageable pageable) {
         String cacheKey = CACHE_KEY_PREFIX + userId;
 
-        // 1. Redis cache check
+        // 1. Get cached order of IDs (the "discovery pool")
+        List<UUID> allIds = getCachedDiscoveryPool(userId, cacheKey);
+        if (allIds.isEmpty()) {
+            return org.springframework.data.domain.Page.empty(pageable);
+        }
+
+        // 2. Slice for current page
+        int start = (int) pageable.getOffset();
+        if (start >= allIds.size()) {
+            return org.springframework.data.domain.Page.empty(pageable);
+        }
+        int end = Math.min(start + pageable.getPageSize(), allIds.size());
+        List<UUID> pageIds = allIds.subList(start, end);
+
+        // 3. Fetch summary details for this page
+        List<GameSummaryResponse> content = fetchOrdered(pageIds);
+
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, allIds.size());
+    }
+
+    private List<UUID> getCachedDiscoveryPool(UUID userId, String cacheKey) {
         String cached = redisTemplate.opsForValue().get(cacheKey);
         if (cached != null) {
             try {
@@ -60,20 +80,15 @@ public class RecommendationService {
             } catch (Exception ignored) {}
         }
 
-        // 2. Score games (cold start returns empty list naturally)
+        // Fresh score
         List<UUID> ids = scoreGames(userId);
-        if (ids.isEmpty()) return List.of();
-
-        // 3. Batch-fetch Game entities and preserve score order
-        List<GameSummaryResponse> result = fetchOrdered(ids);
-
-        // 4. Cache
-        try {
-            redisTemplate.opsForValue().set(cacheKey,
-                    objectMapper.writeValueAsString(result), CACHE_TTL);
-        } catch (Exception ignored) {}
-
-        return result;
+        if (!ids.isEmpty()) {
+            try {
+                redisTemplate.opsForValue().set(cacheKey,
+                        objectMapper.writeValueAsString(ids), CACHE_TTL);
+            } catch (Exception ignored) {}
+        }
+        return ids;
     }
 
     /** Call this whenever the user's collection or play log changes. */
@@ -142,7 +157,7 @@ public class RecommendationService {
         return jdbcTemplate.query(
                 SCORE_SQL,
                 (rs, rowNum) -> UUID.fromString(rs.getString(1)),
-                userId, userId, userId, userId, userId, RECOMMEND_LIMIT
+                userId, userId, userId, userId, userId, MAX_POOL_SIZE
         );
     }
 
@@ -151,6 +166,7 @@ public class RecommendationService {
     // -------------------------------------------------------------------------
 
     private List<GameSummaryResponse> fetchOrdered(List<UUID> ids) {
+        if (ids.isEmpty()) return List.of();
         List<com.meeplehearth.game.entity.Game> games = gameRepository.findAllById(ids);
         Map<UUID, Integer> order = new HashMap<>();
         for (int i = 0; i < ids.size(); i++) order.put(ids.get(i), i);
