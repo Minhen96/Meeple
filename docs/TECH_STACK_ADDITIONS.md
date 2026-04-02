@@ -30,9 +30,9 @@ public class EmailService {
   public void sendVerificationEmail(String toEmail, String token) {
     String link = appBaseUrl + "/auth/verify-email?token=" + token;
     resend.emails().send(SendEmailRequest.builder()
-      .from("Meeple & Hearth <noreply@meeple-hearth.com>")
+      .from("Meeple <noreply@meeple-hearth.com>")
       .to(toEmail)
-      .subject("Verify your Meeple & Hearth account")
+      .subject("Verify your Meeple account")
       .html(buildVerificationHtml(link))
       .build());
   }
@@ -52,9 +52,9 @@ public class EmailService {
 
 **Shared template style:**
 - Background: `#F8F9FA` (warm off-white)
-- Header: "Meeple & Hearth" in `#895100`
+- Header: "Meeple" in `#895100`
 - CTA button: gradient `#895100 → #FF9F1C`, `border-radius: 999px`
-- Footer: "You received this because you have a Meeple & Hearth account."
+- Footer: "You received this because you have a Meeple account."
 
 **New environment variables:**
 ```

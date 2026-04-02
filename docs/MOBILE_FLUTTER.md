@@ -1,4 +1,4 @@
-# Meeple & Hearth — Mobile (Flutter) Complete Plan
+# Meeple — Mobile (Flutter) Complete Plan
 
 > Phase 3 implementation. Same Spring Boot backend, same design system translated to Flutter.
 
@@ -883,7 +883,7 @@ Future<void> enableBiometric() async {
 Future<bool> authenticateWithBiometric() async {
   final localAuth = LocalAuthentication();
   return localAuth.authenticate(
-    localizedReason: 'Log in to Meeple & Hearth',
+    localizedReason: 'Log in to Meeple',
     options: const AuthenticationOptions(
       stickyAuth: true,   // Don't show if biometrics fail mid-auth
       biometricOnly: false,  // Allow device PIN as fallback
@@ -1068,7 +1068,7 @@ Launch app
 - [ ] ProGuard/R8 rules for release build on Android (keep model classes)
 - [ ] `flutter analyze` passes with zero warnings
 - [ ] Sentry DSN configured for crash reporting
-- [ ] `android:label` in AndroidManifest updated to "Meeple & Hearth"
+- [ ] `android:label` in AndroidManifest updated to "Meeple"
 - [ ] Bundle ID: `com.meeplehearth.app` on both platforms
 - [ ] Signing certificates set up (iOS provisioning + Android keystore)
 - [ ] Keystore file stored securely (NOT in git), documented in team password manager

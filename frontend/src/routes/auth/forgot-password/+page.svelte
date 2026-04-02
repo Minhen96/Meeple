@@ -18,7 +18,7 @@
 	}
 </script>
 
-<svelte:head><title>Reset Password — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Reset Password — Meeple</title></svelte:head>
 
 <a href="/auth/login" class="flex items-center gap-1 text-on-surface-variant mb-6">
 	<span class="material-symbols-outlined text-[20px]">arrow_back</span>

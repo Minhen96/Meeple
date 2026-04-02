@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 </script>
 
-<svelte:head><title>Import Collection — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Import Collection — Meeple</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-2">Import your collection</h2>
 <p class="text-sm text-on-surface-variant mb-6">Connect your BoardGameGeek account to import your games.</p>

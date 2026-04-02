@@ -1,4 +1,4 @@
-# Meeple & Hearth — Tech Stack
+# Meeple — Tech Stack
 
 ## Overview
 
@@ -328,7 +328,7 @@ src/main/java/com/meeplehearth/
 │   └── dto/
 ├── storage/
 │   └── StorageController.java        # /api/upload/presign
-└── MeepleHearthApplication.java
+└── MeepleApplication.java
 ```
 
 ### Key Dependencies (build.gradle.kts)

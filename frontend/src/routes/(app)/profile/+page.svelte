@@ -25,7 +25,7 @@
 	}
 </script>
 
-<svelte:head><title>Profile — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Profile — Meeple</title></svelte:head>
 
 {#if showSetupModal}
 	<SetupStatusModal onClose={() => (showSetupModal = false)} />

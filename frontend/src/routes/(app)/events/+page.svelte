@@ -65,7 +65,7 @@
 	}
 </script>
 
-<svelte:head><title>Events — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Events — Meeple</title></svelte:head>
 
 <!-- Page title -->
 <section class="mb-6 space-y-1">

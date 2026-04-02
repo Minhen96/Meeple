@@ -30,7 +30,7 @@ public class RuleBookOrgClient {
 
         this.restClient = RestClient.builder()
                 .baseUrl(BASE_URL)
-                .defaultHeader("User-Agent", "MeepleHearth/1.0")
+                .defaultHeader("User-Agent", "Meeple/1.0")
                 .requestFactory(factory)
                 .build();
     }

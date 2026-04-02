@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Design system color tokens for Meeple & Hearth.
+/// Design system color tokens for Meeple.
 /// All values sourced from docs/DESIGN.md — never use raw hex in templates.
 abstract final class AppColors {
   // ── Primary ──────────────────────────────────────────────────────────────

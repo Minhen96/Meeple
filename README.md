@@ -1,4 +1,4 @@
-# Meeple & Hearth
+# Meeple
 
 A board game community app for discovering games, tracking your collection, connecting with players, and organising game nights.
 

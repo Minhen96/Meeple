@@ -1,4 +1,4 @@
-# Meeple & Hearth — Screens & UI States
+# Meeple — Screens & UI States
 
 > Every screen. Every state (default / loading / empty / error). Every navigation flow.
 > Design decisions for things not covered by reference mockups.
@@ -70,7 +70,7 @@ SvelteKit does NOT preserve per-tab navigation stacks by default. Decision: use 
 **Layout:** Center-aligned card on mobile. No AppBar/BottomNav.
 
 **Elements:**
-- App logo + "Meeple & Hearth" wordmark (centered top)
+- App logo + "Meeple" wordmark (centered top)
 - "Welcome back" heading
 - Email/username input
 - Password input (with show/hide toggle)
@@ -175,7 +175,7 @@ Top of all onboarding screens (except Welcome):
 ### 3.2 Welcome `/onboarding/welcome`
 
 - App logo (large, centered)
-- "Meeple & Hearth" wordmark
+- "Meeple" wordmark
 - Tagline: "Track your games. Organize game nights. Build memories."
 - Three feature teasers with icons (Library, Events, Matching)
 - "Get Started" button (primary gradient, full-width)
@@ -250,7 +250,7 @@ Top of all onboarding screens (except Welcome):
 ### 4.1 Layout
 
 ```
-[TopAppBar: Search icon | "Meeple & Hearth" | Notifications icon]
+[TopAppBar: Search icon | "Meeple" | Notifications icon]
 [Greeting section]
 [Match Suggestion Card — conditional]
 [Upcoming Events row — conditional]
@@ -261,7 +261,7 @@ Top of all onboarding screens (except Welcome):
 ### 4.2 TopAppBar
 
 - Left: `search` icon → opens Search overlay
-- Center: "Meeple & Hearth" (primary color, font-black, tracking-tight)
+- Center: "Meeple" (primary color, font-black, tracking-tight)
 - Right: `notifications` icon with unread badge (red dot with count, hidden if 0)
 
 ### 4.3 Greeting Section

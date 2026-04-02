@@ -41,7 +41,7 @@
 	}
 </script>
 
-<svelte:head><title>Create Post — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Create Post — Meeple</title></svelte:head>
 
 <div class="flex items-center justify-between mb-6">
 	<h2 class="text-2xl font-extrabold font-headline">Create Memory</h2>

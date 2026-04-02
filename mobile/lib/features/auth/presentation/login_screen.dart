@@ -235,7 +235,7 @@ class _BrandHeader extends StatelessWidget {
           ),
         ),
         AppSpacing.vGapLg,
-        Text('Meeple & Hearth', style: AppTypography.brandLarge),
+        Text('Meeple', style: AppTypography.brandLarge),
         AppSpacing.vGapXs,
         Text(
           subtitle,

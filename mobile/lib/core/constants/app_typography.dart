@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 
-/// Typography scale for Meeple & Hearth.
+/// Typography scale for Meeple.
 ///
 /// Two font families:
 /// - **Plus Jakarta Sans** — headlines, body, titles

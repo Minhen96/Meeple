@@ -7,7 +7,7 @@
 		showBack?: boolean;
 	}
 
-	let { title = 'Meeple & Hearth', showBack = false }: Props = $props();
+	let { title = 'Meeple', showBack = false }: Props = $props();
 
 	function goBack() {
 		history.back();
@@ -20,16 +20,23 @@
 	<div class="flex justify-between items-center px-6 py-4 max-w-lg mx-auto w-full">
 		<!-- Left: back button on detail pages, title on root pages -->
 		{#if showBack}
-			<button
-				onclick={goBack}
-				class="text-on-surface-variant hover:text-on-surface transition-colors"
-				aria-label="Go back"
-			>
-				<span class="material-symbols-outlined">arrow_back</span>
-			</button>
-			<h1 class="font-headline text-primary font-black tracking-tighter text-xl">{title}</h1>
+			<div class="flex items-center gap-3">
+				<button
+					onclick={goBack}
+					class="text-on-surface-variant hover:text-on-surface transition-colors p-1 -ml-1 rounded-full hover:bg-surface-container-high"
+					aria-label="Go back"
+				>
+					<span class="material-symbols-outlined">arrow_back</span>
+				</button>
+				<h1 class="font-headline text-primary font-black tracking-tighter text-xl">{title}</h1>
+			</div>
 		{:else}
-			<h1 class="font-headline text-primary font-black tracking-tighter text-xl">{title}</h1>
+			<div class="flex items-center gap-2.5">
+				<div class="w-8 h-8 bg-white dark:bg-surface-container-high rounded-xl shadow-sm flex items-center justify-center p-1.5 transform -rotate-12 hover:rotate-0 transition-transform duration-300">
+					<img src="/favicon.svg" alt="Logo" class="w-full h-full object-contain" />
+				</div>
+				<h1 class="font-headline text-primary font-black tracking-tighter text-xl translate-y-[0.5px]">{title}</h1>
+			</div>
 		{/if}
 
 		<!-- Right: search + notifications -->

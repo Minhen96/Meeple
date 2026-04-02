@@ -59,7 +59,7 @@
 </script>
 
 <svelte:head>
-	<title>Home — Meeple & Hearth</title>
+	<title>Home — Meeple</title>
 </svelte:head>
 
 <div class="space-y-8">

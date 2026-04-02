@@ -49,7 +49,7 @@
 	}
 </script>
 
-<svelte:head><title>Post — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Post — Meeple</title></svelte:head>
 
 <!-- Author -->
 <div class="flex items-center gap-3 mb-4">

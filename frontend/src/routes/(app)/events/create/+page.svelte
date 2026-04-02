@@ -43,7 +43,7 @@
 	}
 </script>
 
-<svelte:head><title>Create Event — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Create Event — Meeple</title></svelte:head>
 
 <!-- Page header -->
 <div class="mb-6 space-y-1">

@@ -41,7 +41,7 @@ public class BggApiClient {
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.geekdo.com")
                 .requestFactory(factory)
-                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MeepleHearth/1.0")
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Meeple/1.0")
                 .defaultHeader("Accept", "application/json")
                 .build();
     }

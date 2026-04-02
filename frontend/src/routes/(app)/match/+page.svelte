@@ -86,7 +86,7 @@
 	}
 </script>
 
-<svelte:head><title>Match — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Match — Meeple</title></svelte:head>
 
 <div class="flex items-center justify-between mb-4">
 	<h2 class="text-2xl font-extrabold font-headline">Match</h2>

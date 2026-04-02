@@ -35,7 +35,7 @@
 	}
 </script>
 
-<svelte:head><title>Set Up Profile — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Set Up Profile — Meeple</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-6">Set up your profile</h2>
 

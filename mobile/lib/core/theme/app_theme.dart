@@ -3,7 +3,7 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 
-/// Meeple & Hearth Material 3 theme.
+/// Meeple Material 3 theme.
 ///
 /// Single light theme — dark mode is not in scope for Phase 1.
 /// Use [AppTheme.light()] in [MaterialApp.theme].

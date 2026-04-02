@@ -1,4 +1,4 @@
-# Meeple & Hearth — Design System
+# Meeple — Design System
 
 ## 1. Creative North Star: "The Curated Playroom"
 
@@ -13,7 +13,7 @@ Key visual principles:
 - **Generous whitespace** — even complex game data feels light
 - **Editorial scale** — large type creates "chapters" in the UI
 
-App name displayed as: **Meeple & Hearth**
+App name displayed as: **Meeple**
 
 ---
 

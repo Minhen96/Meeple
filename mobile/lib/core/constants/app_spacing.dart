@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Spacing and border-radius constants for Meeple & Hearth.
+/// Spacing and border-radius constants for Meeple.
 ///
 /// All padding, gap, and radius values MUST use these tokens — never raw numbers.
 abstract final class AppSpacing {

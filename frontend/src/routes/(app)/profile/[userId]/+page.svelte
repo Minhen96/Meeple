@@ -41,7 +41,7 @@
 	);
 </script>
 
-<svelte:head><title>{data.user.displayName ?? data.user.username} — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>{data.user.displayName ?? data.user.username} — Meeple</title></svelte:head>
 
 <div class="flex flex-col items-center gap-6 mb-8 pt-2">
 	<div class="rotate-2 rounded-2xl overflow-hidden w-28 h-28 shadow-[0_12px_32px_rgba(0,0,0,0.10)] ring-4 ring-surface">

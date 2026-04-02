@@ -49,7 +49,7 @@
 	}
 </script>
 
-<svelte:head><title>Log a Play — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Log a Play — Meeple</title></svelte:head>
 
 <!-- Header -->
 <div class="flex items-center gap-3 mb-8 pt-2">

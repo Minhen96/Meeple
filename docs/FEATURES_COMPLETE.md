@@ -60,7 +60,7 @@ Before anything else, these architectural decisions are locked:
 8. Client redirects to `/auth/verify-email` screen (shows "check your inbox" UI)
 
 **Verification email:**
-- Subject: "Verify your Meeple & Hearth account"
+- Subject: "Verify your Meeple account"
 - CTA button: `https://meeple-hearth.com/auth/verify-email?token=xxx`
 - Resend button: available on the waiting screen, cooldown 60s
 - `POST /api/v1/auth/resend-verification` → { email } — always returns 200 (prevents enumeration)
@@ -167,7 +167,7 @@ user_fcm_tokens
 - If email exists + verified: generate 32-byte hex token, store hashed in `password_reset_tokens` (expires 1h), send email
 
 **Reset email:**
-- Subject: "Reset your Meeple & Hearth password"
+- Subject: "Reset your Meeple password"
 - Link: `https://meeple-hearth.com/auth/reset-password?token=xxx`
 - Token valid for 1 hour, one-time use
 
@@ -1110,7 +1110,7 @@ ORDER BY shared_sessions DESC LIMIT 1
 **Steps:**
 
 **Step 1 — Welcome (static, no API call)**
-- Screen: "Welcome to Meeple & Hearth 🎲"
+- Screen: "Welcome to Meeple 🎲"
 - Tagline: "Track your games. Organize game nights. Build memories."
 - Button: "Get Started"
 

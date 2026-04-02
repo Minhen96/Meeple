@@ -219,7 +219,7 @@
 	}
 </script>
 
-<svelte:head><title>Library — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Library — Meeple</title></svelte:head>
 
 <!-- Sticky Unified Header -->
 <div

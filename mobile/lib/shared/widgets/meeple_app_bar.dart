@@ -59,7 +59,7 @@ class MeepleAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// The branded "Meeple & Hearth" wordmark used on the home app bar.
+/// The branded "Meeple" wordmark used on the home app bar.
 class MeepleBrandBar extends StatelessWidget implements PreferredSizeWidget {
   const MeepleBrandBar({super.key, this.actions});
 
@@ -71,7 +71,7 @@ class MeepleBrandBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return MeepleAppBar(
-      titleWidget: Text('Meeple & Hearth', style: AppTypography.brandSmall),
+      titleWidget: Text('Meeple', style: AppTypography.brandSmall),
       actions: actions,
     );
   }

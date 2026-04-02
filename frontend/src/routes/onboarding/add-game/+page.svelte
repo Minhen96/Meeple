@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 </script>
 
-<svelte:head><title>Add a Game — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Add a Game — Meeple</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-2">What do you love to play?</h2>
 <p class="text-sm text-on-surface-variant mb-6">Search for a game to add to your collection.</p>

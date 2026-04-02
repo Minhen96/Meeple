@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/core/theme/app_theme.dart';
 
-class MeepleHearthApp extends ConsumerWidget {
-  const MeepleHearthApp({super.key});
+class MeepleApp extends ConsumerWidget {
+  const MeepleApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'Meeple & Hearth',
+      title: 'Meeple',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: router,

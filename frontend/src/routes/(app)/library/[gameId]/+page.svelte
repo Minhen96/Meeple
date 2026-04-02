@@ -139,7 +139,7 @@
 	}
 </script>
 
-<svelte:head><title>{game.title} — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>{game.title} — Meeple</title></svelte:head>
 
 <!-- Hero cover image -->
 {#if game.imageUrl || game.thumbnailUrl}

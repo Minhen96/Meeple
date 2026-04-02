@@ -45,7 +45,7 @@ public class BggRulebookClient {
         this.bggApiClient = RestClient.builder()
                 .baseUrl("https://api.geekdo.com")
                 .requestFactory(factory)
-                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MeepleHearth/1.0")
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Meeple/1.0")
                 .defaultHeader("Accept", "application/json")
                 .build();
 
@@ -53,7 +53,7 @@ public class BggRulebookClient {
         this.bggWebClient = RestClient.builder()
                 .baseUrl("https://boardgamegeek.com")
                 .requestFactory(factory)
-                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MeepleHearth/1.0")
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Meeple/1.0")
                 .defaultHeader("Accept", "text/html,application/xhtml+xml,application/pdf")
                 .build();
     }

@@ -1,6 +1,6 @@
 {
-  "name": "Meeple Hearth",
-  "short_name": "MeepleHearth",
+  "name": "Meeple",
+  "short_name": "Meeple",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -34,7 +34,7 @@
 	];
 </script>
 
-<svelte:head><title>Settings — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Settings — Meeple</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-6">Settings</h2>
 

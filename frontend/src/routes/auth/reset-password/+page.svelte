@@ -35,7 +35,7 @@
 	}
 </script>
 
-<svelte:head><title>Set New Password — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Set New Password — Meeple</title></svelte:head>
 
 {#if !token}
 	<div class="text-center space-y-4">

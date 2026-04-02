@@ -45,7 +45,7 @@ class OnboardingWelcomeScreen extends StatelessWidget {
               ),
               AppSpacing.vGapXxl,
               Text(
-                'Welcome to\nMeeple & Hearth',
+                'Welcome to\nMeeple',
                 style: AppTypography.headlineLarge,
                 textAlign: TextAlign.center,
               ),

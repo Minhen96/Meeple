@@ -55,7 +55,7 @@ public class RulebookIngestionService {
         factory.setConnectTimeout(15_000);
         factory.setReadTimeout(60_000);
         this.httpClient = RestClient.builder()
-                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MeepleHearth/1.0")
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Meeple/1.0")
                 .requestFactory(factory)
                 .build();
     }

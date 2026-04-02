@@ -3,11 +3,11 @@
 	import { goto } from '$app/navigation';
 </script>
 
-<svelte:head><title>Welcome — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Welcome — Meeple</title></svelte:head>
 
 <div class="flex flex-col items-center text-center py-12 space-y-8">
 	<div>
-		<h1 class="text-4xl font-extrabold tracking-tight font-headline text-primary">Meeple & Hearth</h1>
+		<h1 class="text-4xl font-extrabold tracking-tight font-headline text-primary">Meeple</h1>
 		<p class="mt-3 text-on-surface-variant">Track your games. Organize game nights. Build memories.</p>
 	</div>
 

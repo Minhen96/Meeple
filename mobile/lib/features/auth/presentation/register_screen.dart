@@ -94,7 +94,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Text('Create account', style: AppTypography.headlineMedium),
                   AppSpacing.vGapXs,
                   Text(
-                    'Join the Meeple & Hearth community',
+                    'Join the Meeple community',
                     style: AppTypography.bodyLarge.copyWith(
                       color: AppColors.onSurfaceVariant,
                     ),

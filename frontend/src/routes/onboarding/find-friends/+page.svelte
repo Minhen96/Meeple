@@ -19,7 +19,7 @@
 	}
 </script>
 
-<svelte:head><title>Find Friends — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Find Friends — Meeple</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-6">Find your friends</h2>
 

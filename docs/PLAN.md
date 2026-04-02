@@ -1,4 +1,4 @@
-# Meeple & Hearth — Product & Development Plan
+# Meeple — Product & Development Plan
 
 ## 1. Vision
 
@@ -9,7 +9,7 @@ A **private social board game platform** for friend groups to:
 - Record memories (photos, notes, stats) from sessions
 - Get AI-powered rule explanations
 
-**Core differentiator:** Every other app does *tracking OR social*. Meeple & Hearth does **Tracking + Social + Events + Matching** in one cohesive experience.
+**Core differentiator:** Every other app does *tracking OR social*. Meeple does **Tracking + Social + Events + Matching** in one cohesive experience.
 
 ---
 

@@ -50,7 +50,7 @@
 	}
 </script>
 
-<svelte:head><title>Verify Email — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Verify Email — Meeple</title></svelte:head>
 
 <div class="text-center space-y-4">
 	{#if verifying}

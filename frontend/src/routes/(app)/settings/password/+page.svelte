@@ -18,7 +18,7 @@
 	}
 </script>
 
-<svelte:head><title>Change Password — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Change Password — Meeple</title></svelte:head>
 
 <div class="flex items-center gap-3 mb-6">
 	<a href="/settings" class="text-on-surface-variant">

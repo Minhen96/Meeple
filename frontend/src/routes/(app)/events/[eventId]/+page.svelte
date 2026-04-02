@@ -59,7 +59,7 @@
 	}
 </script>
 
-<svelte:head><title>{event.title} — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>{event.title} — Meeple</title></svelte:head>
 
 <div class="space-y-4 mb-6">
 	<!-- Title + status -->

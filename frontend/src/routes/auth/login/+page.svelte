@@ -34,13 +34,18 @@
 </script>
 
 <svelte:head>
-	<title>Log In — Meeple & Hearth</title>
+	<title>Log In — Meeple</title>
 </svelte:head>
 
 <!-- Brand -->
 <div class="text-center mb-8">
-	<h1 class="text-3xl font-extrabold tracking-tight font-headline text-primary">Meeple & Hearth</h1>
-	<p class="mt-1 text-on-surface-variant text-sm">Welcome back</p>
+	<div class="flex justify-center mb-6">
+		<div class="w-20 h-20 bg-white dark:bg-surface-container-high rounded-3xl shadow-xl shadow-primary/10 flex items-center justify-center p-4 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+			<img src="/favicon.svg" alt="Meeple Logo" class="w-full h-full object-contain" />
+		</div>
+	</div>
+	<h1 class="text-3xl font-extrabold tracking-tight font-headline text-primary">Meeple</h1>
+	<p class="mt-1 text-on-surface-variant text-sm">Welcome back to the table</p>
 </div>
 
 <form onsubmit={handleSubmit} class="space-y-4">

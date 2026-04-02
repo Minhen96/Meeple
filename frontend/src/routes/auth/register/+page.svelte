@@ -118,15 +118,21 @@
 </script>
 
 <svelte:head>
-	<title>Create Account — Meeple & Hearth</title>
+	<title>Create Account — Meeple</title>
 </svelte:head>
 
 <div class="text-center mb-8">
+	<div class="flex justify-center mb-6">
+		<div class="w-16 h-16 bg-white dark:bg-surface-container-high rounded-2xl shadow-lg shadow-primary/5 flex items-center justify-center p-3 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+			<img src="/favicon.svg" alt="Meeple Logo" class="w-full h-full object-contain" />
+		</div>
+	</div>
 	<h1
 		class="text-2xl font-extrabold tracking-tight font-headline text-on-surface"
 	>
-		Create your account
+		Join Meeple
 	</h1>
+	<p class="mt-1 text-on-surface-variant text-sm">Your board game journey starts here</p>
 </div>
 
 <form onsubmit={handleSubmit} class="space-y-4">

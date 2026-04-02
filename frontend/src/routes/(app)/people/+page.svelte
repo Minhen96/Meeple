@@ -38,7 +38,7 @@
 	}
 </script>
 
-<svelte:head><title>Search — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Search — Meeple</title></svelte:head>
 
 <h2 class="text-2xl font-extrabold font-headline mb-4">Search</h2>
 

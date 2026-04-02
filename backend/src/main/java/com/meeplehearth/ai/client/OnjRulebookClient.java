@@ -28,7 +28,7 @@ public class OnjRulebookClient {
         try {
             Document doc = Jsoup.connect(SEARCH_URL)
                     .data("q", gameName)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) MeepleHearth/1.0")
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Meeple/1.0")
                     .timeout(15_000)
                     .get();
 

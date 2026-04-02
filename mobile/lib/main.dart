@@ -81,7 +81,7 @@ Future<void> _bootstrap() async {
 Future<void> _runApp() async {
   runApp(
     const ProviderScope(
-      child: MeepleHearthApp(),
+      child: MeepleApp(),
     ),
   );
 }

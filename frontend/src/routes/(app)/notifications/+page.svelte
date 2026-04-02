@@ -85,7 +85,7 @@
 	}
 </script>
 
-<svelte:head><title>Notifications — Meeple & Hearth</title></svelte:head>
+<svelte:head><title>Notifications — Meeple</title></svelte:head>
 
 <div class="flex items-center justify-between mb-6">
 	<h2 class="text-2xl font-extrabold font-headline">Notifications</h2>
