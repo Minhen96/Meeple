@@ -16,10 +16,11 @@ export const gamesApi = {
 		return res.data;
 	},
 
-	browse: async (params: { 
-		q?: string; 
+	browse: async (params: {
+		query?: string;
 		genre?: string;
-		minPlayers?: number; maxPlayers?: number;
+		minPlayers?: number;
+		maxPlayers?: number;
 		minPlaytime?: number; maxPlaytime?: number;
 		minComplexity?: number; maxComplexity?: number;
 		minRating?: number;
@@ -27,7 +28,7 @@ export const gamesApi = {
 		sort?: string;
 	}) => {
 		const searchParams = new URLSearchParams();
-		if (params.q) searchParams.set('q', params.q);
+		if (params.query) searchParams.set('q', params.query);
 		if (params.genre) searchParams.set('genre', params.genre);
 		if (params.minPlayers) searchParams.set('minPlayers', params.minPlayers.toString());
 		if (params.maxPlayers) searchParams.set('maxPlayers', params.maxPlayers.toString());
@@ -38,7 +39,6 @@ export const gamesApi = {
 		if (params.minRating) searchParams.set('minRating', params.minRating.toString());
 		if (params.page !== undefined) searchParams.set('page', params.page.toString());
 		if (params.sort) searchParams.set('sort', params.sort);
-		
 		const res = await api.get<any>(`/api/v1/games?${searchParams.toString()}`);
 		return res.data;
 	},

@@ -87,23 +87,26 @@
 				minComplexity: store.minComplexity,
 				maxComplexity: store.maxComplexity,
 				minRating: store.minRating,
+				isPopular: store.isPopular,
 				sort: store.sortOption || undefined,
 				page: pageNumber,
 			});
 
 			if (append) {
+				const seen = new Set(store.gamesPage.content.map((g) => g.id));
+				const uniqueNew = result.content.filter((g) => !seen.has(g.id));
 				store = {
 					...store,
 					gamesPage: {
 						...result,
-						content: [
-							...store.gamesPage.content,
-							...result.content,
-						],
+						content: [...store.gamesPage.content, ...uniqueNew],
 					},
 				};
 			} else {
 				store = { ...store, gamesPage: result };
+				if (typeof window !== 'undefined') {
+					window.scrollTo({ top: 0, behavior: 'smooth' });
+				}
 			}
 		} finally {
 			loadingCatalog = false;
@@ -303,7 +306,7 @@
 				<option value="">Sort</option>
 				<option value="recommended">Recommended ✨</option>
 				<option value="rank,asc">Rank</option>
-				<option value="bggRating,desc">Rating</option>
+				<option value="usersRated,desc">Popularity</option>
 				<option value="yearPublished,desc">Newest</option>
 				<option value="playTime,asc">Shortest</option>
 			</select>
@@ -426,6 +429,32 @@
 						</div>
 					</div>
 
+					<!-- Complexity Level -->
+					<div class="space-y-3">
+						<span class="text-xs font-black uppercase tracking-widest text-on-surface-variant">Complexity Level</span>
+						<div class="flex flex-wrap gap-2">
+							{#each [
+								{ label: 'Light', min: 1.0, max: 2.0 },
+								{ label: 'Medium', min: 2.1, max: 3.5 },
+								{ label: 'Heavy', min: 3.6, max: 5.0 }
+							] as level}
+								<button
+									onclick={() => {
+										store = { 
+											...store, 
+											minComplexity: level.min, 
+											maxComplexity: level.max 
+										};
+										fetchCatalogPage(0);
+									}}
+									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {store.minComplexity === level.min && store.maxComplexity === level.max ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
+								>
+									{level.label}
+								</button>
+							{/each}
+						</div>
+					</div>
+
 					<!-- Player Count -->
 					<div class="space-y-4">
 						<div class="flex items-center justify-between">
@@ -519,76 +548,30 @@
 						</div>
 					</div>
 
-					<!-- Complexity & Rating -->
-					<div class="grid grid-cols-2 gap-8">
-						<div class="space-y-4">
-							<span
-								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>Min Rating</span
-							>
-							<input
-								type="number"
-								step="0.1"
-								min="0"
-								max="10"
-								placeholder="0.0"
-								value={minRating}
-								oninput={(e) => {
-									store = {
-										...store,
-										minRating:
-											+(e.target as HTMLInputElement)
-												.value || undefined,
-									};
-									fetchCatalogPage(0);
-								}}
-								class="w-full bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
-							/>
-						</div>
-						<div class="space-y-4">
-							<span
-								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>Complexity</span
-							>
-							<div class="flex gap-2">
-								<input
-									type="number"
-									step="0.1"
-									min="1"
-									max="5"
-									placeholder="Min"
-									value={store.minComplexity}
-									oninput={(e) => {
-										store = {
-											...store,
-											minComplexity:
-												+(e.target as HTMLInputElement)
-													.value || undefined,
-										};
-										fetchCatalogPage(0);
-									}}
-									class="w-full bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
-								/>
-								<input
-									type="number"
-									step="0.1"
-									min="1"
-									max="5"
-									placeholder="Max"
-									value={store.maxComplexity}
-									oninput={(e) => {
-										store = {
-											...store,
-											maxComplexity:
-												+(e.target as HTMLInputElement)
-													.value || undefined,
-										};
-										fetchCatalogPage(0);
-									}}
-									class="w-full bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
-								/>
-							</div>
-						</div>
+					<!-- Rating -->
+					<div class="space-y-4">
+						<span
+							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+							>Min Rating</span
+						>
+						<input
+							type="number"
+							step="0.1"
+							min="0"
+							max="10"
+							placeholder="0.0"
+							value={minRating}
+							oninput={(e) => {
+								store = {
+									...store,
+									minRating:
+										+(e.target as HTMLInputElement)
+											.value || undefined,
+								};
+								fetchCatalogPage(0);
+							}}
+							class="w-full bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
+						/>
 					</div>
 				</div>
 

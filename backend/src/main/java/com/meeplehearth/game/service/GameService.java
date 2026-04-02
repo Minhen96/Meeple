@@ -18,9 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 
 import java.util.List;
 import java.util.UUID;
@@ -74,8 +77,37 @@ public class GameService {
                                             Integer minPlaytime, Integer maxPlaytime,
                                             java.math.BigDecimal minComplexity, java.math.BigDecimal maxComplexity,
                                             java.math.BigDecimal minRating, Pageable pageable) {
+        // Sanitize Sort orders and resolve PostgreSQL NULLS FIRST defaults by filtering out nulls
+        java.util.List<Sort.Order> normalizedOrders = new java.util.ArrayList<>();
+        java.util.List<String> sortedProperties = new java.util.ArrayList<>();
+        if (pageable.getSort().isSorted()) {
+            for (Sort.Order order : pageable.getSort()) {
+                // 'recommended' is a virtual sort handled by the controller's personalized endpoint.
+                if ("recommended".equalsIgnoreCase(order.getProperty())) continue;
+                
+                normalizedOrders.add(order);
+                sortedProperties.add(order.getProperty());
+            }
+        }
+        
+        // Enforce stable sorting (tie-breaker) to prevent duplicates during background heap updates
+        if (normalizedOrders.stream().noneMatch(o -> "id".equalsIgnoreCase(o.getProperty()))) {
+            normalizedOrders.add(Sort.Order.asc("id"));
+        }
+        
+        pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(normalizedOrders));
+
         Specification<Game> spec = Specification.where(
-                (root, cq, cb) -> cb.equal(root.get("gameType"), "boardgame")
+                (root, cq, cb) -> {
+                    Predicate p = cb.equal(root.get("gameType"), "boardgame");
+                    // Filter out nulls for sorted fields to emulate nullsLast() since JPA lacks support
+                    for (String prop : sortedProperties) {
+                        if (!"id".equalsIgnoreCase(prop) && !"yearPublished".equalsIgnoreCase(prop)) {
+                            p = cb.and(p, cb.isNotNull(root.get(prop)));
+                        }
+                    }
+                    return p;
+                }
         );
         if (genre != null && !genre.isBlank()) {
             if ("2 Player".equalsIgnoreCase(genre)) {

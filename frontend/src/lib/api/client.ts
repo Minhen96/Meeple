@@ -36,7 +36,25 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 	// 204 No Content
 	if (res.status === 204) return undefined as T;
 
-	return res.json();
+	const body = await res.json();
+	
+	// Normalize Spring Boot 3 Page serialization universally
+	// We unwrap the 'data' field if it's an ApiResponse, but NOT if it's a PageResponse (which has 'meta')
+	const target = (body && typeof body === 'object' && 'data' in body && body.data && !('meta' in body)) 
+		? body.data 
+		: body;
+	
+	if (target && typeof target === 'object' && target.page && Array.isArray(target.content)) {
+		if (target.number === undefined) {
+			target.number = target.page.number;
+			target.totalPages = target.page.totalPages;
+			target.totalElements = target.page.totalElements;
+			target.last = target.page.number >= target.page.totalPages - 1;
+			target.first = target.page.number === 0;
+		}
+	}
+	
+	return target as T;
 }
 
 export const api = {
