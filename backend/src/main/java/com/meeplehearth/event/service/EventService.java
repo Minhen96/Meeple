@@ -46,12 +46,14 @@ public class EventService {
     // List
     // -------------------------------------------------------------------------
 
+    @Transactional(readOnly = true)
     public List<EventResponse> getUpcomingEvents(UUID currentUserId) {
         return eventRepository.findUpcomingEvents(Instant.now()).stream()
                 .map(e -> toResponse(e, currentUserId))
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<EventResponse> getMyEvents(UUID userId) {
         return participantRepository.findAcceptedByUserId(userId).stream()
                 .map(ep -> toResponse(ep.getEvent(), userId))
@@ -62,6 +64,7 @@ public class EventService {
     // Single event
     // -------------------------------------------------------------------------
 
+    @Transactional(readOnly = true)
     public EventResponse getEvent(UUID eventId, UUID currentUserId) {
         return toResponse(findActiveEvent(eventId), currentUserId);
     }

@@ -59,6 +59,7 @@ public class PostService {
     // Feed
     // -------------------------------------------------------------------------
 
+    @Transactional(readOnly = true)
     public PageResponse<PostResponse> getFeed(UUID currentUserId, int page, int size) {
         List<UUID> friendIds = friendRequestRepository.findFriendIds(currentUserId);
         List<UUID> feedIds = new ArrayList<>(friendIds);
@@ -68,6 +69,7 @@ public class PostService {
         return PageResponse.of(posts, p -> PostResponse.from(p, likedPostIds.contains(p.getId())));
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<PostResponse> getUserPosts(UUID authorId, UUID currentUserId, int page, int size) {
         Page<Post> posts = postRepository.findByAuthorId(authorId, PageRequest.of(page, size));
         Set<UUID> likedPostIds = likedPostIds(currentUserId, posts);
@@ -78,6 +80,7 @@ public class PostService {
     // Single post
     // -------------------------------------------------------------------------
 
+    @Transactional(readOnly = true)
     public PostResponse getPost(UUID postId, UUID currentUserId) {
         Post post = findActivePost(postId);
         boolean liked = postLikeRepository.existsById(new PostLikeId(postId, currentUserId));
@@ -212,6 +215,7 @@ public class PostService {
         return PostCommentResponse.from(saved);
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<PostCommentResponse> getComments(UUID postId, int page, int size) {
         Page<PostComment> comments = postCommentRepository.findByPostId(postId, PageRequest.of(page, size));
         return PageResponse.of(comments, PostCommentResponse::from);

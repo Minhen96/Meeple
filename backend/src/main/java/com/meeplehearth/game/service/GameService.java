@@ -339,11 +339,13 @@ public class GameService {
         return UserGameResponse.from(ug);
     }
 
+    @Transactional(readOnly = true)
     public List<PlayLogResponse> getPlays(UUID userId, UUID gameId) {
         return playLogRepository.findByUserIdAndGameIdOrderByPlayedAtDesc(userId, gameId)
                 .stream().map(PlayLogResponse::from).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<ActivityLogResponse> getActivity(UUID userId) {
         List<ActivityLogResponse> items = new ArrayList<>();
 
