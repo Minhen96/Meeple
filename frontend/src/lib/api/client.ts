@@ -1,3 +1,5 @@
+import { goto } from '$app/navigation';
+import { setUser } from '$lib/stores/auth';
 import type { ApiError } from '$lib/types';
 
 const BASE_URL = import.meta.env.VITE_API_URL as string;
@@ -13,7 +15,36 @@ export class ApiRequestError extends Error {
 	}
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+// Handles concurrent 401s: only one refresh call runs at a time,
+// all other waiting requests are queued and retried together.
+let isRefreshing = false;
+let refreshQueue: Array<(success: boolean) => void> = [];
+
+function waitForRefresh(): Promise<boolean> {
+	return new Promise((resolve) => {
+		refreshQueue.push(resolve);
+	});
+}
+
+function drainRefreshQueue(success: boolean) {
+	refreshQueue.forEach((resolve) => resolve(success));
+	refreshQueue = [];
+}
+
+async function tryRefresh(): Promise<boolean> {
+	try {
+		const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' }
+		});
+		return res.ok;
+	} catch {
+		return false;
+	}
+}
+
+async function request<T>(path: string, options?: RequestInit, isRetry = false): Promise<T> {
 	const res = await fetch(`${BASE_URL}${path}`, {
 		credentials: 'include', // sends httpOnly cookie automatically
 		headers: {
@@ -22,6 +53,27 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 		},
 		...options
 	});
+
+	if (res.status === 401 && !isRetry && path !== '/api/v1/auth/refresh') {
+		let refreshed: boolean;
+
+		if (isRefreshing) {
+			refreshed = await waitForRefresh();
+		} else {
+			isRefreshing = true;
+			refreshed = await tryRefresh();
+			isRefreshing = false;
+			drainRefreshQueue(refreshed);
+		}
+
+		if (refreshed) {
+			return request<T>(path, options, true);
+		}
+
+		setUser(null);
+		goto('/auth/login');
+		throw new ApiRequestError('SESSION_EXPIRED', 'Session expired, please log in again', 401);
+	}
 
 	if (!res.ok) {
 		let err: ApiError;

@@ -59,7 +59,9 @@
 		}
 		if (query.length >= 2 && activeTab !== "all") {
 			const q = query.toLowerCase();
-			items = items.filter((ug) => ug.game.title?.toLowerCase().includes(q));
+			items = items.filter((ug) =>
+				ug.game.title?.toLowerCase().includes(q),
+			);
 		}
 		return items;
 	});
@@ -105,9 +107,12 @@
 					},
 				};
 			} else {
-				store = { ...store, gamesPage: result ?? defaultState.gamesPage };
-				if (typeof window !== 'undefined') {
-					window.scrollTo({ top: 0, behavior: 'smooth' });
+				store = {
+					...store,
+					gamesPage: result ?? defaultState.gamesPage,
+				};
+				if (typeof window !== "undefined") {
+					window.scrollTo({ top: 0, behavior: "smooth" });
 				}
 			}
 		} finally {
@@ -218,7 +223,7 @@
 			await gamesApi.updateCollection(hit.id, { isFavorited: true });
 			toast.success(`${spotlight.title} added to favorites!`);
 		} catch {
-			toast.error('Could not save');
+			toast.error("Could not save");
 		} finally {
 			spotlightSaving = false;
 		}
@@ -369,7 +374,10 @@
 								disabled={spotlightSaving}
 								class="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-50"
 							>
-								<span class="material-symbols-outlined text-[20px]">bookmark</span>
+								<span
+									class="material-symbols-outlined text-[20px]"
+									>bookmark</span
+								>
 							</button>
 						</div>
 					</div>
@@ -415,15 +423,27 @@
 				>
 					<!-- Genre -->
 					<div class="space-y-3">
-						<span class="text-xs font-black uppercase tracking-widest text-on-surface-variant">Genre</span>
+						<span
+							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+							>Genre</span
+						>
 						<div class="flex flex-wrap gap-2">
-							{#each ['Strategy', 'Party', 'Family', '2 Player', 'Abstract'] as cat}
+							{#each ["Strategy", "Party", "Family", "2 Player", "Abstract"] as cat}
 								<button
 									onclick={() => {
-										store = { ...store, selectedGenre: selectedGenre === cat ? '' : cat };
+										store = {
+											...store,
+											selectedGenre:
+												selectedGenre === cat
+													? ""
+													: cat,
+										};
 										fetchCatalogPage(0);
 									}}
-									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {selectedGenre === cat ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant'}"
+									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {selectedGenre ===
+									cat
+										? 'bg-primary text-on-primary'
+										: 'bg-surface-container-low text-on-surface-variant'}"
 								>
 									{cat}
 								</button>
@@ -433,23 +453,26 @@
 
 					<!-- Complexity Level -->
 					<div class="space-y-3">
-						<span class="text-xs font-black uppercase tracking-widest text-on-surface-variant">Complexity Level</span>
+						<span
+							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+							>Complexity Level</span
+						>
 						<div class="flex flex-wrap gap-2">
-							{#each [
-								{ label: 'Light', min: 1.0, max: 2.0 },
-								{ label: 'Medium', min: 2.1, max: 3.5 },
-								{ label: 'Heavy', min: 3.6, max: 5.0 }
-							] as level}
+							{#each [{ label: "Light", min: 1.0, max: 2.0 }, { label: "Medium", min: 2.1, max: 3.5 }, { label: "Heavy", min: 3.6, max: 5.0 }] as level}
 								<button
 									onclick={() => {
-										store = { 
-											...store, 
-											minComplexity: level.min, 
-											maxComplexity: level.max 
+										store = {
+											...store,
+											minComplexity: level.min,
+											maxComplexity: level.max,
 										};
 										fetchCatalogPage(0);
 									}}
-									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {store.minComplexity === level.min && store.maxComplexity === level.max ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
+									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {store.minComplexity ===
+										level.min &&
+									store.maxComplexity === level.max
+										? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
+										: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
 								>
 									{level.label}
 								</button>
@@ -567,8 +590,8 @@
 								store = {
 									...store,
 									minRating:
-										+(e.target as HTMLInputElement)
-											.value || undefined,
+										+(e.target as HTMLInputElement).value ||
+										undefined,
 								};
 								fetchCatalogPage(0);
 							}}
@@ -582,7 +605,7 @@
 						onclick={() => {
 							store = {
 								...store,
-								selectedGenre: '',
+								selectedGenre: "",
 								minPlayers: undefined,
 								maxPlayers: undefined,
 								minPlaytime: undefined,
@@ -640,10 +663,16 @@
 		</div>
 	{:else}
 		{#if searchResults[0]?.translatedFrom}
-			<div class="px-1 mb-4 flex items-center gap-2 text-primary animate-in fade-in slide-in-from-left-4">
-				<span class="material-symbols-outlined text-[18px]">translate</span>
+			<div
+				class="px-1 mb-4 flex items-center gap-2 text-primary animate-in fade-in slide-in-from-left-4"
+			>
+				<span class="material-symbols-outlined text-[18px]"
+					>translate</span
+				>
 				<p class="text-xs font-bold uppercase tracking-widest">
-					Showing results for: <span class="italic text-on-surface">{searchResults[0].title}</span>
+					Showing results for: <span class="italic text-on-surface"
+						>{searchResults[0].title}</span
+					>
 				</p>
 			</div>
 		{/if}
@@ -725,7 +754,7 @@
 				class="material-symbols-outlined text-6xl text-primary/20 mb-4 block"
 				>explore_off</span
 			>
-			{#if store.sortOption === 'recommended'}
+			{#if store.sortOption === "recommended"}
 				<p class="font-bold text-lg">No recommendations yet</p>
 				<p class="text-sm text-on-surface-variant mt-1">
 					Favorite or log some plays to get personalized suggestions.

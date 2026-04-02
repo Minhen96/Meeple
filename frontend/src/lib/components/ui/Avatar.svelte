@@ -7,6 +7,7 @@
 	}
 
 	let { src = null, name = '', size = 'md', class: className = '' }: Props = $props();
+	let imageError = $state(false);
 
 	const sizes = {
 		xs: 'w-6 h-6 text-[8px]',
@@ -24,13 +25,25 @@
 			.map((w) => w[0]?.toUpperCase() ?? '')
 			.join('')
 	);
+
+	// Reset error state if src changes
+	$effect(() => {
+		if (src) imageError = false;
+	});
 </script>
 
 <div
 	class="rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center flex-shrink-0 {sizes[size]} {className}"
 >
-	{#if src}
-		<img {src} alt={name} class="w-full h-full object-cover" />
+	{#if src && !imageError}
+		<img
+			{src}
+			alt={name}
+			class="w-full h-full object-cover"
+			onerror={() => {
+				imageError = true;
+			}}
+		/>
 	{:else}
 		<span class="font-label font-bold text-on-primary-fixed">{initials || '?'}</span>
 	{/if}

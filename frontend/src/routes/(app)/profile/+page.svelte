@@ -32,7 +32,16 @@
 {/if}
 
 <!-- Profile Header -->
-<section class="flex flex-col items-center gap-6 mb-8 pt-2">
+<section class="relative flex flex-col items-center gap-6 mb-10 pt-4">
+	<!-- Settings Gear (Top Right of Section) -->
+	<a 
+		href="/settings" 
+		class="absolute top-0 right-0 p-2 text-on-surface-variant hover:text-primary transition-colors active:scale-90"
+		aria-label="Settings"
+	>
+		<span class="material-symbols-outlined text-[24px]">settings</span>
+	</a>
+
 	<!-- Avatar with subtle tilt -->
 	<div class="relative">
 		<div class="rotate-2 rounded-2xl overflow-hidden w-28 h-28 shadow-[0_12px_32px_rgba(0,0,0,0.10)] ring-4 ring-surface">
@@ -49,45 +58,45 @@
 		</div>
 	</div>
 
-	<div class="text-center space-y-1">
-		<h2 class="text-3xl font-extrabold font-headline tracking-tight">
+	<div class="text-center space-y-1.5 px-4 w-full">
+		<h2 class="text-3xl font-extrabold font-headline tracking-tight flex items-center justify-center gap-2">
 			{data.user?.displayName ?? data.user?.username ?? ''}
+			<a href="/settings/profile" class="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant/40 hover:text-primary transition-all active:scale-90" aria-label="Edit Profile">
+				<span class="material-symbols-outlined text-[18px]">edit</span>
+			</a>
 		</h2>
+		
 		{#if data.user?.location}
-			<p class="text-xs font-label font-semibold uppercase tracking-wider text-on-surface-variant flex items-center justify-center gap-1">
+			<p class="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant flex items-center justify-center gap-1 opacity-70">
 				<span class="material-symbols-outlined text-[14px]">location_on</span>
 				{data.user.location}
 			</p>
 		{/if}
+		
 		{#if data.user?.bio}
-			<p class="text-sm text-on-surface-variant max-w-xs mx-auto">{data.user.bio}</p>
+			<p class="text-sm text-on-surface-variant max-w-xs mx-auto leading-relaxed">{data.user.bio}</p>
 		{/if}
 	</div>
 
-	<div class="flex gap-3">
-		<a
-			href="/settings"
-			class="px-8 py-2.5 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm rounded-full shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-200"
-		>
-			Edit Profile
-		</a>
-		{#if data.user?.isAdmin}
+	<!-- Secondary Actions (Admin/Management) -->
+	{#if data.user?.isAdmin}
+		<div class="flex gap-2 w-full max-w-xs">
 			<a
 				href="/admin/rulebooks"
-				class="px-5 py-2.5 bg-surface-container-high text-on-surface font-bold text-sm rounded-full flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+				class="flex-1 px-4 py-2 bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface font-bold text-[11px] uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition-all"
 			>
-				<span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-				Admin
+				<span class="material-symbols-outlined text-[14px]">rate_review</span>
+				Review Queue
 			</a>
 			<button
 				onclick={() => (showSetupModal = true)}
-				class="px-5 py-2.5 bg-surface-container-high text-on-surface font-bold text-sm rounded-full flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+				class="px-4 py-2 bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface font-bold text-[11px] uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition-all"
 			>
-				<span class="material-symbols-outlined text-[16px]">monitoring</span>
+				<span class="material-symbols-outlined text-[14px]">monitoring</span>
 				System
 			</button>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </section>
 
 <!-- Stats Bento — 3 col, middle highlighted -->

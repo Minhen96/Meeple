@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
 	import { goto } from '$app/navigation';
-	import { setUser } from '$lib/stores/auth';
+	import { currentUser } from '$lib/stores/auth';
 
 	async function handleLogout() {
 		await api.post('/api/v1/auth/logout');
@@ -9,7 +9,7 @@
 		goto('/auth/login');
 	}
 
-	const sections = [
+	const sections = $derived([
 		{
 			title: 'Account',
 			items: [
@@ -19,6 +19,13 @@
 				{ label: 'Delete Account', href: '/settings/delete-account', icon: 'delete', danger: true }
 			]
 		},
+		...($currentUser?.isAdmin ? [{
+			title: 'Management',
+			items: [
+				{ label: 'Review Queue', href: '/admin/rulebooks', icon: 'rate_review' },
+				{ label: 'System Health', href: null, icon: 'monitoring', action: () => (true) } // Placeholder for modal-trigger if needed, or link
+			]
+		}] : []),
 		{
 			title: 'Notifications',
 			items: [
@@ -31,7 +38,15 @@
 				{ label: 'App Version 1.0.0', href: null, icon: 'info' }
 			]
 		}
-	];
+	]);
+
+	function handleItemClick(item: any) {
+		if (item.href) {
+			goto(item.href);
+		} else if (item.action) {
+			// Trigger action
+		}
+	}
 </script>
 
 <svelte:head><title>Settings — Meeple</title></svelte:head>
@@ -56,10 +71,16 @@
 							<span class="material-symbols-outlined text-[16px] text-on-surface-variant">chevron_right</span>
 						</a>
 					{:else}
-						<div class="flex items-center gap-3 px-4 py-3.5 {i > 0 ? 'border-t border-outline-variant/10' : ''}">
+						<button 
+							onclick={() => handleItemClick(item)}
+							class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface-container-low transition-colors text-left {i > 0 ? 'border-t border-outline-variant/10' : ''}"
+						>
 							<span class="material-symbols-outlined text-[20px] text-on-surface-variant">{item.icon}</span>
-							<span class="text-sm text-on-surface-variant">{item.label}</span>
-						</div>
+							<span class="flex-1 text-sm text-on-surface">{item.label}</span>
+							{#if item.action}
+								<span class="material-symbols-outlined text-[16px] text-on-surface-variant">chevron_right</span>
+							{/if}
+						</button>
 					{/if}
 				{/each}
 			</div>
