@@ -134,14 +134,15 @@
 
 	// Infinite scroll observer
 	$effect(() => {
-		if (!observerNode || activeTab !== "all" || gamesPage.last) return;
+		if (!observerNode || activeTab !== "all") return;
 
 		const observer = new IntersectionObserver(
 			(entries) => {
 				if (
 					entries[0].isIntersecting &&
 					!loadingMore &&
-					!loadingCatalog
+					!loadingCatalog &&
+					!gamesPage.last
 				) {
 					fetchCatalogPage(gamesPage.number + 1, true);
 				}

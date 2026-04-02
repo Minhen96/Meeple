@@ -11,12 +11,14 @@ import java.util.Map;
  * @param data        Extracted How-to-Play structure. Null while generating.
  * @param sourceMode  "rulebook" | "general". Null while generating.
  * @param disclaimer  User-facing note about content reliability. Null while generating.
+ * @param rulebookUrl Public URL of the approved rulebook PDF. Null if none.
  */
 public record HowToPlayResponse(
         String status,
         Map<String, Object> data,
         String sourceMode,
-        String disclaimer
+        String disclaimer,
+        String rulebookUrl
 ) {
     private static final String RULEBOOK_DISCLAIMER =
             "Based on the official rulebook.";
@@ -24,13 +26,13 @@ public record HowToPlayResponse(
             "Based on AI general knowledge — no rulebook has been uploaded yet.";
 
     public static HowToPlayResponse generating() {
-        return new HowToPlayResponse("generating", null, null, null);
+        return new HowToPlayResponse("generating", null, null, null, null);
     }
 
-    public static HowToPlayResponse from(GameHowToPlay entity) {
+    public static HowToPlayResponse from(GameHowToPlay entity, String rulebookUrl) {
         String disclaimer = "rulebook".equals(entity.getSourceMode())
                 ? RULEBOOK_DISCLAIMER
                 : GENERAL_DISCLAIMER;
-        return new HowToPlayResponse("ready", entity.getContent(), entity.getSourceMode(), disclaimer);
+        return new HowToPlayResponse("ready", entity.getContent(), entity.getSourceMode(), disclaimer, rulebookUrl);
     }
 }

@@ -134,16 +134,37 @@ public class HowToPlayExtractionService {
 
     private Map<String, Object> extractStructure(String gameName, String context) throws Exception {
         String prompt = """
-                You are a board game expert. Based on the provided rules, extract a concise 'How to Play' guide for %s.
-                Return ONLY a JSON object with these keys: overview, objective, setup, gameplay, end_of_game.
-                Maintain a professional tone. Keep each section short to avoid truncation.
-                Strictly return ONLY the JSON object. Do not include any other text.
+                You are a board game expert. Based on the provided rules, extract a structured 'How to Play' guide for %s.
+                Return ONLY a valid JSON object matching this schema exactly. Omit any key whose value is unknown or not applicable.
+                Keep text values concise to avoid truncation. Do not include markdown, comments, or extra text.
+
+                {
+                  "overview": "string",
+                  "objective": "string",
+                  "setup": "string",
+                  "winCondition": { "type": "string", "details": "string" },
+                  "gameStructure": {
+                    "mode": "string",
+                    "turnOrder": "string",
+                    "phases": [{ "name": "string", "description": "string", "actions": ["string"] }]
+                  },
+                  "resources": [{ "name": "string", "usedFor": "string", "gainedBy": "string" }],
+                  "actions": [{ "name": "string", "type": "string", "cost": "string", "effect": "string" }],
+                  "cardSystem": { "exists": true, "cardTypes": [{ "name": "string", "description": "string" }], "deckRules": "string", "handRules": "string" },
+                  "board": { "exists": true, "type": "string", "description": "string" },
+                  "roles": { "exists": false, "list": [{ "name": "string", "abilities": "string", "winCondition": "string" }] },
+                  "variants": [{ "name": "string", "description": "string" }],
+                  "rules": { "coreRules": "string", "specialRules": [{ "name": "string", "description": "string" }], "edgeCases": "string" },
+                  "scoring": { "exists": true, "methods": [{ "item": "string", "points": "string" }] },
+                  "endCondition": { "trigger": "string", "notes": "string" },
+                  "components": [{ "name": "string", "type": "string", "quantity": 1 }]
+                }
 
                 GAME RULES CONTEXT:
                 """.formatted(gameName) + context;
 
         String json = completionService.complete(
-                List.of(Map.of("role", "user", "content", prompt)), 2500, 0.2);
+                List.of(Map.of("role", "user", "content", prompt)), 3500, 0.2);
 
         return parseJson(json);
     }

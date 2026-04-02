@@ -33,7 +33,9 @@
 	let howToPlayData: HowToPlayContent | null = $state(null);
 	let howToPlaySourceMode: string | null = $state(null);
 	let howToPlayDisclaimer: string | null = $state(null);
+	let howToPlayRulebookUrl: string | null = $state(null);
 	let pollInterval: ReturnType<typeof setInterval> | null = null;
+	let rulebookPollInterval: ReturnType<typeof setInterval> | null = null;
 
 	// FAQ expand state
 	let expandedFaq = $state<Set<number>>(new Set());
@@ -46,6 +48,7 @@
 		initRulebookStatus();
 		return () => {
 			if (pollInterval !== null) clearInterval(pollInterval);
+			if (rulebookPollInterval !== null) clearInterval(rulebookPollInterval);
 		};
 	});
 
@@ -55,6 +58,9 @@
 			if (status.hasRulebook) {
 				rulebookState = "ready";
 				fetchHowToPlay();
+			} else if (status.isIngesting) {
+				rulebookState = "generating";
+				startRulebookPolling();
 			} else if (status.myStatus === "pending_review") {
 				rulebookState = "pending_review";
 				myQueuePosition = status.myQueuePosition;
@@ -75,6 +81,7 @@
 				howToPlayData = res.data;
 				howToPlaySourceMode = res.sourceMode;
 				howToPlayDisclaimer = res.disclaimer;
+				howToPlayRulebookUrl = res.rulebookUrl;
 			} else {
 				howToPlayState = "generating";
 				startPolling();
@@ -96,6 +103,7 @@
 					howToPlayData = res.data;
 					howToPlaySourceMode = res.sourceMode;
 					howToPlayDisclaimer = res.disclaimer;
+					howToPlayRulebookUrl = res.rulebookUrl;
 				}
 			} catch {
 				clearInterval(pollInterval!);
@@ -105,13 +113,37 @@
 		}, 2000);
 	}
 
+	function startRulebookPolling() {
+		if (rulebookPollInterval !== null) return;
+		rulebookPollInterval = setInterval(async () => {
+			try {
+				const status = await rulebookApi.getStatus(gameId);
+				if (status.hasRulebook) {
+					clearInterval(rulebookPollInterval!);
+					rulebookPollInterval = null;
+					rulebookState = "ready";
+					fetchHowToPlay();
+				}
+			} catch {
+				clearInterval(rulebookPollInterval!);
+				rulebookPollInterval = null;
+				rulebookState = "error";
+			}
+		}, 3000);
+	}
+
 	async function handleGenerate() {
 		generating = true;
 		try {
 			const result = await rulebookApi.generate(gameId);
 			if (result.status === "generating") {
 				rulebookState = "generating";
+				startRulebookPolling();
 			} else if (result.status === "already_done") {
+				rulebookState = "ready";
+				fetchHowToPlay();
+			} else if (result.status === "not_found") {
+				toast.error("No rulebook found online. Generating from AI knowledge…");
 				rulebookState = "ready";
 				fetchHowToPlay();
 			}
@@ -405,141 +437,202 @@
 		{:else if howToPlayState === "ready" && howToPlayData}
 			<!-- Source mode badge -->
 			{#if howToPlaySourceMode}
-				<div class="flex items-center gap-2">
-					<span
-						class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full
-						{howToPlaySourceMode === 'rulebook'
-							? 'bg-primary/10 text-primary'
-							: 'bg-amber-400/10 text-amber-500'}"
-					>
+				<div class="flex items-center gap-2 flex-wrap">
+					<span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full
+						{howToPlaySourceMode === 'rulebook' ? 'bg-primary/10 text-primary' : 'bg-amber-400/10 text-amber-500'}">
 						<span class="material-symbols-outlined text-[12px]">
-							{howToPlaySourceMode === "rulebook"
-								? "menu_book"
-								: "psychology"}
+							{howToPlaySourceMode === "rulebook" ? "menu_book" : "psychology"}
 						</span>
-						{howToPlaySourceMode === "rulebook"
-							? "From Official Rulebook"
-							: "AI General Knowledge"}
+						{howToPlaySourceMode === "rulebook" ? "From Official Rulebook" : "AI General Knowledge"}
 					</span>
 					{#if howToPlayDisclaimer}
-						<span
-							class="text-[10px] text-on-surface-variant opacity-60"
-							>{howToPlayDisclaimer}</span
-						>
+						<span class="text-[10px] text-on-surface-variant opacity-60">{howToPlayDisclaimer}</span>
 					{/if}
 				</div>
 			{/if}
 
-			<!-- Overview / Objective -->
+			<!-- 1. Overview -->
 			{#if howToPlayData.overview || howToPlayData.objective}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>info</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Overview
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">📖</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Overview</h3>
 					</div>
-					<p class="text-sm text-on-surface leading-relaxed pl-11">
+					<p class="text-sm text-on-surface leading-relaxed pl-12">
 						{howToPlayData.overview ?? howToPlayData.objective}
 					</p>
 					{#if howToPlayData.overview && howToPlayData.objective}
-						<p
-							class="text-sm text-on-surface leading-relaxed pl-11 pt-1"
-						>
-							<strong>Goal:</strong>
-							{howToPlayData.objective}
+						<p class="text-sm text-on-surface leading-relaxed pl-12 pt-1">
+							<strong>Goal:</strong> {howToPlayData.objective}
 						</p>
 					{/if}
 				</div>
 			{/if}
 
-			<!-- Win Condition -->
-			{#if howToPlayData.winCondition?.details || howToPlayData.winCondition?.type}
+			<!-- 2. What's in the Box -->
+			{#if howToPlayData.components?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>emoji_events</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							How to Win
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">📦</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">What's in the Box</h3>
 					</div>
-					<p class="text-sm text-on-surface leading-relaxed pl-11">
-						{howToPlayData.winCondition.details ??
-							howToPlayData.winCondition.type}
-					</p>
+					<div class="pl-12 flex flex-wrap gap-2">
+						{#each howToPlayData.components as comp}
+							<span class="text-xs bg-surface-container-high text-on-surface px-3 py-1.5 rounded-xl font-medium">
+								{comp.quantity ? `${comp.quantity}× ` : ""}{comp.name}
+							</span>
+						{/each}
+					</div>
 				</div>
 			{/if}
 
-			<!-- Game Structure / Phases -->
+			<!-- 3. Setup -->
+			{#if howToPlayData.setup}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">⚙️</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Setup</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.setup}</p>
+				</div>
+			{/if}
+
+			<!-- 4. Resources -->
+			{#if howToPlayData.resources?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">💰</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Resources</h3>
+					</div>
+					<div class="pl-12 space-y-3">
+						{#each howToPlayData.resources as resource}
+							<div>
+								<p class="text-sm font-bold text-on-surface">{resource.name}</p>
+								{#if resource.usedFor}
+									<p class="text-xs text-on-surface-variant leading-relaxed">Used for: {resource.usedFor}</p>
+								{/if}
+								{#if resource.gainedBy}
+									<p class="text-xs text-on-surface-variant leading-relaxed">Gained by: {resource.gainedBy}</p>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 5. Card System -->
+			{#if howToPlayData.cardSystem?.exists && (howToPlayData.cardSystem.cardTypes?.length || howToPlayData.cardSystem.deckRules || howToPlayData.cardSystem.handRules)}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">🃏</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Cards</h3>
+					</div>
+					<div class="pl-12 space-y-3">
+						{#if howToPlayData.cardSystem.deckRules}
+							<p class="text-xs text-on-surface-variant leading-relaxed"><strong>Deck:</strong> {howToPlayData.cardSystem.deckRules}</p>
+						{/if}
+						{#if howToPlayData.cardSystem.handRules}
+							<p class="text-xs text-on-surface-variant leading-relaxed"><strong>Hand:</strong> {howToPlayData.cardSystem.handRules}</p>
+						{/if}
+						{#if howToPlayData.cardSystem.cardTypes?.length}
+							<div class="space-y-2">
+								{#each howToPlayData.cardSystem.cardTypes as ct}
+									<div>
+										<p class="text-sm font-bold text-on-surface">{ct.name}</p>
+										<p class="text-xs text-on-surface-variant leading-relaxed">{ct.description}</p>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 6. The Board -->
+			{#if howToPlayData.board?.exists && howToPlayData.board.description}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">🗺️</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">The Board</h3>
+					</div>
+					<div class="pl-12 space-y-1">
+						{#if howToPlayData.board.type}
+							<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{howToPlayData.board.type}</p>
+						{/if}
+						<p class="text-sm text-on-surface leading-relaxed">{howToPlayData.board.description}</p>
+					</div>
+				</div>
+			{/if}
+
+			<!-- 7. Player Roles -->
+			{#if howToPlayData.roles?.exists && howToPlayData.roles.list?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">👤</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Player Roles</h3>
+					</div>
+					<div class="pl-12 space-y-3">
+						{#each howToPlayData.roles.list as role}
+							<div>
+								<p class="text-sm font-bold text-on-surface">{role.name}</p>
+								<p class="text-xs text-on-surface-variant leading-relaxed">{role.abilities}</p>
+								{#if role.winCondition}
+									<p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">Win: {role.winCondition}</p>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 8. Actions -->
+			{#if howToPlayData.actions?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">⚡</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Actions</h3>
+					</div>
+					<div class="pl-12 space-y-3">
+						{#each howToPlayData.actions as action}
+							<div>
+								<p class="text-sm font-bold text-on-surface">{action.name}{#if action.type}<span class="text-xs font-normal text-on-surface-variant"> · {action.type}</span>{/if}</p>
+								{#if action.cost}
+									<p class="text-xs text-on-surface-variant leading-relaxed">Cost: {action.cost}</p>
+								{/if}
+								{#if action.effect}
+									<p class="text-xs text-on-surface-variant leading-relaxed">{action.effect}</p>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 9. Game Flow -->
 			{#if howToPlayData.gameStructure?.phases?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>view_timeline</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Game Flow
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">🔄</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Game Flow</h3>
 					</div>
-					<div class="pl-11 space-y-4">
+					<div class="pl-12 space-y-4">
 						{#if howToPlayData.gameStructure.turnOrder}
-							<p
-								class="text-xs text-on-surface-variant leading-relaxed"
-							>
-								{howToPlayData.gameStructure.turnOrder}
-							</p>
+							<p class="text-xs text-on-surface-variant leading-relaxed">{howToPlayData.gameStructure.turnOrder}</p>
 						{/if}
 						{#each howToPlayData.gameStructure.phases as phase, i}
 							<div class="relative pl-5">
-								<div
-									class="absolute left-0 top-1 w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center"
-								>
-									<span
-										class="text-[8px] font-black text-secondary"
-										>{i + 1}</span
-									>
+								<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center">
+									<span class="text-[8px] font-black text-secondary">{i + 1}</span>
 								</div>
-								<p class="text-sm font-bold text-on-surface">
-									{phase.name}
-								</p>
+								<p class="text-sm font-bold text-on-surface">{phase.name}</p>
 								{#if phase.description}
-									<p
-										class="text-xs text-on-surface-variant leading-relaxed mt-0.5"
-									>
-										{phase.description}
-									</p>
+									<p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">{phase.description}</p>
 								{/if}
 								{#if phase.actions?.length}
 									<ul class="mt-1.5 space-y-0.5">
 										{#each phase.actions as action}
-											<li
-												class="text-xs text-on-surface-variant flex items-start gap-1.5"
-											>
-												<span
-													class="material-symbols-outlined text-[10px] mt-0.5 text-secondary/60"
-													>arrow_forward</span
-												>
+											<li class="text-xs text-on-surface-variant flex items-start gap-1.5">
+												<span class="material-symbols-outlined text-[10px] mt-0.5 text-secondary/60">arrow_forward</span>
 												{action}
 											</li>
 										{/each}
@@ -551,156 +644,122 @@
 				</div>
 			{/if}
 
-			<!-- Core Rules -->
+			<!-- 10. Core Rules -->
 			{#if howToPlayData.rules?.coreRules}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>gavel</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Core Rules
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">📏</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Core Rules</h3>
 					</div>
-					<p
-						class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line"
-					>
-						{howToPlayData.rules.coreRules}
+					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.rules.coreRules}</p>
+				</div>
+			{/if}
+
+			<!-- 11. Special Rules -->
+			{#if howToPlayData.rules?.specialRules?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">✨</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Special Rules</h3>
+					</div>
+					<div class="pl-12 space-y-3">
+						{#each howToPlayData.rules.specialRules as rule}
+							<div>
+								<p class="text-sm font-bold text-on-surface">{rule.name}</p>
+								<p class="text-xs text-on-surface-variant leading-relaxed">{rule.description}</p>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 12. Edge Cases -->
+			{#if howToPlayData.rules?.edgeCases}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">⚠️</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Edge Cases</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.rules.edgeCases}</p>
+				</div>
+			{/if}
+
+			<!-- 13. Variants -->
+			{#if howToPlayData.variants?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">🎲</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Variants</h3>
+					</div>
+					<div class="pl-12 space-y-3">
+						{#each howToPlayData.variants as variant}
+							<div>
+								<p class="text-sm font-bold text-on-surface">{variant.name}</p>
+								<p class="text-xs text-on-surface-variant leading-relaxed">{variant.description}</p>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 14. Scoring -->
+			{#if howToPlayData.scoring?.methods?.length}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">🏆</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Scoring</h3>
+					</div>
+					<div class="pl-12 space-y-1">
+						{#each howToPlayData.scoring.methods as method}
+							<div class="flex justify-between items-center text-sm py-1.5 border-b border-outline-variant/10 last:border-none">
+								<span class="text-on-surface">{method.item}</span>
+								<span class="font-bold text-primary text-xs">{method.points}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- 15. How to Win -->
+			{#if howToPlayData.winCondition?.details || howToPlayData.winCondition?.type}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">🥇</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">How to Win</h3>
+					</div>
+					<p class="text-sm text-on-surface leading-relaxed pl-12">
+						{howToPlayData.winCondition.details ?? howToPlayData.winCondition.type}
 					</p>
 				</div>
 			{/if}
 
-			<!-- Special Rules -->
-			{#if howToPlayData.rules?.specialRules?.length}
+			<!-- 16. End of Game -->
+			{#if howToPlayData.endCondition?.trigger}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>stars</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Special Rules
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">🏁</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">End of Game</h3>
 					</div>
-					<div class="pl-11 space-y-3">
-						{#each howToPlayData.rules.specialRules as rule}
-							<div>
-								<p class="text-sm font-bold text-on-surface">
-									{rule.name}
-								</p>
-								<p
-									class="text-xs text-on-surface-variant leading-relaxed"
-								>
-									{rule.description}
-								</p>
-							</div>
-						{/each}
+					<div class="pl-12 space-y-1">
+						<p class="text-sm text-on-surface leading-relaxed">{howToPlayData.endCondition.trigger}</p>
+						{#if howToPlayData.endCondition.notes}
+							<p class="text-xs text-on-surface-variant leading-relaxed">{howToPlayData.endCondition.notes}</p>
+						{/if}
 					</div>
 				</div>
 			{/if}
 
-			<!-- Scoring -->
-			{#if howToPlayData.scoring?.methods?.length}
-				<div class="space-y-3">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>scoreboard</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Scoring
-						</h3>
-					</div>
-					<div class="pl-11 space-y-1">
-						{#each howToPlayData.scoring.methods as method}
-							<div
-								class="flex justify-between items-center text-sm py-1.5 border-b border-outline-variant/10 last:border-none"
-							>
-								<span class="text-on-surface"
-									>{method.item}</span
-								>
-								<span class="font-bold text-primary text-xs"
-									>{method.points}</span
-								>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Components -->
-			{#if howToPlayData.components?.length}
-				<div class="space-y-3">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>inventory_2</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							What's in the Box
-						</h3>
-					</div>
-					<div class="pl-11 flex flex-wrap gap-2">
-						{#each howToPlayData.components as comp}
-							<span
-								class="text-xs bg-surface-container-high text-on-surface px-3 py-1.5 rounded-xl font-medium"
-							>
-								{comp.quantity
-									? `${comp.quantity}× `
-									: ""}{comp.name}
-							</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Tips -->
+			<!-- 17. Tips -->
 			{#if howToPlayData.tips?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>lightbulb</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Tips for New Players
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">💡</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Tips for New Players</h3>
 					</div>
-					<ul class="pl-11 space-y-2">
+					<ul class="pl-12 space-y-2">
 						{#each howToPlayData.tips as tip}
-							<li
-								class="flex items-start gap-2 text-sm text-on-surface leading-relaxed"
-							>
-								<span
-									class="material-symbols-outlined text-[14px] mt-0.5 text-secondary flex-shrink-0"
-									>check_circle</span
-								>
+							<li class="flex items-start gap-2 text-sm text-on-surface leading-relaxed">
+								<span class="material-symbols-outlined text-[14px] mt-0.5 text-secondary flex-shrink-0">check_circle</span>
 								{tip}
 							</li>
 						{/each}
@@ -708,50 +767,28 @@
 				</div>
 			{/if}
 
-			<!-- FAQ -->
+			<!-- 18. FAQ -->
 			{#if howToPlayData.faq?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>quiz</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							FAQ
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">❓</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">FAQ</h3>
 					</div>
-					<div class="pl-0 space-y-2">
+					<div class="space-y-2">
 						{#each howToPlayData.faq as item, i}
-							<div
-								class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 overflow-hidden"
-							>
+							<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 overflow-hidden">
 								<button
 									onclick={() => toggleFaq(i)}
 									class="w-full flex items-center justify-between gap-3 p-4 text-left"
 								>
-									<span
-										class="text-sm font-semibold text-on-surface leading-snug"
-										>{item.question}</span
-									>
-									<span
-										class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0 transition-transform duration-200
-										{expandedFaq.has(i) ? 'rotate-180' : ''}"
-									>
+									<span class="text-sm font-semibold text-on-surface leading-snug">{item.question}</span>
+									<span class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0 transition-transform duration-200 {expandedFaq.has(i) ? 'rotate-180' : ''}">
 										expand_more
 									</span>
 								</button>
 								{#if expandedFaq.has(i)}
 									<div class="px-4 pb-4">
-										<p
-											class="text-sm text-on-surface-variant leading-relaxed"
-										>
-											{item.answer}
-										</p>
+										<p class="text-sm text-on-surface-variant leading-relaxed">{item.answer}</p>
 									</div>
 								{/if}
 							</div>
@@ -764,24 +801,26 @@
 			{#if howToPlayData.raw}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div
-							class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant"
-						>
-							<span class="material-symbols-outlined text-[16px]"
-								>article</span
-							>
-						</div>
-						<h3
-							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
-						>
-							Rules Summary
-						</h3>
+						<div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">📄</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Rules Summary</h3>
 					</div>
-					<p
-						class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line"
+					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.raw}</p>
+				</div>
+			{/if}
+
+			<!-- Rulebook PDF Link -->
+			{#if howToPlayRulebookUrl}
+				<div class="pt-2">
+					<a
+						href={howToPlayRulebookUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold hover:bg-surface-container transition-colors"
 					>
-						{howToPlayData.raw}
-					</p>
+						<span class="material-symbols-outlined text-[18px] text-primary">picture_as_pdf</span>
+						View Official Rulebook PDF
+						<span class="material-symbols-outlined text-[14px] text-on-surface-variant">open_in_new</span>
+					</a>
 				</div>
 			{/if}
 		{:else if howToPlayState === "error"}

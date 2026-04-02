@@ -5,9 +5,10 @@
 	interface Props {
 		title?: string;
 		showBack?: boolean;
+		transparent?: boolean;
 	}
 
-	let { title = 'Meeple', showBack = false }: Props = $props();
+	let { title = 'Meeple', showBack = false, transparent = false }: Props = $props();
 
 	function goBack() {
 		history.back();
@@ -15,7 +16,7 @@
 </script>
 
 <header
-	class="fixed top-0 w-full z-50 bg-[#F8F9FA]/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]"
+	class="fixed top-0 w-full z-50 transition-all duration-500 {transparent ? 'bg-transparent' : 'bg-surface/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]'}"
 >
 	<div class="flex justify-between items-center px-6 py-4 max-w-lg mx-auto w-full">
 		<!-- Left: back button on detail pages, title on root pages -->

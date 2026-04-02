@@ -6,26 +6,36 @@
 
 	let { data } = $props();
 
-	let status = $state<FriendStatusValue>(data.friendStatus.status);
-	let requestId = $state<string | null>(data.friendStatus.requestId);
+	let localStatus = $state<FriendStatusValue | null>(null);
+	let localRequestId = $state<string | null>(null);
 	let loading = $state(false);
+
+	let status = $derived(localStatus ?? data.friendStatus.status);
+	let requestId = $derived(localRequestId ?? data.friendStatus.requestId);
+
+	$effect(() => {
+		// Reset local overrides when the user changes
+		data.user.id; 
+		localStatus = null;
+		localRequestId = null;
+	});
 
 	async function handleFriendAction() {
 		loading = true;
 		try {
 			if (status === 'NONE') {
 				const req = await friendsApi.sendRequest(data.user.id);
-				requestId = req.id;
-				status = 'PENDING_SENT';
+				localRequestId = req.id;
+				localStatus = 'PENDING_SENT';
 			} else if (status === 'PENDING_SENT' && requestId) {
 				// Cancel — not implemented in API yet, show nothing
 			} else if (status === 'PENDING_RECEIVED' && requestId) {
 				await friendsApi.accept(requestId);
-				status = 'FRIENDS';
+				localStatus = 'FRIENDS';
 			} else if (status === 'FRIENDS') {
 				await friendsApi.unfriend(data.user.id);
-				status = 'NONE';
-				requestId = null;
+				localStatus = 'NONE';
+				localRequestId = null;
 			}
 		} finally {
 			loading = false;

@@ -110,11 +110,12 @@ public class RulebookUserController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         boolean hasRulebook = rulebookRepository.existsByGame_IdAndStatus(gameId, "approved");
+        boolean isIngesting = !hasRulebook && rulebookRepository.existsByGame_IdAndStatus(gameId, "ingesting");
 
         if (userDetails == null) {
-            return ResponseEntity.ok(hasRulebook
-                    ? RulebookStatusResponse.approved()
-                    : RulebookStatusResponse.noRulebook());
+            if (hasRulebook) return ResponseEntity.ok(RulebookStatusResponse.approved());
+            if (isIngesting) return ResponseEntity.ok(RulebookStatusResponse.ingesting());
+            return ResponseEntity.ok(RulebookStatusResponse.noRulebook());
         }
 
         // Include the user's own pending submission info if any
@@ -124,12 +125,12 @@ public class RulebookUserController {
                         List.of("pending_review", "rejected"));
 
         if (mySubmission.isEmpty()) {
-            return ResponseEntity.ok(new RulebookStatusResponse(hasRulebook, null, null));
+            return ResponseEntity.ok(new RulebookStatusResponse(hasRulebook, isIngesting, null, null));
         }
 
         GameRulebook sub = mySubmission.get();
         return ResponseEntity.ok(new RulebookStatusResponse(
-                hasRulebook, sub.getStatus(), sub.getQueuePosition()));
+                hasRulebook, isIngesting, sub.getStatus(), sub.getQueuePosition()));
     }
 
     // -------------------------------------------------------------------------

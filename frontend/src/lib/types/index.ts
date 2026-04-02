@@ -207,6 +207,7 @@ export interface FriendStatus {
 
 export interface RulebookStatus {
 	hasRulebook: boolean;
+	isIngesting: boolean;
 	myStatus: string | null;
 	myQueuePosition: number | null;
 }
@@ -282,6 +283,7 @@ export interface HowToPlayApiResponse {
 	data: HowToPlayContent | null;
 	sourceMode: 'rulebook' | 'general' | null;
 	disclaimer: string | null;
+	rulebookUrl: string | null;
 }
 
 // ─── Notification ──────────────────────────────────────────────────────────
