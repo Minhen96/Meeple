@@ -3,9 +3,10 @@
 	import { rulebookApi } from "$lib/api/rulebook";
 	import { adminApi } from "$lib/api/admin";
 	import { howToPlayApi } from "$lib/api/howtoplay";
+	import { ruleNotesApi } from "$lib/api/ruleNotes";
 	import { currentUser } from "$lib/stores/auth";
 	import { toast } from "svelte-sonner";
-	import type { HowToPlayContent } from "$lib/types";
+	import type { HowToPlayContent, RuleNote, MyRuleNote } from "$lib/types";
 
 	interface Props {
 		gameId: string;
@@ -44,6 +45,14 @@
 	let fileInput: HTMLInputElement = $state() as HTMLInputElement;
 	let adminFileInput: HTMLInputElement = $state() as HTMLInputElement;
 
+	// Rule notes state
+	let approvedNotes: RuleNote[] = $state([]);
+	let myNote: MyRuleNote | null = $state(null);
+	let noteText = $state('');
+	let showNoteEditor = $state(false);
+	let submittingNote = $state(false);
+	let deletingNote = $state(false);
+
 	onMount(() => {
 		initRulebookStatus();
 		return () => {
@@ -61,6 +70,9 @@
 			} else if (status.isIngesting) {
 				rulebookState = "generating";
 				startRulebookPolling();
+			} else if (status.hasHowToPlay) {
+				rulebookState = "ready";
+				fetchHowToPlay();
 			} else if (status.myStatus === "pending_review") {
 				rulebookState = "pending_review";
 				myQueuePosition = status.myQueuePosition;
@@ -82,6 +94,8 @@
 				howToPlaySourceMode = res.sourceMode;
 				howToPlayDisclaimer = res.disclaimer;
 				howToPlayRulebookUrl = res.rulebookUrl;
+				approvedNotes = res.approvedNotes ?? [];
+				fetchMyNote();
 			} else {
 				howToPlayState = "generating";
 				startPolling();
@@ -104,6 +118,8 @@
 					howToPlaySourceMode = res.sourceMode;
 					howToPlayDisclaimer = res.disclaimer;
 					howToPlayRulebookUrl = res.rulebookUrl;
+					approvedNotes = res.approvedNotes ?? [];
+					fetchMyNote();
 				}
 			} catch {
 				clearInterval(pollInterval!);
@@ -191,6 +207,44 @@
 		} finally {
 			uploading = false;
 			adminFileInput.value = "";
+		}
+	}
+
+	async function fetchMyNote() {
+		try {
+			myNote = await ruleNotesApi.getMy(gameId);
+		} catch {
+			// silently ignore — user may not be logged in
+		}
+	}
+
+	async function submitNote() {
+		if (!noteText.trim()) return;
+		submittingNote = true;
+		try {
+			myNote = await ruleNotesApi.submit(gameId, noteText.trim());
+			showNoteEditor = false;
+			noteText = '';
+			toast.success('Note submitted — pending admin review.');
+		} catch {
+			toast.error('Failed to submit note.');
+		} finally {
+			submittingNote = false;
+		}
+	}
+
+	async function deleteNote() {
+		deletingNote = true;
+		try {
+			await ruleNotesApi.deleteMy(gameId);
+			myNote = null;
+			noteText = '';
+			showNoteEditor = false;
+			toast.success('Note removed.');
+		} catch {
+			toast.error('Failed to remove note.');
+		} finally {
+			deletingNote = false;
 		}
 	}
 
@@ -805,6 +859,87 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Rules Summary</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.raw}</p>
+				</div>
+			{/if}
+
+			<!-- Community Notes -->
+			{#if approvedNotes.length > 0}
+				<div class="space-y-3">
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">📝</div>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Community Notes</h3>
+					</div>
+					<div class="space-y-3 pl-12">
+						{#each approvedNotes as note}
+							<div class="rounded-xl bg-surface-container-low/40 border border-outline-variant/10 p-3 space-y-1.5">
+								<p class="text-sm text-on-surface leading-relaxed whitespace-pre-line">{note.content}</p>
+								<p class="text-[10px] text-on-surface-variant">by @{note.submittedByUsername}</p>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Add Rule Note (logged-in users) -->
+			{#if $currentUser}
+				<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-4 space-y-3">
+					<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Your Rule Note</p>
+
+					{#if myNote && !showNoteEditor}
+						<div class="space-y-2">
+							<p class="text-sm text-on-surface leading-relaxed whitespace-pre-line">{myNote.content}</p>
+							<div class="flex items-center gap-2 flex-wrap">
+								<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
+									{myNote.status === 'approved' ? 'bg-primary/10 text-primary' :
+									 myNote.status === 'rejected' ? 'bg-error/10 text-error' :
+									 'bg-surface-container-high text-on-surface-variant'}">
+									{myNote.status === 'pending' ? 'Pending Review' :
+									 myNote.status === 'approved' ? 'Approved' : 'Rejected'}
+								</span>
+								{#if myNote.status === 'pending' || myNote.status === 'rejected'}
+									<button
+										onclick={() => { showNoteEditor = true; noteText = myNote!.content; }}
+										class="text-xs text-primary font-bold"
+									>{myNote.status === 'rejected' ? 'Resubmit' : 'Edit'}</button>
+									<button
+										onclick={deleteNote}
+										disabled={deletingNote}
+										class="text-xs text-error font-bold disabled:opacity-50"
+									>{deletingNote ? 'Removing…' : 'Remove'}</button>
+								{/if}
+							</div>
+							{#if myNote.status === 'rejected' && myNote.rejectReason}
+								<p class="text-xs text-error/80 italic">Reason: {myNote.rejectReason}</p>
+							{/if}
+						</div>
+					{:else if showNoteEditor}
+						<textarea
+							bind:value={noteText}
+							placeholder="Share a rule clarification, correction, or important tip…"
+							rows="5"
+							class="w-full bg-surface-container-low rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+						></textarea>
+						<p class="text-[10px] text-on-surface-variant">Your note will be visible after admin review.</p>
+						<div class="flex gap-2">
+							<button
+								onclick={() => { showNoteEditor = false; noteText = ''; }}
+								class="flex-1 py-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm font-bold"
+							>Cancel</button>
+							<button
+								onclick={submitNote}
+								disabled={submittingNote || !noteText.trim()}
+								class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50"
+							>{submittingNote ? 'Submitting…' : 'Submit'}</button>
+						</div>
+					{:else}
+						<button
+							onclick={() => { showNoteEditor = true; }}
+							class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-container-high text-on-surface-variant text-sm font-medium hover:text-on-surface transition-colors"
+						>
+							<span class="material-symbols-outlined text-[16px]">add</span>
+							Add a rule note
+						</button>
+					{/if}
 				</div>
 			{/if}
 

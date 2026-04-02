@@ -18,7 +18,7 @@ export const eventsApi = {
 	},
 
 	getMyEvents: async (): Promise<Event[]> => {
-		const res = await api.get<Event[]>('/api/v1/events/mine');
+		const res = await api.get<Event[]>('/api/v1/events/me');
 		return res;
 	},
 

@@ -210,6 +210,7 @@ export interface RulebookStatus {
 	isIngesting: boolean;
 	myStatus: string | null;
 	myQueuePosition: number | null;
+	hasHowToPlay: boolean;
 }
 
 export interface RulebookQueueItem {
@@ -284,6 +285,38 @@ export interface HowToPlayApiResponse {
 	sourceMode: 'rulebook' | 'general' | null;
 	disclaimer: string | null;
 	rulebookUrl: string | null;
+	approvedNotes: RuleNote[];
+}
+
+export interface RuleNote {
+	id: string;
+	content: string;
+	submittedByUsername: string;
+	createdAt: string;
+}
+
+export interface MyRuleNote {
+	id: string;
+	content: string;
+	status: 'pending' | 'approved' | 'rejected';
+	rejectReason: string | null;
+	updatedAt: string;
+}
+
+export interface RuleNoteQueueItem {
+	id: string;
+	gameId: string;
+	gameName: string;
+	content: string;
+	submittedByUsername: string;
+	createdAt: string;
+}
+
+export interface RuleNoteQueuePage {
+	content: RuleNoteQueueItem[];
+	number: number;
+	last: boolean;
+	totalElements: number;
 }
 
 // ─── Notification ──────────────────────────────────────────────────────────

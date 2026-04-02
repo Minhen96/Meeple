@@ -17,7 +17,7 @@ export const matchesApi = {
 	cancelRequest: (id: string) => api.delete<void>(`/api/v1/matches/requests/${id}`),
 
 	listMyRequests: async (): Promise<MatchRequest[]> => {
-		const res = await api.get<MatchRequest[]>('/api/v1/matches/requests/mine');
+		const res = await api.get<MatchRequest[]>('/api/v1/matches/requests/me');
 		return res;
 	},
 

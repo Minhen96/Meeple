@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { RulebookQueueItem, RulebookQueuePage } from '$lib/types';
+import type { RulebookQueueItem, RulebookQueuePage, RuleNoteQueuePage } from '$lib/types';
 
 export const adminApi = {
 	getRulebookQueue: (status = 'pending_review', page = 0, size = 20): Promise<RulebookQueuePage> =>
@@ -21,5 +21,14 @@ export const adminApi = {
 			credentials: 'include',
 			body: form
 		}).then((r) => r.json());
-	}
+	},
+
+	getRuleNoteQueue: (page = 0, size = 20): Promise<RuleNoteQueuePage> =>
+		api.get<RuleNoteQueuePage>(`/api/v1/admin/rule-notes?page=${page}&size=${size}`),
+
+	approveRuleNote: (id: string): Promise<{ status: string }> =>
+		api.post<{ status: string }>(`/api/v1/admin/rule-notes/${id}/approve`),
+
+	rejectRuleNote: (id: string, reason?: string): Promise<{ status: string }> =>
+		api.post<{ status: string }>(`/api/v1/admin/rule-notes/${id}/reject`, { reason })
 };

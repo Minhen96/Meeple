@@ -3,6 +3,7 @@ package com.meeplehearth.ai.controller;
 import com.meeplehearth.ai.dto.RulebookStatusResponse;
 import com.meeplehearth.ai.entity.GameRulebook;
 import com.meeplehearth.ai.job.RulebookAutoFetchJob;
+import com.meeplehearth.ai.repository.GameHowToPlayRepository;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.ai.service.RulebookQueueService;
 import com.meeplehearth.common.exception.ApiException;
@@ -31,17 +32,20 @@ public class RulebookUserController {
     private final RulebookAutoFetchJob autoFetchJob;
     private final RulebookQueueService queueService;
     private final UserRepository userRepository;
+    private final GameHowToPlayRepository howToPlayRepository;
 
     public RulebookUserController(GameRepository gameRepository,
                                   GameRulebookRepository rulebookRepository,
                                   RulebookAutoFetchJob autoFetchJob,
                                   RulebookQueueService queueService,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  GameHowToPlayRepository howToPlayRepository) {
         this.gameRepository = gameRepository;
         this.rulebookRepository = rulebookRepository;
         this.autoFetchJob = autoFetchJob;
         this.queueService = queueService;
         this.userRepository = userRepository;
+        this.howToPlayRepository = howToPlayRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -111,11 +115,12 @@ public class RulebookUserController {
 
         boolean hasRulebook = rulebookRepository.existsByGame_IdAndStatus(gameId, "approved");
         boolean isIngesting = !hasRulebook && rulebookRepository.existsByGame_IdAndStatus(gameId, "ingesting");
+        boolean hasHowToPlay = howToPlayRepository.existsByGame_Id(gameId);
 
         if (userDetails == null) {
-            if (hasRulebook) return ResponseEntity.ok(RulebookStatusResponse.approved());
-            if (isIngesting) return ResponseEntity.ok(RulebookStatusResponse.ingesting());
-            return ResponseEntity.ok(RulebookStatusResponse.noRulebook());
+            if (hasRulebook) return ResponseEntity.ok(RulebookStatusResponse.approved(hasHowToPlay));
+            if (isIngesting) return ResponseEntity.ok(RulebookStatusResponse.ingesting(hasHowToPlay));
+            return ResponseEntity.ok(RulebookStatusResponse.noRulebook(hasHowToPlay));
         }
 
         // Include the user's own pending submission info if any
@@ -125,12 +130,12 @@ public class RulebookUserController {
                         List.of("pending_review", "rejected"));
 
         if (mySubmission.isEmpty()) {
-            return ResponseEntity.ok(new RulebookStatusResponse(hasRulebook, isIngesting, null, null));
+            return ResponseEntity.ok(new RulebookStatusResponse(hasRulebook, isIngesting, null, null, hasHowToPlay));
         }
 
         GameRulebook sub = mySubmission.get();
         return ResponseEntity.ok(new RulebookStatusResponse(
-                hasRulebook, isIngesting, sub.getStatus(), sub.getQueuePosition()));
+                hasRulebook, isIngesting, sub.getStatus(), sub.getQueuePosition(), hasHowToPlay));
     }
 
     // -------------------------------------------------------------------------
