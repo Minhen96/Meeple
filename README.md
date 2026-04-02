@@ -187,7 +187,7 @@ Click **Start** after hydration. Fetches PDF rulebooks for the top 10,000 games 
 - Watch logs: `Queued ingestion for '...' via rule_book_org`
 - Verify completion: `SELECT status, COUNT(*) FROM game_rulebooks GROUP BY status`
 
-For games not covered, users can click **"Generate Rules"** in the How to Play tab, or upload a PDF themselves (goes to admin review queue).
+For games not covered, users can click **"Generate Rules"** in the How to Play tab (falls back to AI general knowledge), or upload a PDF themselves (goes to admin review queue). Users can also submit **community rule notes** to supplement or clarify the AI-generated content — notes are shown after admin approval under **Admin → Review Queue → Rule Notes**.
 
 #### System Setup panel controls
 
