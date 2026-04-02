@@ -129,7 +129,8 @@ public class RulebookAdminController {
     }
 
     private User resolveUser(UserDetails userDetails) {
-        return userRepository.findByUsernameIgnoreCase(userDetails.getUsername())
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "User not found"));
     }
 

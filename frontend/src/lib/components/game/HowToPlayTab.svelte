@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { rulebookApi } from '$lib/api/rulebook';
-	import { adminApi } from '$lib/api/admin';
-	import { howToPlayApi } from '$lib/api/howtoplay';
-	import { currentUser } from '$lib/stores/auth';
-	import { toast } from 'svelte-sonner';
-	import type { HowToPlayContent } from '$lib/types';
+	import { onMount } from "svelte";
+	import { rulebookApi } from "$lib/api/rulebook";
+	import { adminApi } from "$lib/api/admin";
+	import { howToPlayApi } from "$lib/api/howtoplay";
+	import { currentUser } from "$lib/stores/auth";
+	import { toast } from "svelte-sonner";
+	import type { HowToPlayContent } from "$lib/types";
 
 	interface Props {
 		gameId: string;
@@ -15,15 +15,21 @@
 
 	const isAdmin = $derived($currentUser?.isAdmin ?? false);
 
-	type RulebookState = 'loading' | 'no_rulebook' | 'generating' | 'pending_review' | 'ready' | 'error';
-	let rulebookState: RulebookState = $state('loading');
+	type RulebookState =
+		| "loading"
+		| "no_rulebook"
+		| "generating"
+		| "pending_review"
+		| "ready"
+		| "error";
+	let rulebookState: RulebookState = $state("loading");
 	let generating: boolean = $state(false);
 	let uploading: boolean = $state(false);
 	let myQueuePosition: number | null = $state(null);
 
 	// How-to-play content
-	type HowToPlayState = 'idle' | 'loading' | 'generating' | 'ready' | 'error';
-	let howToPlayState: HowToPlayState = $state('idle');
+	type HowToPlayState = "idle" | "loading" | "generating" | "ready" | "error";
+	let howToPlayState: HowToPlayState = $state("idle");
 	let howToPlayData: HowToPlayContent | null = $state(null);
 	let howToPlaySourceMode: string | null = $state(null);
 	let howToPlayDisclaimer: string | null = $state(null);
@@ -47,34 +53,34 @@
 		try {
 			const status = await rulebookApi.getStatus(gameId);
 			if (status.hasRulebook) {
-				rulebookState = 'ready';
+				rulebookState = "ready";
 				fetchHowToPlay();
-			} else if (status.myStatus === 'pending_review') {
-				rulebookState = 'pending_review';
+			} else if (status.myStatus === "pending_review") {
+				rulebookState = "pending_review";
 				myQueuePosition = status.myQueuePosition;
 			} else {
-				rulebookState = 'no_rulebook';
+				rulebookState = "no_rulebook";
 			}
 		} catch {
-			rulebookState = 'error';
+			rulebookState = "error";
 		}
 	}
 
 	async function fetchHowToPlay() {
-		howToPlayState = 'loading';
+		howToPlayState = "loading";
 		try {
 			const res = await howToPlayApi.get(gameId);
-			if (res.status === 'ready' && res.data) {
-				howToPlayState = 'ready';
+			if (res.status === "ready" && res.data) {
+				howToPlayState = "ready";
 				howToPlayData = res.data;
 				howToPlaySourceMode = res.sourceMode;
 				howToPlayDisclaimer = res.disclaimer;
 			} else {
-				howToPlayState = 'generating';
+				howToPlayState = "generating";
 				startPolling();
 			}
 		} catch {
-			howToPlayState = 'error';
+			howToPlayState = "error";
 		}
 	}
 
@@ -83,10 +89,10 @@
 		pollInterval = setInterval(async () => {
 			try {
 				const res = await howToPlayApi.get(gameId);
-				if (res.status === 'ready' && res.data) {
+				if (res.status === "ready" && res.data) {
 					clearInterval(pollInterval!);
 					pollInterval = null;
-					howToPlayState = 'ready';
+					howToPlayState = "ready";
 					howToPlayData = res.data;
 					howToPlaySourceMode = res.sourceMode;
 					howToPlayDisclaimer = res.disclaimer;
@@ -94,7 +100,7 @@
 			} catch {
 				clearInterval(pollInterval!);
 				pollInterval = null;
-				howToPlayState = 'error';
+				howToPlayState = "error";
 			}
 		}, 2000);
 	}
@@ -103,14 +109,14 @@
 		generating = true;
 		try {
 			const result = await rulebookApi.generate(gameId);
-			if (result.status === 'generating') {
-				rulebookState = 'generating';
-			} else if (result.status === 'already_done') {
-				rulebookState = 'ready';
+			if (result.status === "generating") {
+				rulebookState = "generating";
+			} else if (result.status === "already_done") {
+				rulebookState = "ready";
 				fetchHowToPlay();
 			}
 		} catch {
-			toast.error('Could not fetch rulebook');
+			toast.error("Could not fetch rulebook");
 		} finally {
 			generating = false;
 		}
@@ -122,19 +128,21 @@
 		uploading = true;
 		try {
 			const result = await rulebookApi.upload(gameId, file);
-			if (result.status === 'queued') {
-				rulebookState = 'pending_review';
+			if (result.status === "queued") {
+				rulebookState = "pending_review";
 				myQueuePosition = result.queuePosition ?? null;
-				toast.success('PDF submitted! An admin will review it shortly.');
-			} else if (result.status === 'already_done') {
-				rulebookState = 'ready';
+				toast.success(
+					"PDF submitted! An admin will review it shortly.",
+				);
+			} else if (result.status === "already_done") {
+				rulebookState = "ready";
 				fetchHowToPlay();
 			}
 		} catch {
-			toast.error('Upload failed. File must be a PDF under 25 MB.');
+			toast.error("Upload failed. File must be a PDF under 25 MB.");
 		} finally {
 			uploading = false;
-			fileInput.value = '';
+			fileInput.value = "";
 		}
 	}
 
@@ -144,13 +152,13 @@
 		uploading = true;
 		try {
 			await adminApi.uploadRulebookForGame(gameId, file);
-			rulebookState = 'generating';
-			toast.success('Uploading and ingesting…');
+			rulebookState = "generating";
+			toast.success("Uploading and ingesting…");
 		} catch {
-			toast.error('Admin upload failed.');
+			toast.error("Admin upload failed.");
 		} finally {
 			uploading = false;
-			adminFileInput.value = '';
+			adminFileInput.value = "";
 		}
 	}
 
@@ -164,51 +172,84 @@
 
 <div class="py-4 space-y-8 pb-12">
 	<!-- Hero Header -->
-	<div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-secondary/5 border border-outline-variant/10 p-6">
+	<div
+		class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-secondary/5 border border-outline-variant/10 p-6"
+	>
 		<div class="relative z-10 flex items-start justify-between">
 			<div class="space-y-1">
-				<div class="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px]">
-					<span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+				<div
+					class="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px]"
+				>
+					<span class="material-symbols-outlined text-[16px]"
+						>auto_awesome</span
+					>
 					AI Rule Extraction
 				</div>
-				<h2 class="text-xl font-extrabold text-on-surface">How to Play</h2>
-				<p class="text-xs text-on-surface-variant max-w-[240px] leading-relaxed">
-					Follow these essential rules to get the game started quickly.
+				<h2 class="text-xl font-extrabold text-on-surface">
+					How to Play
+				</h2>
+				<p
+					class="text-xs text-on-surface-variant max-w-[240px] leading-relaxed"
+				>
+					Follow these essential rules to get the game started
+					quickly.
 				</p>
 			</div>
-			<div class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary/40 rotate-12">
-				<span class="material-symbols-outlined text-[40px]">menu_book</span>
+			<div
+				class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary/40 rotate-12"
+			>
+				<span class="material-symbols-outlined text-[40px]"
+					>menu_book</span
+				>
 			</div>
 		</div>
-		<div class="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+		<div
+			class="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"
+		></div>
 	</div>
 
 	<!-- Rulebook status section -->
-	{#if rulebookState === 'loading'}
+	{#if rulebookState === "loading"}
 		<div class="space-y-6">
 			{#each [1, 2, 3] as _}
 				<div class="space-y-3 animate-pulse">
 					<div class="flex items-center gap-3">
-						<div class="w-10 h-10 rounded-xl bg-surface-container-high"></div>
-						<div class="h-4 w-32 rounded-full bg-surface-container-high"></div>
+						<div
+							class="w-10 h-10 rounded-xl bg-surface-container-high"
+						></div>
+						<div
+							class="h-4 w-32 rounded-full bg-surface-container-high"
+						></div>
 					</div>
 					<div class="pl-13 space-y-2">
-						<div class="h-3 rounded-full bg-surface-container-low/50 w-full"></div>
-						<div class="h-3 rounded-full bg-surface-container-low/50 w-5/6"></div>
+						<div
+							class="h-3 rounded-full bg-surface-container-low/50 w-full"
+						></div>
+						<div
+							class="h-3 rounded-full bg-surface-container-low/50 w-5/6"
+						></div>
 					</div>
 				</div>
 			{/each}
 		</div>
-
-	{:else if rulebookState === 'no_rulebook'}
-		<div class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-6 flex flex-col items-center text-center gap-4">
-			<div class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant/40">
-				<span class="material-symbols-outlined text-[36px]">find_in_page</span>
+	{:else if rulebookState === "no_rulebook"}
+		<div
+			class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-6 flex flex-col items-center text-center gap-4"
+		>
+			<div
+				class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant/40"
+			>
+				<span class="material-symbols-outlined text-[36px]"
+					>find_in_page</span
+				>
 			</div>
 			<div class="space-y-1">
 				<h3 class="font-bold text-on-surface">No rulebook yet</h3>
-				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-					Try auto-fetching from rule-book.org, or upload the PDF yourself.
+				<p
+					class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
+				>
+					Try auto-fetching from rule-book.org, or upload the PDF
+					yourself.
 				</p>
 			</div>
 
@@ -218,10 +259,15 @@
 				class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
 			>
 				{#if generating}
-					<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+					<span
+						class="material-symbols-outlined text-[18px] animate-spin"
+						>progress_activity</span
+					>
 					Fetching…
 				{:else}
-					<span class="material-symbols-outlined text-[18px]">bolt</span>
+					<span class="material-symbols-outlined text-[18px]"
+						>bolt</span
+					>
 					Generate Rules
 				{/if}
 			</button>
@@ -240,88 +286,146 @@
 					class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold disabled:opacity-50 transition-opacity"
 				>
 					{#if uploading}
-						<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+						<span
+							class="material-symbols-outlined text-[18px] animate-spin"
+							>progress_activity</span
+						>
 						Uploading…
 					{:else}
-						<span class="material-symbols-outlined text-[18px]">upload_file</span>
+						<span class="material-symbols-outlined text-[18px]"
+							>upload_file</span
+						>
 						Upload PDF
 					{/if}
 				</button>
-				<p class="text-[10px] text-on-surface-variant text-center mt-1.5">PDF only · max 25 MB · goes to admin review</p>
+				<p
+					class="text-[10px] text-on-surface-variant text-center mt-1.5"
+				>
+					PDF only · max 25 MB · goes to admin review
+				</p>
 			</div>
 		</div>
-
-	{:else if rulebookState === 'generating'}
-		<div class="rounded-3xl border border-primary/20 bg-primary/5 p-8 flex flex-col items-center text-center gap-4">
-			<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-				<span class="material-symbols-outlined text-[36px] animate-spin">progress_activity</span>
+	{:else if rulebookState === "generating"}
+		<div
+			class="rounded-3xl border border-primary/20 bg-primary/5 p-8 flex flex-col items-center text-center gap-4"
+		>
+			<div
+				class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"
+			>
+				<span class="material-symbols-outlined text-[36px] animate-spin"
+					>progress_activity</span
+				>
 			</div>
 			<div class="space-y-1">
 				<h3 class="font-bold text-on-surface">Processing rulebook…</h3>
-				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-					The PDF is being indexed. This usually takes under a minute. Check back shortly.
+				<p
+					class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
+				>
+					The PDF is being indexed. This usually takes under a minute.
+					Check back shortly.
 				</p>
 			</div>
 		</div>
-
-	{:else if rulebookState === 'pending_review'}
-		<div class="rounded-3xl border border-secondary/20 bg-secondary/5 p-8 flex flex-col items-center text-center gap-4">
-			<div class="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
-				<span class="material-symbols-outlined text-[36px]">hourglass_top</span>
+	{:else if rulebookState === "pending_review"}
+		<div
+			class="rounded-3xl border border-secondary/20 bg-secondary/5 p-8 flex flex-col items-center text-center gap-4"
+		>
+			<div
+				class="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary"
+			>
+				<span class="material-symbols-outlined text-[36px]"
+					>hourglass_top</span
+				>
 			</div>
 			<div class="space-y-1">
 				<h3 class="font-bold text-on-surface">PDF under review</h3>
-				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-					Your upload is in the queue{myQueuePosition !== null ? ` (#${myQueuePosition + 1})` : ''}. Rules will appear once an admin approves it.
+				<p
+					class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
+				>
+					Your upload is in the queue{myQueuePosition !== null
+						? ` (#${myQueuePosition + 1})`
+						: ""}. Rules will appear once an admin approves it.
 				</p>
 			</div>
 		</div>
-
-	{:else if rulebookState === 'ready'}
+	{:else if rulebookState === "ready"}
 		<!-- How-to-Play content -->
-		{#if howToPlayState === 'loading'}
+		{#if howToPlayState === "loading"}
 			<div class="space-y-5">
 				{#each [1, 2, 3] as _}
-					<div class="rounded-2xl bg-surface-container-low/40 p-5 space-y-3 animate-pulse">
+					<div
+						class="rounded-2xl bg-surface-container-low/40 p-5 space-y-3 animate-pulse"
+					>
 						<div class="flex items-center gap-3">
-							<div class="w-8 h-8 rounded-lg bg-surface-container-high"></div>
-							<div class="h-3.5 w-28 rounded-full bg-surface-container-high"></div>
+							<div
+								class="w-8 h-8 rounded-lg bg-surface-container-high"
+							></div>
+							<div
+								class="h-3.5 w-28 rounded-full bg-surface-container-high"
+							></div>
 						</div>
 						<div class="space-y-2 pl-11">
-							<div class="h-3 rounded-full bg-surface-container-low/60 w-full"></div>
-							<div class="h-3 rounded-full bg-surface-container-low/60 w-4/5"></div>
-							<div class="h-3 rounded-full bg-surface-container-low/60 w-3/5"></div>
+							<div
+								class="h-3 rounded-full bg-surface-container-low/60 w-full"
+							></div>
+							<div
+								class="h-3 rounded-full bg-surface-container-low/60 w-4/5"
+							></div>
+							<div
+								class="h-3 rounded-full bg-surface-container-low/60 w-3/5"
+							></div>
 						</div>
 					</div>
 				{/each}
 			</div>
-
-		{:else if howToPlayState === 'generating'}
-			<div class="rounded-3xl border border-tertiary/20 bg-tertiary/5 p-8 flex flex-col items-center text-center gap-4">
-				<div class="w-16 h-16 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary">
-					<span class="material-symbols-outlined text-[36px] animate-spin">progress_activity</span>
+		{:else if howToPlayState === "generating"}
+			<div
+				class="rounded-3xl border border-tertiary/20 bg-tertiary/5 p-8 flex flex-col items-center text-center gap-4"
+			>
+				<div
+					class="w-16 h-16 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary"
+				>
+					<span
+						class="material-symbols-outlined text-[36px] animate-spin"
+						>progress_activity</span
+					>
 				</div>
 				<div class="space-y-1">
-					<h3 class="font-bold text-on-surface">Generating your guide…</h3>
-					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-						AI is reading the rulebook and extracting key information. This takes about 20–30 seconds.
+					<h3 class="font-bold text-on-surface">
+						Generating your guide…
+					</h3>
+					<p
+						class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
+					>
+						AI is reading the rulebook and extracting key
+						information. This takes about 20–30 seconds.
 					</p>
 				</div>
 			</div>
-
-		{:else if howToPlayState === 'ready' && howToPlayData}
+		{:else if howToPlayState === "ready" && howToPlayData}
 			<!-- Source mode badge -->
 			{#if howToPlaySourceMode}
 				<div class="flex items-center gap-2">
-					<span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full
-						{howToPlaySourceMode === 'rulebook' ? 'bg-primary/10 text-primary' : 'bg-amber-400/10 text-amber-500'}">
+					<span
+						class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full
+						{howToPlaySourceMode === 'rulebook'
+							? 'bg-primary/10 text-primary'
+							: 'bg-amber-400/10 text-amber-500'}"
+					>
 						<span class="material-symbols-outlined text-[12px]">
-							{howToPlaySourceMode === 'rulebook' ? 'menu_book' : 'psychology'}
+							{howToPlaySourceMode === "rulebook"
+								? "menu_book"
+								: "psychology"}
 						</span>
-						{howToPlaySourceMode === 'rulebook' ? 'From Official Rulebook' : 'AI General Knowledge'}
+						{howToPlaySourceMode === "rulebook"
+							? "From Official Rulebook"
+							: "AI General Knowledge"}
 					</span>
 					{#if howToPlayDisclaimer}
-						<span class="text-[10px] text-on-surface-variant opacity-60">{howToPlayDisclaimer}</span>
+						<span
+							class="text-[10px] text-on-surface-variant opacity-60"
+							>{howToPlayDisclaimer}</span
+						>
 					{/if}
 				</div>
 			{/if}
@@ -330,17 +434,28 @@
 			{#if howToPlayData.overview || howToPlayData.objective}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-							<span class="material-symbols-outlined text-[16px]">info</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>info</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Overview</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Overview
+						</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-11">
 						{howToPlayData.overview ?? howToPlayData.objective}
 					</p>
 					{#if howToPlayData.overview && howToPlayData.objective}
-						<p class="text-sm text-on-surface leading-relaxed pl-11 pt-1">
-							<strong>Goal:</strong> {howToPlayData.objective}
+						<p
+							class="text-sm text-on-surface leading-relaxed pl-11 pt-1"
+						>
+							<strong>Goal:</strong>
+							{howToPlayData.objective}
 						</p>
 					{/if}
 				</div>
@@ -350,13 +465,22 @@
 			{#if howToPlayData.winCondition?.details || howToPlayData.winCondition?.type}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500">
-							<span class="material-symbols-outlined text-[16px]">emoji_events</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>emoji_events</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">How to Win</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							How to Win
+						</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-11">
-						{howToPlayData.winCondition.details ?? howToPlayData.winCondition.type}
+						{howToPlayData.winCondition.details ??
+							howToPlayData.winCondition.type}
 					</p>
 				</div>
 			{/if}
@@ -365,31 +489,57 @@
 			{#if howToPlayData.gameStructure?.phases?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
-							<span class="material-symbols-outlined text-[16px]">view_timeline</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>view_timeline</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Game Flow</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Game Flow
+						</h3>
 					</div>
 					<div class="pl-11 space-y-4">
 						{#if howToPlayData.gameStructure.turnOrder}
-							<p class="text-xs text-on-surface-variant leading-relaxed">
+							<p
+								class="text-xs text-on-surface-variant leading-relaxed"
+							>
 								{howToPlayData.gameStructure.turnOrder}
 							</p>
 						{/if}
 						{#each howToPlayData.gameStructure.phases as phase, i}
 							<div class="relative pl-5">
-								<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center">
-									<span class="text-[8px] font-black text-secondary">{i + 1}</span>
+								<div
+									class="absolute left-0 top-1 w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center"
+								>
+									<span
+										class="text-[8px] font-black text-secondary"
+										>{i + 1}</span
+									>
 								</div>
-								<p class="text-sm font-bold text-on-surface">{phase.name}</p>
+								<p class="text-sm font-bold text-on-surface">
+									{phase.name}
+								</p>
 								{#if phase.description}
-									<p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">{phase.description}</p>
+									<p
+										class="text-xs text-on-surface-variant leading-relaxed mt-0.5"
+									>
+										{phase.description}
+									</p>
 								{/if}
 								{#if phase.actions?.length}
 									<ul class="mt-1.5 space-y-0.5">
 										{#each phase.actions as action}
-											<li class="text-xs text-on-surface-variant flex items-start gap-1.5">
-												<span class="material-symbols-outlined text-[10px] mt-0.5 text-secondary/60">arrow_forward</span>
+											<li
+												class="text-xs text-on-surface-variant flex items-start gap-1.5"
+											>
+												<span
+													class="material-symbols-outlined text-[10px] mt-0.5 text-secondary/60"
+													>arrow_forward</span
+												>
 												{action}
 											</li>
 										{/each}
@@ -405,12 +555,22 @@
 			{#if howToPlayData.rules?.coreRules}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
-							<span class="material-symbols-outlined text-[16px]">gavel</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>gavel</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Core Rules</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Core Rules
+						</h3>
 					</div>
-					<p class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line">
+					<p
+						class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line"
+					>
 						{howToPlayData.rules.coreRules}
 					</p>
 				</div>
@@ -420,16 +580,30 @@
 			{#if howToPlayData.rules?.specialRules?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-							<span class="material-symbols-outlined text-[16px]">stars</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>stars</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Special Rules</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Special Rules
+						</h3>
 					</div>
 					<div class="pl-11 space-y-3">
 						{#each howToPlayData.rules.specialRules as rule}
 							<div>
-								<p class="text-sm font-bold text-on-surface">{rule.name}</p>
-								<p class="text-xs text-on-surface-variant leading-relaxed">{rule.description}</p>
+								<p class="text-sm font-bold text-on-surface">
+									{rule.name}
+								</p>
+								<p
+									class="text-xs text-on-surface-variant leading-relaxed"
+								>
+									{rule.description}
+								</p>
 							</div>
 						{/each}
 					</div>
@@ -440,16 +614,30 @@
 			{#if howToPlayData.scoring?.methods?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500">
-							<span class="material-symbols-outlined text-[16px]">scoreboard</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-500"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>scoreboard</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Scoring</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Scoring
+						</h3>
 					</div>
 					<div class="pl-11 space-y-1">
 						{#each howToPlayData.scoring.methods as method}
-							<div class="flex justify-between items-center text-sm py-1.5 border-b border-outline-variant/10 last:border-none">
-								<span class="text-on-surface">{method.item}</span>
-								<span class="font-bold text-primary text-xs">{method.points}</span>
+							<div
+								class="flex justify-between items-center text-sm py-1.5 border-b border-outline-variant/10 last:border-none"
+							>
+								<span class="text-on-surface"
+									>{method.item}</span
+								>
+								<span class="font-bold text-primary text-xs"
+									>{method.points}</span
+								>
 							</div>
 						{/each}
 					</div>
@@ -460,15 +648,27 @@
 			{#if howToPlayData.components?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-							<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>inventory_2</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">What's in the Box</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							What's in the Box
+						</h3>
 					</div>
 					<div class="pl-11 flex flex-wrap gap-2">
 						{#each howToPlayData.components as comp}
-							<span class="text-xs bg-surface-container-high text-on-surface px-3 py-1.5 rounded-xl font-medium">
-								{comp.quantity ? `${comp.quantity}× ` : ''}{comp.name}
+							<span
+								class="text-xs bg-surface-container-high text-on-surface px-3 py-1.5 rounded-xl font-medium"
+							>
+								{comp.quantity
+									? `${comp.quantity}× `
+									: ""}{comp.name}
 							</span>
 						{/each}
 					</div>
@@ -479,15 +679,28 @@
 			{#if howToPlayData.tips?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
-							<span class="material-symbols-outlined text-[16px]">lightbulb</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>lightbulb</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Tips for New Players</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Tips for New Players
+						</h3>
 					</div>
 					<ul class="pl-11 space-y-2">
 						{#each howToPlayData.tips as tip}
-							<li class="flex items-start gap-2 text-sm text-on-surface leading-relaxed">
-								<span class="material-symbols-outlined text-[14px] mt-0.5 text-secondary flex-shrink-0">check_circle</span>
+							<li
+								class="flex items-start gap-2 text-sm text-on-surface leading-relaxed"
+							>
+								<span
+									class="material-symbols-outlined text-[14px] mt-0.5 text-secondary flex-shrink-0"
+									>check_circle</span
+								>
 								{tip}
 							</li>
 						{/each}
@@ -499,27 +712,46 @@
 			{#if howToPlayData.faq?.length}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
-							<span class="material-symbols-outlined text-[16px]">quiz</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>quiz</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">FAQ</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							FAQ
+						</h3>
 					</div>
 					<div class="pl-0 space-y-2">
 						{#each howToPlayData.faq as item, i}
-							<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 overflow-hidden">
+							<div
+								class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 overflow-hidden"
+							>
 								<button
 									onclick={() => toggleFaq(i)}
 									class="w-full flex items-center justify-between gap-3 p-4 text-left"
 								>
-									<span class="text-sm font-semibold text-on-surface leading-snug">{item.question}</span>
-									<span class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0 transition-transform duration-200
-										{expandedFaq.has(i) ? 'rotate-180' : ''}">
+									<span
+										class="text-sm font-semibold text-on-surface leading-snug"
+										>{item.question}</span
+									>
+									<span
+										class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0 transition-transform duration-200
+										{expandedFaq.has(i) ? 'rotate-180' : ''}"
+									>
 										expand_more
 									</span>
 								</button>
 								{#if expandedFaq.has(i)}
 									<div class="px-4 pb-4">
-										<p class="text-sm text-on-surface-variant leading-relaxed">{item.answer}</p>
+										<p
+											class="text-sm text-on-surface-variant leading-relaxed"
+										>
+											{item.answer}
+										</p>
 									</div>
 								{/if}
 							</div>
@@ -532,29 +764,51 @@
 			{#if howToPlayData.raw}
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
-						<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-							<span class="material-symbols-outlined text-[16px]">article</span>
+						<div
+							class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant"
+						>
+							<span class="material-symbols-outlined text-[16px]"
+								>article</span
+							>
 						</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Rules Summary</h3>
+						<h3
+							class="font-extrabold text-sm text-on-surface uppercase tracking-wide"
+						>
+							Rules Summary
+						</h3>
 					</div>
-					<p class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line">{howToPlayData.raw}</p>
+					<p
+						class="text-sm text-on-surface leading-relaxed pl-11 whitespace-pre-line"
+					>
+						{howToPlayData.raw}
+					</p>
 				</div>
 			{/if}
-
-		{:else if howToPlayState === 'error'}
-			<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-5 text-center">
-				<p class="text-sm text-on-surface-variant">Could not load guide. Use the AI Assistant below for help.</p>
+		{:else if howToPlayState === "error"}
+			<div
+				class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-5 text-center"
+			>
+				<p class="text-sm text-on-surface-variant">
+					Could not load guide. Use the AI Assistant below for help.
+				</p>
 			</div>
 		{/if}
-
-	{:else if rulebookState === 'error'}
-		<p class="text-center text-xs text-error py-8">Failed to load rulebook status. Try refreshing.</p>
+	{:else if rulebookState === "error"}
+		<p class="text-center text-xs text-error py-8">
+			Failed to load rulebook status. Try refreshing.
+		</p>
 	{/if}
 
 	<!-- Admin upload (always visible to admins) -->
 	{#if isAdmin}
-		<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-4">
-			<p class="text-[10px] font-bold uppercase tracking-widest text-primary mb-3">Admin</p>
+		<div
+			class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-4"
+		>
+			<p
+				class="text-[10px] font-bold uppercase tracking-widest text-primary mb-3"
+			>
+				Admin
+			</p>
 			<input
 				bind:this={adminFileInput}
 				type="file"
@@ -568,10 +822,15 @@
 				class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-bold disabled:opacity-50"
 			>
 				{#if uploading}
-					<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+					<span
+						class="material-symbols-outlined text-[18px] animate-spin"
+						>progress_activity</span
+					>
 					Uploading…
 				{:else}
-					<span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+					<span class="material-symbols-outlined text-[18px]"
+						>admin_panel_settings</span
+					>
 					Override: Upload PDF (auto-approve)
 				{/if}
 			</button>
@@ -579,7 +838,7 @@
 	{/if}
 
 	<!-- AI Assistant CTA -->
-	<button
+	<!-- <button
 		onclick={onOpenAssistant}
 		class="w-full bg-tertiary-container/30 rounded-3xl p-6 border border-tertiary/10 flex flex-col items-center text-center gap-3 mt-4 hover:bg-tertiary-container/40 transition-colors"
 	>
@@ -592,7 +851,7 @@
 				Our AI Assistant can answer specific edge cases and unusual situations.
 			</p>
 		</div>
-	</button>
+	</button> -->
 </div>
 
 <style>

@@ -64,8 +64,22 @@ public class DataSeedRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        // Run in a virtual thread so startup completes immediately.
-        Thread.ofVirtual().name("data-seed").start(this::seed);
+        log.info("[seed] Auto-run disabled — use Admin → System Setup to trigger import/hydration.");
+    }
+
+    /** Called from admin panel — re-runs import even if flag is set. */
+    public void triggerImport() {
+        redis.delete(GAMES_IMPORTED_FLAG);
+        redis.delete(HYDRATION_STARTED_FLAG);
+        Thread.ofVirtual().name("data-seed-manual").start(this::seed);
+    }
+
+    /** Called from admin panel — re-runs hydration even if flag is set. */
+    public void triggerHydration() {
+        redis.delete(HYDRATION_STARTED_FLAG);
+        redis.delete(GameHydrationService.STOP_FLAG_KEY);
+        redis.opsForValue().set(HYDRATION_STARTED_FLAG, "1");
+        hydrationService.hydrateAllMissingImages();
     }
 
     private void seed() {

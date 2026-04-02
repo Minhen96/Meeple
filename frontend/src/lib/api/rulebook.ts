@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { RulebookStatus } from '$lib/types';
+import type { ApiResponse, RulebookStatus } from '$lib/types';
 
 export interface GenerateRulebookResult {
 	status: 'generating' | 'not_found' | 'already_done';
@@ -13,10 +13,14 @@ export interface UploadRulebookResult {
 
 export const rulebookApi = {
 	getStatus: (gameId: string): Promise<RulebookStatus> =>
-		api.get<RulebookStatus>(`/api/v1/games/${gameId}/rulebook/status`),
+		api
+			.get<ApiResponse<RulebookStatus>>(`/api/v1/games/${gameId}/rulebook/status`)
+			.then((r) => r.data),
 
 	generate: (gameId: string): Promise<GenerateRulebookResult> =>
-		api.post<GenerateRulebookResult>(`/api/v1/games/${gameId}/rulebook/generate`),
+		api
+			.post<ApiResponse<GenerateRulebookResult>>(`/api/v1/games/${gameId}/rulebook/generate`)
+			.then((r) => r.data),
 
 	upload: (gameId: string, file: File): Promise<UploadRulebookResult> => {
 		const form = new FormData();

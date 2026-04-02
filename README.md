@@ -155,40 +155,45 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 
 > If you skip this step, AI features (How to Play, AI Assistant, smart search) will not work, but the rest of the app runs normally.
 
-### 6. Import Initial Board Game Dataset
+### 6. Board Game Catalog — Admin-Controlled Data Pipeline
 
-The application's global catalog uses a SQLite dataset of ~90,000 board games from BoardGameGeek. This is a **one-time setup** — run these two steps after first launch.
+The backend has a **three-step data pipeline** that must be triggered manually by an admin. Nothing runs automatically on startup — you control when each step begins. All steps are tracked by Redis flags and are **crash-safe**: if the server restarts mid-run, each step resumes from where it stopped.
 
-**Step 1 — place the dataset:**
+#### How to trigger: Profile → System button
 
-Put `database.sqlite` into `reference/dataset/`.
+Log in as an admin, go to **Profile → System**. The panel shows live progress bars for all 3 steps and lets you start/stop each one.
 
-**Step 2 — run the import** (wipes existing catalog and re-imports from SQLite, ~1–2 min):
+#### Step 1 — Game catalog import (`init:games-imported`)
 
-```powershell
-Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/v1/games/import"
-```
+1. Upload `boardgames.csv` (161k BGG games) to your R2 bucket
+2. Set `SEED_CSV_URL=https://cdn.example.com/boardgames.csv` in your environment
+3. In the System Setup panel, click **Check CSV Access** to verify the URL is reachable, then click **Start**
+4. The backend downloads and imports the CSV (~2–3 min)
 
-**Step 3 — hydrate images** (fetches thumbnail URLs from BGG API for all games, runs in background, ~3 hours):
+#### Step 2 — BGG hydration (`init:games-hydration-started`)
 
-```powershell
-Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/v1/games/hydrate-images"
-```
+Click **Start** after the catalog import. Hits the BGG API in batches of 20 (1.1 s delay) to fill in mechanics, categories, player counts, designers, etc.
 
-> Images appear progressively as the hydration job runs. You do not need to wait for it to finish — browse the app normally and images will fill in over time. Watch backend logs (`Bulk hydration progress: X games hydrated...`) to track progress.
->
-> The hydration job only needs to be re-run if you re-import the dataset.
+- Takes ~3 hours for 161k games due to BGG rate limiting
+- Games become usable immediately — hydration fills in data progressively
+- Watch logs: `Bulk hydration progress: X games hydrated so far...`
 
-**Step 4 — rulebook startup pump** (runs automatically on first boot, requires AI env vars):
+#### Step 3 — Rulebook pump (`init:rulebook-fetch`)
 
-On the **first startup after the dataset import**, the backend automatically fetches rulebook PDFs for the top 10,000 games by BGG rank. It scrapes [rule-book.org](https://rule-book.org) and [1jour1jeu](https://en.1jour-1jeu.com), downloads each PDF, chunks it into 375-word overlapping segments, and embeds them with `text-embedding-3-small`.
+Click **Start** after hydration. Fetches PDF rulebooks for the top 10,000 games by BGG rank from [rule-book.org](https://rule-book.org) and [1jour1jeu](https://en.1jour-1jeu.com), then embeds them with `text-embedding-3-small`.
 
-- Runs **once** — a Redis flag (`init:rulebook-fetch`) prevents re-runs on subsequent restarts
-- **Crash-safe** — if the server restarts mid-run, already-processed games are skipped and the job resumes from where it left off
-- **Estimated cost** — ~$0.40 one-time (text-embedding-3-small at $0.02/1M tokens for 10,000 games)
-- **Watch progress** in the logs: `Rulebook auto-fetch starting`, `Queued ingestion for '...'`, `Rulebook auto-fetch complete — fetched X/Y`
+- **Estimated one-time cost**: ~$0.40 (embeddings only)
+- **Crash-safe**: already-approved games are skipped on restart
+- Watch logs: `Queued ingestion for '...' via rule_book_org`
+- Verify completion: `SELECT status, COUNT(*) FROM game_rulebooks GROUP BY status`
 
-For games not covered by the startup pump, users can trigger rulebook fetching manually via the **"Generate Rules"** button in the How to Play tab, or upload a PDF themselves (goes to admin review queue).
+For games not covered, users can click **"Generate Rules"** in the How to Play tab, or upload a PDF themselves (goes to admin review queue).
+
+#### System Setup panel controls
+
+- **Start** — triggers a step (safe to re-run; re-clears flags automatically)
+- **Stop** — graceful stop for hydration and rulebook pump (stops after current batch/game)
+- **Reset All Flags** — clears all Redis flags; use Start buttons to re-run each step
 
 ## Staging / Production Setup
 
@@ -243,7 +248,7 @@ AWS_ACCOUNT_ID         # Your AWS account ID (used to build the ECR URI)
 
 ---
 
-### Backend env vars (Elastic Beanstalk environment)
+### Backend env vars (Railway / Elastic Beanstalk)
 
 ```
 # Database (Neon)
@@ -266,19 +271,22 @@ COOKIE_DOMAIN=yapminhen.com
 APP_BASE_URL=https://meeple.yapminhen.com
 FRONTEND_URL=https://meeple.yapminhen.com
 
-# Cloudflare R2
+# Cloudflare R2  (endpoint must NOT include bucket name)
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_ACCESS_KEY=...
 R2_SECRET_KEY=...
 R2_BUCKET=meeple-prod
 R2_PUBLIC_URL=https://cdn.yapminhen.com
 
-# AI — Completion (DeepSeek / OpenAI / Groq)
+# Game catalog seed CSV (upload boardgames.csv to R2 first, then set this URL)
+SEED_CSV_URL=https://cdn.yapminhen.com/boardgames.csv
+
+# AI — Completion (DeepSeek / OpenAI / Groq — any OpenAI-compatible provider)
 AI_COMPLETION_BASE_URL=https://api.deepseek.com
 AI_COMPLETION_API_KEY=sk-...
 AI_COMPLETION_MODEL=deepseek-chat
 
-# AI — Embeddings (OpenAI text-embedding-3-small)
+# AI — Embeddings (OpenAI only — DeepSeek has no embedding API)
 AI_EMBEDDING_BASE_URL=https://api.openai.com
 AI_EMBEDDING_API_KEY=sk-...
 AI_EMBEDDING_MODEL=text-embedding-3-small
@@ -291,6 +299,10 @@ EMAIL_FROM=noreply@meeple.yapminhen.com
 SPRING_PROFILES_ACTIVE=prod
 JAVA_TOOL_OPTIONS=-Xms512m -Xmx1024m
 ```
+
+> **R2 note:** The endpoint is your account-level S3 URL — do NOT append the bucket name. Example:
+> `R2_ENDPOINT=https://abc123.r2.cloudflarestorage.com` ✓
+> `R2_ENDPOINT=https://abc123.r2.cloudflarestorage.com/meeple-prod` ✗
 
 ### Frontend env vars (Cloudflare Pages dashboard)
 

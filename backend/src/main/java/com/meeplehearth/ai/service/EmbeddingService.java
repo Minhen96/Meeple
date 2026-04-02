@@ -47,6 +47,10 @@ public class EmbeddingService {
                     .header(HttpHeaders.CONTENT_TYPE, "application/json")
                     .body(body)
                     .retrieve()
+                    .onStatus(status -> status.isError(), (request, errRes) -> {
+                        // This will be caught by the general catch block below
+                        throw new RuntimeException("API returned " + errRes.getStatusCode());
+                    })
                     .body(String.class);
 
             JsonNode embeddingArray = objectMapper.readTree(response)
@@ -59,6 +63,8 @@ public class EmbeddingService {
             return result;
 
         } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(EmbeddingService.class)
+                    .error("Embedding API failure: {}", e.getMessage(), e);
             throw new RuntimeException("Embedding failed: " + e.getMessage(), e);
         }
     }

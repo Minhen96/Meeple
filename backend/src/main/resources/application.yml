@@ -81,3 +81,10 @@ resilience4j:
         timeoutDuration: 8s
       openai:
         timeoutDuration: 30s
+
+logging:
+  level:
+    root: INFO
+    org.apache.pdfbox: ERROR
+    org.apache.fontbox: ERROR
+    com.meeplehearth: INFO

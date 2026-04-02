@@ -12,7 +12,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -38,8 +37,9 @@ import java.util.Optional;
 public class RulebookAutoFetchJob implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(RulebookAutoFetchJob.class);
-    private static final String INIT_FLAG_KEY = "init:rulebook-fetch";
-    private static final int INITIAL_BATCH_SIZE = 10000;
+    public static final String INIT_FLAG_KEY     = "init:rulebook-fetch";
+    public static final String STOP_FLAG_KEY    = "stop:rulebook-fetch";
+
 
     private final GameRulebookRepository rulebookRepository;
     private final RulebookIngestionService ingestionService;
@@ -65,16 +65,7 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(INIT_FLAG_KEY))) {
-            log.info("Rulebook initial fetch already done — skipping");
-            return;
-        }
-        runBatchAsync();
-    }
-
-    @Async
-    public void runBatchAsync() {
-        runBatch(INITIAL_BATCH_SIZE, INIT_FLAG_KEY);
+        log.info("Rulebook pump auto-run disabled — use Admin → System Setup to trigger.");
     }
 
     // -------------------------------------------------------------------------
@@ -100,6 +91,10 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
 
         int fetched = 0;
         for (Game game : games) {
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(STOP_FLAG_KEY))) {
+                log.info("Rulebook fetch stop requested — stopping at {}/{}", fetched, games.size());
+                break;
+            }
             if (fetchForGame(game))
                 fetched++;
         }

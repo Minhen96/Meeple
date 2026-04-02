@@ -3,7 +3,6 @@ package com.meeplehearth.ai.controller;
 import com.meeplehearth.ai.dto.AiAnswerResponse;
 import com.meeplehearth.ai.dto.AiQueryRequest;
 import com.meeplehearth.ai.service.AiService;
-import com.meeplehearth.user.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,11 +19,9 @@ import java.util.UUID;
 public class AiController {
 
     private final AiService aiService;
-    private final UserRepository userRepository;
 
-    public AiController(AiService aiService, UserRepository userRepository) {
+    public AiController(AiService aiService) {
         this.aiService = aiService;
-        this.userRepository = userRepository;
     }
 
     @PostMapping("/rules")
@@ -34,9 +31,7 @@ public class AiController {
 
         UUID userId = null;
         if (userDetails != null) {
-            userId = userRepository.findByUsernameIgnoreCase(userDetails.getUsername())
-                    .map(u -> u.getId())
-                    .orElse(null);
+            try { userId = UUID.fromString(userDetails.getUsername()); } catch (IllegalArgumentException ignored) {}
         }
 
         return ResponseEntity.ok(aiService.ask(userId, request));

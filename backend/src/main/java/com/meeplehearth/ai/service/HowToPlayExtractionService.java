@@ -97,7 +97,7 @@ public class HowToPlayExtractionService {
             entity.setUpdatedAt(Instant.now());
             howToPlayRepository.save(entity);
 
-            log.info("How-to-play extracted for '{}' (mode={})", game.getNameEn(), sourceMode);
+            log.debug("How-to-play extracted for '{}' (mode={})", game.getNameEn(), sourceMode);
 
         } catch (Exception e) {
             log.error("How-to-play extraction failed for game {}: {}", gameId, e.getMessage(), e);
@@ -134,33 +134,16 @@ public class HowToPlayExtractionService {
 
     private Map<String, Object> extractStructure(String gameName, String context) throws Exception {
         String prompt = """
-                You are a rule extraction engine. Analyze the provided game rules for %s and output a structured JSON.
-                Include ONLY fields relevant to this specific game. Omit null/empty/false fields.
-                Output pure JSON only — no markdown, no explanation.
-
-                Required schema (include only applicable fields):
-                {
-                  "overview": "",
-                  "objective": "",
-                  "gameStructure": { "mode": "", "phases": [{"name":"","description":"","actions":[]}], "turnOrder": "" },
-                  "components": [{"name":"","type":"","description":"","quantity":0}],
-                  "board": {"exists":true,"type":"","description":""},
-                  "resources": [{"name":"","type":"","usedFor":"","gainedBy":""}],
-                  "cardSystem": {"exists":true,"cardTypes":[{"name":"","description":""}],"deckRules":"","handRules":""},
-                  "actions": [{"name":"","type":"","cost":"","effect":"","constraints":""}],
-                  "rules": {"coreRules":"","specialRules":[{"name":"","description":""}],"edgeCases":""},
-                  "winCondition": {"type":"","details":""},
-                  "scoring": {"exists":true,"methods":[{"item":"","points":""}]},
-                  "endCondition": {"trigger":"","notes":""},
-                  "roles": {"exists":true,"list":[{"name":"","abilities":"","winCondition":""}]},
-                  "variants": [{"name":"","description":""}]
-                }
+                You are a board game expert. Based on the provided rules, extract a concise 'How to Play' guide for %s.
+                Return ONLY a JSON object with these keys: overview, objective, setup, gameplay, end_of_game.
+                Maintain a professional tone. Keep each section short to avoid truncation.
+                Strictly return ONLY the JSON object. Do not include any other text.
 
                 GAME RULES CONTEXT:
                 """.formatted(gameName) + context;
 
         String json = completionService.complete(
-                List.of(Map.of("role", "user", "content", prompt)), 2000, 0.2);
+                List.of(Map.of("role", "user", "content", prompt)), 2500, 0.2);
 
         return parseJson(json);
     }
@@ -200,11 +183,55 @@ public class HowToPlayExtractionService {
         if (cleaned.startsWith("```")) {
             cleaned = cleaned.replaceAll("^```[a-z]*\\n?", "").replaceAll("```$", "").strip();
         }
+        
         try {
-            return objectMapper.readValue(cleaned, new TypeReference<>() {});
+            return new HashMap<>(objectMapper.readValue(cleaned, new TypeReference<Map<String, Object>>() {}));
         } catch (Exception e) {
-            log.warn("Failed to parse LLM JSON response, storing as raw text: {}", e.getMessage());
-            return Map.of("raw", cleaned);
+            log.debug("Standard JSON parse failed, attempting repair... ({})", e.getMessage());
+            try {
+                String repaired = repairJson(cleaned);
+                return new HashMap<>(objectMapper.readValue(repaired, new TypeReference<Map<String, Object>>() {}));
+            } catch (Exception re) {
+                log.warn("Failed to parse/repair LLM JSON response for rulebook extraction: {}", re.getMessage());
+                Map<String, Object> fallback = new HashMap<>();
+                fallback.put("raw", cleaned);
+                return fallback;
+            }
         }
+    }
+
+    /**
+     * Minimal effort to close open strings and braces in truncated JSON.
+     */
+    private String repairJson(String json) {
+        String result = json.strip();
+        
+        // Count unclosed quotes
+        long quotes = result.chars().filter(ch -> ch == '"').count();
+        if (quotes % 2 != 0) {
+            result += "\"";
+        }
+        
+        // Close braces/brackets
+        int openBraces = 0;
+        int openBrackets = 0;
+        boolean inString = false;
+        char prev = '\0';
+        
+        for (char c : result.toCharArray()) {
+            if (c == '"' && prev != '\\') inString = !inString;
+            if (!inString) {
+                if (c == '{') openBraces++;
+                else if (c == '}') openBraces--;
+                else if (c == '[') openBrackets++;
+                else if (c == ']') openBrackets--;
+            }
+            prev = c;
+        }
+        
+        while (openBrackets > 0) { result += "]"; openBrackets--; }
+        while (openBraces > 0) { result += "}"; openBraces--; }
+        
+        return result;
     }
 }

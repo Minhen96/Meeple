@@ -17,6 +17,9 @@ import java.util.UUID;
 @Repository
 public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID> {
 
+    @Query("SELECT r FROM GameRulebook r JOIN FETCH r.game WHERE r.id = :id")
+    Optional<GameRulebook> findByIdWithGame(@Param("id") UUID id);
+
     boolean existsByGame_IdAndStatus(UUID gameId, String status);
 
     Optional<GameRulebook> findFirstByGame_IdAndStatus(UUID gameId, String status);

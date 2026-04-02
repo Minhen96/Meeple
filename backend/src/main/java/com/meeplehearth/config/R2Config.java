@@ -22,11 +22,14 @@ public class R2Config {
     @Bean
     public S3Client s3Client() {
         AppProperties.R2 r2 = appProperties.getR2();
+        String endpoint   = blankSafe(r2.getEndpoint(),   "https://placeholder.r2.dev");
+        String accessKey  = blankSafe(r2.getAccessKey(),  "placeholder");
+        String secretKey  = blankSafe(r2.getSecretKey(),  "placeholder");
         return S3Client.builder()
-                .endpointOverride(URI.create(r2.getEndpoint()))
+                .endpointOverride(URI.create(endpoint))
                 .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(r2.getAccessKey(), r2.getSecretKey())
+                        AwsBasicCredentials.create(accessKey, secretKey)
                 ))
                 .build();
     }
@@ -34,12 +37,19 @@ public class R2Config {
     @Bean
     public S3Presigner s3Presigner() {
         AppProperties.R2 r2 = appProperties.getR2();
+        String endpoint   = blankSafe(r2.getEndpoint(),   "https://placeholder.r2.dev");
+        String accessKey  = blankSafe(r2.getAccessKey(),  "placeholder");
+        String secretKey  = blankSafe(r2.getSecretKey(),  "placeholder");
         return S3Presigner.builder()
-                .endpointOverride(URI.create(r2.getEndpoint()))
+                .endpointOverride(URI.create(endpoint))
                 .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(r2.getAccessKey(), r2.getSecretKey())
+                        AwsBasicCredentials.create(accessKey, secretKey)
                 ))
                 .build();
+    }
+
+    private static String blankSafe(String value, String fallback) {
+        return (value != null && !value.isBlank()) ? value : fallback;
     }
 }

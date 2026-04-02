@@ -90,19 +90,22 @@
 
 		const userMessage = inputValue.trim();
 		inputValue = "";
-		messages.push({ role: "user", content: userMessage });
+		messages = [...messages, { role: "user", content: userMessage }];
 		await scrollToBottom();
 
 		isTyping = true;
 		try {
 			const history = getHistory();
 			const res = await aiApi.askRules(gameId, userMessage, history);
-			messages.push({
-				role: "assistant",
-				content: res.answer,
-				sourceMode: res.sourceMode,
-				disclaimer: res.disclaimer
-			});
+			messages = [
+				...messages,
+				{
+					role: "assistant" as const,
+					content: res.answer,
+					sourceMode: res.sourceMode,
+					disclaimer: res.disclaimer
+				}
+			];
 			saveToStorage();
 		} catch (e) {
 			let content: string;
@@ -117,7 +120,7 @@
 			} else {
 				content = "Could not reach the server. Check your connection and try again.";
 			}
-			messages.push({ role: "assistant", content });
+			messages = [...messages, { role: "assistant" as const, content }];
 		} finally {
 			isTyping = false;
 			await scrollToBottom();

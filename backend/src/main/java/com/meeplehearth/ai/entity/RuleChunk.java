@@ -4,6 +4,7 @@ import com.meeplehearth.game.entity.Game;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.util.UUID;
@@ -43,5 +44,6 @@ public class RuleChunk {
     // Stored as pgvector literal: "[v1,v2,...,v1536]"
     // Use EmbeddingService.toVectorString(float[]) to convert before setting.
     @Column(name = "embedding", columnDefinition = "vector(1536)")
+    @ColumnTransformer(write = "?::vector")
     private String embedding;
 }

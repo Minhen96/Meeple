@@ -60,12 +60,17 @@ public class AiCompletionService {
                     .header(HttpHeaders.CONTENT_TYPE, "application/json")
                     .body(body)
                     .retrieve()
+                    .onStatus(status -> status.isError(), (request, errRes) -> {
+                        throw new RuntimeException("API returned " + errRes.getStatusCode());
+                    })
                     .body(String.class);
 
             return objectMapper.readTree(response)
                     .path("choices").get(0).path("message").path("content").asText();
 
         } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AiCompletionService.class)
+                    .error("Completion API failure: {}", e.getMessage(), e);
             throw new RuntimeException("Completion failed: " + e.getMessage(), e);
         }
     }

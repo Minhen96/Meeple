@@ -7,6 +7,7 @@ import com.meeplehearth.game.repository.GameRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,18 @@ public class GameHydrationService {
     private static final Logger log = LoggerFactory.getLogger(GameHydrationService.class);
     private static final int BGG_BATCH_SIZE = 20;
     private static final long BGG_DELAY_MS = 1100;
+    public  static final String STOP_FLAG_KEY = "stop:hydration";
 
     private final GameRepository gameRepository;
     private final BggApiClient bggApiClient;
+    private final StringRedisTemplate redis;
 
-    public GameHydrationService(GameRepository gameRepository, BggApiClient bggApiClient) {
+    public GameHydrationService(GameRepository gameRepository,
+                                BggApiClient bggApiClient,
+                                StringRedisTemplate redis) {
         this.gameRepository = gameRepository;
         this.bggApiClient = bggApiClient;
+        this.redis = redis;
     }
 
     /** Called from browse — async, fires and forgets hydration for the current page */
@@ -63,6 +69,11 @@ public class GameHydrationService {
         // Always page=0: as games are hydrated they leave the null-minPlayers set,
         // so the next "page 0" is always a fresh batch of unhydrated games.
         do {
+            if (Boolean.TRUE.equals(redis.hasKey(STOP_FLAG_KEY))) {
+                log.info("Hydration stop requested — stopping at {} games hydrated.", total);
+                break;
+            }
+
             batch = gameRepository.findByMinPlayersIsNull(PageRequest.of(0, BGG_BATCH_SIZE));
             if (batch.isEmpty()) break;
 

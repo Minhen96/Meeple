@@ -102,8 +102,11 @@ public class AiService {
         if (hasRulebook) {
             float[] embedding = embeddingService.embed(searchQuery);
             String embeddingStr = EmbeddingService.toVectorString(embedding);
+
+            log.debug("Searching for similar chunks for game {} using embedding", game.getNameEn());
             List<RuleChunk> chunks = ruleChunkRepository.findSimilarChunks(
                     game.getId(), embeddingStr, RAG_CHUNK_LIMIT);
+            log.info("Found {} similar chunks for RAG search", chunks.size());
             context = chunks.stream()
                     .map(RuleChunk::getChunkText)
                     .collect(Collectors.joining("\n\n---\n\n"));

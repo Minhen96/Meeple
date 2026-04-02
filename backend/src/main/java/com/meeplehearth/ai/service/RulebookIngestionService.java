@@ -66,7 +66,7 @@ public class RulebookIngestionService {
 
     @Async
     public void ingestAsync(UUID rulebookId) {
-        rulebookRepository.findById(rulebookId).ifPresent(this::ingest);
+        rulebookRepository.findByIdWithGame(rulebookId).ifPresent(this::ingest);
     }
 
     @Transactional
@@ -77,7 +77,7 @@ public class RulebookIngestionService {
             return;
         }
 
-        log.info("Ingesting rulebook {} for game '{}' from {}",
+        log.debug("Ingesting rulebook {} for game '{}' from {}",
                 rulebook.getId(), rulebook.getGame().getNameEn(), downloadUrl);
 
         try {
@@ -116,7 +116,7 @@ public class RulebookIngestionService {
             rulebook.setStatus("approved");
             rulebookRepository.save(rulebook);
 
-            log.info("Ingested {} chunks for game '{}'", ruleChunks.size(), rulebook.getGame().getNameEn());
+            log.debug("Ingested {} chunks for game '{}'", ruleChunks.size(), rulebook.getGame().getNameEn());
 
             // 6. Re-generate How-to-Play from the fresh chunks
             extractionService.extractAsync(rulebook.getGame().getId(), rulebook.getGame());
