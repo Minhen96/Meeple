@@ -81,6 +81,16 @@ public class UserService {
         );
     }
 
+    @Transactional
+    public void promoteToAdmin(UUID userId) {
+        User user = findActiveUser(userId);
+        if ("ADMIN".equals(user.getRole())) {
+            throw ApiException.badRequest("ALREADY_ADMIN", "User is already an admin");
+        }
+        user.setRole("ADMIN");
+        userRepository.save(user);
+    }
+
     private User findActiveUser(UUID userId) {
         return userRepository.findById(userId)
                 .filter(u -> u.getDeletedAt() == null)

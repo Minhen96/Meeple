@@ -485,7 +485,7 @@
 						<div class="flex items-center justify-between">
 							<span
 								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>Player Dynamics</span
+								>Player Count</span
 							>
 							<span class="text-[10px] font-bold text-primary"
 								>Min - Max</span

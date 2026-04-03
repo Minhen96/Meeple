@@ -64,7 +64,7 @@ public class GameController {
             @RequestParam(required = false) BigDecimal maxComplexity,
             @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(required = false) String sort,
-            @PageableDefault(size = 20) Pageable pageable,
+            @PageableDefault(size = 20, sort = "rank") Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         if ("recommended".equalsIgnoreCase(sort) && userDetails != null) {

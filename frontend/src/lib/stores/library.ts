@@ -25,7 +25,7 @@ interface LibraryState {
 export const defaultState: LibraryState = {
 	gamesPage: { content: [], number: 0, last: true, totalPages: 1, totalElements: 0 },
 	activeTab: 'all',
-	sortOption: '',
+	sortOption: 'rank,asc',
 	selectedGenre: ''
 };
 

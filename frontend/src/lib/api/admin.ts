@@ -30,5 +30,8 @@ export const adminApi = {
 		api.post<{ status: string }>(`/api/v1/admin/rule-notes/${id}/approve`),
 
 	rejectRuleNote: (id: string, reason?: string): Promise<{ status: string }> =>
-		api.post<{ status: string }>(`/api/v1/admin/rule-notes/${id}/reject`, { reason })
+		api.post<{ status: string }>(`/api/v1/admin/rule-notes/${id}/reject`, { reason }),
+	
+	promoteUser: (userId: string): Promise<void> =>
+		api.post<void>(`/api/v1/admin/users/${userId}/promote`)
 };

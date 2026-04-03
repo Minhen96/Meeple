@@ -20,22 +20,29 @@
 					label: "Edit Profile",
 					href: "/settings/profile",
 					icon: "person",
+					danger: false,
+					action: undefined
 				},
 				{
 					label: "Change Password",
 					href: "/settings/password",
 					icon: "lock",
+					danger: false,
+					action: undefined
 				},
 				{
 					label: "BGG Import",
 					href: "/settings/bgg",
 					icon: "cloud_download",
+					danger: false,
+					action: undefined
 				},
 				{
 					label: "Delete Account",
 					href: "/settings/delete-account",
 					icon: "delete",
 					danger: true,
+					action: undefined
 				},
 			],
 		},
@@ -48,17 +55,29 @@
 								label: "Review Queue",
 								href: "/admin/rulebooks",
 								icon: "rate_review",
+								danger: false,
+								action: undefined
 							},
 							{
 								label: "System Health",
 								href: "/admin/health",
 								icon: "monitoring",
+								danger: false,
+								action: undefined
 							},
 							{
 								label: "Boardgame Rules Import",
 								href: null,
 								icon: "settings_suggest",
+								danger: false,
 								action: () => (showSetupModal = true),
+							},
+							{
+								label: "Promote Admin",
+								href: "/settings/management",
+								icon: "person_add",
+								danger: false,
+								action: undefined
 							},
 						],
 					},
@@ -71,12 +90,22 @@
 					label: "Notification Preferences",
 					href: "/settings/notifications",
 					icon: "notifications",
+					danger: false,
+					action: undefined
 				},
 			],
 		},
 		{
 			title: "About",
-			items: [{ label: "App Version 1.0.0", href: null, icon: "info" }],
+			items: [
+				{
+					label: "App Version 1.0.0",
+					href: null,
+					icon: "info",
+					danger: false,
+					action: undefined
+				}
+			],
 		},
 	]);
 
