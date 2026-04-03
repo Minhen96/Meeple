@@ -45,12 +45,18 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 async function request<T>(path: string, options?: RequestInit, isRetry = false): Promise<T> {
+	const isFormData = options?.body instanceof FormData;
+	const headers: Record<string, string> = {
+		...options?.headers
+	} as Record<string, string>;
+
+	if (!isFormData && !headers['Content-Type']) {
+		headers['Content-Type'] = 'application/json';
+	}
+
 	const res = await fetch(`${BASE_URL}${path}`, {
-		credentials: 'include', // sends httpOnly cookie automatically
-		headers: {
-			'Content-Type': 'application/json',
-			...options?.headers
-		},
+		credentials: 'include',
+		headers,
 		...options
 	});
 
@@ -120,22 +126,25 @@ async function request<T>(path: string, options?: RequestInit, isRetry = false):
 export const api = {
 	get: <T>(path: string) => request<T>(path),
 
-	post: <T>(path: string, body?: unknown) =>
+	post: <T>(path: string, body?: unknown, options?: RequestInit) =>
 		request<T>(path, {
 			method: 'POST',
-			body: body !== undefined ? JSON.stringify(body) : undefined
+			body: body instanceof FormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+			...options
 		}),
 
-	put: <T>(path: string, body?: unknown) =>
+	put: <T>(path: string, body?: unknown, options?: RequestInit) =>
 		request<T>(path, {
 			method: 'PUT',
-			body: body !== undefined ? JSON.stringify(body) : undefined
+			body: body instanceof FormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+			...options
 		}),
 
-	patch: <T>(path: string, body?: unknown) =>
+	patch: <T>(path: string, body?: unknown, options?: RequestInit) =>
 		request<T>(path, {
 			method: 'PATCH',
-			body: body !== undefined ? JSON.stringify(body) : undefined
+			body: body instanceof FormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
+			...options
 		}),
 
 	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' })

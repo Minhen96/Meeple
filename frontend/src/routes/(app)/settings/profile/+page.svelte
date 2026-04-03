@@ -2,6 +2,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import { usersApi } from '$lib/api/users';
+	import { uploadApi } from '$lib/api/upload';
 	import { setUser } from '$lib/stores/auth';
 	import { ApiRequestError } from '$lib/api/client';
 	import type { PageData } from './$types';
@@ -9,13 +10,20 @@
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-	let displayName = $state(data.user?.displayName ?? '');
-	let bio = $state(data.user?.bio ?? '');
-	let location = $state(data.user?.location ?? '');
-	let avatarUrl = $state(data.user?.avatarUrl ?? null);
+	let displayName = $state('');
+	let bio = $state('');
+	let location = $state('');
+	let avatarUrl = $state<string | null>(null);
 	let loading = $state(false);
 	let avatarUploading = $state(false);
 	let error = $state('');
+
+	$effect.pre(() => {
+		displayName = data.user?.displayName ?? '';
+		bio = data.user?.bio ?? '';
+		location = data.user?.location ?? '';
+		avatarUrl = data.user?.avatarUrl ?? null;
+	});
 
 	let fileInput: HTMLInputElement;
 
@@ -26,17 +34,8 @@
 		avatarUploading = true;
 		error = '';
 		try {
-			const form = new FormData();
-			form.append('file', file);
-			const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/upload/avatar`, {
-				method: 'POST',
-				credentials: 'include',
-				body: form
-			});
-			if (!res.ok) throw new Error('Upload failed');
-			const body = await res.json();
-			// ResponseWrappingAdvice wraps plain Map responses in { data: {...} }
-			avatarUrl = body.data?.publicUrl ?? body.publicUrl;
+			const { publicUrl } = await uploadApi.direct(file);
+			avatarUrl = publicUrl;
 		} catch {
 			error = 'Failed to upload photo. Please try again.';
 		} finally {
@@ -90,7 +89,7 @@
 				src={avatarUrl}
 				name={displayName || data.user?.username || '?'}
 				size="none"
-				class="w-24 h-24 rounded-full object-cover"
+				className="w-24 h-24 rounded-full object-cover"
 			/>
 			{#if avatarUploading}
 				<div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">

@@ -82,6 +82,43 @@ public class StorageController {
     }
 
     /**
+     * POST /api/v1/upload (multipart/form-data, field: "file")
+     *
+     * Generic direct upload to the backend, bypassing browser CORS.
+     * Response: { "publicUrl": "https://...", "key": "uploads/..." }
+     */
+    @PostMapping(value = "", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, String>> upload(
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal UserDetails userDetails) throws IOException {
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
+            throw ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE",
+                    "Only image/jpeg, image/png, image/webp, and image/gif are allowed");
+        }
+
+        String ext = extensionFor(contentType);
+        String key = "uploads/" + userDetails.getUsername() + "/" + UUID.randomUUID() + "." + ext;
+
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(appProperties.getR2().getBucket())
+                .key(key)
+                .contentType(contentType)
+                .contentLength(file.getSize())
+                .build();
+
+        s3Client.putObject(putRequest,
+                software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
+
+        String publicUrl = appProperties.getR2().getPublicUrl() + "/" + key;
+        return ResponseEntity.ok(Map.of(
+                "publicUrl", publicUrl,
+                "key", key
+        ));
+    }
+
+    /**
      * POST /api/v1/upload/avatar  (multipart/form-data, field: "file")
      *
      * Uploads an avatar image directly from the backend to R2, bypassing browser CORS.
