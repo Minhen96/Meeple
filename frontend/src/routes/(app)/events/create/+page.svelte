@@ -224,11 +224,11 @@
 		</div>
 
 		<!-- Bottom Action -->
-		<div class="mt-8">
+		<div class="mt-8 pb-12">
 			<button
 				type="submit"
 				disabled={loading}
-				class="w-full py-4.5 bg-on-surface text-surface rounded-3xl font-headline font-black text-base shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 overflow-hidden relative group"
+				class="w-full h-16 bg-on-surface text-surface rounded-[1.25rem] font-headline font-black text-lg shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 overflow-hidden relative group"
 			>
 				<div class="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 				<span class="material-symbols-outlined text-[20px] relative z-10 group-hover:animate-bounce">rocket_launch</span>
