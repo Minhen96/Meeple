@@ -16,8 +16,8 @@ export interface Rulebook {
 }
 
 export interface UploadRulebookResult {
-	status: 'queued' | 'already_done';
-	queuePosition?: number;
+	status: 'ingesting' | 'already_done';
+	rulebookId?: string;
 }
 
 export const rulebookApi = {

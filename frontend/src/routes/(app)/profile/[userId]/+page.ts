@@ -1,5 +1,6 @@
 import { usersApi } from '$lib/api/users';
 import { friendsApi } from '$lib/api/friends';
+import { gamesApi } from '$lib/api/games';
 import { redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 
@@ -15,5 +16,15 @@ export const load: PageLoad = async ({ params, parent }) => {
 		usersApi.getUser(params.userId),
 		friendsApi.getStatus(params.userId)
 	]);
-	return { user, friendStatus };
+
+	let collection: Awaited<ReturnType<typeof gamesApi.getUserCollection>> = [];
+	let activity: Awaited<ReturnType<typeof gamesApi.getUserActivity>> = [];
+	if (friendStatus.status === 'FRIENDS') {
+		[collection, activity] = await Promise.all([
+			gamesApi.getUserCollection(params.userId).catch(() => []),
+			gamesApi.getUserActivity(params.userId).catch(() => [])
+		]);
+	}
+
+	return { user, friendStatus, collection, activity };
 };

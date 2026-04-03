@@ -139,6 +139,20 @@ public class GameController {
         return ResponseEntity.ok(gameService.logPlay(userId, gameId));
     }
 
+    /** GET /api/v1/users/{userId}/games — view another user's collection (friends only, enforced by frontend) */
+    @GetMapping("/users/{userId}/games")
+    public ResponseEntity<List<UserGameResponse>> getUserCollection(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "all") String filter) {
+        return ResponseEntity.ok(gameService.getCollection(userId, filter));
+    }
+
+    /** GET /api/v1/users/{userId}/plays — view another user's activity (friends only, enforced by frontend) */
+    @GetMapping("/users/{userId}/plays")
+    public ResponseEntity<List<ActivityLogResponse>> getUserActivity(@PathVariable UUID userId) {
+        return ResponseEntity.ok(gameService.getActivity(userId));
+    }
+
     /** DELETE /api/v1/users/me/games/{gameId} — remove from collection entirely */
     @DeleteMapping("/users/me/games/{gameId}")
     public ResponseEntity<Void> removeFromCollection(

@@ -68,6 +68,16 @@ public class FriendController {
         return ResponseEntity.ok(friendService.acceptFriendRequest(currentUserId, id));
     }
 
+    /** DELETE /api/v1/friend-requests/{id} — cancel a pending request you sent */
+    @DeleteMapping("/api/v1/friend-requests/{id}")
+    public ResponseEntity<Void> cancelFriendRequest(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID id) {
+        UUID currentUserId = UUID.fromString(userDetails.getUsername());
+        friendService.cancelFriendRequest(currentUserId, id);
+        return ResponseEntity.noContent().build();
+    }
+
     /** POST /api/v1/friend-requests/{id}/decline — decline a pending request */
     @PostMapping("/api/v1/friend-requests/{id}/decline")
     public ResponseEntity<FriendRequestResponse> declineFriendRequest(

@@ -13,7 +13,7 @@
 
 	onMount(async () => {
 		const suggestRes = await friendsApi.getSuggestions();
-		suggestions = suggestRes ?? [];
+		suggestions = suggestRes?.data ?? [];
 	});
 
 	function onSearch() {
@@ -26,7 +26,7 @@
 		searchTimeout = setTimeout(async () => {
 			try {
 				const res = await friendsApi.searchUsers(searchQuery);
-				searchResults = res ?? [];
+				searchResults = res?.data ?? [];
 			} finally {
 				loading = false;
 			}

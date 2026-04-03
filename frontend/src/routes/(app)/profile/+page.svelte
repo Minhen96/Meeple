@@ -32,6 +32,15 @@
 			hour: "numeric",
 			minute: "2-digit",
 		});
+		
+		// Handle future dates (e.g. for upcoming events if they appear in timeline)
+		if (diffMs < 0) {
+			return d.toLocaleDateString(undefined, {
+				month: "short",
+				day: "numeric",
+			}) + ` • ${time}`;
+		}
+
 		if (diffDays === 0) return `Today • ${time}`;
 		if (diffDays === 1) return `Yesterday • ${time}`;
 		if (diffDays < 7) return `${diffDays} days ago • ${time}`;
@@ -42,6 +51,24 @@
 			}) + ` • ${time}`
 		);
 	}
+
+	function formatEventDate(iso: string) {
+		const d = new Date(iso);
+		return d.toLocaleDateString(undefined, {
+			weekday: "short",
+			month: "short",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+		});
+	}
+
+	const mergedActivity = $derived(
+		data.activity.map((a) => ({
+			...a,
+			type: a.type as 'play' | 'event' | 'post',
+		})),
+	);
 </script>
 
 <svelte:head><title>Profile — Meeple</title></svelte:head>
@@ -67,10 +94,10 @@
 			class="rotate-2 rounded-2xl overflow-hidden w-28 h-28 shadow-[0_12px_32px_rgba(0,0,0,0.10)] ring-4 ring-surface"
 		>
 			<Avatar
-				src={data.user?.avatarUrl}
-				name={data.user?.displayName ?? data.user?.username ?? "?"}
-				size="none"
-				class="w-full h-full object-cover scale-105 rounded-none"
+				src={data.user.avatarUrl}
+				name={data.user.displayName ?? data.user.username}
+				size="lg"
+				className="border-2 border-outline-variant/30"
 			/>
 		</div>
 		<!-- Verified-style badge -->
@@ -159,14 +186,14 @@
 		</p>
 		<p class="text-2xl font-extrabold font-headline">{totalPlays}</p>
 	</div>
-	<div class="bg-surface-container-low p-4 rounded-2xl text-center">
+	<a href="/people?tab=friends" class="bg-surface-container-low p-4 rounded-2xl text-center block">
 		<p
 			class="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant opacity-70 mb-1"
 		>
 			Friends
 		</p>
-		<p class="text-2xl font-extrabold font-headline">—</p>
-	</div>
+		<p class="text-2xl font-extrabold font-headline">{data.friendCount}</p>
+	</a>
 </div>
 
 <!-- Favorite Games -->
@@ -233,24 +260,24 @@
 {/if}
 
 <!-- Recent Activity Timeline -->
-{#if data.activity.length > 0}
+{#if mergedActivity.length > 0}
 	<section class="mb-8">
 		<h3 class="text-xl font-extrabold font-headline tracking-tight mb-6">
 			Recent Activity
 		</h3>
 		<div class="space-y-8 max-w-lg">
-			{#each data.activity as item, i}
+			{#each mergedActivity as item, i}
 				<div
 					class="relative pl-10 border-l-2 border-surface-container-high"
 				>
 					<!-- Circle icon -->
 					<div
-						class="absolute -left-[13px] top-0 w-6 h-6 {item.type === 'event' ? 'bg-secondary' : i % 2 === 0 ? 'bg-primary' : 'bg-tertiary'} rounded-full ring-4 ring-surface flex items-center justify-center"
+						class="absolute -left-[13px] top-0 w-6 h-6 {item.type === 'event' ? 'bg-secondary' : item.type === 'post' ? 'bg-tertiary' : 'bg-primary'} rounded-full ring-4 ring-surface flex items-center justify-center"
 					>
 						<span
 							class="material-symbols-outlined text-white text-[12px]"
 							style="font-variation-settings: 'FILL' 1;"
-							>{item.type === 'event' ? 'event' : 'sports_esports'}</span
+							>{item.type === 'event' ? 'event' : item.type === 'post' ? 'add_photo_alternate' : 'sports_esports'}</span
 						>
 					</div>
 
@@ -264,13 +291,24 @@
 
 						<!-- Activity card -->
 						<a
-							href={item.type === 'event' ? `/events/${item.eventId}` : `/library/${item.game?.id}`}
-							class="flex items-start gap-4 bg-surface-container-lowest p-4 rounded-2xl shadow-[0_4px_16px_rgba(0,0,0,0.04)] border-l-4 {item.type === 'event' ? 'border-secondary' : i % 2 === 0 ? 'border-secondary' : 'border-tertiary-container'} hover:shadow-[0_8px_24px_rgba(0,0,0,0.07)] transition-all"
+							href={item.type === 'event' ? `/events/${item.eventId}` : item.type === 'post' ? `/posts/${item.id}` : `/library/${item.game?.id}`}
+							class="flex items-start gap-4 p-4 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border-l-4 transition-all hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:scale-[0.99]
+								{item.type === 'event' ? 'bg-secondary/5 border-secondary' : 
+								 item.type === 'post' ? 'bg-tertiary/5 border-tertiary shadow-[0_4px_12px_rgba(0,0,0,0.05)]' : 
+								 'bg-primary/5 border-primary'}"
 						>
 							<div
-								class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-surface-container"
+								class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-sm
+									{item.type === 'post' ? 'ring-2 ring-tertiary/20' : 'bg-surface-container'}"
 							>
-								{#if item.game?.thumbnailUrl}
+								{#if item.type === 'post' && item.imageUrls && item.imageUrls.length > 0}
+									<img
+										src={item.imageUrls[0]}
+										alt="Post"
+										class="w-full h-full object-cover"
+										loading="lazy"
+									/>
+								{:else if item.game?.thumbnailUrl}
 									<img
 										src={item.game.thumbnailUrl}
 										alt={item.game.title}
@@ -279,33 +317,62 @@
 									/>
 								{:else}
 									<div
-										class="w-full h-full flex items-center justify-center"
+										class="w-full h-full flex items-center justify-center opacity-40"
 									>
 										<span
-											class="material-symbols-outlined text-on-surface-variant opacity-40"
-											>{item.type === 'event' ? 'event' : 'casino'}</span
+											class="material-symbols-outlined"
+											>{item.type === 'event' ? 'event' : item.type === 'post' ? 'image' : 'casino'}</span
 										>
 									</div>
 								{/if}
 							</div>
 							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 mb-1">
+									<span class="text-[10px] font-label font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md 
+										{item.type === 'event' ? 'bg-secondary text-white' : 
+										 item.type === 'post' ? 'bg-tertiary text-white' : 
+										 'bg-primary text-white'}">
+										{item.type === 'event' ? 'Event' : item.type === 'post' ? 'Post' : 'Play'}
+									</span>
+								</div>
 								<h4
-									class="font-bold text-base text-on-surface leading-tight"
+									class="font-extrabold text-[15px] text-on-surface leading-tight line-clamp-2"
 								>
 									{#if item.type === 'event'}
 										{item.eventTitle}
 									{:else}
-										Played {item.game?.title}
+										{item.type === 'post' ? (item.caption ?? 'Shared a memory') : `Played ${item.game?.title}`}
 									{/if}
 								</h4>
-								<div class="flex items-center gap-2 mt-1.5">
-									<span
-										class="text-xs font-label font-bold uppercase tracking-wider {item.type === 'event' ? 'text-secondary' : 'text-secondary'}"
-										>{item.type === 'event' ? 'Attended event' : 'Play logged'}</span
-									>
-									{#if item.type === 'event' && item.game}
-										<span class="text-xs text-on-surface-variant">· {item.game.title}</span>
+								<div class="flex flex-col gap-1 mt-1">
+									{#if item.type === 'event'}
+										{#if item.scheduledAt}
+											<div class="flex items-center gap-1 text-[11px] font-medium text-secondary">
+												<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+												{formatEventDate(item.scheduledAt)}
+											</div>
+										{/if}
+										{#if item.location}
+											<div class="flex items-center gap-1 text-[11px] text-on-surface-variant/70">
+												<span class="material-symbols-outlined text-[14px]">location_on</span>
+												{item.location}
+											</div>
+										{/if}
 									{/if}
+
+									<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+										{#if item.type !== 'post' && item.game}
+											<span class="text-xs text-on-surface-variant flex items-center gap-1">
+												<span class="material-symbols-outlined text-[14px]">casino</span>
+												{item.game.title}
+											</span>
+										{:else if item.type === 'post' && item.game}
+											<span class="text-xs text-on-surface-variant flex items-center gap-1">
+												<span class="material-symbols-outlined text-[14px]">link</span>
+												{item.game.title}
+											</span>
+										{/if}
+									</div>
 								</div>
 							</div>
 						</a>
@@ -331,37 +398,3 @@
 	</section>
 {/if}
 
-<!-- Posts grid -->
-{#if data.posts.length > 0}
-	<section>
-		<h3 class="text-xl font-extrabold font-headline tracking-tight mb-4">
-			Posts
-		</h3>
-		<div class="grid grid-cols-3 gap-1 -mx-4">
-			{#each data.posts as post (post.id)}
-				<a
-					href="/posts/{post.id}"
-					class="aspect-square overflow-hidden bg-surface-container-high"
-				>
-					{#if post.imageUrls.length > 0}
-						<img
-							src={post.imageUrls[0]}
-							alt="Post"
-							class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-							loading="lazy"
-						/>
-					{:else}
-						<div
-							class="w-full h-full flex items-center justify-center bg-surface-container"
-						>
-							<span
-								class="material-symbols-outlined text-on-surface-variant opacity-40"
-								>image</span
-							>
-						</div>
-					{/if}
-				</a>
-			{/each}
-		</div>
-	</section>
-{/if}

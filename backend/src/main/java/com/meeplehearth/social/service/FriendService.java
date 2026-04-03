@@ -98,8 +98,24 @@ public class FriendService {
         fr.setStatus(FriendRequest.Status.ACCEPTED);
         FriendRequest saved = friendRequestRepository.save(fr);
 
+        // Notify sender: "X accepted your friend request"
         notificationService.send(fr.getSender().getId(), Notification.NotificationType.FRIEND_ACCEPTED, currentUserId, saved.getId(), "FRIEND_REQUEST");
+        // Notify receiver (self): "You are now friends with X"
+        notificationService.send(currentUserId, Notification.NotificationType.FRIEND_ACCEPTED, fr.getSender().getId(), saved.getId(), "FRIEND_REQUEST");
         return FriendRequestResponse.from(saved);
+    }
+
+    // -------------------------------------------------------------------------
+    // Cancel (sender withdraws their own pending request)
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public void cancelFriendRequest(UUID currentUserId, UUID requestId) {
+        FriendRequest fr = findPendingRequest(requestId);
+        if (!fr.getSender().getId().equals(currentUserId)) {
+            throw ApiException.forbidden("FORBIDDEN", "Not your request to cancel");
+        }
+        friendRequestRepository.delete(fr);
     }
 
     // -------------------------------------------------------------------------

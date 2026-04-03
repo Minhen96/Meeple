@@ -3,10 +3,10 @@
 		src?: string | null;
 		name?: string;
 		size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'none';
-		class?: string;
+		className?: string;
 	}
 
-	let { src = null, name = '', size = 'md', class: className = '' }: Props = $props();
+	let { src = null, name = '', size = 'md', className = '' }: Props = $props();
 	let imageError = $state(false);
 
 	const sizes = {

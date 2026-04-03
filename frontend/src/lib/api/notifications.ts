@@ -10,8 +10,8 @@ export const notificationsApi = {
 	},
 
 	getUnreadCount: async (): Promise<number> => {
-		const res = await api.get<{ data: { count: number } }>('/api/v1/notifications/unread-count');
-		return res.data.count;
+		const res = await api.get<{ count: number }>('/api/v1/notifications/unread-count');
+		return res.count;
 	},
 
 	markAllRead: () => api.put<void>('/api/v1/notifications/read-all', {})

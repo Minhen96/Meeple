@@ -6,6 +6,7 @@
 		disabled?: boolean;
 		type?: 'button' | 'submit' | 'reset';
 		fullWidth?: boolean;
+		className?: string;
 		onclick?: () => void;
 		children?: import('svelte').Snippet;
 	}
@@ -17,6 +18,7 @@
 		disabled = false,
 		type = 'button',
 		fullWidth = false,
+		className = '',
 		onclick,
 		children
 	}: Props = $props();
@@ -44,7 +46,7 @@
 	{type}
 	{disabled}
 	aria-busy={loading}
-	class="{base} {variants[variant]} {sizes[size]} {fullWidth ? 'w-full' : ''}"
+	class="{base} {variants[variant]} {sizes[size]} {fullWidth ? 'w-full' : ''} {className}"
 	{onclick}
 >
 	{#if loading}

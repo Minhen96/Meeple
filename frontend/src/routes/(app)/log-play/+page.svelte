@@ -35,13 +35,21 @@
 	}
 
 	async function logPlay() {
-		if (!selected?.id) return;
+		if (!selected) return;
 		logging = true;
 		try {
-			await gamesApi.logPlay(selected.id);
+			let gameId = selected.id;
+			if (!gameId) {
+				// Game not in local DB, ensure it first
+				const ensured = await gamesApi.ensureGame(selected.bggId);
+				gameId = ensured.id;
+			}
+			
+			await gamesApi.logPlay(gameId);
 			toast.success(`Play logged for ${selected.title}!`);
-			goto(-1 as any);
-		} catch {
+			history.back();
+		} catch (e) {
+			console.error("Log play error:", e);
 			toast.error('Could not log play. Try again.');
 		} finally {
 			logging = false;
@@ -73,7 +81,6 @@
 			bind:value={query}
 			oninput={onInput}
 			class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none"
-			autofocus
 		/>
 		{#if searching}
 			<span class="material-symbols-outlined text-[18px] text-on-surface-variant animate-spin">progress_activity</span>

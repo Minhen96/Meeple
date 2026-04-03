@@ -25,7 +25,6 @@
 		| "ready"
 		| "error";
 	let rulebookState: RulebookState = $state("loading");
-	let generating: boolean = $state(false);
 	let uploading: boolean = $state(false);
 	let myQueuePosition: number | null = $state(null);
 
@@ -72,14 +71,13 @@
 			} else if (status.isIngesting) {
 				rulebookState = "generating";
 				startRulebookPolling();
-			} else if (status.hasHowToPlay) {
-				rulebookState = "ready";
-				fetchHowToPlay();
 			} else if (status.myStatus === "pending_review") {
 				rulebookState = "pending_review";
 				myQueuePosition = status.myQueuePosition;
 			} else {
 				rulebookState = "no_rulebook";
+				howToPlayState = "loading";
+				fetchHowToPlay();
 			}
 		} catch {
 			rulebookState = "error";
@@ -166,28 +164,6 @@
 				rulebookState = "error";
 			}
 		}, 3000);
-	}
-
-	async function handleGenerate() {
-		generating = true;
-		try {
-			const result = await rulebookApi.generate(gameId);
-			if (result.status === "generating") {
-				rulebookState = "generating";
-				startRulebookPolling();
-			} else if (result.status === "already_done") {
-				rulebookState = "ready";
-				fetchHowToPlay();
-			} else if (result.status === "not_found") {
-				toast.error("No rulebook found online. Generating from AI knowledge…");
-				rulebookState = "ready";
-				fetchHowToPlay();
-			}
-		} catch {
-			toast.error("Could not fetch rulebook");
-		} finally {
-			generating = false;
-		}
 	}
 
 	async function handleUserUpload(e: Event) {
@@ -337,46 +313,28 @@
 				</div>
 			{/each}
 		</div>
-	{:else if rulebookState === "no_rulebook"}
+	{:else if rulebookState === "no_rulebook" && howToPlayState === "idle"}
 		<div
-			class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-6 flex flex-col items-center text-center gap-4"
+			class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4"
 		>
 			<div
-				class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant/40"
+				class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary/60"
 			>
-				<span class="material-symbols-outlined text-[36px]"
-					>find_in_page</span
-				>
+				<span class="material-symbols-outlined text-[36px]">auto_awesome</span>
 			</div>
 			<div class="space-y-1">
-				<h3 class="font-bold text-on-surface">No rulebook yet</h3>
-				<p
-					class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
-				>
-					Try auto-fetching from rule-book.org, or upload the PDF
-					yourself.
+				<h3 class="font-bold text-on-surface">Generate a rules guide</h3>
+				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+					Get a quick-start summary for this game.
 				</p>
 			</div>
-
 			<button
-				onclick={handleGenerate}
-				disabled={generating || uploading}
-				class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
+				onclick={handleGenerateHowToPlay}
+				class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
 			>
-				{#if generating}
-					<span
-						class="material-symbols-outlined text-[18px] animate-spin"
-						>progress_activity</span
-					>
-					Fetching…
-				{:else}
-					<span class="material-symbols-outlined text-[18px]"
-						>bolt</span
-					>
-					Generate Rules
-				{/if}
+				<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+				Generate
 			</button>
-
 			<div class="w-full">
 				<input
 					bind:this={fileInput}
@@ -387,26 +345,19 @@
 				/>
 				<button
 					onclick={() => fileInput.click()}
-					disabled={generating || uploading}
+					disabled={uploading}
 					class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold disabled:opacity-50 transition-opacity"
 				>
 					{#if uploading}
-						<span
-							class="material-symbols-outlined text-[18px] animate-spin"
-							>progress_activity</span
-						>
+						<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
 						Uploading…
 					{:else}
-						<span class="material-symbols-outlined text-[18px]"
-							>upload_file</span
-						>
-						Upload PDF
+						<span class="material-symbols-outlined text-[18px]">upload_file</span>
+						Upload PDF instead
 					{/if}
 				</button>
-				<p
-					class="text-[10px] text-on-surface-variant text-center mt-1.5"
-				>
-					PDF only · max 25 MB · AI-validated instantly
+				<p class="text-[10px] text-on-surface-variant text-center mt-1.5">
+					Have the official rulebook? Upload for better accuracy.
 				</p>
 			</div>
 		</div>
@@ -453,9 +404,10 @@
 				</p>
 			</div>
 		</div>
-	{:else if rulebookState === "ready"}
-		<!-- How-to-Play content -->
+	{:else}
+		<!-- How-to-Play content (shown for both ready and no_rulebook states while HTP is active) -->
 		{#if howToPlayState === "idle"}
+			<!-- Rulebook exists but guide not yet requested -->
 			<div
 				class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4"
 			>
@@ -465,9 +417,9 @@
 					<span class="material-symbols-outlined text-[36px]">auto_awesome</span>
 				</div>
 				<div class="space-y-1">
-					<h3 class="font-bold text-on-surface">No guide yet</h3>
+					<h3 class="font-bold text-on-surface">Generate a rules guide</h3>
 					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-						Generate a quick-start guide from the rulebook using AI.
+						Get a quick-start summary for this game.
 					</p>
 				</div>
 				<button
@@ -475,7 +427,7 @@
 					class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
 				>
 					<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-					Generate with AI
+					Generate
 				</button>
 			</div>
 		{:else if howToPlayState === "loading"}
@@ -1018,7 +970,8 @@
 				</p>
 			</div>
 		{/if}
-	{:else if rulebookState === "error"}
+	{/if}
+	{#if rulebookState === "error"}
 		<p class="text-center text-xs text-error py-8">
 			Failed to load rulebook status. Try refreshing.
 		</p>

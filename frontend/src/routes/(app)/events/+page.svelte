@@ -13,7 +13,11 @@
 	let tab = $state<'upcoming' | 'mine'>('upcoming');
 	let events = $state({ upcoming: data.upcoming, mine: data.mine });
 
-	const displayed = $derived(tab === 'upcoming' ? events.upcoming : events.mine);
+	const displayed = $derived(
+		tab === 'upcoming' 
+			? events.upcoming 
+			: events.mine.filter(e => e.status !== 'CANCELLED')
+	);
 
 	// Calendar strip — 7 days starting from today
 	const today = new Date();

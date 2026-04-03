@@ -20,15 +20,15 @@ export interface CreatePostPayload {
 export const postsApi = {
 	// Feed is at /api/v1/feed (not /api/v1/posts)
 	getFeed: async (page = 0, size = 20): Promise<Post[]> => {
-		const res = await api.get<Post[]>(`/api/v1/feed?page=${page}&size=${size}`);
-		return res;
+		const res = await api.get<PagedResponse<Post>>(`/api/v1/feed?page=${page}&size=${size}`);
+		return res.data;
 	},
 
 	getUserPosts: async (userId: string, page = 0, size = 20): Promise<Post[]> => {
-		const res = await api.get<Post[]>(
+		const res = await api.get<PagedResponse<Post>>(
 			`/api/v1/users/${userId}/posts?page=${page}&size=${size}`
 		);
-		return res;
+		return res.data;
 	},
 
 	getPost: async (id: string): Promise<Post> => {

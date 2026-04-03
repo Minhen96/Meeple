@@ -102,11 +102,15 @@ export interface PlayLog {
 // ActivityLog maps to ActivityLogResponse — play log or event participation
 export interface ActivityLog {
 	id: string;
-	type: 'play' | 'event';
+	type: 'play' | 'event' | 'post';
 	game: GameSummary | null;
 	playedAt: string;
-	eventTitle: string | null;
-	eventId: string | null;
+	eventTitle?: string | null;
+	eventId?: string | null;
+	caption?: string | null;
+	imageUrls?: string[];
+	location?: string;
+	scheduledAt?: string;
 }
 
 // UserGame maps to UserGameResponse
@@ -257,6 +261,7 @@ export interface HowToPlayContent {
 		phases?: Array<{ name: string; description: string; actions?: string[] }>;
 		turnOrder?: string;
 	};
+	setup?: string;
 	components?: Array<{ name: string; type?: string; description?: string; quantity?: number }>;
 	board?: { exists?: boolean; type?: string; description?: string };
 	resources?: Array<{ name: string; usedFor?: string; gainedBy?: string }>;

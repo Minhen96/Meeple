@@ -13,6 +13,7 @@ import com.meeplehearth.event.repository.EventParticipantRepository;
 import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.game.repository.PlayLogRepository;
 import com.meeplehearth.game.repository.UserGameRepository;
+import com.meeplehearth.post.repository.PostRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class GameService {
     private final RecommendationService recommendationService;
     private final GameRulebookRepository rulebookRepository;
     private final EventParticipantRepository eventParticipantRepository;
+    private final PostRepository postRepository;
 
     public GameService(GameRepository gameRepository,
             UserGameRepository userGameRepository,
@@ -54,7 +56,8 @@ public class GameService {
             SearchTranslationService searchTranslationService,
             RecommendationService recommendationService,
             GameRulebookRepository rulebookRepository,
-            EventParticipantRepository eventParticipantRepository) {
+            EventParticipantRepository eventParticipantRepository,
+            PostRepository postRepository) {
         this.gameRepository = gameRepository;
         this.userGameRepository = userGameRepository;
         this.playLogRepository = playLogRepository;
@@ -65,6 +68,7 @@ public class GameService {
         this.recommendationService = recommendationService;
         this.rulebookRepository = rulebookRepository;
         this.eventParticipantRepository = eventParticipantRepository;
+        this.postRepository = postRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -228,13 +232,28 @@ public class GameService {
 
     private List<GameSearchResult> likeSearch(String query, String translatedFrom) {
         String likeQ = "%" + query.toLowerCase() + "%";
-        Specification<Game> spec = Specification.<Game>where(
-                (root, cq, cb) -> cb.or(
-                        cb.like(cb.lower(root.get("nameEn")), likeQ),
-                        cb.like(cb.lower(root.get("nameZh")), likeQ)))
-                .and((root, cq, cb) -> cb.equal(root.get("gameType"), "boardgame"));
+        // Use cq.orderBy() directly so we can express NULLS LAST via a CASE expression.
+        // Sort.Order.nullsLast() is not reliably supported by JPA/Hibernate on all versions.
+        Specification<Game> spec = (root, cq, cb) -> {
+            if (!Long.class.equals(cq.getResultType())) {
+                cq.orderBy(
+                    cb.asc(cb.selectCase()
+                        .when(cb.isNull(root.get("rank")), 1)
+                        .otherwise(0)),
+                    cb.asc(root.get("rank")),
+                    cb.desc(cb.coalesce(root.<Integer>get("usersRated"), 0))
+                );
+            }
+            return cb.and(
+                cb.or(
+                    cb.like(cb.lower(root.get("nameEn")), likeQ),
+                    cb.like(cb.lower(root.get("nameZh")), likeQ)
+                ),
+                cb.equal(root.get("gameType"), "boardgame")
+            );
+        };
 
-        return gameRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(0, 20))
+        return gameRepository.findAll(spec, PageRequest.of(0, 20))
                 .stream()
                 .map(g -> new GameSearchResult(
                         g.getId(), g.getBggId(), g.getNameEn(),
@@ -349,13 +368,24 @@ public class GameService {
     public List<ActivityLogResponse> getActivity(UUID userId) {
         List<ActivityLogResponse> items = new ArrayList<>();
 
+        // 1. Plays
         playLogRepository.findByUserIdOrderByPlayedAtDesc(userId, PageRequest.of(0, 50))
                 .stream().map(ActivityLogResponse::fromPlay).forEach(items::add);
 
+        // 2. Events (Accepted only, exclude deleted)
         eventParticipantRepository.findAcceptedByUserId(userId)
-                .stream().map(ActivityLogResponse::fromEvent).forEach(items::add);
+                .stream()
+                .filter(ep -> ep.getEvent().getDeletedAt() == null)
+                .map(ActivityLogResponse::fromEvent)
+                .forEach(items::add);
 
+        // 3. Posts
+        postRepository.findByAuthorId(userId, PageRequest.of(0, 50))
+                .stream().map(ActivityLogResponse::fromPost).forEach(items::add);
+
+        // Sort unified timeline (newest first)
         items.sort(Comparator.comparing(ActivityLogResponse::playedAt).reversed());
+        
         return items.stream().limit(50).toList();
     }
 

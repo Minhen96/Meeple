@@ -13,14 +13,16 @@ export const friendsApi = {
 	},
 
 	accept: async (requestId: string): Promise<FriendRequest> => {
-		const res = await api.post<FriendRequest>(`/api/v1/friends/requests/${requestId}/accept`, {});
+		const res = await api.post<FriendRequest>(`/api/v1/friend-requests/${requestId}/accept`, {});
 		return res;
 	},
 
 	decline: async (requestId: string): Promise<FriendRequest> => {
-		const res = await api.post<FriendRequest>(`/api/v1/friends/requests/${requestId}/decline`, {});
+		const res = await api.post<FriendRequest>(`/api/v1/friend-requests/${requestId}/decline`, {});
 		return res;
 	},
+
+	cancel: (requestId: string) => api.delete<void>(`/api/v1/friend-requests/${requestId}`),
 
 	unfriend: (userId: string) => api.delete<void>(`/api/v1/friends/${userId}`),
 

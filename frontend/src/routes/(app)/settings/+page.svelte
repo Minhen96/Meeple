@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { api } from "$lib/api/client";
 	import { goto } from "$app/navigation";
-	import { currentUser } from "$lib/stores/auth";
+	import { currentUser, setUser } from "$lib/stores/auth";
+	import SetupStatusModal from "$lib/components/admin/SetupStatusModal.svelte";
+
+	let showSetupModal = $state(false);
 
 	async function handleLogout() {
 		await api.post("/api/v1/auth/logout");
@@ -48,10 +51,15 @@
 							},
 							{
 								label: "System Health",
-								href: null,
+								href: "/admin/health",
 								icon: "monitoring",
-								action: () => true,
-							}, // Placeholder for modal-trigger if needed, or link
+							},
+							{
+								label: "Boardgame Rules Import",
+								href: null,
+								icon: "settings_suggest",
+								action: () => (showSetupModal = true),
+							},
 						],
 					},
 				]
@@ -76,7 +84,7 @@
 		if (item.href) {
 			goto(item.href);
 		} else if (item.action) {
-			// Trigger action
+			item.action();
 		}
 	}
 </script>
@@ -165,3 +173,7 @@
 		Log Out
 	</button>
 </div>
+
+{#if showSetupModal}
+	<SetupStatusModal onClose={() => (showSetupModal = false)} />
+{/if}

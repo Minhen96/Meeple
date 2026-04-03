@@ -4,9 +4,9 @@
 <svelte:head><title>Notifications — Meeple</title></svelte:head>
 
 <div class="flex items-center gap-3 mb-6">
-	<a href="/settings" class="text-on-surface-variant">
+	<button onclick={() => history.back()} class="text-on-surface-variant" aria-label="Back">
 		<span class="material-symbols-outlined">arrow_back</span>
-	</a>
+	</button>
 	<h2 class="text-xl font-extrabold font-headline">Notifications</h2>
 </div>
 

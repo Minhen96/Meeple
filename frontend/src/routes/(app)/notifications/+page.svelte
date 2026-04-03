@@ -9,7 +9,7 @@
 	onMount(async () => {
 		try {
 			const res = await notificationsApi.getAll();
-			notifications.set(res ?? []);
+			notifications.set(res?.data ?? []);
 		} finally {
 			loading = false;
 		}
@@ -95,10 +95,17 @@
 
 <svelte:head><title>Notifications — Meeple</title></svelte:head>
 
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3 mb-8 mt-3">
+	<button
+		onclick={() => history.back()}
+		class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95"
+		aria-label="Back"
+	>
+		<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+	</button>
 	<h2 class="text-2xl font-extrabold font-headline">Notifications</h2>
 	{#if $notificationCount > 0}
-		<button onclick={handleMarkAllRead} class="text-sm text-primary font-label font-semibold">
+		<button onclick={handleMarkAllRead} class="ml-auto text-sm text-primary font-label font-semibold">
 			Mark all read
 		</button>
 	{/if}

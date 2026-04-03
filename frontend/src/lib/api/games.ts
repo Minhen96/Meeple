@@ -74,5 +74,20 @@ export const gamesApi = {
 	getActivity: async (): Promise<ActivityLog[]> => {
 		const res = await api.get<ActivityLog[]>('/api/v1/users/me/plays');
 		return res;
+	},
+
+	ensureGame: async (bggId: number): Promise<GameDetail> => {
+		const res = await api.get<GameDetail>(`/api/v1/games/bgg/${bggId}`);
+		return res;
+	},
+
+	getUserCollection: async (userId: string): Promise<UserGame[]> => {
+		const res = await api.get<UserGame[]>(`/api/v1/users/${userId}/games`);
+		return res;
+	},
+
+	getUserActivity: async (userId: string): Promise<ActivityLog[]> => {
+		const res = await api.get<ActivityLog[]>(`/api/v1/users/${userId}/plays`);
+		return res;
 	}
 };
