@@ -426,7 +426,7 @@ public class AuthService {
                 .httpOnly(true)
                 .secure(isSecure)
                 .path("/")
-                .maxAge(ACCESS_COOKIE_MAX_AGE_SECONDS)
+                .maxAge(appProperties.getJwt().getAccessTokenExpiryMs() / 1000)
                 .sameSite("Lax");
 
         if (appProperties.getAuth().getCookieDomain() != null && !appProperties.getAuth().getCookieDomain().isBlank()) {
@@ -438,7 +438,7 @@ public class AuthService {
         ResponseCookie.ResponseCookieBuilder refreshCookieBuilder = ResponseCookie.from("refresh_token", rawRefreshToken)
                 .httpOnly(true)
                 .secure(isSecure)
-                .path("/api/v1/auth")
+                .path("/")
                 .maxAge(refreshMaxAgeSeconds)
                 .sameSite("Lax");
 
@@ -471,7 +471,7 @@ public class AuthService {
         ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
                 .secure(isProductionEnvironment())
-                .path("/api/v1/auth")
+                .path("/")
                 .maxAge(0)
                 .sameSite("Strict")
                 .build();
