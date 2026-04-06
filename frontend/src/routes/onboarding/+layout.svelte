@@ -13,7 +13,7 @@
 	const currentStep = $derived(
 		steps.findIndex((s) => $page.url.pathname.includes(s))
 	);
-	const showSteps = $derived(currentStep >= 0);
+	const showSteps = $derived(currentStep >= 0 || $page.url.pathname.includes('welcome'));
 
 	async function handleSkip() {
 		try {
