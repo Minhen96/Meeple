@@ -16,63 +16,49 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
 	}
 
 	const apiUrl = import.meta.env.VITE_API_URL as string;
+	let user = null;
 
-	if (!accessToken && refreshToken) {
-		// Attempt to refresh
+	// 1. Try with access token if it exists
+	if (accessToken) {
 		try {
-			const res = await fetch(`${apiUrl}/api/v1/auth/refresh`, {
-				method: 'POST'
+			const res = await fetch(`${apiUrl}/api/v1/users/me`, {
+				headers: { 'Authorization': `Bearer ${accessToken}` }
 			});
-
-			// If refresh fails and we are not in a public page, redirect to login
-			if (!res.ok) {
-				if (!isPublic) {
-					throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
-				}
-				return { user: null };
-			}
-			// SvelteKit's fetch automatically handles 'Set-Cookie' headers and updates the current request's cookies
-			// But since we need the newly set accessToken for the next 'me' call, we might need a fallback or re-check.
-			// However, usually the backend responds with the user info in the refresh response too.
-			const { data: user } = await res.json();
-			if (user) {
-				if (!user.onboardingCompleted && !url.pathname.startsWith('/onboarding')) {
-					throw redirect(302, '/onboarding/welcome');
-				}
-				return { user };
+			if (res.ok) {
+				user = await res.json();
 			}
 		} catch (e) {
-			if (isRedirect(e)) throw e;
-			if (!isPublic) {
-				throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
-			}
-			return { user: null };
+			// ignore for now, will try refresh
 		}
 	}
 
-	// If we have an access token (either from the start or after a refresh if it was somehow redirected)
-	try {
-		const res = await fetch(`${apiUrl}/api/v1/users/me`);
+	// 2. If no user yet, but we have a refresh token, try to refresh
+	if (!user && refreshToken) {
+		try {
+			const res = await fetch(`${apiUrl}/api/v1/auth/refresh`, {
+				method: 'POST',
+				headers: { 'Cookie': `refresh_token=${refreshToken}` }
+			});
 
-		if (!res.ok) {
-			if (!isPublic) {
-				throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
+			if (res.ok) {
+				user = await res.json();
 			}
-			return { user: null };
+		} catch (e) {
+			// refresh failed
 		}
+	}
 
-		const { data: user } = await res.json();
-
-		if (!user.onboardingCompleted && !url.pathname.startsWith('/onboarding')) {
-			throw redirect(302, '/onboarding/welcome');
-		}
-
-		return { user };
-	} catch (e) {
-		if (isRedirect(e)) throw e;
+	// 3. Final check and redirect logic
+	if (!user) {
 		if (!isPublic) {
 			throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
 		}
 		return { user: null };
 	}
+
+	if (!user.onboardingCompleted && !url.pathname.startsWith('/onboarding')) {
+		throw redirect(302, '/onboarding/welcome');
+	}
+
+	return { user };
 };
