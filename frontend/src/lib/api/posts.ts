@@ -48,10 +48,10 @@ export const postsApi = {
 	unlikePost: (id: string) => api.delete<void>(`/api/v1/posts/${id}/like`),
 
 	getComments: async (postId: string, page = 0, size = 20): Promise<Comment[]> => {
-		const res = await api.get<Comment[]>(
+		const res = await api.get<PagedResponse<Comment>>(
 			`/api/v1/posts/${postId}/comments?page=${page}&size=${size}`
 		);
-		return res;
+		return res.data;
 	},
 
 	addComment: async (postId: string, body: string): Promise<Comment> => {

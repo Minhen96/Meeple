@@ -38,6 +38,7 @@
 	const isImmersiveRoute = $derived(
 		/^\/library\/[^/]+\/?$/.test($page.url.pathname) ||     // Game details
 		/^\/events\/[^/]+\/?$/.test($page.url.pathname) ||      // Event details
+		/^\/posts\/[^/]+\/?$/.test($page.url.pathname) ||       // Post details
 		$page.url.pathname.startsWith("/notifications") ||      // Notifications
 		$page.url.pathname.startsWith("/settings") ||           // Settings
 		$page.url.pathname.startsWith("/admin") ||              // Admin
@@ -159,4 +160,6 @@
 	</div>
 {/if}
 
-<BottomNav />
+{#if !isImmersiveRoute}
+	<BottomNav />
+{/if}

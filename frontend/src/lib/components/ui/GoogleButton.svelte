@@ -18,36 +18,45 @@
 	let container: HTMLDivElement;
 
 	onMount(() => {
-		if (!clientId || typeof window.google === 'undefined') return;
+		if (!clientId) return;
 
 		// Keep module-level refs current for this mount
 		currentOnError = onError;
 
-		if (!gsiInitialized) {
-			gsiInitialized = true;
-			window.google.accounts.id.initialize({
-				client_id: clientId,
-				callback: async (response: { credential: string }) => {
-					try {
-						await api.post('/api/v1/auth/google', { idToken: response.credential });
-						// Always redirect to home as requested
-						window.location.href = '/';
-					} catch (err) {
-						const message =
-							err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';
-						currentOnError?.(message);
+		function initGSI() {
+			if (typeof window.google === 'undefined' || !window.google.accounts) {
+				// Retry in 100ms if SDK is still loading
+				setTimeout(initGSI, 100);
+				return;
+			}
+
+			if (!gsiInitialized) {
+				gsiInitialized = true;
+				window.google.accounts.id.initialize({
+					client_id: clientId,
+					callback: async (response: { credential: string }) => {
+						try {
+							await api.post('/api/v1/auth/google', { idToken: response.credential });
+							window.location.href = '/';
+						} catch (err) {
+							const message =
+								err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';
+							currentOnError?.(message);
+						}
 					}
-				}
+				});
+			}
+
+			window.google.accounts.id.renderButton(container, {
+				theme: 'outline',
+				size: 'large',
+				width: container.offsetWidth || 360,
+				text: 'continue_with',
+				shape: 'rectangular'
 			});
 		}
 
-		window.google.accounts.id.renderButton(container, {
-			theme: 'outline',
-			size: 'large',
-			width: container.offsetWidth || 360,
-			text: 'continue_with',
-			shape: 'rectangular'
-		});
+		initGSI();
 	});
 </script>
 

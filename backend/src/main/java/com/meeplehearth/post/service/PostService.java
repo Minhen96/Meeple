@@ -238,7 +238,7 @@ public class PostService {
         if (userId == null)
             return Set.of();
         Set<UUID> postIds = posts.stream().map(Post::getId).collect(Collectors.toSet());
-        return postLikeRepository.findByIdPostIdInAndIdUserId(postIds, userId)
+        return postLikeRepository.findLikedPostIds(postIds, userId)
                 .stream().map(PostLikeId::getPostId).collect(Collectors.toSet());
     }
 }

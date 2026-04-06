@@ -2,6 +2,7 @@
 	import { getGreeting } from '$lib/utils/date';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
+	import PostCard from '$lib/components/social/PostCard.svelte';
 	import type { PageData } from './$types';
 	import type { Post } from '$lib/types';
 	import { postsApi } from '$lib/api/posts';
@@ -14,13 +15,11 @@
 
 	const greeting = getGreeting();
 
-	let posts = $state(data.posts);
-	let matchSuggestions = $state(data.matchSuggestions);
+	let posts = $state<Post[]>([]);
+	let matchSuggestions = $state<any[]>([]);
 
 	$effect(() => {
 		posts = data.posts;
-	});
-	$effect(() => {
 		matchSuggestions = data.matchSuggestions;
 	});
 
@@ -152,88 +151,8 @@
 			</div>
 		{:else}
 			<div class="space-y-4">
-				{#each posts as post (post.id)}
-					<article class="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.04)] overflow-hidden border border-outline-variant/10">
-						<!-- Author header -->
-						<div class="p-4 flex items-center gap-3">
-							<Avatar
-								src={post.author.avatarUrl}
-								name={post.author.displayName ?? post.author.username}
-								size="sm"
-								className="border border-outline-variant/30"
-							/>
-							<div class="flex-1 min-w-0">
-								<p class="text-sm font-bold text-on-surface">
-									{post.author.displayName ?? post.author.username}
-								</p>
-								<p class="text-[10px] text-on-surface-variant font-label">
-									{formatPostTime(post.createdAt)}{post.location ? ` · ${post.location}` : ''}
-								</p>
-							</div>
-							<button class="text-on-surface-variant opacity-40">
-								<span class="material-symbols-outlined">more_horiz</span>
-							</button>
-						</div>
-
-						<!-- Image -->
-						{#if post.imageUrls.length > 0}
-							<div class="aspect-square bg-surface-container-low overflow-hidden -mt-2">
-								<img
-									src={post.imageUrls[0]}
-									alt="Session photo"
-									class="w-full h-full object-cover"
-									loading="lazy"
-								/>
-							</div>
-						{/if}
-
-						<!-- Text content -->
-						<div class="px-4 pb-4 space-y-1.5">
-							{#if post.likeCount > 0}
-								<p class="text-xs font-bold text-on-surface mb-0.5">{post.likeCount} like{post.likeCount !== 1 ? 's' : ''}</p>
-							{/if}
-
-							{#if post.caption}
-								<p class="text-sm text-on-surface leading-snug">
-									<span class="font-bold">{post.author.displayName ?? post.author.username}</span>
-									{' '}{post.caption}
-								</p>
-							{/if}
-
-							{#if post.game}
-								<p class="text-[11px] text-on-surface-variant flex items-center gap-1 opacity-80">
-									<span class="material-symbols-outlined text-[13px]">casino</span>
-									Played <span class="text-primary font-bold italic">{post.game.title}</span>
-								</p>
-							{/if}
-
-							{#if post.commentCount > 0}
-								<div class="pt-1">
-									<a href="/posts/{post.id}" class="text-[11px] text-on-surface-variant hover:text-on-surface transition-colors">
-										View all {post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}
-									</a>
-								</div>
-							{/if}
-						</div>
-
-						<!-- Actions -->
-						<div class="p-4 pt-0 pb-4 flex items-center gap-4 text-on-surface-variant">
-							<button
-								onclick={() => toggleLike(post)}
-								class="transition-colors {post.likedByMe ? 'text-error' : 'hover:text-error'}"
-								aria-label="Like"
-							>
-								<span
-									class="material-symbols-outlined"
-									style={post.likedByMe ? "font-variation-settings: 'FILL' 1;" : ''}
-								>favorite</span>
-							</button>
-							<a href="/posts/{post.id}" class="hover:text-primary transition-colors" aria-label="Comment">
-								<span class="material-symbols-outlined">chat_bubble</span>
-							</a>
-							<span class="material-symbols-outlined ml-auto opacity-40 text-[20px]">share</span>
-						</div>
-					</article>
+				{#each posts as _, i (posts[i].id)}
+					<PostCard bind:post={posts[i]} />
 				{/each}
 			</div>
 		{/if}

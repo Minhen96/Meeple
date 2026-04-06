@@ -186,7 +186,7 @@
 		</p>
 		<p class="text-2xl font-extrabold font-headline">{totalPlays}</p>
 	</div>
-	<a href="/people?tab=friends" class="bg-surface-container-low p-4 rounded-2xl text-center block">
+	<a href="/profile/friends" class="bg-surface-container-low p-4 rounded-2xl text-center block">
 		<p
 			class="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant opacity-70 mb-1"
 		>

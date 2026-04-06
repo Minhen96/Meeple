@@ -8,12 +8,12 @@
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-	let post = $state<Post>(undefined!);
+	let post = $state<Post>(data.post);
 	let comments = $state<Comment[]>([]);
 	let commentBody = $state('');
 	let submitting = $state(false);
 
-	$effect.pre(() => {
+	$effect(() => {
 		post = data.post;
 		comments = data.comments;
 	});
@@ -46,6 +46,7 @@
 			comments = [...comments, newComment];
 			post = { ...post, commentCount: post.commentCount + 1 };
 			commentBody = '';
+			toast.success('Comment posted');
 		} catch {
 			toast.error('Could not post comment');
 		} finally {
@@ -56,9 +57,20 @@
 
 <svelte:head><title>Post — Meeple</title></svelte:head>
 
-<div class="pb-32">
+<div class="pb-32 pt-6">
+	<!-- Immersive Header/Back -->
+	<div class="flex items-center gap-4 mb-8">
+		<button
+			onclick={() => history.back()}
+			class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
+		>
+			<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+		</button>
+		<h2 class="text-xl font-black font-headline tracking-tight text-on-surface">Post</h2>
+	</div>
+
 	<!-- Author & Post Header -->
-	<div class="flex items-center justify-between mb-4">
+	<div class="flex items-center justify-between mb-4 px-1">
 		<div class="flex items-center gap-3">
 			<Avatar src={post.author.avatarUrl} name={post.author.displayName ?? post.author.username} size="sm" />
 			<div>
@@ -148,7 +160,7 @@
 						<div class="flex-1">
 							<div class="flex items-baseline justify-between gap-2 mb-1">
 								<p class="text-xs font-bold text-on-surface">{comment.authorUsername}</p>
-								<span class="text-[9px] text-on-surface-variant uppercase font-medium">1d ago</span>
+								<span class="text-[9px] text-on-surface-variant uppercase font-medium">{formatDate(comment.createdAt)}</span>
 							</div>
 							<p class="text-sm text-on-surface leading-snug">{comment.body}</p>
 						</div>
