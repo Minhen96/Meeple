@@ -346,6 +346,8 @@ public class AuthService {
     public AuthResponse googleLogin(String idToken, HttpServletResponse response) {
         GoogleAuthService.GoogleUserInfo googleUser = googleAuthService.verify(idToken);
 
+        boolean[] isNewUser = {false};
+
         User user = userRepository.findByGoogleId(googleUser.googleId())
                 .or(() -> userRepository.findByEmailIgnoreCase(googleUser.email())
                         .map(existing -> {
@@ -358,6 +360,7 @@ public class AuthService {
                         }))
                 .orElseGet(() -> {
                     // New user — create account (email already verified by Google)
+                    isNewUser[0] = true;
                     User newUser = new User();
                     newUser.setGoogleId(googleUser.googleId());
                     newUser.setEmail(googleUser.email().toLowerCase());
@@ -371,6 +374,13 @@ public class AuthService {
 
         if (user.getDeletedAt() != null) {
             throw ApiException.unauthorized("ACCOUNT_DELETED", "This account has been deleted");
+        }
+
+        // Existing users who predate the onboardingCompleted column have it as false.
+        // Mark them as completed so they are not forced through onboarding again.
+        if (!isNewUser[0] && !user.isOnboardingCompleted()) {
+            user.setOnboardingCompleted(true);
+            userRepository.save(user);
         }
 
         return issueTokensAndBuildResponse(user, response);

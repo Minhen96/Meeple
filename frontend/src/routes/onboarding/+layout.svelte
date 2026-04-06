@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { usersApi } from '$lib/api/users';
-	import { setUser } from '$lib/stores/auth';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -14,15 +11,6 @@
 		steps.findIndex((s) => $page.url.pathname.includes(s))
 	);
 	const showSteps = $derived(currentStep >= 0 || $page.url.pathname.includes('welcome'));
-
-	async function handleSkip() {
-		try {
-			const updated = await usersApi.updateMe({ onboardingCompleted: true });
-			setUser(updated);
-		} finally {
-			goto('/');
-		}
-	}
 </script>
 
 <div class="min-h-screen bg-background flex flex-col">
@@ -41,12 +29,14 @@
 		{/if}
 
 		{#if showSteps}
-			<button 
-				onclick={handleSkip} 
-				class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors"
-			>
-				Skip
-			</button>
+			<form method="POST" action="/onboarding/skip">
+				<button
+					type="submit"
+					class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors"
+				>
+					Skip
+				</button>
+			</form>
 		{/if}
 	</header>
 
@@ -54,3 +44,4 @@
 		{@render children?.()}
 	</main>
 </div>
+
