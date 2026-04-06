@@ -30,7 +30,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String accessToken = extractCookie(request, "access_token");
+        String accessToken = null;
+        String header = request.getHeader("Authorization");
+
+        if (header != null && header.startsWith("Bearer ")) {
+            accessToken = header.substring(7);
+        } else {
+            accessToken = extractCookie(request, "access_token");
+        }
 
         if (accessToken == null) {
             filterChain.doFilter(request, response);

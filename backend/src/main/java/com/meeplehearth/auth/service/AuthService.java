@@ -456,7 +456,8 @@ public class AuthService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getAvatarUrl(),
-                user.getEmail());
+                user.getEmail(),
+                user.isOnboardingCompleted());
     }
 
     private void clearAuthCookies(HttpServletResponse response) {

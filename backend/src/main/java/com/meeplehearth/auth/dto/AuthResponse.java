@@ -7,6 +7,7 @@ public record AuthResponse(
         String username,
         String displayName,
         String avatarUrl,
-        String email
+        String email,
+        boolean onboardingCompleted
 ) {
 }
