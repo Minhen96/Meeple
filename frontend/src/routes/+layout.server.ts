@@ -25,7 +25,8 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
 				headers: { 'Authorization': `Bearer ${accessToken}` }
 			});
 			if (res.ok) {
-				user = await res.json();
+				const body = await res.json();
+				user = body.data ? body.data : body;
 			}
 		} catch (e) {
 			// ignore for now, will try refresh
@@ -41,7 +42,8 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
 			});
 
 			if (res.ok) {
-				user = await res.json();
+				const body = await res.json();
+				user = body.data ? body.data : body;
 			}
 		} catch (e) {
 			// refresh failed

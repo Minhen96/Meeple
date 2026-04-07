@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { usersApi } from '$lib/api/users';
+	import { setUser } from '$lib/stores/auth';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -11,6 +14,24 @@
 		steps.findIndex((s) => $page.url.pathname.includes(s))
 	);
 	const showSteps = $derived(currentStep >= 0 || $page.url.pathname.includes('welcome'));
+
+	let skipping = $state(false);
+
+	async function handleSkip() {
+		if (skipping) return;
+		skipping = true;
+		try {
+			const updatedUser = await usersApi.updateMe({ onboardingCompleted: true });
+			setUser(updatedUser);
+			await invalidateAll();
+			goto('/');
+		} catch (err) {
+			console.error('Failed to skip onboarding:', err);
+			window.location.href = '/';
+		} finally {
+			skipping = false;
+		}
+	}
 </script>
 
 <div class="min-h-screen bg-background flex flex-col">
@@ -29,14 +50,12 @@
 		{/if}
 
 		{#if showSteps}
-			<form method="POST" action="/onboarding/skip">
-				<button
-					type="submit"
-					class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors"
-				>
-					Skip
-				</button>
-			</form>
+			<button 
+				onclick={handleSkip} 
+				class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors"
+			>
+				Skip
+			</button>
 		{/if}
 	</header>
 
