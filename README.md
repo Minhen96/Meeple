@@ -2,6 +2,22 @@
 
 A board game community app for discovering games, tracking your collection, connecting with players, and organising game nights.
 
+## Screenshots
+
+### Library page
+<img width="348" height="754" alt="Image" src="https://github.com/user-attachments/assets/f6d447e5-c8cd-43ba-9304-36f171effff0" />
+
+### Boardgame Detail page
+<img width="356" height="763" alt="Image" src="https://github.com/user-attachments/assets/67026abc-b81a-4bed-9006-4983b8982b39" />
+
+### Organize Event
+<img width="343" height="754" alt="Image" src="https://github.com/user-attachments/assets/02cb2221-58aa-4a74-aed1-7426f65c2da5" />
+
+### Profile page
+<img width="350" height="760" alt="Image" src="https://github.com/user-attachments/assets/f1598753-609f-479b-985a-efcdc02584cd" />
+
+---
+
 ## Stack
 
 | Layer    | Technology                                                                    |
