@@ -163,7 +163,7 @@ public class RulebookQueueService {
             });
 
             log.info("Admin '{}' uploaded rulebook for '{}' — ingestion queued",
-                    admin.getUsername(), game.getNameEn());
+                    actorName(admin), game.getNameEn());
             return saved;
         } catch (RuntimeException e) {
             deleteFromR2(key);
@@ -209,7 +209,7 @@ public class RulebookQueueService {
 
         eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(rulebook.getId()));
         log.info("Admin '{}' approved rulebook {} for game '{}'",
-                admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn());
+                actorName(admin), rulebook.getId(), rulebook.getGame().getNameEn());
     }
 
     // -------------------------------------------------------------------------
@@ -246,7 +246,7 @@ public class RulebookQueueService {
         }
 
         log.info("Admin '{}' rejected rulebook {} for game '{}'",
-                admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn());
+                actorName(admin), rulebook.getId(), rulebook.getGame().getNameEn());
     }
 
     // -------------------------------------------------------------------------
@@ -288,6 +288,11 @@ public class RulebookQueueService {
                 RequestBody.fromBytes(bytes)
         );
         return r2.getPublicUrl() + "/" + key;
+    }
+
+    /** Log label for the acting admin; null when admin endpoints are open in local dev. */
+    private static String actorName(User admin) {
+        return admin != null ? admin.getUsername() : "(unauthenticated)";
     }
 
     private void cancelAllPendingForGame(UUID gameId, User reviewer, String reason) {

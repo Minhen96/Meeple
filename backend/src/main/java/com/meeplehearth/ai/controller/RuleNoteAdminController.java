@@ -82,7 +82,7 @@ public class RuleNoteAdminController {
         ruleNoteRepository.save(note);
 
         notificationService.send(note.getUser().getId(),
-                Notification.NotificationType.RULE_NOTE_APPROVED, admin.getId(), note.getId(), "RULE_NOTE");
+                Notification.NotificationType.RULE_NOTE_APPROVED, admin != null ? admin.getId() : null, note.getId(), "RULE_NOTE");
 
         return ResponseEntity.ok(Map.of("status", "approved"));
     }
@@ -110,7 +110,7 @@ public class RuleNoteAdminController {
         ruleNoteRepository.save(note);
 
         notificationService.send(note.getUser().getId(),
-                Notification.NotificationType.RULE_NOTE_REJECTED, admin.getId(), note.getId(), "RULE_NOTE");
+                Notification.NotificationType.RULE_NOTE_REJECTED, admin != null ? admin.getId() : null, note.getId(), "RULE_NOTE");
 
         return ResponseEntity.ok(Map.of("status", "rejected"));
     }
@@ -122,7 +122,14 @@ public class RuleNoteAdminController {
                 .orElseThrow(() -> ApiException.notFound("RULE_NOTE_NOT_FOUND", "Rule note not found"));
     }
 
+    /**
+     * The acting admin, or null when the request is unauthenticated (only possible with
+     * app.security.open-admin-endpoints in the local profile); the reviewer is then recorded as null.
+     */
     private User resolveUser(UserDetails userDetails) {
+        if (userDetails == null) {
+            return null;
+        }
         UUID userId = UUID.fromString(userDetails.getUsername());
         return userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "User not found"));

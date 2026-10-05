@@ -125,7 +125,14 @@ public class RulebookAdminController {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * The acting admin, or null when the request is unauthenticated (only possible with
+     * app.security.open-admin-endpoints in the local profile); the reviewer is then recorded as null.
+     */
     private User resolveUser(UserDetails userDetails) {
+        if (userDetails == null) {
+            return null;
+        }
         UUID userId = UUID.fromString(userDetails.getUsername());
         return userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "User not found"));
