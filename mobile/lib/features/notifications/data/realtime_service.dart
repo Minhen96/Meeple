@@ -101,7 +101,8 @@ final class RealtimeService {
         token = await _session.freshAccessToken();
       }
     } on SessionExpiredException {
-      stop();
+      // Only if no newer session took over meanwhile (logout → login).
+      if (generation == _generation) stop();
       return;
     } catch (_) {
       // Network trouble while refreshing — keep the session and retry later.

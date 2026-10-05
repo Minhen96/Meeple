@@ -6,7 +6,7 @@ part of 'auth_local_storage.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authLocalStorageHash() => r'947dcbbcca55eaff204e766535c11c95953b090b';
+String _$authLocalStorageHash() => r'aecfabd26f98cbc4d7819eafa01514ec87d44cc2';
 
 /// See also [authLocalStorage].
 @ProviderFor(authLocalStorage)

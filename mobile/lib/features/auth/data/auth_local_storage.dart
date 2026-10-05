@@ -5,14 +5,20 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'auth_local_storage.g.dart';
 
 @Riverpod(keepAlive: true)
-AuthLocalStorage authLocalStorage(AuthLocalStorageRef ref) =>
-    AuthLocalStorage(ref.read(secureStorageProvider));
+AuthLocalStorage authLocalStorage(AuthLocalStorageRef ref) => AuthLocalStorage(
+      ref.read(secureStorageProvider),
+      ref.read(authSessionManagerProvider),
+    );
 
 /// Auth-specific wrapper around [SecureStorage].
+///
+/// Session writes go through [AuthSessionManager] so that signing in or out
+/// invalidates any token refresh still in flight for the previous session.
 final class AuthLocalStorage {
-  const AuthLocalStorage(this._storage);
+  const AuthLocalStorage(this._storage, this._session);
 
   final SecureStorage _storage;
+  final AuthSessionManager _session;
 
   Future<String?> getAccessToken() => _storage.getAccessToken();
   Future<String?> getRefreshToken() => _storage.getRefreshToken();
@@ -23,11 +29,7 @@ final class AuthLocalStorage {
     required AuthTokens tokens,
     required String userId,
   }) =>
-      _storage.saveTokens(
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        userId: userId,
-      );
+      _session.saveTokens(tokens, userId: userId);
 
-  Future<void> clearSession() => _storage.clearSession();
+  Future<void> clearSession() => _session.clear();
 }

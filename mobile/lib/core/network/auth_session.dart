@@ -76,9 +76,17 @@ final authSessionManagerProvider = Provider<AuthSessionManager>((ref) {
 /// through [refresh], which runs at most one request at a time — concurrent
 /// callers await the same in-flight future — and persists the rotated pair in a
 /// single secure-storage write before anyone uses the new access token.
+///
+/// Every session change (sign-in, logout) bumps a generation counter. A refresh
+/// that started under an older generation discards its result: it neither
+/// persists tokens nor clears storage, so a refresh racing a logout cannot
+/// resurrect the old session or wipe a newer one.
 final class AuthSessionManager {
-  AuthSessionManager(this._storage, {Dio? refreshDio})
-      : _refreshDio = refreshDio ??
+  AuthSessionManager(
+    this._storage, {
+    Dio? refreshDio,
+    this.refreshRaceDelay = const Duration(milliseconds: 300),
+  }) : _refreshDio = refreshDio ??
             Dio(
               BaseOptions(
                 baseUrl: ApiConstants.baseUrl,
@@ -92,28 +100,37 @@ final class AuthSessionManager {
               ),
             );
 
+  /// How long to wait after a 409 `REFRESH_RACE` before re-reading the
+  /// tokens the winning refresh stored.
+  final Duration refreshRaceDelay;
+
   final SecureStorage _storage;
   final Dio _refreshDio;
   final _expiredController = StreamController<void>.broadcast();
   Future<String>? _inFlight;
+  int _generation = 0;
 
   /// Emits when the session ended because the refresh token was rejected.
   Stream<void> get sessionExpired => _expiredController.stream;
 
   Future<String?> currentAccessToken() => _storage.getAccessToken();
 
-  /// Persists a freshly issued token pair (login, verify-email, Google).
-  Future<void> saveTokens(AuthTokens tokens, {String? userId}) =>
-      _storage.saveTokens(
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        userId: userId,
-      );
+  /// Persists a freshly issued token pair (login, verify-email, Google) and
+  /// invalidates any refresh still running for the previous session.
+  Future<void> saveTokens(AuthTokens tokens, {String? userId}) {
+    _startNewGeneration();
+    return _storage.saveTokens(
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      userId: userId,
+    );
+  }
 
   /// Returns an access token valid for at least [minValidity], refreshing
   /// first when needed. Returns null when logged out. Throws
-  /// [SessionExpiredException] when the refresh token was rejected, or the
-  /// underlying [DioException] on network failures (session kept).
+  /// [SessionExpiredException] when the refresh token was rejected (or the
+  /// session ended while refreshing), or the underlying [DioException] on
+  /// network failures (session kept).
   Future<String?> freshAccessToken({
     Duration minValidity = const Duration(seconds: 60),
   }) async {
@@ -146,7 +163,7 @@ final class AuthSessionManager {
     final started = _inFlight;
     if (started != null) return started;
 
-    final future = _doRefresh();
+    final future = _doRefresh(_generation);
     _inFlight = future;
     try {
       return await future;
@@ -155,8 +172,9 @@ final class AuthSessionManager {
     }
   }
 
-  Future<String> _doRefresh() async {
+  Future<String> _doRefresh(int generation) async {
     final session = await _storage.getSession();
+    _ensureCurrent(generation);
     if (session == null) {
       _expire();
       throw const SessionExpiredException();
@@ -170,7 +188,11 @@ final class AuthSessionManager {
         ),
       );
     } on DioException catch (e) {
+      _ensureCurrent(generation);
       final status = e.response?.statusCode;
+      if (status == 409 && _errorCode(e.response?.data) == 'REFRESH_RACE') {
+        return _afterRefreshRace(generation, session.accessToken);
+      }
       if (status == 401 || status == 403) {
         await _storage.clearSession();
         _expire();
@@ -179,6 +201,8 @@ final class AuthSessionManager {
       rethrow;
     }
 
+    // Logged out (or signed in again) while the request was in flight.
+    _ensureCurrent(generation);
     final tokens = extractAuthTokens(response);
     if (tokens == null) {
       throw DioException(
@@ -196,11 +220,43 @@ final class AuthSessionManager {
     return tokens.accessToken;
   }
 
-  /// Clears the local session (logout).
-  Future<void> clear() => _storage.clearSession();
+  /// 409 `REFRESH_RACE`: the token was rotated moments ago by a concurrent
+  /// refresh (another isolate, or a refresh interrupted by an app restart).
+  /// The server left the session untouched, so this is never fatal: give the
+  /// winner time to persist its tokens, then hand back whatever access token
+  /// is stored for the caller's single retry.
+  Future<String> _afterRefreshRace(
+      int generation, String sentAccessToken) async {
+    await Future<void>.delayed(refreshRaceDelay);
+    _ensureCurrent(generation);
+    final stored = await _storage.getAccessToken();
+    _ensureCurrent(generation);
+    return stored ?? sentAccessToken;
+  }
+
+  /// Clears the local session (logout). Any refresh still in flight is
+  /// discarded when it completes.
+  Future<void> clear() {
+    _startNewGeneration();
+    return _storage.clearSession();
+  }
 
   /// Refresh token for the logout call, so the backend can revoke it.
   Future<String?> refreshToken() => _storage.getRefreshToken();
+
+  void _startNewGeneration() {
+    _generation++;
+    _inFlight = null;
+  }
+
+  /// Throws (without touching storage or signalling expiry) when the session
+  /// changed since [generation] started.
+  void _ensureCurrent(int generation) {
+    if (generation != _generation) throw const SessionExpiredException();
+  }
+
+  static String? _errorCode(Object? body) =>
+      body is Map && body['code'] is String ? body['code'] as String : null;
 
   void _expire() {
     if (!_expiredController.isClosed) _expiredController.add(null);
