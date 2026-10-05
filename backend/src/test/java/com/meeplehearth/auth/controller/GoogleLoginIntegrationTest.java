@@ -189,7 +189,7 @@ class GoogleLoginIntegrationTest extends AuthWebIntegrationTest {
 
         for (String token : new String[]{"deleted-by-id", "deleted-by-email"}) {
             MvcResult result = google(token);
-            assertThat(result.getResponse().getStatus()).as(token).isEqualTo(401);
+            assertThat(result.getResponse().getStatus()).as(token).isEqualTo(403);
             assertThat(body(result).get("code").asText()).as(token).isEqualTo("ACCOUNT_DELETED");
         }
         assertThat(reload(byEmail.getId()).getGoogleId()).isNull();

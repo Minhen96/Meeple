@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,6 +50,21 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     @Modifying
     @Query("DELETE FROM RefreshToken r WHERE r.tokenHash = :tokenHash")
     int deleteByTokenHash(@Param("tokenHash") String tokenHash);
+
+    /** Live sessions of a user: unused, unexpired tokens (one per signed-in device), newest first. */
+    @Query("SELECT r FROM RefreshToken r WHERE r.userId = :userId AND r.usedAt IS NULL AND r.expiresAt > :now "
+            + "ORDER BY r.lastUsedAt DESC")
+    List<RefreshToken> findActiveSessions(@Param("userId") UUID userId, @Param("now") Instant now);
+
+    /** Deletes one session token of a user; returns 0 if it does not exist or belongs to someone else. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM RefreshToken r WHERE r.id = :id AND r.userId = :userId")
+    int deleteByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    /** Deletes every token of a user except the one with {@code keepHash} (the caller's own session). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM RefreshToken r WHERE r.userId = :userId AND r.tokenHash <> :keepHash")
+    int deleteByUserIdExceptHash(@Param("userId") UUID userId, @Param("keepHash") String keepHash);
 
     /** Removes expired tokens and rotated tokens older than the reuse-detection window. */
     @Transactional

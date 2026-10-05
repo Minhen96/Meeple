@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meeplehearth.auth.filter.JwtAuthFilter;
 import com.meeplehearth.auth.service.UserDetailsServiceImpl;
 import com.meeplehearth.auth.util.JwtUtil;
+import com.meeplehearth.common.ratelimit.RedisRateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +48,7 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
     private final Environment environment;
+    private final RedisRateLimiter rateLimiter;
 
     @Value("${app.security.open-admin-endpoints:false}")
     private boolean openAdminEndpoints;
@@ -57,7 +59,9 @@ public class SecurityConfig {
     public SecurityConfig(AppProperties appProperties,
             JwtUtil jwtUtil,
             UserDetailsServiceImpl userDetailsService,
-            Environment environment) {
+            Environment environment,
+            RedisRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.appProperties = appProperties;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
@@ -88,6 +92,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         boolean adminOpen = adminEndpointsOpen();
+        JwtAuthFilter jwtAuthFilter = jwtAuthFilter();
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -95,10 +100,19 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new OriginCheckFilter(appProperties.getCors().getAllowedOrigins()),
                         UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                // Not a bean: a Filter bean would also be registered with the servlet container and
+                // run before authentication, counting every request against the client IP
+                .addFilterAfter(new GlobalRateLimitFilter(rateLimiter, appProperties.getRateLimit()),
+                        JwtAuthFilter.class)
                 .authorizeHttpRequests(auth -> {
+                        // Session management lives under /auth but needs a signed-in user
+                        auth.requestMatchers("/api/v1/auth/sessions", "/api/v1/auth/sessions/**")
+                                .authenticated();
                         auth.requestMatchers(
                                 "/api/v1/auth/**",
+                                "/.well-known/assetlinks.json",
+                                "/.well-known/apple-app-site-association",
                                 "/api/v1/games",
                                 "/ws/**",
                                 "/actuator/health",

@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { fade, scale } from 'svelte/transition';
+	// Confirmation as a bottom sheet (SCREENS_AND_STATES section 14.2): icon + heading,
+	// consequence text, confirm (red when destructive) and a ghost cancel.
+	import BottomSheet from './BottomSheet.svelte';
 	import Button from './Button.svelte';
+	import { m } from '$lib/i18n';
 
 	interface Props {
 		title: string;
@@ -8,46 +11,48 @@
 		confirmLabel?: string;
 		cancelLabel?: string;
 		danger?: boolean;
+		/** Material Symbol shown next to the heading. */
+		icon?: string;
+		loading?: boolean;
 		onConfirm: () => void;
 		onCancel: () => void;
+		children?: import('svelte').Snippet;
 	}
 
 	let {
 		title,
 		message,
-		confirmLabel = 'Confirm',
-		cancelLabel = 'Cancel',
+		confirmLabel,
+		cancelLabel,
 		danger = false,
+		icon,
+		loading = false,
 		onConfirm,
-		onCancel
+		onCancel,
+		children
 	}: Props = $props();
 </script>
 
-<div
-	class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-	transition:fade={{ duration: 200 }}
->
-	<div
-		class="bg-surface rounded-2xl w-full max-w-xs shadow-2xl p-6"
-		transition:scale={{ duration: 300, start: 0.95, opacity: 0 }}
-	>
-		<h3 class="text-lg font-headline font-extrabold text-on-surface mb-2">{title}</h3>
-		<p class="text-sm text-on-surface-variant leading-relaxed mb-6">{message}</p>
-
-		<div class="flex flex-col gap-2">
-			<Button
-				fullWidth
-				variant={danger ? 'danger' : 'primary'}
-				onclick={onConfirm}
-			>
-				{confirmLabel}
-			</Button>
-			<button
-				onclick={onCancel}
-				class="w-full py-2.5 text-sm font-label font-bold text-on-surface-variant hover:text-on-surface transition-colors"
-			>
-				{cancelLabel}
-			</button>
-		</div>
+<BottomSheet label={title} onClose={onCancel}>
+	<div class="flex items-center gap-3 mb-2">
+		<span
+			class="material-symbols-outlined text-[28px] {danger ? 'text-error' : 'text-primary'}"
+			aria-hidden="true">{icon ?? (danger ? 'warning' : 'help')}</span
+		>
+		<h3 class="text-lg font-headline font-extrabold text-on-surface">{title}</h3>
 	</div>
-</div>
+	<p class="text-sm text-on-surface-variant leading-relaxed mb-6">{message}</p>
+	{@render children?.()}
+	<div class="flex flex-col gap-2">
+		<Button fullWidth variant={danger ? 'danger' : 'primary'} {loading} onclick={onConfirm}>
+			{confirmLabel ?? m('common.confirm')}
+		</Button>
+		<button
+			type="button"
+			onclick={onCancel}
+			class="w-full py-3 text-sm font-label font-bold text-on-surface-variant hover:text-on-surface transition-colors"
+		>
+			{cancelLabel ?? m('common.cancel')}
+		</button>
+	</div>
+</BottomSheet>

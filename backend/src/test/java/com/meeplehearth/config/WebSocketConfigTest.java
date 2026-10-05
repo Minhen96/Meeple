@@ -54,7 +54,8 @@ class WebSocketConfigTest {
 
     WebSocketConfigTest() {
         props.getCors().setAllowedOrigins(List.of("http://localhost:5173"));
-        config = new WebSocketConfig(props, jwtUtil, userDetailsService, revoker);
+        config = new WebSocketConfig(props, jwtUtil, userDetailsService, revoker,
+                mock(com.meeplehearth.event.repository.EventRepository.class));
     }
 
     // ------------------------------------------------------------------ handshake

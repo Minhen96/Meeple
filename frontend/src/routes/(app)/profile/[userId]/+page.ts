@@ -1,19 +1,21 @@
 import { usersApi } from '$lib/api/users';
 import { friendsApi } from '$lib/api/friends';
 import { gamesApi } from '$lib/api/games';
+import { postsApi } from '$lib/api/posts';
 import { throwLoadError } from '$lib/api/load';
 import { redirect } from '@sveltejs/kit';
-import type { ActivityLog, UserGame } from '$lib/types';
+import type { UserGame } from '$lib/types';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params, parent, fetch, url }) => {
 	const { user: me } = await parent();
 
-	// Redirect to own profile page instead of showing Add Friend button
+	// Your own profile lives at /profile
 	if (me && params.userId === me.id) {
 		redirect(302, '/profile');
 	}
 
+	// 404 when the user does not exist, is deleted, or either side blocked the other
 	let user;
 	let friendStatus;
 	try {
@@ -25,14 +27,14 @@ export const load: PageLoad = async ({ params, parent, fetch, url }) => {
 		throwLoadError(err, url, 'User not found');
 	}
 
-	let collection: UserGame[] = [];
-	let activity: ActivityLog[] = [];
-	if (friendStatus.status === 'FRIENDS') {
-		[collection, activity] = await Promise.all([
-			gamesApi.getUserCollection(params.userId, { fetch }).catch(() => []),
-			gamesApi.getUserActivity(params.userId, { fetch }).catch(() => [])
-		]);
-	}
+	const isFriend = friendStatus.status === 'FRIENDS';
+	const [posts, collection, stats] = await Promise.all([
+		postsApi.getUserPosts(params.userId, 0, 30, { fetch }).catch(() => []),
+		isFriend
+			? gamesApi.getUserCollection(params.userId, { fetch }).catch((): UserGame[] => [])
+			: Promise.resolve<UserGame[]>([]),
+		usersApi.getStats(params.userId, { fetch }).catch(() => null)
+	]);
 
-	return { user, friendStatus, collection, activity };
+	return { user, friendStatus, posts, collection, stats, isFriend };
 };

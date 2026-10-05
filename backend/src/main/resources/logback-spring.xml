@@ -2,7 +2,9 @@
 <!--
   prod: one JSON object per line (logstash-logback-encoder) for Railway log search.
   every other profile: Spring Boot's default plain console output.
-  Never log passwords, tokens or email addresses (CLAUDE.md); nothing is masked here.
+  Never log passwords, tokens or email addresses (CLAUDE.md). As a safety net the prod encoder
+  masks them anyway (SensitiveDataMasker: emails, JWTs, bearer / refresh / FCM tokens, and fields
+  named like password, token, secret, cookie or email).
 -->
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
@@ -16,12 +18,17 @@
                     <levelValue>[ignore]</levelValue>
                 </fieldNames>
                 <customFields>{"service":"meeple-backend"}</customFields>
+                <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+                    <valueMasker class="com.meeplehearth.common.logging.SensitiveDataMasker"/>
+                </jsonGeneratorDecorator>
                 <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
                     <maxDepthPerThrowable>40</maxDepthPerThrowable>
                     <rootCauseFirst>true</rootCauseFirst>
                 </throwableConverter>
             </encoder>
         </appender>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
         <root level="INFO">
             <appender-ref ref="JSON_CONSOLE"/>
         </root>
