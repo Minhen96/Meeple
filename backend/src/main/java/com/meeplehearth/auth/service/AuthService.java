@@ -528,7 +528,7 @@ public class AuthService {
                 .secure(isSecure)
                 .path("/")
                 .maxAge(refreshMaxAgeSeconds)
-                .sameSite("Strict");
+                .sameSite("Lax");
 
         if (appProperties.getAuth().getCookieDomain() != null && !appProperties.getAuth().getCookieDomain().isBlank()) {
             refreshCookieBuilder.domain(appProperties.getAuth().getCookieDomain());
@@ -560,7 +560,7 @@ public class AuthService {
                 .secure(isProductionEnvironment())
                 .path("/")
                 .maxAge(0)
-                .sameSite("Strict");
+                .sameSite("Lax");
         String cookieDomain = appProperties.getAuth().getCookieDomain();
         if (cookieDomain != null && !cookieDomain.isBlank()) {
             builder.domain(cookieDomain);

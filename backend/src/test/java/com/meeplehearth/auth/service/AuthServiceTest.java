@@ -151,7 +151,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void refreshCookieIsSameSiteStrict() {
+    void refreshCookieIsHttpOnlyLax() {
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken(null)));
         when(refreshTokenRepository.markUsed(anyString(), any(Instant.class))).thenReturn(1);
 
@@ -160,7 +160,7 @@ class AuthServiceTest {
 
         assertThat(response.getHeaders("Set-Cookie"))
                 .filteredOn(c -> c.startsWith("refresh_token="))
-                .singleElement().asString().contains("SameSite=Strict");
+                .singleElement().asString().contains("HttpOnly").contains("SameSite=Lax");
     }
 
     // ---------------------------------------------------------------- login
