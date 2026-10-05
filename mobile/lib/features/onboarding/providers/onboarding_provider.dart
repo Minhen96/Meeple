@@ -12,7 +12,8 @@ class OnboardingNotifier extends _$OnboardingNotifier {
   @override
   bool build() => false; // false = not submitting
 
-  /// Update bio and location on the current user's profile.
+  /// Update bio and location on the current user's profile (`PUT /users/me`,
+  /// partial: null fields are left unchanged).
   Future<void> updateProfile({
     String? bio,
     String? location,
@@ -20,7 +21,7 @@ class OnboardingNotifier extends _$OnboardingNotifier {
     state = true;
     try {
       final dio = ref.read(dioProvider);
-      final res = await dio.patch<Map<String, dynamic>>(
+      final res = await dio.put<Map<String, dynamic>>(
         ApiConstants.me,
         data: {
           if (bio != null) 'bio': bio,
@@ -36,28 +37,12 @@ class OnboardingNotifier extends _$OnboardingNotifier {
     }
   }
 
-  /// Trigger a BGG collection import for the given username.
-  Future<void> importBgg(String bggUsername) async {
-    state = true;
-    try {
-      final dio = ref.read(dioProvider);
-      await dio.post<void>(
-        ApiConstants.bgg,
-        data: {'bggUsername': bggUsername},
-      );
-    } catch (e) {
-      throw ApiException.from(e);
-    } finally {
-      state = false;
-    }
-  }
-
   /// Marks onboarding as complete and syncs the auth state.
   Future<void> completeOnboarding() async {
     state = true;
     try {
       final dio = ref.read(dioProvider);
-      final res = await dio.patch<Map<String, dynamic>>(
+      final res = await dio.put<Map<String, dynamic>>(
         ApiConstants.me,
         data: {'onboardingCompleted': true},
       );

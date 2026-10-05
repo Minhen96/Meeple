@@ -22,13 +22,14 @@ User _$UserFromJson(Map<String, dynamic> json) {
 mixin _$User {
   String get id => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
-  String get email => throw _privateConstructorUsedError;
+  String? get email => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readDisplayName)
   String get displayName => throw _privateConstructorUsedError;
   String? get avatarUrl => throw _privateConstructorUsedError;
   String? get bio => throw _privateConstructorUsedError;
   String? get location => throw _privateConstructorUsedError;
   bool get onboardingCompleted => throw _privateConstructorUsedError;
-  bool get emailVerified => throw _privateConstructorUsedError;
+  bool get isAdmin => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this User to a JSON map.
@@ -48,13 +49,13 @@ abstract class $UserCopyWith<$Res> {
   $Res call(
       {String id,
       String username,
-      String email,
-      String displayName,
+      String? email,
+      @JsonKey(readValue: _readDisplayName) String displayName,
       String? avatarUrl,
       String? bio,
       String? location,
       bool onboardingCompleted,
-      bool emailVerified,
+      bool isAdmin,
       DateTime? createdAt});
 }
 
@@ -75,13 +76,13 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
   $Res call({
     Object? id = null,
     Object? username = null,
-    Object? email = null,
+    Object? email = freezed,
     Object? displayName = null,
     Object? avatarUrl = freezed,
     Object? bio = freezed,
     Object? location = freezed,
     Object? onboardingCompleted = null,
-    Object? emailVerified = null,
+    Object? isAdmin = null,
     Object? createdAt = freezed,
   }) {
     return _then(_value.copyWith(
@@ -93,10 +94,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.username
           : username // ignore: cast_nullable_to_non_nullable
               as String,
-      email: null == email
+      email: freezed == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       displayName: null == displayName
           ? _value.displayName
           : displayName // ignore: cast_nullable_to_non_nullable
@@ -117,9 +118,9 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.onboardingCompleted
           : onboardingCompleted // ignore: cast_nullable_to_non_nullable
               as bool,
-      emailVerified: null == emailVerified
-          ? _value.emailVerified
-          : emailVerified // ignore: cast_nullable_to_non_nullable
+      isAdmin: null == isAdmin
+          ? _value.isAdmin
+          : isAdmin // ignore: cast_nullable_to_non_nullable
               as bool,
       createdAt: freezed == createdAt
           ? _value.createdAt
@@ -139,13 +140,13 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
   $Res call(
       {String id,
       String username,
-      String email,
-      String displayName,
+      String? email,
+      @JsonKey(readValue: _readDisplayName) String displayName,
       String? avatarUrl,
       String? bio,
       String? location,
       bool onboardingCompleted,
-      bool emailVerified,
+      bool isAdmin,
       DateTime? createdAt});
 }
 
@@ -163,13 +164,13 @@ class __$$UserImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? username = null,
-    Object? email = null,
+    Object? email = freezed,
     Object? displayName = null,
     Object? avatarUrl = freezed,
     Object? bio = freezed,
     Object? location = freezed,
     Object? onboardingCompleted = null,
-    Object? emailVerified = null,
+    Object? isAdmin = null,
     Object? createdAt = freezed,
   }) {
     return _then(_$UserImpl(
@@ -181,10 +182,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.username
           : username // ignore: cast_nullable_to_non_nullable
               as String,
-      email: null == email
+      email: freezed == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       displayName: null == displayName
           ? _value.displayName
           : displayName // ignore: cast_nullable_to_non_nullable
@@ -205,9 +206,9 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.onboardingCompleted
           : onboardingCompleted // ignore: cast_nullable_to_non_nullable
               as bool,
-      emailVerified: null == emailVerified
-          ? _value.emailVerified
-          : emailVerified // ignore: cast_nullable_to_non_nullable
+      isAdmin: null == isAdmin
+          ? _value.isAdmin
+          : isAdmin // ignore: cast_nullable_to_non_nullable
               as bool,
       createdAt: freezed == createdAt
           ? _value.createdAt
@@ -223,13 +224,13 @@ class _$UserImpl implements _User {
   const _$UserImpl(
       {required this.id,
       required this.username,
-      required this.email,
-      required this.displayName,
+      this.email,
+      @JsonKey(readValue: _readDisplayName) required this.displayName,
       this.avatarUrl,
       this.bio,
       this.location,
       this.onboardingCompleted = false,
-      this.emailVerified = false,
+      this.isAdmin = false,
       this.createdAt});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
@@ -240,8 +241,9 @@ class _$UserImpl implements _User {
   @override
   final String username;
   @override
-  final String email;
+  final String? email;
   @override
+  @JsonKey(readValue: _readDisplayName)
   final String displayName;
   @override
   final String? avatarUrl;
@@ -254,13 +256,13 @@ class _$UserImpl implements _User {
   final bool onboardingCompleted;
   @override
   @JsonKey()
-  final bool emailVerified;
+  final bool isAdmin;
   @override
   final DateTime? createdAt;
 
   @override
   String toString() {
-    return 'User(id: $id, username: $username, email: $email, displayName: $displayName, avatarUrl: $avatarUrl, bio: $bio, location: $location, onboardingCompleted: $onboardingCompleted, emailVerified: $emailVerified, createdAt: $createdAt)';
+    return 'User(id: $id, username: $username, email: $email, displayName: $displayName, avatarUrl: $avatarUrl, bio: $bio, location: $location, onboardingCompleted: $onboardingCompleted, isAdmin: $isAdmin, createdAt: $createdAt)';
   }
 
   @override
@@ -281,8 +283,7 @@ class _$UserImpl implements _User {
                 other.location == location) &&
             (identical(other.onboardingCompleted, onboardingCompleted) ||
                 other.onboardingCompleted == onboardingCompleted) &&
-            (identical(other.emailVerified, emailVerified) ||
-                other.emailVerified == emailVerified) &&
+            (identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -290,7 +291,7 @@ class _$UserImpl implements _User {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, username, email, displayName,
-      avatarUrl, bio, location, onboardingCompleted, emailVerified, createdAt);
+      avatarUrl, bio, location, onboardingCompleted, isAdmin, createdAt);
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.
@@ -312,13 +313,13 @@ abstract class _User implements User {
   const factory _User(
       {required final String id,
       required final String username,
-      required final String email,
-      required final String displayName,
+      final String? email,
+      @JsonKey(readValue: _readDisplayName) required final String displayName,
       final String? avatarUrl,
       final String? bio,
       final String? location,
       final bool onboardingCompleted,
-      final bool emailVerified,
+      final bool isAdmin,
       final DateTime? createdAt}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
@@ -328,8 +329,9 @@ abstract class _User implements User {
   @override
   String get username;
   @override
-  String get email;
+  String? get email;
   @override
+  @JsonKey(readValue: _readDisplayName)
   String get displayName;
   @override
   String? get avatarUrl;
@@ -340,7 +342,7 @@ abstract class _User implements User {
   @override
   bool get onboardingCompleted;
   @override
-  bool get emailVerified;
+  bool get isAdmin;
   @override
   DateTime? get createdAt;
 

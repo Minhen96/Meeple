@@ -17,6 +17,8 @@ final class GameRepository {
 
   final Dio _dio;
 
+  /// Browses cached games (`GET /games?q=`), a Spring page of
+  /// `GameSummaryResponse`.
   Future<PaginatedResult<Game>> searchGames({
     required String query,
     PageParams params = const PageParams(),
@@ -31,7 +33,7 @@ final class GameRepository {
       );
       return PaginatedResult.fromJson(
         response.data!,
-        (item) => Game.fromJson(item as Map<String, dynamic>),
+        (item) => Game.fromJson(item! as Map<String, dynamic>),
       );
     } catch (e) {
       throw ApiException.from(e);
@@ -42,6 +44,20 @@ final class GameRepository {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '${ApiConstants.games}/$gameId',
+      );
+      return Game.fromJson(response.data!);
+    } catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
+  /// `GET /games/bgg/{bggId}` — fetches and caches a game from BoardGameGeek.
+  /// Throws [ServiceUnavailableException] (`BGG_UNAVAILABLE`) when BGG cannot
+  /// be reached.
+  Future<Game> ensureGame(int bggId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '${ApiConstants.games}/bgg/$bggId',
       );
       return Game.fromJson(response.data!);
     } catch (e) {

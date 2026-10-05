@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
@@ -49,10 +50,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (widget.redirect != null) {
         context.go(Uri.decodeComponent(widget.redirect!));
       }
+    } on EmailNotVerifiedException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+      final identifier = _emailController.text.trim();
+      context.push(
+        AppRoutes.verifyEmail,
+        extra: identifier.contains('@') ? identifier : null,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+          content: Text(
+            e is ApiException ? e.message : 'Sign-in failed. Please try again.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -95,8 +110,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? 'Please enter your email or username'
                                 : null,
-                            onFieldSubmitted: (_) =>
-                                FocusScope.of(context).requestFocus(_passwordFocus),
+                            onFieldSubmitted: (_) => FocusScope.of(context)
+                                .requestFocus(_passwordFocus),
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(

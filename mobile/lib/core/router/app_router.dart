@@ -111,7 +111,10 @@ GoRouter appRouter(AppRouterRef ref) {
       ),
       GoRoute(
         path: '/auth/verify-email',
-        builder: (_, __) => const VerifyEmailScreen(),
+        builder: (_, state) => VerifyEmailScreen(
+          email: state.extra is String ? state.extra! as String : null,
+          token: state.uri.queryParameters['token'],
+        ),
       ),
       GoRoute(
         path: '/auth/forgot-password',

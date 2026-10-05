@@ -21,20 +21,28 @@ Game _$GameFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Game {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'title')
   String get name => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
   String? get thumbnailUrl => throw _privateConstructorUsedError;
+  int? get yearPublished => throw _privateConstructorUsedError;
   int? get minPlayers => throw _privateConstructorUsedError;
   int? get maxPlayers => throw _privateConstructorUsedError;
+  @JsonKey(name: 'playTime')
   int? get minPlayTimeMinutes => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readPlayTime)
   int? get maxPlayTimeMinutes => throw _privateConstructorUsedError;
+  @JsonKey(name: 'bggRating')
   double? get averageRating => throw _privateConstructorUsedError;
+  @JsonKey(name: 'complexityWeight')
+  double? get complexity => throw _privateConstructorUsedError;
   int? get bggId => throw _privateConstructorUsedError;
   String? get bggUrl => throw _privateConstructorUsedError;
   List<String> get categories => throw _privateConstructorUsedError;
   List<String> get mechanics => throw _privateConstructorUsedError;
   List<String> get designers => throw _privateConstructorUsedError;
+  bool get hasRulebook => throw _privateConstructorUsedError;
 
   /// Serializes this Game to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -52,20 +60,23 @@ abstract class $GameCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String name,
+      @JsonKey(name: 'title') String name,
       String? description,
       String? imageUrl,
       String? thumbnailUrl,
+      int? yearPublished,
       int? minPlayers,
       int? maxPlayers,
-      int? minPlayTimeMinutes,
-      int? maxPlayTimeMinutes,
-      double? averageRating,
+      @JsonKey(name: 'playTime') int? minPlayTimeMinutes,
+      @JsonKey(readValue: _readPlayTime) int? maxPlayTimeMinutes,
+      @JsonKey(name: 'bggRating') double? averageRating,
+      @JsonKey(name: 'complexityWeight') double? complexity,
       int? bggId,
       String? bggUrl,
       List<String> categories,
       List<String> mechanics,
-      List<String> designers});
+      List<String> designers,
+      bool hasRulebook});
 }
 
 /// @nodoc
@@ -88,16 +99,19 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
     Object? description = freezed,
     Object? imageUrl = freezed,
     Object? thumbnailUrl = freezed,
+    Object? yearPublished = freezed,
     Object? minPlayers = freezed,
     Object? maxPlayers = freezed,
     Object? minPlayTimeMinutes = freezed,
     Object? maxPlayTimeMinutes = freezed,
     Object? averageRating = freezed,
+    Object? complexity = freezed,
     Object? bggId = freezed,
     Object? bggUrl = freezed,
     Object? categories = null,
     Object? mechanics = null,
     Object? designers = null,
+    Object? hasRulebook = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -120,6 +134,10 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
           ? _value.thumbnailUrl
           : thumbnailUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      yearPublished: freezed == yearPublished
+          ? _value.yearPublished
+          : yearPublished // ignore: cast_nullable_to_non_nullable
+              as int?,
       minPlayers: freezed == minPlayers
           ? _value.minPlayers
           : minPlayers // ignore: cast_nullable_to_non_nullable
@@ -139,6 +157,10 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
       averageRating: freezed == averageRating
           ? _value.averageRating
           : averageRating // ignore: cast_nullable_to_non_nullable
+              as double?,
+      complexity: freezed == complexity
+          ? _value.complexity
+          : complexity // ignore: cast_nullable_to_non_nullable
               as double?,
       bggId: freezed == bggId
           ? _value.bggId
@@ -160,6 +182,10 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
           ? _value.designers
           : designers // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      hasRulebook: null == hasRulebook
+          ? _value.hasRulebook
+          : hasRulebook // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -173,20 +199,23 @@ abstract class _$$GameImplCopyWith<$Res> implements $GameCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String name,
+      @JsonKey(name: 'title') String name,
       String? description,
       String? imageUrl,
       String? thumbnailUrl,
+      int? yearPublished,
       int? minPlayers,
       int? maxPlayers,
-      int? minPlayTimeMinutes,
-      int? maxPlayTimeMinutes,
-      double? averageRating,
+      @JsonKey(name: 'playTime') int? minPlayTimeMinutes,
+      @JsonKey(readValue: _readPlayTime) int? maxPlayTimeMinutes,
+      @JsonKey(name: 'bggRating') double? averageRating,
+      @JsonKey(name: 'complexityWeight') double? complexity,
       int? bggId,
       String? bggUrl,
       List<String> categories,
       List<String> mechanics,
-      List<String> designers});
+      List<String> designers,
+      bool hasRulebook});
 }
 
 /// @nodoc
@@ -206,16 +235,19 @@ class __$$GameImplCopyWithImpl<$Res>
     Object? description = freezed,
     Object? imageUrl = freezed,
     Object? thumbnailUrl = freezed,
+    Object? yearPublished = freezed,
     Object? minPlayers = freezed,
     Object? maxPlayers = freezed,
     Object? minPlayTimeMinutes = freezed,
     Object? maxPlayTimeMinutes = freezed,
     Object? averageRating = freezed,
+    Object? complexity = freezed,
     Object? bggId = freezed,
     Object? bggUrl = freezed,
     Object? categories = null,
     Object? mechanics = null,
     Object? designers = null,
+    Object? hasRulebook = null,
   }) {
     return _then(_$GameImpl(
       id: null == id
@@ -238,6 +270,10 @@ class __$$GameImplCopyWithImpl<$Res>
           ? _value.thumbnailUrl
           : thumbnailUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      yearPublished: freezed == yearPublished
+          ? _value.yearPublished
+          : yearPublished // ignore: cast_nullable_to_non_nullable
+              as int?,
       minPlayers: freezed == minPlayers
           ? _value.minPlayers
           : minPlayers // ignore: cast_nullable_to_non_nullable
@@ -257,6 +293,10 @@ class __$$GameImplCopyWithImpl<$Res>
       averageRating: freezed == averageRating
           ? _value.averageRating
           : averageRating // ignore: cast_nullable_to_non_nullable
+              as double?,
+      complexity: freezed == complexity
+          ? _value.complexity
+          : complexity // ignore: cast_nullable_to_non_nullable
               as double?,
       bggId: freezed == bggId
           ? _value.bggId
@@ -278,6 +318,10 @@ class __$$GameImplCopyWithImpl<$Res>
           ? _value._designers
           : designers // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      hasRulebook: null == hasRulebook
+          ? _value.hasRulebook
+          : hasRulebook // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -287,20 +331,23 @@ class __$$GameImplCopyWithImpl<$Res>
 class _$GameImpl implements _Game {
   const _$GameImpl(
       {required this.id,
-      required this.name,
+      @JsonKey(name: 'title') required this.name,
       this.description,
       this.imageUrl,
       this.thumbnailUrl,
+      this.yearPublished,
       this.minPlayers,
       this.maxPlayers,
-      this.minPlayTimeMinutes,
-      this.maxPlayTimeMinutes,
-      this.averageRating,
+      @JsonKey(name: 'playTime') this.minPlayTimeMinutes,
+      @JsonKey(readValue: _readPlayTime) this.maxPlayTimeMinutes,
+      @JsonKey(name: 'bggRating') this.averageRating,
+      @JsonKey(name: 'complexityWeight') this.complexity,
       this.bggId,
       this.bggUrl,
       final List<String> categories = const [],
       final List<String> mechanics = const [],
-      final List<String> designers = const []})
+      final List<String> designers = const [],
+      this.hasRulebook = false})
       : _categories = categories,
         _mechanics = mechanics,
         _designers = designers;
@@ -311,6 +358,7 @@ class _$GameImpl implements _Game {
   @override
   final String id;
   @override
+  @JsonKey(name: 'title')
   final String name;
   @override
   final String? description;
@@ -319,15 +367,23 @@ class _$GameImpl implements _Game {
   @override
   final String? thumbnailUrl;
   @override
+  final int? yearPublished;
+  @override
   final int? minPlayers;
   @override
   final int? maxPlayers;
   @override
+  @JsonKey(name: 'playTime')
   final int? minPlayTimeMinutes;
   @override
+  @JsonKey(readValue: _readPlayTime)
   final int? maxPlayTimeMinutes;
   @override
+  @JsonKey(name: 'bggRating')
   final double? averageRating;
+  @override
+  @JsonKey(name: 'complexityWeight')
+  final double? complexity;
   @override
   final int? bggId;
   @override
@@ -360,8 +416,12 @@ class _$GameImpl implements _Game {
   }
 
   @override
+  @JsonKey()
+  final bool hasRulebook;
+
+  @override
   String toString() {
-    return 'Game(id: $id, name: $name, description: $description, imageUrl: $imageUrl, thumbnailUrl: $thumbnailUrl, minPlayers: $minPlayers, maxPlayers: $maxPlayers, minPlayTimeMinutes: $minPlayTimeMinutes, maxPlayTimeMinutes: $maxPlayTimeMinutes, averageRating: $averageRating, bggId: $bggId, bggUrl: $bggUrl, categories: $categories, mechanics: $mechanics, designers: $designers)';
+    return 'Game(id: $id, name: $name, description: $description, imageUrl: $imageUrl, thumbnailUrl: $thumbnailUrl, yearPublished: $yearPublished, minPlayers: $minPlayers, maxPlayers: $maxPlayers, minPlayTimeMinutes: $minPlayTimeMinutes, maxPlayTimeMinutes: $maxPlayTimeMinutes, averageRating: $averageRating, complexity: $complexity, bggId: $bggId, bggUrl: $bggUrl, categories: $categories, mechanics: $mechanics, designers: $designers, hasRulebook: $hasRulebook)';
   }
 
   @override
@@ -377,6 +437,8 @@ class _$GameImpl implements _Game {
                 other.imageUrl == imageUrl) &&
             (identical(other.thumbnailUrl, thumbnailUrl) ||
                 other.thumbnailUrl == thumbnailUrl) &&
+            (identical(other.yearPublished, yearPublished) ||
+                other.yearPublished == yearPublished) &&
             (identical(other.minPlayers, minPlayers) ||
                 other.minPlayers == minPlayers) &&
             (identical(other.maxPlayers, maxPlayers) ||
@@ -387,6 +449,8 @@ class _$GameImpl implements _Game {
                 other.maxPlayTimeMinutes == maxPlayTimeMinutes) &&
             (identical(other.averageRating, averageRating) ||
                 other.averageRating == averageRating) &&
+            (identical(other.complexity, complexity) ||
+                other.complexity == complexity) &&
             (identical(other.bggId, bggId) || other.bggId == bggId) &&
             (identical(other.bggUrl, bggUrl) || other.bggUrl == bggUrl) &&
             const DeepCollectionEquality()
@@ -394,7 +458,9 @@ class _$GameImpl implements _Game {
             const DeepCollectionEquality()
                 .equals(other._mechanics, _mechanics) &&
             const DeepCollectionEquality()
-                .equals(other._designers, _designers));
+                .equals(other._designers, _designers) &&
+            (identical(other.hasRulebook, hasRulebook) ||
+                other.hasRulebook == hasRulebook));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -406,16 +472,19 @@ class _$GameImpl implements _Game {
       description,
       imageUrl,
       thumbnailUrl,
+      yearPublished,
       minPlayers,
       maxPlayers,
       minPlayTimeMinutes,
       maxPlayTimeMinutes,
       averageRating,
+      complexity,
       bggId,
       bggUrl,
       const DeepCollectionEquality().hash(_categories),
       const DeepCollectionEquality().hash(_mechanics),
-      const DeepCollectionEquality().hash(_designers));
+      const DeepCollectionEquality().hash(_designers),
+      hasRulebook);
 
   /// Create a copy of Game
   /// with the given fields replaced by the non-null parameter values.
@@ -436,26 +505,30 @@ class _$GameImpl implements _Game {
 abstract class _Game implements Game {
   const factory _Game(
       {required final String id,
-      required final String name,
+      @JsonKey(name: 'title') required final String name,
       final String? description,
       final String? imageUrl,
       final String? thumbnailUrl,
+      final int? yearPublished,
       final int? minPlayers,
       final int? maxPlayers,
-      final int? minPlayTimeMinutes,
-      final int? maxPlayTimeMinutes,
-      final double? averageRating,
+      @JsonKey(name: 'playTime') final int? minPlayTimeMinutes,
+      @JsonKey(readValue: _readPlayTime) final int? maxPlayTimeMinutes,
+      @JsonKey(name: 'bggRating') final double? averageRating,
+      @JsonKey(name: 'complexityWeight') final double? complexity,
       final int? bggId,
       final String? bggUrl,
       final List<String> categories,
       final List<String> mechanics,
-      final List<String> designers}) = _$GameImpl;
+      final List<String> designers,
+      final bool hasRulebook}) = _$GameImpl;
 
   factory _Game.fromJson(Map<String, dynamic> json) = _$GameImpl.fromJson;
 
   @override
   String get id;
   @override
+  @JsonKey(name: 'title')
   String get name;
   @override
   String? get description;
@@ -464,15 +537,23 @@ abstract class _Game implements Game {
   @override
   String? get thumbnailUrl;
   @override
+  int? get yearPublished;
+  @override
   int? get minPlayers;
   @override
   int? get maxPlayers;
   @override
+  @JsonKey(name: 'playTime')
   int? get minPlayTimeMinutes;
   @override
+  @JsonKey(readValue: _readPlayTime)
   int? get maxPlayTimeMinutes;
   @override
+  @JsonKey(name: 'bggRating')
   double? get averageRating;
+  @override
+  @JsonKey(name: 'complexityWeight')
+  double? get complexity;
   @override
   int? get bggId;
   @override
@@ -483,6 +564,8 @@ abstract class _Game implements Game {
   List<String> get mechanics;
   @override
   List<String> get designers;
+  @override
+  bool get hasRulebook;
 
   /// Create a copy of Game
   /// with the given fields replaced by the non-null parameter values.

@@ -7,7 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'library_provider.g.dart';
 
-/// My collection — full list (no pagination; API returns all owned/wishlisted).
+/// My collection — full list (`GET /users/me/games` is not paginated).
 @riverpod
 class CollectionNotifier extends _$CollectionNotifier {
   @override
@@ -21,54 +21,60 @@ class CollectionNotifier extends _$CollectionNotifier {
     );
   }
 
+  /// Adds a game to the collection (PUT upsert keyed by game id).
   Future<void> addGame({
     required String gameId,
     bool isOwned = false,
-    bool isWishlisted = false,
     bool isFavorited = false,
   }) async {
-    final added = await ref.read(collectionRepositoryProvider).addToCollection(
+    final added = await ref.read(collectionRepositoryProvider).upsertUserGame(
           gameId: gameId,
           isOwned: isOwned,
-          isWishlisted: isWishlisted,
           isFavorited: isFavorited,
         );
     final current = state.valueOrNull ?? [];
-    state = AsyncValue.data([...current, added]);
+    state = AsyncValue.data([
+      ...current.where((g) => g.gameId != gameId),
+      added,
+    ]);
   }
 
   Future<void> updateGame({
-    required String userGameId,
+    required String gameId,
     bool? isOwned,
-    bool? isWishlisted,
     bool? isFavorited,
-    int? playCount,
-    int? personalRating,
+    double? personalRating,
     String? notes,
   }) async {
-    final updated =
-        await ref.read(collectionRepositoryProvider).updateUserGame(
-              userGameId: userGameId,
-              isOwned: isOwned,
-              isWishlisted: isWishlisted,
-              isFavorited: isFavorited,
-              playCount: playCount,
-              personalRating: personalRating,
-              notes: notes,
-            );
-    final current = state.valueOrNull ?? [];
-    state = AsyncValue.data(
-      current.map((UserGame g) => g.id == userGameId ? updated : g).toList(),
-    );
+    final updated = await ref.read(collectionRepositoryProvider).upsertUserGame(
+          gameId: gameId,
+          isOwned: isOwned,
+          isFavorited: isFavorited,
+          personalRating: personalRating,
+          notes: notes,
+        );
+    _replace(updated);
   }
 
-  Future<void> removeGame(String userGameId) async {
-    await ref
-        .read(collectionRepositoryProvider)
-        .removeFromCollection(userGameId);
+  Future<void> logPlay(String gameId) async {
+    final updated =
+        await ref.read(collectionRepositoryProvider).logPlay(gameId);
+    _replace(updated);
+  }
+
+  Future<void> removeGame(String gameId) async {
+    await ref.read(collectionRepositoryProvider).removeFromCollection(gameId);
     final current = state.valueOrNull ?? [];
-    state =
-        AsyncValue.data(current.where((g) => g.id != userGameId).toList());
+    state = AsyncValue.data(current.where((g) => g.gameId != gameId).toList());
+  }
+
+  void _replace(UserGame updated) {
+    final current = state.valueOrNull ?? [];
+    state = AsyncValue.data(
+      current
+          .map((UserGame g) => g.gameId == updated.gameId ? updated : g)
+          .toList(),
+    );
   }
 }
 

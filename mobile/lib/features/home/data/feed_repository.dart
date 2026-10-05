@@ -3,6 +3,7 @@ import 'package:meeple_hearth/core/constants/api_constants.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/dio_client.dart';
 import 'package:meeple_hearth/features/home/domain/feed_item_model.dart';
+import 'package:meeple_hearth/features/posts/domain/post_model.dart';
 import 'package:meeple_hearth/shared/models/pagination_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -23,10 +24,11 @@ final class FeedRepository {
         ApiConstants.feed,
         queryParameters: params.toQueryParams(),
       );
-      return PaginatedResult.fromJson(
-        response.data!,
-        (item) => FeedItem.fromJson(item as Map<String, dynamic>),
-      );
+      // The feed is a page of posts (`PageResponse<PostResponse>`).
+      return PaginatedResult.fromJson(response.data!, (item) {
+        final post = Post.fromJson(item! as Map<String, dynamic>);
+        return FeedItem.post(id: post.id, post: post, feedAt: post.createdAt);
+      });
     } catch (e) {
       throw ApiException.from(e);
     }

@@ -7,8 +7,8 @@ part 'connectivity_service.g.dart';
 @Riverpod(keepAlive: true)
 Stream<bool> connectivityStream(ConnectivityStreamRef ref) {
   return Connectivity().onConnectivityChanged.map(
-    (results) => results.any((r) => r != ConnectivityResult.none),
-  );
+        (results) => results.any((r) => r != ConnectivityResult.none),
+      );
 }
 
 /// One-shot check for current connectivity.

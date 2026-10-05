@@ -29,22 +29,22 @@ class _SystemHash {
   }
 }
 
-/// Single event detail.
+/// Single event detail. Events the caller may not see return 404.
 ///
 /// Copied from [eventDetail].
 @ProviderFor(eventDetail)
 const eventDetailProvider = EventDetailFamily();
 
-/// Single event detail.
+/// Single event detail. Events the caller may not see return 404.
 ///
 /// Copied from [eventDetail].
 class EventDetailFamily extends Family<AsyncValue<Event>> {
-  /// Single event detail.
+  /// Single event detail. Events the caller may not see return 404.
   ///
   /// Copied from [eventDetail].
   const EventDetailFamily();
 
-  /// Single event detail.
+  /// Single event detail. Events the caller may not see return 404.
   ///
   /// Copied from [eventDetail].
   EventDetailProvider call(
@@ -79,11 +79,11 @@ class EventDetailFamily extends Family<AsyncValue<Event>> {
   String? get name => r'eventDetailProvider';
 }
 
-/// Single event detail.
+/// Single event detail. Events the caller may not see return 404.
 ///
 /// Copied from [eventDetail].
 class EventDetailProvider extends AutoDisposeFutureProvider<Event> {
-  /// Single event detail.
+  /// Single event detail. Events the caller may not see return 404.
   ///
   /// Copied from [eventDetail].
   EventDetailProvider(
@@ -169,9 +169,12 @@ class _EventDetailProviderElement
   String get eventId => (origin as EventDetailProvider).eventId;
 }
 
-String _$eventsNotifierHash() => r'c5ba552aa7c96aa2a045a46e2dd699e82b3bf04c';
+String _$eventsNotifierHash() => r'bc2cb7e1be33d89add248d967456d76fd72b273c';
 
-/// Upcoming public events (default tab).
+/// Upcoming events visible to the caller (default tab).
+///
+/// `GET /events` is not paginated: it returns up to [_limit] events, soonest
+/// first, so [loadMore] is a no-op kept for the list widgets.
 ///
 /// Copied from [EventsNotifier].
 @ProviderFor(EventsNotifier)
@@ -187,9 +190,9 @@ final eventsNotifierProvider = AutoDisposeAsyncNotifierProvider<EventsNotifier,
 );
 
 typedef _$EventsNotifier = AutoDisposeAsyncNotifier<PaginatedResult<Event>>;
-String _$myEventsNotifierHash() => r'6f4bfb4fb5d77f1ef24e9ad6e8cfe88b8fbc351f';
+String _$myEventsNotifierHash() => r'9b065168267ceeeba5c59352e88f31409869f556';
 
-/// Events the current user is attending or has organised (My Events tab).
+/// Events the current user has accepted (My Events tab).
 ///
 /// Copied from [MyEventsNotifier].
 @ProviderFor(MyEventsNotifier)

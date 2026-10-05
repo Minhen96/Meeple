@@ -17,20 +17,32 @@ final class PostRepository {
 
   final Dio _dio;
 
+  /// `POST /posts` (`CreatePostRequest`).
+  ///
+  /// [imageKeys] must be keys returned by the upload endpoints for the
+  /// current user (`uploads/<userId>/…`); anything else is rejected with
+  /// 400 `INVALID_IMAGE_KEY`.
   Future<Post> createPost({
-    required String content,
-    List<String>? imageUrls,
-    String? taggedGameId,
-    String? linkedEventId,
+    String? caption,
+    List<String>? imageKeys,
+    String? gameId,
+    String? eventId,
+    String? location,
+    DateTime? playedAt,
+    List<String>? taggedUserIds,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         ApiConstants.posts,
         data: {
-          'content': content,
-          if (imageUrls != null && imageUrls.isNotEmpty) 'imageUrls': imageUrls,
-          if (taggedGameId != null) 'taggedGameId': taggedGameId,
-          if (linkedEventId != null) 'linkedEventId': linkedEventId,
+          if (caption != null && caption.isNotEmpty) 'caption': caption,
+          if (imageKeys != null && imageKeys.isNotEmpty) 'imageKeys': imageKeys,
+          if (gameId != null) 'gameId': gameId,
+          if (eventId != null) 'eventId': eventId,
+          if (location != null && location.isNotEmpty) 'location': location,
+          if (playedAt != null) 'playedAt': playedAt.toUtc().toIso8601String(),
+          if (taggedUserIds != null && taggedUserIds.isNotEmpty)
+            'taggedUserIds': taggedUserIds,
         },
       );
       return Post.fromJson(response.data!);
@@ -39,6 +51,7 @@ final class PostRepository {
     }
   }
 
+  /// Throws [NotFoundException] for posts the caller may not see.
   Future<Post> getPost(String postId) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -99,7 +112,7 @@ final class PostRepository {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '${ApiConstants.posts}/$postId/comments',
-        data: {'content': content},
+        data: {'body': content},
       );
       return Comment.fromJson(response.data!);
     } catch (e) {

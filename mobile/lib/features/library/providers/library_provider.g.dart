@@ -170,9 +170,9 @@ class _GameDetailProviderElement extends AutoDisposeFutureProviderElement<Game>
 }
 
 String _$collectionNotifierHash() =>
-    r'89bc6c71570e6f240f1deef13ac158d2aad0839b';
+    r'f171deec9fcaaeda1cf447ed5e0234a997f1d0a8';
 
-/// My collection — full list (no pagination; API returns all owned/wishlisted).
+/// My collection — full list (`GET /users/me/games` is not paginated).
 ///
 /// Copied from [CollectionNotifier].
 @ProviderFor(CollectionNotifier)

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
@@ -18,13 +19,11 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _displayNameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final _displayNameFocus = FocusNode();
   final _usernameFocus = FocusNode();
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
@@ -34,12 +33,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
-    _displayNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _displayNameFocus.dispose();
     _usernameFocus.dispose();
     _emailFocus.dispose();
     _passwordFocus.dispose();
@@ -52,17 +49,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(authNotifierProvider.notifier).register(
-            username: _usernameController.text.trim(),
+            username: _usernameController.text.trim().toLowerCase(),
             email: _emailController.text.trim(),
             password: _passwordController.text,
-            displayName: _displayNameController.text.trim(),
           );
       if (!mounted) return;
-      context.go(AppRoutes.verifyEmail);
+      // No session yet: the user verifies their email, then signs in.
+      context.go(AppRoutes.verifyEmail, extra: _emailController.text.trim());
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+          content: Text(
+            e is ApiException
+                ? e.message
+                : 'Registration failed. Please try again.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -86,7 +89,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 20),
                       onPressed: () => context.pop(),
                     ),
                   ),
@@ -112,27 +116,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           AuthTextField(
-                            label: 'Display name',
-                            hint: 'How others see you',
-                            controller: _displayNameController,
-                            focusNode: _displayNameFocus,
-                            prefixIcon: Icons.badge_outlined,
-                            textInputAction: TextInputAction.next,
-                            autofillHints: const [AutofillHints.name],
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Display name is required';
-                              }
-                              if (v.trim().length < 2) {
-                                return 'Must be at least 2 characters';
-                              }
-                              return null;
-                            },
-                            onFieldSubmitted: (_) =>
-                                FocusScope.of(context).requestFocus(_usernameFocus),
-                          ),
-                          AppSpacing.vGapMd,
-                          AuthTextField(
                             label: 'Username',
                             hint: 'board_game_pro',
                             controller: _usernameController,
@@ -144,16 +127,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               if (v == null || v.trim().isEmpty) {
                                 return 'Username is required';
                               }
-                              if (v.trim().length < 3) {
-                                return 'Must be at least 3 characters';
+                              final name = v.trim().toLowerCase();
+                              if (name.length < 3 || name.length > 20) {
+                                return 'Must be 3–20 characters';
                               }
-                              if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
-                                return 'Only letters, numbers, and underscores';
+                              if (!RegExp(r'^[a-z0-9][a-z0-9_]*$')
+                                  .hasMatch(name)) {
+                                return 'Letters, numbers and underscores; '
+                                    'cannot start with an underscore';
                               }
                               return null;
                             },
-                            onFieldSubmitted: (_) =>
-                                FocusScope.of(context).requestFocus(_emailFocus),
+                            onFieldSubmitted: (_) => FocusScope.of(context)
+                                .requestFocus(_emailFocus),
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(
@@ -175,8 +161,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               }
                               return null;
                             },
-                            onFieldSubmitted: (_) =>
-                                FocusScope.of(context).requestFocus(_passwordFocus),
+                            onFieldSubmitted: (_) => FocusScope.of(context)
+                                .requestFocus(_passwordFocus),
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(
@@ -191,8 +177,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               if (v == null || v.isEmpty) {
                                 return 'Password is required';
                               }
-                              if (v.length < 8) {
-                                return 'Must be at least 8 characters';
+                              if (v.length < 8 || v.length > 128) {
+                                return 'Must be 8–128 characters';
                               }
                               return null;
                             },

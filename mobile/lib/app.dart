@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/core/theme/app_theme.dart';
+import 'package:meeple_hearth/features/notifications/data/realtime_service.dart';
 
 class MeepleApp extends ConsumerWidget {
   const MeepleApp({super.key});
@@ -10,6 +11,8 @@ class MeepleApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    // Opens/closes the authenticated STOMP session with the auth state.
+    ref.watch(realtimeServiceProvider);
 
     return MaterialApp.router(
       title: 'Meeple',
