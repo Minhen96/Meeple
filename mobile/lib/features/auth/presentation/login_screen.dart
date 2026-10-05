@@ -168,8 +168,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   AppSpacing.vGapXl,
                   _GoogleSignInButton(isLoading: _isLoading, onPressed: _google),
                   AppSpacing.vGapXxxl,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         context.l10n.authNoAccount,

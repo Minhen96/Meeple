@@ -1218,5 +1218,7 @@
   "authYourEmail": "your email",
   "errorFileTooLarge": "Images must be 10 MB or smaller.",
   "errorUnsupportedImage": "Only JPEG, PNG, WebP and GIF images are allowed.",
-  "errorEmailNotVerified": "Please verify your email address before logging in."
+  "errorEmailNotVerified": "Please verify your email address before logging in.",
+  "errorCannotInviteSelf": "You can't invite yourself.",
+  "errorBggImportInProgress": "An import is already running."
 }

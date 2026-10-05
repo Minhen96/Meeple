@@ -8,7 +8,7 @@ part of 'user_game_model.dart';
 
 _$UserGameImpl _$$UserGameImplFromJson(Map<String, dynamic> json) =>
     _$UserGameImpl(
-      id: json['id'] as String,
+      id: json['id'] as String?,
       gameId: _readGameId(json, 'gameId') as String,
       game: Game.fromJson(json['game'] as Map<String, dynamic>),
       isOwned: json['isOwned'] as bool? ?? false,
@@ -116,6 +116,10 @@ _$BggImportStatusImpl _$$BggImportStatusImplFromJson(
       skipped: (json['skipped'] as num?)?.toInt() ?? 0,
       failed: (json['failed'] as num?)?.toInt() ?? 0,
       errorCode: json['errorCode'] as String?,
+      preview: (json['preview'] as List<dynamic>?)
+              ?.map((e) => BggPreviewGame.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <BggPreviewGame>[],
     );
 
 Map<String, dynamic> _$$BggImportStatusImplToJson(
@@ -128,4 +132,20 @@ Map<String, dynamic> _$$BggImportStatusImplToJson(
       'skipped': instance.skipped,
       'failed': instance.failed,
       'errorCode': instance.errorCode,
+      'preview': instance.preview,
+    };
+
+_$BggPreviewGameImpl _$$BggPreviewGameImplFromJson(Map<String, dynamic> json) =>
+    _$BggPreviewGameImpl(
+      gameId: json['gameId'] as String,
+      title: json['title'] as String? ?? '',
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+    );
+
+Map<String, dynamic> _$$BggPreviewGameImplToJson(
+        _$BggPreviewGameImpl instance) =>
+    <String, dynamic>{
+      'gameId': instance.gameId,
+      'title': instance.title,
+      'thumbnailUrl': instance.thumbnailUrl,
     };

@@ -70,6 +70,12 @@ class _AppLockState extends ConsumerState<AppLock> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Switching the lock on in Settings must not lock the running session.
+    ref.listen<AsyncValue<bool>>(biometricLockProvider, (previous, next) {
+      if (previous?.valueOrNull == false && next.valueOrNull == true) {
+        setState(() => _locked = false);
+      }
+    });
     final enabled = ref.watch(biometricLockProvider).valueOrNull ?? false;
     final signedIn = ref.watch(authNotifierProvider).valueOrNull != null;
     if (!enabled || !signedIn || !_locked) {

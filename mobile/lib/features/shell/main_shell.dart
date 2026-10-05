@@ -196,22 +196,23 @@ class _TabButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: AppSpacing.borderRadiusMd,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(isActive ? tab.activeIcon : tab.icon, size: 24, color: color),
-              const SizedBox(height: 2),
-              Text(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isActive ? tab.activeIcon : tab.icon, size: 24, color: color),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
                 tab.label,
+                maxLines: 1,
                 style: AppTypography.labelSmall.copyWith(
                   color: color,
                   fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

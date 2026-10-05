@@ -3805,6 +3805,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please verify your email address before logging in.'**
   String get errorEmailNotVerified;
+
+  /// No description provided for @errorCannotInviteSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t invite yourself.'**
+  String get errorCannotInviteSelf;
+
+  /// No description provided for @errorBggImportInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'An import is already running.'**
+  String get errorBggImportInProgress;
 }
 
 class _AppLocalizationsDelegate

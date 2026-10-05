@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
@@ -96,6 +97,49 @@ class _BggImportPanelState extends ConsumerState<BggImportPanel> {
               ),
             ),
           ),
+          if (status.preview.isNotEmpty) ...[
+            AppSpacing.vGapMd,
+            SizedBox(
+              height: 96,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: status.preview.length,
+                separatorBuilder: (_, __) => AppSpacing.hGapSm,
+                itemBuilder: (_, i) {
+                  final g = status.preview[i];
+                  return SizedBox(
+                    width: 72,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: AppSpacing.borderRadiusLg,
+                          child: SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: g.thumbnailUrl == null
+                                ? const ColoredBox(
+                                    color: AppColors.surfaceContainerHigh,
+                                    child: Icon(Icons.casino_outlined),
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: g.thumbnailUrl!,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                        Text(
+                          g.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.labelSmall,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           if (widget.onDone != null) ...[
             AppSpacing.vGapLg,
             AppButton(label: l10n.commonContinue, onPressed: widget.onDone),

@@ -23,11 +23,12 @@ enum CollectionFilter {
 ///
 /// Multi-boolean model (CLAUDE.md): a game can be owned, wishlisted AND
 /// favourited at once. Collection endpoints are keyed by [gameId]
-/// (`/users/me/games/{gameId}`), not by [id].
+/// (`/users/me/games/{gameId}`), not by [id]. [id] is null in the PUT
+/// response when clearing every flag removed the row.
 @freezed
 class UserGame with _$UserGame {
   const factory UserGame({
-    required String id,
+    String? id,
     @JsonKey(readValue: _readGameId) required String gameId,
     required Game game,
     @Default(false) bool isOwned,
@@ -127,6 +128,10 @@ class BggImportStatus with _$BggImportStatus {
     @Default(0) int skipped,
     @Default(0) int failed,
     String? errorCode,
+
+    /// First imported games (`{gameId, title, thumbnailUrl}`) for the
+    /// success preview row.
+    @Default(<BggPreviewGame>[]) List<BggPreviewGame> preview,
   }) = _BggImportStatus;
 
   const BggImportStatus._();
@@ -137,4 +142,17 @@ class BggImportStatus with _$BggImportStatus {
   bool get isRunning => status == 'running';
   bool get isDone => status == 'done';
   bool get isFailed => status == 'failed';
+}
+
+/// `BggImportStatusResponse.PreviewGame`.
+@freezed
+class BggPreviewGame with _$BggPreviewGame {
+  const factory BggPreviewGame({
+    required String gameId,
+    @Default('') String title,
+    String? thumbnailUrl,
+  }) = _BggPreviewGame;
+
+  factory BggPreviewGame.fromJson(Map<String, dynamic> json) =>
+      _$BggPreviewGameFromJson(json);
 }

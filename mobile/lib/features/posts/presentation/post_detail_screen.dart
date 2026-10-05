@@ -263,34 +263,11 @@ class _CommentTile extends ConsumerWidget {
     }
   }
 
-  Future<String?> _editDialog(BuildContext context, String initial) {
-    final controller = TextEditingController(text: initial);
-    final l10n = context.l10n;
-    return showDialog<String>(
-      context: context,
-      builder: (dialog) => AlertDialog(
-        title: Text(l10n.commentEditTitle),
-        content: TextField(
-          key: const Key('comment-edit-field'),
-          controller: controller,
-          maxLength: 1000,
-          maxLines: 4,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            key: const Key('comment-edit-save'),
-            onPressed: () => Navigator.of(dialog).pop(controller.text),
-            child: Text(l10n.commonSave),
-          ),
-        ],
-      ),
-    ).whenComplete(controller.dispose);
-  }
+  Future<String?> _editDialog(BuildContext context, String initial) =>
+      showDialog<String>(
+        context: context,
+        builder: (_) => _EditCommentDialog(initial: initial),
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -429,6 +406,52 @@ class _CommentInputState extends ConsumerState<_CommentInput> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Owns its controller so it is disposed only after the dialog is gone.
+class _EditCommentDialog extends StatefulWidget {
+  const _EditCommentDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_EditCommentDialog> createState() => _EditCommentDialogState();
+}
+
+class _EditCommentDialogState extends State<_EditCommentDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.commentEditTitle),
+      content: TextField(
+        key: const Key('comment-edit-field'),
+        controller: _controller,
+        maxLength: 1000,
+        maxLines: 4,
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          key: const Key('comment-edit-save'),
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(l10n.commonSave),
+        ),
+      ],
     );
   }
 }

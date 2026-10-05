@@ -118,9 +118,11 @@ class GameCardSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SkeletonBox(
-            height: 140,
-            borderRadius: AppSpacing.borderRadiusLg,
+          const Expanded(
+            child: SkeletonBox(
+              height: double.infinity,
+              borderRadius: AppSpacing.borderRadiusLg,
+            ),
           ),
           AppSpacing.vGapSm,
           const SkeletonBox(height: 14),

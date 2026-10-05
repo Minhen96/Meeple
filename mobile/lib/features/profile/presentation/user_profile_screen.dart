@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/config/app_config.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
-import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
@@ -121,13 +120,7 @@ class UserProfileScreen extends ConsumerWidget {
         data: (user) => ProfileView(
           user: user,
           isSelf: false,
-          actions: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FriendButton(userId: userId),
-              AppSpacing.hGapSm,
-            ],
-          ),
+          actions: Center(child: FriendButton(userId: userId)),
         ),
       ),
     );

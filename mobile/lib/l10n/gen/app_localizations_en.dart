@@ -2151,4 +2151,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorEmailNotVerified =>
       'Please verify your email address before logging in.';
+
+  @override
+  String get errorCannotInviteSelf => 'You can\'t invite yourself.';
+
+  @override
+  String get errorBggImportInProgress => 'An import is already running.';
 }

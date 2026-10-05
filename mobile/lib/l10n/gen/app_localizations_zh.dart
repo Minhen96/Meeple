@@ -2039,4 +2039,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorEmailNotVerified => '登录前请先验证邮箱。';
+
+  @override
+  String get errorCannotInviteSelf => '不能邀请你自己。';
+
+  @override
+  String get errorBggImportInProgress => '已有导入正在进行。';
 }

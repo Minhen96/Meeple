@@ -16,6 +16,8 @@ String localizedError(AppLocalizations l10n, Object error) {
   if (error is! ApiException) return l10n.errorGeneric;
   final byCode = switch (error.code) {
     'OFFLINE' => l10n.errorOffline,
+    'CANNOT_INVITE_SELF' => l10n.errorCannotInviteSelf,
+    'BGG_IMPORT_IN_PROGRESS' => l10n.errorBggImportInProgress,
     'FILE_TOO_LARGE' => l10n.errorFileTooLarge,
     'UNSUPPORTED_CONTENT_TYPE' => l10n.errorUnsupportedImage,
     'EMAIL_NOT_VERIFIED' => l10n.errorEmailNotVerified,

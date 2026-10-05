@@ -222,18 +222,22 @@ class _MatchSuggestions extends ConsumerWidget {
           actionLabel: groups.length > 1 ? l10n.homeMoreMatches(groups.length - 1) : null,
           onAction: () => context.push(AppRoutes.matching),
         ),
-        SizedBox(
-          height: 190,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            scrollDirection: Axis.horizontal,
-            itemCount: groups.length,
-            separatorBuilder: (_, __) => AppSpacing.hGapMd,
-            itemBuilder: (context, i) => MatchSuggestionCard(
-              group: groups[i],
-              width: MediaQuery.sizeOf(context).width - AppSpacing.lg * 2 -
-                  (groups.length > 1 ? 40 : 0),
-            ),
+        SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < groups.length; i++) ...[
+                if (i > 0) AppSpacing.hGapMd,
+                MatchSuggestionCard(
+                  group: groups[i],
+                  width: MediaQuery.sizeOf(context).width -
+                      AppSpacing.lg * 2 -
+                      (groups.length > 1 ? 40 : 0),
+                ),
+              ],
+            ],
           ),
         ),
       ],
@@ -258,14 +262,17 @@ class _UpcomingEvents extends ConsumerWidget {
           actionLabel: l10n.homeViewCalendar,
           onAction: () => context.go('${AppRoutes.events}?view=calendar'),
         ),
-        SizedBox(
-          height: 150,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            scrollDirection: Axis.horizontal,
-            itemCount: events.length,
-            separatorBuilder: (_, __) => AppSpacing.hGapMd,
-            itemBuilder: (_, i) => EventMiniCard(event: events[i]),
+        SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < events.length; i++) ...[
+                if (i > 0) AppSpacing.hGapMd,
+                EventMiniCard(event: events[i]),
+              ],
+            ],
           ),
         ),
       ],

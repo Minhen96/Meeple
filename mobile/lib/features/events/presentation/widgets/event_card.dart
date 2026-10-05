@@ -195,6 +195,7 @@ class EventMiniCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
@@ -225,7 +226,7 @@ class EventMiniCard extends StatelessWidget {
                     icon: Icons.location_on_outlined,
                     text: e.displayLocation!,
                   ),
-                const Spacer(),
+                AppSpacing.vGapSm,
                 AvatarStack(
                   users: [for (final p in e.acceptedParticipants) p.asUser],
                 ),

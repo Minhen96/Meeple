@@ -20,7 +20,7 @@ UserGame _$UserGameFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$UserGame {
-  String get id => throw _privateConstructorUsedError;
+  String? get id => throw _privateConstructorUsedError;
   @JsonKey(readValue: _readGameId)
   String get gameId => throw _privateConstructorUsedError;
   Game get game => throw _privateConstructorUsedError;
@@ -47,7 +47,7 @@ abstract class $UserGameCopyWith<$Res> {
       _$UserGameCopyWithImpl<$Res, UserGame>;
   @useResult
   $Res call(
-      {String id,
+      {String? id,
       @JsonKey(readValue: _readGameId) String gameId,
       Game game,
       bool isOwned,
@@ -75,7 +75,7 @@ class _$UserGameCopyWithImpl<$Res, $Val extends UserGame>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
+    Object? id = freezed,
     Object? gameId = null,
     Object? game = null,
     Object? isOwned = null,
@@ -86,10 +86,10 @@ class _$UserGameCopyWithImpl<$Res, $Val extends UserGame>
     Object? notes = freezed,
   }) {
     return _then(_value.copyWith(
-      id: null == id
+      id: freezed == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       gameId: null == gameId
           ? _value.gameId
           : gameId // ignore: cast_nullable_to_non_nullable
@@ -145,7 +145,7 @@ abstract class _$$UserGameImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {String id,
+      {String? id,
       @JsonKey(readValue: _readGameId) String gameId,
       Game game,
       bool isOwned,
@@ -172,7 +172,7 @@ class __$$UserGameImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
+    Object? id = freezed,
     Object? gameId = null,
     Object? game = null,
     Object? isOwned = null,
@@ -183,10 +183,10 @@ class __$$UserGameImplCopyWithImpl<$Res>
     Object? notes = freezed,
   }) {
     return _then(_$UserGameImpl(
-      id: null == id
+      id: freezed == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       gameId: null == gameId
           ? _value.gameId
           : gameId // ignore: cast_nullable_to_non_nullable
@@ -227,7 +227,7 @@ class __$$UserGameImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$UserGameImpl extends _UserGame {
   const _$UserGameImpl(
-      {required this.id,
+      {this.id,
       @JsonKey(readValue: _readGameId) required this.gameId,
       required this.game,
       this.isOwned = false,
@@ -242,7 +242,7 @@ class _$UserGameImpl extends _UserGame {
       _$$UserGameImplFromJson(json);
 
   @override
-  final String id;
+  final String? id;
   @override
   @JsonKey(readValue: _readGameId)
   final String gameId;
@@ -313,7 +313,7 @@ class _$UserGameImpl extends _UserGame {
 
 abstract class _UserGame extends UserGame {
   const factory _UserGame(
-      {required final String id,
+      {final String? id,
       @JsonKey(readValue: _readGameId) required final String gameId,
       required final Game game,
       final bool isOwned,
@@ -328,7 +328,7 @@ abstract class _UserGame extends UserGame {
       _$UserGameImpl.fromJson;
 
   @override
-  String get id;
+  String? get id;
   @override
   @JsonKey(readValue: _readGameId)
   String get gameId;
@@ -1354,6 +1354,10 @@ mixin _$BggImportStatus {
   int get failed => throw _privateConstructorUsedError;
   String? get errorCode => throw _privateConstructorUsedError;
 
+  /// First imported games (`{gameId, title, thumbnailUrl}`) for the
+  /// success preview row.
+  List<BggPreviewGame> get preview => throw _privateConstructorUsedError;
+
   /// Serializes this BggImportStatus to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -1377,7 +1381,8 @@ abstract class $BggImportStatusCopyWith<$Res> {
       int imported,
       int skipped,
       int failed,
-      String? errorCode});
+      String? errorCode,
+      List<BggPreviewGame> preview});
 }
 
 /// @nodoc
@@ -1402,6 +1407,7 @@ class _$BggImportStatusCopyWithImpl<$Res, $Val extends BggImportStatus>
     Object? skipped = null,
     Object? failed = null,
     Object? errorCode = freezed,
+    Object? preview = null,
   }) {
     return _then(_value.copyWith(
       status: null == status
@@ -1432,6 +1438,10 @@ class _$BggImportStatusCopyWithImpl<$Res, $Val extends BggImportStatus>
           ? _value.errorCode
           : errorCode // ignore: cast_nullable_to_non_nullable
               as String?,
+      preview: null == preview
+          ? _value.preview
+          : preview // ignore: cast_nullable_to_non_nullable
+              as List<BggPreviewGame>,
     ) as $Val);
   }
 }
@@ -1451,7 +1461,8 @@ abstract class _$$BggImportStatusImplCopyWith<$Res>
       int imported,
       int skipped,
       int failed,
-      String? errorCode});
+      String? errorCode,
+      List<BggPreviewGame> preview});
 }
 
 /// @nodoc
@@ -1474,6 +1485,7 @@ class __$$BggImportStatusImplCopyWithImpl<$Res>
     Object? skipped = null,
     Object? failed = null,
     Object? errorCode = freezed,
+    Object? preview = null,
   }) {
     return _then(_$BggImportStatusImpl(
       status: null == status
@@ -1504,6 +1516,10 @@ class __$$BggImportStatusImplCopyWithImpl<$Res>
           ? _value.errorCode
           : errorCode // ignore: cast_nullable_to_non_nullable
               as String?,
+      preview: null == preview
+          ? _value._preview
+          : preview // ignore: cast_nullable_to_non_nullable
+              as List<BggPreviewGame>,
     ));
   }
 }
@@ -1518,8 +1534,10 @@ class _$BggImportStatusImpl extends _BggImportStatus {
       this.imported = 0,
       this.skipped = 0,
       this.failed = 0,
-      this.errorCode})
-      : super._();
+      this.errorCode,
+      final List<BggPreviewGame> preview = const <BggPreviewGame>[]})
+      : _preview = preview,
+        super._();
 
   factory _$BggImportStatusImpl.fromJson(Map<String, dynamic> json) =>
       _$$BggImportStatusImplFromJson(json);
@@ -1546,9 +1564,23 @@ class _$BggImportStatusImpl extends _BggImportStatus {
   @override
   final String? errorCode;
 
+  /// First imported games (`{gameId, title, thumbnailUrl}`) for the
+  /// success preview row.
+  final List<BggPreviewGame> _preview;
+
+  /// First imported games (`{gameId, title, thumbnailUrl}`) for the
+  /// success preview row.
+  @override
+  @JsonKey()
+  List<BggPreviewGame> get preview {
+    if (_preview is EqualUnmodifiableListView) return _preview;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_preview);
+  }
+
   @override
   String toString() {
-    return 'BggImportStatus(status: $status, total: $total, processed: $processed, imported: $imported, skipped: $skipped, failed: $failed, errorCode: $errorCode)';
+    return 'BggImportStatus(status: $status, total: $total, processed: $processed, imported: $imported, skipped: $skipped, failed: $failed, errorCode: $errorCode, preview: $preview)';
   }
 
   @override
@@ -1565,13 +1597,22 @@ class _$BggImportStatusImpl extends _BggImportStatus {
             (identical(other.skipped, skipped) || other.skipped == skipped) &&
             (identical(other.failed, failed) || other.failed == failed) &&
             (identical(other.errorCode, errorCode) ||
-                other.errorCode == errorCode));
+                other.errorCode == errorCode) &&
+            const DeepCollectionEquality().equals(other._preview, _preview));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, status, total, processed,
-      imported, skipped, failed, errorCode);
+  int get hashCode => Object.hash(
+      runtimeType,
+      status,
+      total,
+      processed,
+      imported,
+      skipped,
+      failed,
+      errorCode,
+      const DeepCollectionEquality().hash(_preview));
 
   /// Create a copy of BggImportStatus
   /// with the given fields replaced by the non-null parameter values.
@@ -1598,7 +1639,8 @@ abstract class _BggImportStatus extends BggImportStatus {
       final int imported,
       final int skipped,
       final int failed,
-      final String? errorCode}) = _$BggImportStatusImpl;
+      final String? errorCode,
+      final List<BggPreviewGame> preview}) = _$BggImportStatusImpl;
   const _BggImportStatus._() : super._();
 
   factory _BggImportStatus.fromJson(Map<String, dynamic> json) =
@@ -1620,10 +1662,203 @@ abstract class _BggImportStatus extends BggImportStatus {
   @override
   String? get errorCode;
 
+  /// First imported games (`{gameId, title, thumbnailUrl}`) for the
+  /// success preview row.
+  @override
+  List<BggPreviewGame> get preview;
+
   /// Create a copy of BggImportStatus
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$BggImportStatusImplCopyWith<_$BggImportStatusImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+BggPreviewGame _$BggPreviewGameFromJson(Map<String, dynamic> json) {
+  return _BggPreviewGame.fromJson(json);
+}
+
+/// @nodoc
+mixin _$BggPreviewGame {
+  String get gameId => throw _privateConstructorUsedError;
+  String get title => throw _privateConstructorUsedError;
+  String? get thumbnailUrl => throw _privateConstructorUsedError;
+
+  /// Serializes this BggPreviewGame to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of BggPreviewGame
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BggPreviewGameCopyWith<BggPreviewGame> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BggPreviewGameCopyWith<$Res> {
+  factory $BggPreviewGameCopyWith(
+          BggPreviewGame value, $Res Function(BggPreviewGame) then) =
+      _$BggPreviewGameCopyWithImpl<$Res, BggPreviewGame>;
+  @useResult
+  $Res call({String gameId, String title, String? thumbnailUrl});
+}
+
+/// @nodoc
+class _$BggPreviewGameCopyWithImpl<$Res, $Val extends BggPreviewGame>
+    implements $BggPreviewGameCopyWith<$Res> {
+  _$BggPreviewGameCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of BggPreviewGame
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? gameId = null,
+    Object? title = null,
+    Object? thumbnailUrl = freezed,
+  }) {
+    return _then(_value.copyWith(
+      gameId: null == gameId
+          ? _value.gameId
+          : gameId // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: null == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      thumbnailUrl: freezed == thumbnailUrl
+          ? _value.thumbnailUrl
+          : thumbnailUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$BggPreviewGameImplCopyWith<$Res>
+    implements $BggPreviewGameCopyWith<$Res> {
+  factory _$$BggPreviewGameImplCopyWith(_$BggPreviewGameImpl value,
+          $Res Function(_$BggPreviewGameImpl) then) =
+      __$$BggPreviewGameImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String gameId, String title, String? thumbnailUrl});
+}
+
+/// @nodoc
+class __$$BggPreviewGameImplCopyWithImpl<$Res>
+    extends _$BggPreviewGameCopyWithImpl<$Res, _$BggPreviewGameImpl>
+    implements _$$BggPreviewGameImplCopyWith<$Res> {
+  __$$BggPreviewGameImplCopyWithImpl(
+      _$BggPreviewGameImpl _value, $Res Function(_$BggPreviewGameImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of BggPreviewGame
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? gameId = null,
+    Object? title = null,
+    Object? thumbnailUrl = freezed,
+  }) {
+    return _then(_$BggPreviewGameImpl(
+      gameId: null == gameId
+          ? _value.gameId
+          : gameId // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: null == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      thumbnailUrl: freezed == thumbnailUrl
+          ? _value.thumbnailUrl
+          : thumbnailUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$BggPreviewGameImpl implements _BggPreviewGame {
+  const _$BggPreviewGameImpl(
+      {required this.gameId, this.title = '', this.thumbnailUrl});
+
+  factory _$BggPreviewGameImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BggPreviewGameImplFromJson(json);
+
+  @override
+  final String gameId;
+  @override
+  @JsonKey()
+  final String title;
+  @override
+  final String? thumbnailUrl;
+
+  @override
+  String toString() {
+    return 'BggPreviewGame(gameId: $gameId, title: $title, thumbnailUrl: $thumbnailUrl)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BggPreviewGameImpl &&
+            (identical(other.gameId, gameId) || other.gameId == gameId) &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.thumbnailUrl, thumbnailUrl) ||
+                other.thumbnailUrl == thumbnailUrl));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, gameId, title, thumbnailUrl);
+
+  /// Create a copy of BggPreviewGame
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BggPreviewGameImplCopyWith<_$BggPreviewGameImpl> get copyWith =>
+      __$$BggPreviewGameImplCopyWithImpl<_$BggPreviewGameImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BggPreviewGameImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _BggPreviewGame implements BggPreviewGame {
+  const factory _BggPreviewGame(
+      {required final String gameId,
+      final String title,
+      final String? thumbnailUrl}) = _$BggPreviewGameImpl;
+
+  factory _BggPreviewGame.fromJson(Map<String, dynamic> json) =
+      _$BggPreviewGameImpl.fromJson;
+
+  @override
+  String get gameId;
+  @override
+  String get title;
+  @override
+  String? get thumbnailUrl;
+
+  /// Create a copy of BggPreviewGame
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BggPreviewGameImplCopyWith<_$BggPreviewGameImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

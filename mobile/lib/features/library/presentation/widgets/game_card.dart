@@ -27,20 +27,30 @@ class GameCard extends StatelessWidget {
     return GestureDetector(
       key: ValueKey('game-${game.id}'),
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _GameThumbnail(game: game, trailing: trailing),
-          AppSpacing.vGapSm,
-          Text(
-            game.name,
-            style: AppTypography.titleSmall,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          AppSpacing.vGapXs,
-          _GameMeta(game: game),
-        ],
+      // In grids/rows (bounded height) the cover takes the remaining space
+      // so long titles never overflow; unbounded, it is square.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final thumb = _GameThumbnail(game: game, trailing: trailing);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (constraints.hasBoundedHeight)
+                Expanded(child: Center(child: thumb))
+              else
+                thumb,
+              AppSpacing.vGapSm,
+              Text(
+                game.name,
+                style: AppTypography.titleSmall,
+                maxLines: constraints.hasBoundedHeight ? 1 : 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              _GameMeta(game: game),
+            ],
+          );
+        },
       ),
     );
   }

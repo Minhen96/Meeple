@@ -617,5 +617,7 @@
   "authYourEmail": "你的邮箱",
   "errorFileTooLarge": "图片不能超过 10 MB。",
   "errorUnsupportedImage": "仅支持 JPEG、PNG、WebP 和 GIF 图片。",
-  "errorEmailNotVerified": "登录前请先验证邮箱。"
+  "errorEmailNotVerified": "登录前请先验证邮箱。",
+  "errorCannotInviteSelf": "不能邀请你自己。",
+  "errorBggImportInProgress": "已有导入正在进行。"
 }

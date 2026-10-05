@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/connectivity_service.dart';
 import 'package:meeple_hearth/core/storage/cache_store.dart';
 import 'package:meeple_hearth/features/library/data/collection_repository.dart';
@@ -113,7 +114,9 @@ class CollectionNotifier extends _$CollectionNotifier {
         isWishlisted: next.isWishlisted,
         isFavorited: next.isFavorited,
       );
-      state = AsyncValue.data(_current.withEntry(saved));
+      state = AsyncValue.data(
+        saved.id == null ? _current.without(game.id) : _current.withEntry(saved),
+      );
     } catch (_) {
       state = AsyncValue.data(before);
       rethrow;
@@ -312,6 +315,13 @@ class BggImport extends _$BggImport {
     try {
       await ref.read(collectionRepositoryProvider).startBggImport(bggUsername);
       _schedulePoll();
+    } on ConflictException catch (e, st) {
+      // 409 BGG_IMPORT_IN_PROGRESS: an import is already running — follow it.
+      if (e.code == 'BGG_IMPORT_IN_PROGRESS') {
+        _schedulePoll();
+      } else {
+        state = AsyncValue.error(e, st);
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

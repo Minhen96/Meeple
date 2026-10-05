@@ -248,7 +248,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   TextFormField(
                     key: const Key('event-title'),
                     controller: _title,
-                    maxLength: 255,
+                    maxLength: 100,
                     onChanged: (_) => _titleEdited = true,
                     decoration: InputDecoration(labelText: l10n.eventFieldTitle),
                     validator: (v) => (v ?? '').trim().length < 3
@@ -308,7 +308,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   TextFormField(
                     key: const Key('event-location'),
                     controller: _location,
-                    maxLength: 255,
+                    maxLength: 100,
                     decoration: InputDecoration(
                       labelText: l10n.eventFieldLocation,
                       hintText: l10n.eventLocationHint,

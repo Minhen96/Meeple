@@ -563,7 +563,7 @@ class _GamePlaysProviderElement
 }
 
 String _$collectionNotifierHash() =>
-    r'446636b08d630b5110b8141108230cce4b9dc9e9';
+    r'cb6e2493053dbb8a52bf58b2528c17e05dae3ab6';
 
 /// `GET /users/me/games?filter=all`, cached for 24 h (MOBILE_FLUTTER §6).
 /// Tabs are derived client-side from the multi-boolean flags.
@@ -1059,7 +1059,7 @@ class _HowToPlayNotifierProviderElement
   String get gameId => (origin as HowToPlayNotifierProvider).gameId;
 }
 
-String _$bggImportHash() => r'1f05a50c76ccecb0046d16d328872893f0aadfd8';
+String _$bggImportHash() => r'96c6e094f03771fab2f9f6641a6aaee7c7b1dc2b';
 
 /// BGG collection import with 2 s progress polling (SCREENS §3.4).
 ///
