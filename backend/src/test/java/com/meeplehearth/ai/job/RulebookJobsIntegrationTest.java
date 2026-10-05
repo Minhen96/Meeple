@@ -1,5 +1,6 @@
 package com.meeplehearth.ai.job;
 
+import com.meeplehearth.common.job.JobLock;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.repository.GameRepository;
@@ -37,7 +38,7 @@ class RulebookJobsIntegrationTest extends AiGameIntegrationTestBase {
     @AfterEach
     void clearJobKeys() {
         redis.delete(java.util.List.of(BATCH_LOCK, DONE_FLAG, RulebookAutoFetchJob.STOP_FLAG_KEY,
-                StaleRulebookIngestionSweeper.LOCK_KEY));
+                ("lock:" + StaleRulebookIngestionSweeper.LOCK_NAME)));
     }
 
     private Game load(UUID id) {
@@ -189,14 +190,14 @@ class RulebookJobsIntegrationTest extends AiGameIntegrationTestBase {
         UUID fresh = insertRulebook(gameId, "onj", "ingesting", Instant.now().minus(Duration.ofMinutes(10)));
 
         // Clock in the past: nothing is stale yet
-        new StaleRulebookIngestionSweeper(rulebookRepository, redis,
+        new StaleRulebookIngestionSweeper(rulebookRepository, new JobLock(redis),
                 Clock.fixed(Instant.now().minus(Duration.ofHours(3)), ZoneOffset.UTC)).sweep();
         assertThat(rulebookStatus(stale)).isEqualTo("ingesting");
 
-        new StaleRulebookIngestionSweeper(rulebookRepository, redis).sweep();
+        new StaleRulebookIngestionSweeper(rulebookRepository, new JobLock(redis)).sweep();
         assertThat(rulebookStatus(stale)).isEqualTo("failed");
         assertThat(rulebookStatus(fresh)).isEqualTo("ingesting");
-        assertThat(redis.hasKey(StaleRulebookIngestionSweeper.LOCK_KEY)).isFalse();
+        assertThat(redis.hasKey(("lock:" + StaleRulebookIngestionSweeper.LOCK_NAME))).isFalse();
         jdbc.update("UPDATE game_rulebooks SET status = 'failed' WHERE id = ?", fresh);
     }
 
@@ -204,12 +205,12 @@ class RulebookJobsIntegrationTest extends AiGameIntegrationTestBase {
     void sweeperSkipsWhileAnotherInstanceHoldsTheLock() {
         UUID gameId = game("Sweep Locked Game").insert();
         UUID stale = insertRulebook(gameId, "onj", "ingesting", Instant.now().minus(Duration.ofHours(2)));
-        redis.opsForValue().set(StaleRulebookIngestionSweeper.LOCK_KEY, "other-instance");
+        redis.opsForValue().set(("lock:" + StaleRulebookIngestionSweeper.LOCK_NAME), "other-instance");
 
-        new StaleRulebookIngestionSweeper(rulebookRepository, redis).sweep();
+        new StaleRulebookIngestionSweeper(rulebookRepository, new JobLock(redis)).sweep();
 
         assertThat(rulebookStatus(stale)).isEqualTo("ingesting");
-        assertThat(redis.opsForValue().get(StaleRulebookIngestionSweeper.LOCK_KEY)).isEqualTo("other-instance");
+        assertThat(redis.opsForValue().get(("lock:" + StaleRulebookIngestionSweeper.LOCK_NAME))).isEqualTo("other-instance");
         jdbc.update("UPDATE game_rulebooks SET status = 'failed' WHERE id = ?", stale);
     }
 
@@ -218,8 +219,8 @@ class RulebookJobsIntegrationTest extends AiGameIntegrationTestBase {
         GameRulebookRepository failing = mock(GameRulebookRepository.class);
         when(failing.markStaleIngestingFailed(any())).thenThrow(new IllegalStateException("db down"));
 
-        new StaleRulebookIngestionSweeper(failing, redis).sweep();
+        new StaleRulebookIngestionSweeper(failing, new JobLock(redis)).sweep();
 
-        assertThat(redis.hasKey(StaleRulebookIngestionSweeper.LOCK_KEY)).isFalse();
+        assertThat(redis.hasKey(("lock:" + StaleRulebookIngestionSweeper.LOCK_NAME))).isFalse();
     }
 }

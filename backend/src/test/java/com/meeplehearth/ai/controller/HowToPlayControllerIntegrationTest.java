@@ -124,9 +124,6 @@ class HowToPlayControllerIntegrationTest extends AiGameIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: HowToPlayController maps approved GameRuleNotes with RuleNoteResponse.from(), which reads the "
-            + "LAZY note.user outside any transaction (open-in-view=false) -> LazyInitializationException -> 500 "
-            + "for GET /how-to-play and POST /how-to-play/generate once a game has a ready guide AND an approved note")
     void readyGuideIncludesApprovedRuleNotes() throws Exception {
         UUID user = createUser();
         UUID author = createUser();

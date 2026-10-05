@@ -242,9 +242,6 @@ class RulebookAdminControllerIntegrationTest extends AiGameIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: RulebookAdminController.listQueue maps rows with RulebookQueueItem.from(), which reads the LAZY "
-            + "game (and uploadedBy) outside any transaction (open-in-view=false) -> LazyInitializationException -> "
-            + "500 for GET /api/v1/admin/rulebooks whenever the page is non-empty")
     void listQueueShowsPendingSubmissions() throws Exception {
         UUID admin = createUser("ADMIN");
         UUID uploader = createUser();

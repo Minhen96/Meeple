@@ -258,8 +258,6 @@ class GameCatalogIntegrationTest extends AiGameIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: GET /api/v1/games/search with a blank q fails @NotBlank method validation, but the resulting "
-            + "ConstraintViolationException is only caught by the generic handler -> 500 INTERNAL_ERROR instead of 400")
     void blankSearchIsABadRequest() throws Exception {
         mvc.perform(get("/api/v1/games/search").param("q", " ").cookie(auth(createUser())))
                 .andExpect(status().isBadRequest());
