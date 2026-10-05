@@ -21,41 +21,25 @@ Event _$EventFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Event {
   String get id => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readHostId)
-  String get organizerId => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readHostUsername)
-  String get organizerUsername => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readHostDisplayName)
-  String get organizerDisplayName => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readHostAvatarUrl)
-  String? get organizerAvatarUrl => throw _privateConstructorUsedError;
+  UserSummary? get host => throw _privateConstructorUsedError;
+  Game? get game => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
-  @JsonKey(defaultValue: '')
-  String get description => throw _privateConstructorUsedError;
-  @JsonKey(name: 'scheduledAt')
-  DateTime get startTime => throw _privateConstructorUsedError;
-  DateTime? get endTime => throw _privateConstructorUsedError;
-  @JsonKey(defaultValue: '')
-  String get location => throw _privateConstructorUsedError;
-  String? get locationDetails => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readMaxParticipants)
-  int? get maxAttendees => throw _privateConstructorUsedError;
-  @JsonKey(name: 'participantCount')
-  int get attendeeCount => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readIsAttending)
-  bool get isAttending => throw _privateConstructorUsedError;
+  String? get description => throw _privateConstructorUsedError;
+  String? get location => throw _privateConstructorUsedError;
+  String? get locationDisplay => throw _privateConstructorUsedError;
+  DateTime get scheduledAt => throw _privateConstructorUsedError;
+  int get maxParticipants => throw _privateConstructorUsedError;
+  int get participantCount => throw _privateConstructorUsedError;
+  String get visibility => throw _privateConstructorUsedError;
 
-  /// `ACCEPTED` | `DECLINED` | `INVITED` | null.
+  /// `OPEN` | `FULL` | `CANCELLED` | `COMPLETED` (FEATURES §4.4).
+  String get status => throw _privateConstructorUsedError;
+
+  /// `ACCEPTED` | `DECLINED` | `INVITED` | `LEFT` | `KICKED` | null.
   String? get myRsvp => throw _privateConstructorUsedError;
-
-  /// `INVITE_ONLY` | `FRIENDS` | `PUBLIC`.
-  String? get visibility => throw _privateConstructorUsedError;
-  String? get status => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readGameIds)
-  List<String> get gameIds => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readGameNames)
-  List<String> get gameNames => throw _privateConstructorUsedError;
-  DateTime get createdAt => throw _privateConstructorUsedError;
+  bool get isHost => throw _privateConstructorUsedError;
+  List<EventParticipant> get participants => throw _privateConstructorUsedError;
+  DateTime? get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this Event to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -73,25 +57,24 @@ abstract class $EventCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(readValue: _readHostId) String organizerId,
-      @JsonKey(readValue: _readHostUsername) String organizerUsername,
-      @JsonKey(readValue: _readHostDisplayName) String organizerDisplayName,
-      @JsonKey(readValue: _readHostAvatarUrl) String? organizerAvatarUrl,
+      UserSummary? host,
+      Game? game,
       String title,
-      @JsonKey(defaultValue: '') String description,
-      @JsonKey(name: 'scheduledAt') DateTime startTime,
-      DateTime? endTime,
-      @JsonKey(defaultValue: '') String location,
-      String? locationDetails,
-      @JsonKey(readValue: _readMaxParticipants) int? maxAttendees,
-      @JsonKey(name: 'participantCount') int attendeeCount,
-      @JsonKey(readValue: _readIsAttending) bool isAttending,
+      String? description,
+      String? location,
+      String? locationDisplay,
+      DateTime scheduledAt,
+      int maxParticipants,
+      int participantCount,
+      String visibility,
+      String status,
       String? myRsvp,
-      String? visibility,
-      String? status,
-      @JsonKey(readValue: _readGameIds) List<String> gameIds,
-      @JsonKey(readValue: _readGameNames) List<String> gameNames,
-      DateTime createdAt});
+      bool isHost,
+      List<EventParticipant> participants,
+      DateTime? createdAt});
+
+  $UserSummaryCopyWith<$Res>? get host;
+  $GameCopyWith<$Res>? get game;
 }
 
 /// @nodoc
@@ -110,108 +93,116 @@ class _$EventCopyWithImpl<$Res, $Val extends Event>
   @override
   $Res call({
     Object? id = null,
-    Object? organizerId = null,
-    Object? organizerUsername = null,
-    Object? organizerDisplayName = null,
-    Object? organizerAvatarUrl = freezed,
+    Object? host = freezed,
+    Object? game = freezed,
     Object? title = null,
-    Object? description = null,
-    Object? startTime = null,
-    Object? endTime = freezed,
-    Object? location = null,
-    Object? locationDetails = freezed,
-    Object? maxAttendees = freezed,
-    Object? attendeeCount = null,
-    Object? isAttending = null,
+    Object? description = freezed,
+    Object? location = freezed,
+    Object? locationDisplay = freezed,
+    Object? scheduledAt = null,
+    Object? maxParticipants = null,
+    Object? participantCount = null,
+    Object? visibility = null,
+    Object? status = null,
     Object? myRsvp = freezed,
-    Object? visibility = freezed,
-    Object? status = freezed,
-    Object? gameIds = null,
-    Object? gameNames = null,
-    Object? createdAt = null,
+    Object? isHost = null,
+    Object? participants = null,
+    Object? createdAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      organizerId: null == organizerId
-          ? _value.organizerId
-          : organizerId // ignore: cast_nullable_to_non_nullable
-              as String,
-      organizerUsername: null == organizerUsername
-          ? _value.organizerUsername
-          : organizerUsername // ignore: cast_nullable_to_non_nullable
-              as String,
-      organizerDisplayName: null == organizerDisplayName
-          ? _value.organizerDisplayName
-          : organizerDisplayName // ignore: cast_nullable_to_non_nullable
-              as String,
-      organizerAvatarUrl: freezed == organizerAvatarUrl
-          ? _value.organizerAvatarUrl
-          : organizerAvatarUrl // ignore: cast_nullable_to_non_nullable
-              as String?,
+      host: freezed == host
+          ? _value.host
+          : host // ignore: cast_nullable_to_non_nullable
+              as UserSummary?,
+      game: freezed == game
+          ? _value.game
+          : game // ignore: cast_nullable_to_non_nullable
+              as Game?,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
               as String,
-      description: null == description
+      description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      startTime: null == startTime
-          ? _value.startTime
-          : startTime // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      endTime: freezed == endTime
-          ? _value.endTime
-          : endTime // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      location: null == location
+              as String?,
+      location: freezed == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
-              as String,
-      locationDetails: freezed == locationDetails
-          ? _value.locationDetails
-          : locationDetails // ignore: cast_nullable_to_non_nullable
               as String?,
-      maxAttendees: freezed == maxAttendees
-          ? _value.maxAttendees
-          : maxAttendees // ignore: cast_nullable_to_non_nullable
-              as int?,
-      attendeeCount: null == attendeeCount
-          ? _value.attendeeCount
-          : attendeeCount // ignore: cast_nullable_to_non_nullable
+      locationDisplay: freezed == locationDisplay
+          ? _value.locationDisplay
+          : locationDisplay // ignore: cast_nullable_to_non_nullable
+              as String?,
+      scheduledAt: null == scheduledAt
+          ? _value.scheduledAt
+          : scheduledAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      maxParticipants: null == maxParticipants
+          ? _value.maxParticipants
+          : maxParticipants // ignore: cast_nullable_to_non_nullable
               as int,
-      isAttending: null == isAttending
-          ? _value.isAttending
-          : isAttending // ignore: cast_nullable_to_non_nullable
-              as bool,
+      participantCount: null == participantCount
+          ? _value.participantCount
+          : participantCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      visibility: null == visibility
+          ? _value.visibility
+          : visibility // ignore: cast_nullable_to_non_nullable
+              as String,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
       myRsvp: freezed == myRsvp
           ? _value.myRsvp
           : myRsvp // ignore: cast_nullable_to_non_nullable
               as String?,
-      visibility: freezed == visibility
-          ? _value.visibility
-          : visibility // ignore: cast_nullable_to_non_nullable
-              as String?,
-      status: freezed == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String?,
-      gameIds: null == gameIds
-          ? _value.gameIds
-          : gameIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      gameNames: null == gameNames
-          ? _value.gameNames
-          : gameNames // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      createdAt: null == createdAt
+      isHost: null == isHost
+          ? _value.isHost
+          : isHost // ignore: cast_nullable_to_non_nullable
+              as bool,
+      participants: null == participants
+          ? _value.participants
+          : participants // ignore: cast_nullable_to_non_nullable
+              as List<EventParticipant>,
+      createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
+              as DateTime?,
     ) as $Val);
+  }
+
+  /// Create a copy of Event
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $UserSummaryCopyWith<$Res>? get host {
+    if (_value.host == null) {
+      return null;
+    }
+
+    return $UserSummaryCopyWith<$Res>(_value.host!, (value) {
+      return _then(_value.copyWith(host: value) as $Val);
+    });
+  }
+
+  /// Create a copy of Event
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GameCopyWith<$Res>? get game {
+    if (_value.game == null) {
+      return null;
+    }
+
+    return $GameCopyWith<$Res>(_value.game!, (value) {
+      return _then(_value.copyWith(game: value) as $Val);
+    });
   }
 }
 
@@ -224,25 +215,26 @@ abstract class _$$EventImplCopyWith<$Res> implements $EventCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(readValue: _readHostId) String organizerId,
-      @JsonKey(readValue: _readHostUsername) String organizerUsername,
-      @JsonKey(readValue: _readHostDisplayName) String organizerDisplayName,
-      @JsonKey(readValue: _readHostAvatarUrl) String? organizerAvatarUrl,
+      UserSummary? host,
+      Game? game,
       String title,
-      @JsonKey(defaultValue: '') String description,
-      @JsonKey(name: 'scheduledAt') DateTime startTime,
-      DateTime? endTime,
-      @JsonKey(defaultValue: '') String location,
-      String? locationDetails,
-      @JsonKey(readValue: _readMaxParticipants) int? maxAttendees,
-      @JsonKey(name: 'participantCount') int attendeeCount,
-      @JsonKey(readValue: _readIsAttending) bool isAttending,
+      String? description,
+      String? location,
+      String? locationDisplay,
+      DateTime scheduledAt,
+      int maxParticipants,
+      int participantCount,
+      String visibility,
+      String status,
       String? myRsvp,
-      String? visibility,
-      String? status,
-      @JsonKey(readValue: _readGameIds) List<String> gameIds,
-      @JsonKey(readValue: _readGameNames) List<String> gameNames,
-      DateTime createdAt});
+      bool isHost,
+      List<EventParticipant> participants,
+      DateTime? createdAt});
+
+  @override
+  $UserSummaryCopyWith<$Res>? get host;
+  @override
+  $GameCopyWith<$Res>? get game;
 }
 
 /// @nodoc
@@ -259,139 +251,113 @@ class __$$EventImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? organizerId = null,
-    Object? organizerUsername = null,
-    Object? organizerDisplayName = null,
-    Object? organizerAvatarUrl = freezed,
+    Object? host = freezed,
+    Object? game = freezed,
     Object? title = null,
-    Object? description = null,
-    Object? startTime = null,
-    Object? endTime = freezed,
-    Object? location = null,
-    Object? locationDetails = freezed,
-    Object? maxAttendees = freezed,
-    Object? attendeeCount = null,
-    Object? isAttending = null,
+    Object? description = freezed,
+    Object? location = freezed,
+    Object? locationDisplay = freezed,
+    Object? scheduledAt = null,
+    Object? maxParticipants = null,
+    Object? participantCount = null,
+    Object? visibility = null,
+    Object? status = null,
     Object? myRsvp = freezed,
-    Object? visibility = freezed,
-    Object? status = freezed,
-    Object? gameIds = null,
-    Object? gameNames = null,
-    Object? createdAt = null,
+    Object? isHost = null,
+    Object? participants = null,
+    Object? createdAt = freezed,
   }) {
     return _then(_$EventImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      organizerId: null == organizerId
-          ? _value.organizerId
-          : organizerId // ignore: cast_nullable_to_non_nullable
-              as String,
-      organizerUsername: null == organizerUsername
-          ? _value.organizerUsername
-          : organizerUsername // ignore: cast_nullable_to_non_nullable
-              as String,
-      organizerDisplayName: null == organizerDisplayName
-          ? _value.organizerDisplayName
-          : organizerDisplayName // ignore: cast_nullable_to_non_nullable
-              as String,
-      organizerAvatarUrl: freezed == organizerAvatarUrl
-          ? _value.organizerAvatarUrl
-          : organizerAvatarUrl // ignore: cast_nullable_to_non_nullable
-              as String?,
+      host: freezed == host
+          ? _value.host
+          : host // ignore: cast_nullable_to_non_nullable
+              as UserSummary?,
+      game: freezed == game
+          ? _value.game
+          : game // ignore: cast_nullable_to_non_nullable
+              as Game?,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
               as String,
-      description: null == description
+      description: freezed == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      startTime: null == startTime
-          ? _value.startTime
-          : startTime // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      endTime: freezed == endTime
-          ? _value.endTime
-          : endTime // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      location: null == location
+              as String?,
+      location: freezed == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
-              as String,
-      locationDetails: freezed == locationDetails
-          ? _value.locationDetails
-          : locationDetails // ignore: cast_nullable_to_non_nullable
               as String?,
-      maxAttendees: freezed == maxAttendees
-          ? _value.maxAttendees
-          : maxAttendees // ignore: cast_nullable_to_non_nullable
-              as int?,
-      attendeeCount: null == attendeeCount
-          ? _value.attendeeCount
-          : attendeeCount // ignore: cast_nullable_to_non_nullable
+      locationDisplay: freezed == locationDisplay
+          ? _value.locationDisplay
+          : locationDisplay // ignore: cast_nullable_to_non_nullable
+              as String?,
+      scheduledAt: null == scheduledAt
+          ? _value.scheduledAt
+          : scheduledAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      maxParticipants: null == maxParticipants
+          ? _value.maxParticipants
+          : maxParticipants // ignore: cast_nullable_to_non_nullable
               as int,
-      isAttending: null == isAttending
-          ? _value.isAttending
-          : isAttending // ignore: cast_nullable_to_non_nullable
-              as bool,
+      participantCount: null == participantCount
+          ? _value.participantCount
+          : participantCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      visibility: null == visibility
+          ? _value.visibility
+          : visibility // ignore: cast_nullable_to_non_nullable
+              as String,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
       myRsvp: freezed == myRsvp
           ? _value.myRsvp
           : myRsvp // ignore: cast_nullable_to_non_nullable
               as String?,
-      visibility: freezed == visibility
-          ? _value.visibility
-          : visibility // ignore: cast_nullable_to_non_nullable
-              as String?,
-      status: freezed == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String?,
-      gameIds: null == gameIds
-          ? _value._gameIds
-          : gameIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      gameNames: null == gameNames
-          ? _value._gameNames
-          : gameNames // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      createdAt: null == createdAt
+      isHost: null == isHost
+          ? _value.isHost
+          : isHost // ignore: cast_nullable_to_non_nullable
+              as bool,
+      participants: null == participants
+          ? _value._participants
+          : participants // ignore: cast_nullable_to_non_nullable
+              as List<EventParticipant>,
+      createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
+              as DateTime?,
     ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$EventImpl implements _Event {
+class _$EventImpl extends _Event {
   const _$EventImpl(
       {required this.id,
-      @JsonKey(readValue: _readHostId) required this.organizerId,
-      @JsonKey(readValue: _readHostUsername) required this.organizerUsername,
-      @JsonKey(readValue: _readHostDisplayName)
-      required this.organizerDisplayName,
-      @JsonKey(readValue: _readHostAvatarUrl) this.organizerAvatarUrl,
-      required this.title,
-      @JsonKey(defaultValue: '') required this.description,
-      @JsonKey(name: 'scheduledAt') required this.startTime,
-      this.endTime,
-      @JsonKey(defaultValue: '') required this.location,
-      this.locationDetails,
-      @JsonKey(readValue: _readMaxParticipants) this.maxAttendees,
-      @JsonKey(name: 'participantCount') this.attendeeCount = 0,
-      @JsonKey(readValue: _readIsAttending) this.isAttending = false,
+      this.host,
+      this.game,
+      this.title = '',
+      this.description,
+      this.location,
+      this.locationDisplay,
+      required this.scheduledAt,
+      this.maxParticipants = 0,
+      this.participantCount = 0,
+      this.visibility = 'INVITE_ONLY',
+      this.status = 'OPEN',
       this.myRsvp,
-      this.visibility,
-      this.status,
-      @JsonKey(readValue: _readGameIds) final List<String> gameIds = const [],
-      @JsonKey(readValue: _readGameNames)
-      final List<String> gameNames = const [],
-      required this.createdAt})
-      : _gameIds = gameIds,
-        _gameNames = gameNames;
+      this.isHost = false,
+      final List<EventParticipant> participants = const <EventParticipant>[],
+      this.createdAt})
+      : _participants = participants,
+        super._();
 
   factory _$EventImpl.fromJson(Map<String, dynamic> json) =>
       _$$EventImplFromJson(json);
@@ -399,75 +365,56 @@ class _$EventImpl implements _Event {
   @override
   final String id;
   @override
-  @JsonKey(readValue: _readHostId)
-  final String organizerId;
+  final UserSummary? host;
   @override
-  @JsonKey(readValue: _readHostUsername)
-  final String organizerUsername;
+  final Game? game;
   @override
-  @JsonKey(readValue: _readHostDisplayName)
-  final String organizerDisplayName;
-  @override
-  @JsonKey(readValue: _readHostAvatarUrl)
-  final String? organizerAvatarUrl;
-  @override
+  @JsonKey()
   final String title;
   @override
-  @JsonKey(defaultValue: '')
-  final String description;
+  final String? description;
   @override
-  @JsonKey(name: 'scheduledAt')
-  final DateTime startTime;
+  final String? location;
   @override
-  final DateTime? endTime;
+  final String? locationDisplay;
   @override
-  @JsonKey(defaultValue: '')
-  final String location;
+  final DateTime scheduledAt;
   @override
-  final String? locationDetails;
+  @JsonKey()
+  final int maxParticipants;
   @override
-  @JsonKey(readValue: _readMaxParticipants)
-  final int? maxAttendees;
+  @JsonKey()
+  final int participantCount;
   @override
-  @JsonKey(name: 'participantCount')
-  final int attendeeCount;
-  @override
-  @JsonKey(readValue: _readIsAttending)
-  final bool isAttending;
+  @JsonKey()
+  final String visibility;
 
-  /// `ACCEPTED` | `DECLINED` | `INVITED` | null.
+  /// `OPEN` | `FULL` | `CANCELLED` | `COMPLETED` (FEATURES §4.4).
+  @override
+  @JsonKey()
+  final String status;
+
+  /// `ACCEPTED` | `DECLINED` | `INVITED` | `LEFT` | `KICKED` | null.
   @override
   final String? myRsvp;
-
-  /// `INVITE_ONLY` | `FRIENDS` | `PUBLIC`.
   @override
-  final String? visibility;
+  @JsonKey()
+  final bool isHost;
+  final List<EventParticipant> _participants;
   @override
-  final String? status;
-  final List<String> _gameIds;
-  @override
-  @JsonKey(readValue: _readGameIds)
-  List<String> get gameIds {
-    if (_gameIds is EqualUnmodifiableListView) return _gameIds;
+  @JsonKey()
+  List<EventParticipant> get participants {
+    if (_participants is EqualUnmodifiableListView) return _participants;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_gameIds);
-  }
-
-  final List<String> _gameNames;
-  @override
-  @JsonKey(readValue: _readGameNames)
-  List<String> get gameNames {
-    if (_gameNames is EqualUnmodifiableListView) return _gameNames;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_gameNames);
+    return EqualUnmodifiableListView(_participants);
   }
 
   @override
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   @override
   String toString() {
-    return 'Event(id: $id, organizerId: $organizerId, organizerUsername: $organizerUsername, organizerDisplayName: $organizerDisplayName, organizerAvatarUrl: $organizerAvatarUrl, title: $title, description: $description, startTime: $startTime, endTime: $endTime, location: $location, locationDetails: $locationDetails, maxAttendees: $maxAttendees, attendeeCount: $attendeeCount, isAttending: $isAttending, myRsvp: $myRsvp, visibility: $visibility, status: $status, gameIds: $gameIds, gameNames: $gameNames, createdAt: $createdAt)';
+    return 'Event(id: $id, host: $host, game: $game, title: $title, description: $description, location: $location, locationDisplay: $locationDisplay, scheduledAt: $scheduledAt, maxParticipants: $maxParticipants, participantCount: $participantCount, visibility: $visibility, status: $status, myRsvp: $myRsvp, isHost: $isHost, participants: $participants, createdAt: $createdAt)';
   }
 
   @override
@@ -476,66 +423,52 @@ class _$EventImpl implements _Event {
         (other.runtimeType == runtimeType &&
             other is _$EventImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.organizerId, organizerId) ||
-                other.organizerId == organizerId) &&
-            (identical(other.organizerUsername, organizerUsername) ||
-                other.organizerUsername == organizerUsername) &&
-            (identical(other.organizerDisplayName, organizerDisplayName) ||
-                other.organizerDisplayName == organizerDisplayName) &&
-            (identical(other.organizerAvatarUrl, organizerAvatarUrl) ||
-                other.organizerAvatarUrl == organizerAvatarUrl) &&
+            (identical(other.host, host) || other.host == host) &&
+            (identical(other.game, game) || other.game == game) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.description, description) ||
                 other.description == description) &&
-            (identical(other.startTime, startTime) ||
-                other.startTime == startTime) &&
-            (identical(other.endTime, endTime) || other.endTime == endTime) &&
             (identical(other.location, location) ||
                 other.location == location) &&
-            (identical(other.locationDetails, locationDetails) ||
-                other.locationDetails == locationDetails) &&
-            (identical(other.maxAttendees, maxAttendees) ||
-                other.maxAttendees == maxAttendees) &&
-            (identical(other.attendeeCount, attendeeCount) ||
-                other.attendeeCount == attendeeCount) &&
-            (identical(other.isAttending, isAttending) ||
-                other.isAttending == isAttending) &&
-            (identical(other.myRsvp, myRsvp) || other.myRsvp == myRsvp) &&
+            (identical(other.locationDisplay, locationDisplay) ||
+                other.locationDisplay == locationDisplay) &&
+            (identical(other.scheduledAt, scheduledAt) ||
+                other.scheduledAt == scheduledAt) &&
+            (identical(other.maxParticipants, maxParticipants) ||
+                other.maxParticipants == maxParticipants) &&
+            (identical(other.participantCount, participantCount) ||
+                other.participantCount == participantCount) &&
             (identical(other.visibility, visibility) ||
                 other.visibility == visibility) &&
             (identical(other.status, status) || other.status == status) &&
-            const DeepCollectionEquality().equals(other._gameIds, _gameIds) &&
+            (identical(other.myRsvp, myRsvp) || other.myRsvp == myRsvp) &&
+            (identical(other.isHost, isHost) || other.isHost == isHost) &&
             const DeepCollectionEquality()
-                .equals(other._gameNames, _gameNames) &&
+                .equals(other._participants, _participants) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hashAll([
-        runtimeType,
-        id,
-        organizerId,
-        organizerUsername,
-        organizerDisplayName,
-        organizerAvatarUrl,
-        title,
-        description,
-        startTime,
-        endTime,
-        location,
-        locationDetails,
-        maxAttendees,
-        attendeeCount,
-        isAttending,
-        myRsvp,
-        visibility,
-        status,
-        const DeepCollectionEquality().hash(_gameIds),
-        const DeepCollectionEquality().hash(_gameNames),
-        createdAt
-      ]);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      host,
+      game,
+      title,
+      description,
+      location,
+      locationDisplay,
+      scheduledAt,
+      maxParticipants,
+      participantCount,
+      visibility,
+      status,
+      myRsvp,
+      isHost,
+      const DeepCollectionEquality().hash(_participants),
+      createdAt);
 
   /// Create a copy of Event
   /// with the given fields replaced by the non-null parameter values.
@@ -553,94 +486,611 @@ class _$EventImpl implements _Event {
   }
 }
 
-abstract class _Event implements Event {
+abstract class _Event extends Event {
   const factory _Event(
       {required final String id,
-      @JsonKey(readValue: _readHostId) required final String organizerId,
-      @JsonKey(readValue: _readHostUsername)
-      required final String organizerUsername,
-      @JsonKey(readValue: _readHostDisplayName)
-      required final String organizerDisplayName,
-      @JsonKey(readValue: _readHostAvatarUrl) final String? organizerAvatarUrl,
-      required final String title,
-      @JsonKey(defaultValue: '') required final String description,
-      @JsonKey(name: 'scheduledAt') required final DateTime startTime,
-      final DateTime? endTime,
-      @JsonKey(defaultValue: '') required final String location,
-      final String? locationDetails,
-      @JsonKey(readValue: _readMaxParticipants) final int? maxAttendees,
-      @JsonKey(name: 'participantCount') final int attendeeCount,
-      @JsonKey(readValue: _readIsAttending) final bool isAttending,
+      final UserSummary? host,
+      final Game? game,
+      final String title,
+      final String? description,
+      final String? location,
+      final String? locationDisplay,
+      required final DateTime scheduledAt,
+      final int maxParticipants,
+      final int participantCount,
+      final String visibility,
+      final String status,
       final String? myRsvp,
-      final String? visibility,
-      final String? status,
-      @JsonKey(readValue: _readGameIds) final List<String> gameIds,
-      @JsonKey(readValue: _readGameNames) final List<String> gameNames,
-      required final DateTime createdAt}) = _$EventImpl;
+      final bool isHost,
+      final List<EventParticipant> participants,
+      final DateTime? createdAt}) = _$EventImpl;
+  const _Event._() : super._();
 
   factory _Event.fromJson(Map<String, dynamic> json) = _$EventImpl.fromJson;
 
   @override
   String get id;
   @override
-  @JsonKey(readValue: _readHostId)
-  String get organizerId;
+  UserSummary? get host;
   @override
-  @JsonKey(readValue: _readHostUsername)
-  String get organizerUsername;
-  @override
-  @JsonKey(readValue: _readHostDisplayName)
-  String get organizerDisplayName;
-  @override
-  @JsonKey(readValue: _readHostAvatarUrl)
-  String? get organizerAvatarUrl;
+  Game? get game;
   @override
   String get title;
   @override
-  @JsonKey(defaultValue: '')
-  String get description;
+  String? get description;
   @override
-  @JsonKey(name: 'scheduledAt')
-  DateTime get startTime;
+  String? get location;
   @override
-  DateTime? get endTime;
+  String? get locationDisplay;
   @override
-  @JsonKey(defaultValue: '')
-  String get location;
+  DateTime get scheduledAt;
   @override
-  String? get locationDetails;
+  int get maxParticipants;
   @override
-  @JsonKey(readValue: _readMaxParticipants)
-  int? get maxAttendees;
+  int get participantCount;
   @override
-  @JsonKey(name: 'participantCount')
-  int get attendeeCount;
-  @override
-  @JsonKey(readValue: _readIsAttending)
-  bool get isAttending;
+  String get visibility;
 
-  /// `ACCEPTED` | `DECLINED` | `INVITED` | null.
+  /// `OPEN` | `FULL` | `CANCELLED` | `COMPLETED` (FEATURES §4.4).
+  @override
+  String get status;
+
+  /// `ACCEPTED` | `DECLINED` | `INVITED` | `LEFT` | `KICKED` | null.
   @override
   String? get myRsvp;
-
-  /// `INVITE_ONLY` | `FRIENDS` | `PUBLIC`.
   @override
-  String? get visibility;
+  bool get isHost;
   @override
-  String? get status;
+  List<EventParticipant> get participants;
   @override
-  @JsonKey(readValue: _readGameIds)
-  List<String> get gameIds;
-  @override
-  @JsonKey(readValue: _readGameNames)
-  List<String> get gameNames;
-  @override
-  DateTime get createdAt;
+  DateTime? get createdAt;
 
   /// Create a copy of Event
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$EventImplCopyWith<_$EventImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+EventParticipant _$EventParticipantFromJson(Map<String, dynamic> json) {
+  return _EventParticipant.fromJson(json);
+}
+
+/// @nodoc
+mixin _$EventParticipant {
+  String get id => throw _privateConstructorUsedError;
+  String get username => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readDisplayName)
+  String get displayName => throw _privateConstructorUsedError;
+  String? get avatarUrl => throw _privateConstructorUsedError;
+  String get status => throw _privateConstructorUsedError;
+
+  /// Serializes this EventParticipant to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of EventParticipant
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $EventParticipantCopyWith<EventParticipant> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $EventParticipantCopyWith<$Res> {
+  factory $EventParticipantCopyWith(
+          EventParticipant value, $Res Function(EventParticipant) then) =
+      _$EventParticipantCopyWithImpl<$Res, EventParticipant>;
+  @useResult
+  $Res call(
+      {String id,
+      String username,
+      @JsonKey(readValue: _readDisplayName) String displayName,
+      String? avatarUrl,
+      String status});
+}
+
+/// @nodoc
+class _$EventParticipantCopyWithImpl<$Res, $Val extends EventParticipant>
+    implements $EventParticipantCopyWith<$Res> {
+  _$EventParticipantCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of EventParticipant
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? username = null,
+    Object? displayName = null,
+    Object? avatarUrl = freezed,
+    Object? status = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      username: null == username
+          ? _value.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
+              as String,
+      avatarUrl: freezed == avatarUrl
+          ? _value.avatarUrl
+          : avatarUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$EventParticipantImplCopyWith<$Res>
+    implements $EventParticipantCopyWith<$Res> {
+  factory _$$EventParticipantImplCopyWith(_$EventParticipantImpl value,
+          $Res Function(_$EventParticipantImpl) then) =
+      __$$EventParticipantImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String username,
+      @JsonKey(readValue: _readDisplayName) String displayName,
+      String? avatarUrl,
+      String status});
+}
+
+/// @nodoc
+class __$$EventParticipantImplCopyWithImpl<$Res>
+    extends _$EventParticipantCopyWithImpl<$Res, _$EventParticipantImpl>
+    implements _$$EventParticipantImplCopyWith<$Res> {
+  __$$EventParticipantImplCopyWithImpl(_$EventParticipantImpl _value,
+      $Res Function(_$EventParticipantImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EventParticipant
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? username = null,
+    Object? displayName = null,
+    Object? avatarUrl = freezed,
+    Object? status = null,
+  }) {
+    return _then(_$EventParticipantImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      username: null == username
+          ? _value.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
+              as String,
+      avatarUrl: freezed == avatarUrl
+          ? _value.avatarUrl
+          : avatarUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$EventParticipantImpl extends _EventParticipant {
+  const _$EventParticipantImpl(
+      {required this.id,
+      this.username = '',
+      @JsonKey(readValue: _readDisplayName) this.displayName = '',
+      this.avatarUrl,
+      this.status = 'ACCEPTED'})
+      : super._();
+
+  factory _$EventParticipantImpl.fromJson(Map<String, dynamic> json) =>
+      _$$EventParticipantImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  @JsonKey()
+  final String username;
+  @override
+  @JsonKey(readValue: _readDisplayName)
+  final String displayName;
+  @override
+  final String? avatarUrl;
+  @override
+  @JsonKey()
+  final String status;
+
+  @override
+  String toString() {
+    return 'EventParticipant(id: $id, username: $username, displayName: $displayName, avatarUrl: $avatarUrl, status: $status)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$EventParticipantImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.username, username) ||
+                other.username == username) &&
+            (identical(other.displayName, displayName) ||
+                other.displayName == displayName) &&
+            (identical(other.avatarUrl, avatarUrl) ||
+                other.avatarUrl == avatarUrl) &&
+            (identical(other.status, status) || other.status == status));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, username, displayName, avatarUrl, status);
+
+  /// Create a copy of EventParticipant
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$EventParticipantImplCopyWith<_$EventParticipantImpl> get copyWith =>
+      __$$EventParticipantImplCopyWithImpl<_$EventParticipantImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$EventParticipantImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _EventParticipant extends EventParticipant {
+  const factory _EventParticipant(
+      {required final String id,
+      final String username,
+      @JsonKey(readValue: _readDisplayName) final String displayName,
+      final String? avatarUrl,
+      final String status}) = _$EventParticipantImpl;
+  const _EventParticipant._() : super._();
+
+  factory _EventParticipant.fromJson(Map<String, dynamic> json) =
+      _$EventParticipantImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get username;
+  @override
+  @JsonKey(readValue: _readDisplayName)
+  String get displayName;
+  @override
+  String? get avatarUrl;
+  @override
+  String get status;
+
+  /// Create a copy of EventParticipant
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$EventParticipantImplCopyWith<_$EventParticipantImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$EventDraft {
+  String get title => throw _privateConstructorUsedError;
+  String? get description => throw _privateConstructorUsedError;
+  String? get location => throw _privateConstructorUsedError;
+  DateTime get scheduledAt => throw _privateConstructorUsedError;
+  String? get gameId => throw _privateConstructorUsedError;
+  int? get maxParticipants => throw _privateConstructorUsedError;
+  EventVisibility get visibility => throw _privateConstructorUsedError;
+  List<String> get invitedUserIds => throw _privateConstructorUsedError;
+
+  /// Create a copy of EventDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $EventDraftCopyWith<EventDraft> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $EventDraftCopyWith<$Res> {
+  factory $EventDraftCopyWith(
+          EventDraft value, $Res Function(EventDraft) then) =
+      _$EventDraftCopyWithImpl<$Res, EventDraft>;
+  @useResult
+  $Res call(
+      {String title,
+      String? description,
+      String? location,
+      DateTime scheduledAt,
+      String? gameId,
+      int? maxParticipants,
+      EventVisibility visibility,
+      List<String> invitedUserIds});
+}
+
+/// @nodoc
+class _$EventDraftCopyWithImpl<$Res, $Val extends EventDraft>
+    implements $EventDraftCopyWith<$Res> {
+  _$EventDraftCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of EventDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? title = null,
+    Object? description = freezed,
+    Object? location = freezed,
+    Object? scheduledAt = null,
+    Object? gameId = freezed,
+    Object? maxParticipants = freezed,
+    Object? visibility = null,
+    Object? invitedUserIds = null,
+  }) {
+    return _then(_value.copyWith(
+      title: null == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      description: freezed == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String?,
+      location: freezed == location
+          ? _value.location
+          : location // ignore: cast_nullable_to_non_nullable
+              as String?,
+      scheduledAt: null == scheduledAt
+          ? _value.scheduledAt
+          : scheduledAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      gameId: freezed == gameId
+          ? _value.gameId
+          : gameId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      maxParticipants: freezed == maxParticipants
+          ? _value.maxParticipants
+          : maxParticipants // ignore: cast_nullable_to_non_nullable
+              as int?,
+      visibility: null == visibility
+          ? _value.visibility
+          : visibility // ignore: cast_nullable_to_non_nullable
+              as EventVisibility,
+      invitedUserIds: null == invitedUserIds
+          ? _value.invitedUserIds
+          : invitedUserIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$EventDraftImplCopyWith<$Res>
+    implements $EventDraftCopyWith<$Res> {
+  factory _$$EventDraftImplCopyWith(
+          _$EventDraftImpl value, $Res Function(_$EventDraftImpl) then) =
+      __$$EventDraftImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String title,
+      String? description,
+      String? location,
+      DateTime scheduledAt,
+      String? gameId,
+      int? maxParticipants,
+      EventVisibility visibility,
+      List<String> invitedUserIds});
+}
+
+/// @nodoc
+class __$$EventDraftImplCopyWithImpl<$Res>
+    extends _$EventDraftCopyWithImpl<$Res, _$EventDraftImpl>
+    implements _$$EventDraftImplCopyWith<$Res> {
+  __$$EventDraftImplCopyWithImpl(
+      _$EventDraftImpl _value, $Res Function(_$EventDraftImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EventDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? title = null,
+    Object? description = freezed,
+    Object? location = freezed,
+    Object? scheduledAt = null,
+    Object? gameId = freezed,
+    Object? maxParticipants = freezed,
+    Object? visibility = null,
+    Object? invitedUserIds = null,
+  }) {
+    return _then(_$EventDraftImpl(
+      title: null == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      description: freezed == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String?,
+      location: freezed == location
+          ? _value.location
+          : location // ignore: cast_nullable_to_non_nullable
+              as String?,
+      scheduledAt: null == scheduledAt
+          ? _value.scheduledAt
+          : scheduledAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      gameId: freezed == gameId
+          ? _value.gameId
+          : gameId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      maxParticipants: freezed == maxParticipants
+          ? _value.maxParticipants
+          : maxParticipants // ignore: cast_nullable_to_non_nullable
+              as int?,
+      visibility: null == visibility
+          ? _value.visibility
+          : visibility // ignore: cast_nullable_to_non_nullable
+              as EventVisibility,
+      invitedUserIds: null == invitedUserIds
+          ? _value._invitedUserIds
+          : invitedUserIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$EventDraftImpl extends _EventDraft {
+  const _$EventDraftImpl(
+      {required this.title,
+      this.description,
+      this.location,
+      required this.scheduledAt,
+      this.gameId,
+      this.maxParticipants,
+      this.visibility = EventVisibility.inviteOnly,
+      final List<String> invitedUserIds = const <String>[]})
+      : _invitedUserIds = invitedUserIds,
+        super._();
+
+  @override
+  final String title;
+  @override
+  final String? description;
+  @override
+  final String? location;
+  @override
+  final DateTime scheduledAt;
+  @override
+  final String? gameId;
+  @override
+  final int? maxParticipants;
+  @override
+  @JsonKey()
+  final EventVisibility visibility;
+  final List<String> _invitedUserIds;
+  @override
+  @JsonKey()
+  List<String> get invitedUserIds {
+    if (_invitedUserIds is EqualUnmodifiableListView) return _invitedUserIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_invitedUserIds);
+  }
+
+  @override
+  String toString() {
+    return 'EventDraft(title: $title, description: $description, location: $location, scheduledAt: $scheduledAt, gameId: $gameId, maxParticipants: $maxParticipants, visibility: $visibility, invitedUserIds: $invitedUserIds)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$EventDraftImpl &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.location, location) ||
+                other.location == location) &&
+            (identical(other.scheduledAt, scheduledAt) ||
+                other.scheduledAt == scheduledAt) &&
+            (identical(other.gameId, gameId) || other.gameId == gameId) &&
+            (identical(other.maxParticipants, maxParticipants) ||
+                other.maxParticipants == maxParticipants) &&
+            (identical(other.visibility, visibility) ||
+                other.visibility == visibility) &&
+            const DeepCollectionEquality()
+                .equals(other._invitedUserIds, _invitedUserIds));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      title,
+      description,
+      location,
+      scheduledAt,
+      gameId,
+      maxParticipants,
+      visibility,
+      const DeepCollectionEquality().hash(_invitedUserIds));
+
+  /// Create a copy of EventDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$EventDraftImplCopyWith<_$EventDraftImpl> get copyWith =>
+      __$$EventDraftImplCopyWithImpl<_$EventDraftImpl>(this, _$identity);
+}
+
+abstract class _EventDraft extends EventDraft {
+  const factory _EventDraft(
+      {required final String title,
+      final String? description,
+      final String? location,
+      required final DateTime scheduledAt,
+      final String? gameId,
+      final int? maxParticipants,
+      final EventVisibility visibility,
+      final List<String> invitedUserIds}) = _$EventDraftImpl;
+  const _EventDraft._() : super._();
+
+  @override
+  String get title;
+  @override
+  String? get description;
+  @override
+  String? get location;
+  @override
+  DateTime get scheduledAt;
+  @override
+  String? get gameId;
+  @override
+  int? get maxParticipants;
+  @override
+  EventVisibility get visibility;
+  @override
+  List<String> get invitedUserIds;
+
+  /// Create a copy of EventDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$EventDraftImplCopyWith<_$EventDraftImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

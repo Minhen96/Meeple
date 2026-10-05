@@ -16,6 +16,14 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       location: json['location'] as String?,
       onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
       isAdmin: json['isAdmin'] as bool? ?? false,
+      isVerified: json['isVerified'] as bool? ?? false,
+      preferredLanguage: json['preferredLanguage'] as String?,
+      timezone: json['timezone'] as String?,
+      usernameChangeAvailableAt: json['usernameChangeAvailableAt'] == null
+          ? null
+          : DateTime.parse(json['usernameChangeAvailableAt'] as String),
+      bggUsername: json['bggUsername'] as String?,
+      deleted: json['deleted'] as bool? ?? false,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -32,5 +40,34 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'location': instance.location,
       'onboardingCompleted': instance.onboardingCompleted,
       'isAdmin': instance.isAdmin,
+      'isVerified': instance.isVerified,
+      'preferredLanguage': instance.preferredLanguage,
+      'timezone': instance.timezone,
+      'usernameChangeAvailableAt':
+          instance.usernameChangeAvailableAt?.toIso8601String(),
+      'bggUsername': instance.bggUsername,
+      'deleted': instance.deleted,
       'createdAt': instance.createdAt?.toIso8601String(),
+    };
+
+_$ActiveSessionImpl _$$ActiveSessionImplFromJson(Map<String, dynamic> json) =>
+    _$ActiveSessionImpl(
+      id: json['id'] as String,
+      deviceInfo: json['deviceInfo'] as String?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      lastUsedAt: json['lastUsedAt'] == null
+          ? null
+          : DateTime.parse(json['lastUsedAt'] as String),
+      current: json['current'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$$ActiveSessionImplToJson(_$ActiveSessionImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'deviceInfo': instance.deviceInfo,
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'lastUsedAt': instance.lastUsedAt?.toIso8601String(),
+      'current': instance.current,
     };

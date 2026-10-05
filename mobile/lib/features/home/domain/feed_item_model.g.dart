@@ -6,46 +6,64 @@ part of 'feed_item_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$FeedItemPostImpl _$$FeedItemPostImplFromJson(Map<String, dynamic> json) =>
-    _$FeedItemPostImpl(
-      id: json['id'] as String,
+_$FeedPostItemImpl _$$FeedPostItemImplFromJson(Map<String, dynamic> json) =>
+    _$FeedPostItemImpl(
+      createdAt: DateTime.parse(json['createdAt'] as String),
       post: Post.fromJson(json['post'] as Map<String, dynamic>),
-      feedAt: DateTime.parse(json['feedAt'] as String),
-      $type: json['runtimeType'] as String?,
+      $type: json['kind'] as String?,
     );
 
-Map<String, dynamic> _$$FeedItemPostImplToJson(_$FeedItemPostImpl instance) =>
+Map<String, dynamic> _$$FeedPostItemImplToJson(_$FeedPostItemImpl instance) =>
     <String, dynamic>{
-      'id': instance.id,
+      'createdAt': instance.createdAt.toIso8601String(),
       'post': instance.post,
-      'feedAt': instance.feedAt.toIso8601String(),
-      'runtimeType': instance.$type,
+      'kind': instance.$type,
     };
 
-_$FeedItemActivityImpl _$$FeedItemActivityImplFromJson(
+_$FeedActivityItemImpl _$$FeedActivityItemImplFromJson(
         Map<String, dynamic> json) =>
-    _$FeedItemActivityImpl(
-      id: json['id'] as String,
-      actorId: json['actorId'] as String,
-      actorDisplayName: json['actorDisplayName'] as String,
-      actorAvatarUrl: json['actorAvatarUrl'] as String?,
-      activityType: json['activityType'] as String,
-      description: json['description'] as String,
-      targetId: json['targetId'] as String?,
-      feedAt: DateTime.parse(json['feedAt'] as String),
-      $type: json['runtimeType'] as String?,
+    _$FeedActivityItemImpl(
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      activity: FeedActivity.fromJson(json['activity'] as Map<String, dynamic>),
+      $type: json['kind'] as String?,
     );
 
-Map<String, dynamic> _$$FeedItemActivityImplToJson(
-        _$FeedItemActivityImpl instance) =>
+Map<String, dynamic> _$$FeedActivityItemImplToJson(
+        _$FeedActivityItemImpl instance) =>
+    <String, dynamic>{
+      'createdAt': instance.createdAt.toIso8601String(),
+      'activity': instance.activity,
+      'kind': instance.$type,
+    };
+
+_$FeedUnknownItemImpl _$$FeedUnknownItemImplFromJson(
+        Map<String, dynamic> json) =>
+    _$FeedUnknownItemImpl(
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$FeedUnknownItemImplToJson(
+        _$FeedUnknownItemImpl instance) =>
+    <String, dynamic>{
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'kind': instance.$type,
+    };
+
+_$FeedActivityImpl _$$FeedActivityImplFromJson(Map<String, dynamic> json) =>
+    _$FeedActivityImpl(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      user: UserSummary.fromJson(json['user'] as Map<String, dynamic>),
+      data: json['data'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+    );
+
+Map<String, dynamic> _$$FeedActivityImplToJson(_$FeedActivityImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'actorId': instance.actorId,
-      'actorDisplayName': instance.actorDisplayName,
-      'actorAvatarUrl': instance.actorAvatarUrl,
-      'activityType': instance.activityType,
-      'description': instance.description,
-      'targetId': instance.targetId,
-      'feedAt': instance.feedAt.toIso8601String(),
-      'runtimeType': instance.$type,
+      'type': instance.type,
+      'user': instance.user,
+      'data': instance.data,
     };

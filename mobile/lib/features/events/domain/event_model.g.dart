@@ -8,58 +8,68 @@ part of 'event_model.dart';
 
 _$EventImpl _$$EventImplFromJson(Map<String, dynamic> json) => _$EventImpl(
       id: json['id'] as String,
-      organizerId: _readHostId(json, 'organizerId') as String,
-      organizerUsername: _readHostUsername(json, 'organizerUsername') as String,
-      organizerDisplayName:
-          _readHostDisplayName(json, 'organizerDisplayName') as String,
-      organizerAvatarUrl:
-          _readHostAvatarUrl(json, 'organizerAvatarUrl') as String?,
-      title: json['title'] as String,
-      description: json['description'] as String? ?? '',
-      startTime: DateTime.parse(json['scheduledAt'] as String),
-      endTime: json['endTime'] == null
+      host: json['host'] == null
           ? null
-          : DateTime.parse(json['endTime'] as String),
-      location: json['location'] as String? ?? '',
-      locationDetails: json['locationDetails'] as String?,
-      maxAttendees:
-          (_readMaxParticipants(json, 'maxAttendees') as num?)?.toInt(),
-      attendeeCount: (json['participantCount'] as num?)?.toInt() ?? 0,
-      isAttending: _readIsAttending(json, 'isAttending') as bool? ?? false,
+          : UserSummary.fromJson(json['host'] as Map<String, dynamic>),
+      game: json['game'] == null
+          ? null
+          : Game.fromJson(json['game'] as Map<String, dynamic>),
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String?,
+      location: json['location'] as String?,
+      locationDisplay: json['locationDisplay'] as String?,
+      scheduledAt: DateTime.parse(json['scheduledAt'] as String),
+      maxParticipants: (json['maxParticipants'] as num?)?.toInt() ?? 0,
+      participantCount: (json['participantCount'] as num?)?.toInt() ?? 0,
+      visibility: json['visibility'] as String? ?? 'INVITE_ONLY',
+      status: json['status'] as String? ?? 'OPEN',
       myRsvp: json['myRsvp'] as String?,
-      visibility: json['visibility'] as String?,
-      status: json['status'] as String?,
-      gameIds: (_readGameIds(json, 'gameIds') as List<dynamic>?)
-              ?.map((e) => e as String)
+      isHost: json['isHost'] as bool? ?? false,
+      participants: (json['participants'] as List<dynamic>?)
+              ?.map((e) => EventParticipant.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          const [],
-      gameNames: (_readGameNames(json, 'gameNames') as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-      createdAt: DateTime.parse(json['createdAt'] as String),
+          const <EventParticipant>[],
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
     );
 
 Map<String, dynamic> _$$EventImplToJson(_$EventImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'organizerId': instance.organizerId,
-      'organizerUsername': instance.organizerUsername,
-      'organizerDisplayName': instance.organizerDisplayName,
-      'organizerAvatarUrl': instance.organizerAvatarUrl,
+      'host': instance.host,
+      'game': instance.game,
       'title': instance.title,
       'description': instance.description,
-      'scheduledAt': instance.startTime.toIso8601String(),
-      'endTime': instance.endTime?.toIso8601String(),
       'location': instance.location,
-      'locationDetails': instance.locationDetails,
-      'maxAttendees': instance.maxAttendees,
-      'participantCount': instance.attendeeCount,
-      'isAttending': instance.isAttending,
-      'myRsvp': instance.myRsvp,
+      'locationDisplay': instance.locationDisplay,
+      'scheduledAt': instance.scheduledAt.toIso8601String(),
+      'maxParticipants': instance.maxParticipants,
+      'participantCount': instance.participantCount,
       'visibility': instance.visibility,
       'status': instance.status,
-      'gameIds': instance.gameIds,
-      'gameNames': instance.gameNames,
-      'createdAt': instance.createdAt.toIso8601String(),
+      'myRsvp': instance.myRsvp,
+      'isHost': instance.isHost,
+      'participants': instance.participants,
+      'createdAt': instance.createdAt?.toIso8601String(),
+    };
+
+_$EventParticipantImpl _$$EventParticipantImplFromJson(
+        Map<String, dynamic> json) =>
+    _$EventParticipantImpl(
+      id: json['id'] as String,
+      username: json['username'] as String? ?? '',
+      displayName: _readDisplayName(json, 'displayName') as String? ?? '',
+      avatarUrl: json['avatarUrl'] as String?,
+      status: json['status'] as String? ?? 'ACCEPTED',
+    );
+
+Map<String, dynamic> _$$EventParticipantImplToJson(
+        _$EventParticipantImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'username': instance.username,
+      'displayName': instance.displayName,
+      'avatarUrl': instance.avatarUrl,
+      'status': instance.status,
     };

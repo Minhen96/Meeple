@@ -21,7 +21,7 @@ Game _$GameFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Game {
   String get id => throw _privateConstructorUsedError;
-  @JsonKey(name: 'title')
+  @JsonKey(name: 'title', defaultValue: '')
   String get name => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
@@ -29,6 +29,7 @@ mixin _$Game {
   int? get yearPublished => throw _privateConstructorUsedError;
   int? get minPlayers => throw _privateConstructorUsedError;
   int? get maxPlayers => throw _privateConstructorUsedError;
+  int? get minAge => throw _privateConstructorUsedError;
   @JsonKey(name: 'playTime')
   int? get minPlayTimeMinutes => throw _privateConstructorUsedError;
   @JsonKey(readValue: _readPlayTime)
@@ -37,12 +38,23 @@ mixin _$Game {
   double? get averageRating => throw _privateConstructorUsedError;
   @JsonKey(name: 'complexityWeight')
   double? get complexity => throw _privateConstructorUsedError;
+  int? get rank => throw _privateConstructorUsedError;
   int? get bggId => throw _privateConstructorUsedError;
   String? get bggUrl => throw _privateConstructorUsedError;
+  @JsonKey(defaultValue: <String>[])
   List<String> get categories => throw _privateConstructorUsedError;
+  @JsonKey(defaultValue: <String>[])
   List<String> get mechanics => throw _privateConstructorUsedError;
+  @JsonKey(defaultValue: <String>[])
   List<String> get designers => throw _privateConstructorUsedError;
+  @JsonKey(defaultValue: <String>[])
+  List<String> get publishers => throw _privateConstructorUsedError;
   bool get hasRulebook => throw _privateConstructorUsedError;
+
+  /// GAP §6.1 [WP4] additions to `GameDetailResponse`.
+  double? get friendAvgRating => throw _privateConstructorUsedError;
+  int get friendRatingCount => throw _privateConstructorUsedError;
+  List<UserSummary> get ownedByFriends => throw _privateConstructorUsedError;
 
   /// Serializes this Game to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -60,23 +72,29 @@ abstract class $GameCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(name: 'title') String name,
+      @JsonKey(name: 'title', defaultValue: '') String name,
       String? description,
       String? imageUrl,
       String? thumbnailUrl,
       int? yearPublished,
       int? minPlayers,
       int? maxPlayers,
+      int? minAge,
       @JsonKey(name: 'playTime') int? minPlayTimeMinutes,
       @JsonKey(readValue: _readPlayTime) int? maxPlayTimeMinutes,
       @JsonKey(name: 'bggRating') double? averageRating,
       @JsonKey(name: 'complexityWeight') double? complexity,
+      int? rank,
       int? bggId,
       String? bggUrl,
-      List<String> categories,
-      List<String> mechanics,
-      List<String> designers,
-      bool hasRulebook});
+      @JsonKey(defaultValue: <String>[]) List<String> categories,
+      @JsonKey(defaultValue: <String>[]) List<String> mechanics,
+      @JsonKey(defaultValue: <String>[]) List<String> designers,
+      @JsonKey(defaultValue: <String>[]) List<String> publishers,
+      bool hasRulebook,
+      double? friendAvgRating,
+      int friendRatingCount,
+      List<UserSummary> ownedByFriends});
 }
 
 /// @nodoc
@@ -102,16 +120,22 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
     Object? yearPublished = freezed,
     Object? minPlayers = freezed,
     Object? maxPlayers = freezed,
+    Object? minAge = freezed,
     Object? minPlayTimeMinutes = freezed,
     Object? maxPlayTimeMinutes = freezed,
     Object? averageRating = freezed,
     Object? complexity = freezed,
+    Object? rank = freezed,
     Object? bggId = freezed,
     Object? bggUrl = freezed,
     Object? categories = null,
     Object? mechanics = null,
     Object? designers = null,
+    Object? publishers = null,
     Object? hasRulebook = null,
+    Object? friendAvgRating = freezed,
+    Object? friendRatingCount = null,
+    Object? ownedByFriends = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -146,6 +170,10 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
           ? _value.maxPlayers
           : maxPlayers // ignore: cast_nullable_to_non_nullable
               as int?,
+      minAge: freezed == minAge
+          ? _value.minAge
+          : minAge // ignore: cast_nullable_to_non_nullable
+              as int?,
       minPlayTimeMinutes: freezed == minPlayTimeMinutes
           ? _value.minPlayTimeMinutes
           : minPlayTimeMinutes // ignore: cast_nullable_to_non_nullable
@@ -162,6 +190,10 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
           ? _value.complexity
           : complexity // ignore: cast_nullable_to_non_nullable
               as double?,
+      rank: freezed == rank
+          ? _value.rank
+          : rank // ignore: cast_nullable_to_non_nullable
+              as int?,
       bggId: freezed == bggId
           ? _value.bggId
           : bggId // ignore: cast_nullable_to_non_nullable
@@ -182,10 +214,26 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
           ? _value.designers
           : designers // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      publishers: null == publishers
+          ? _value.publishers
+          : publishers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       hasRulebook: null == hasRulebook
           ? _value.hasRulebook
           : hasRulebook // ignore: cast_nullable_to_non_nullable
               as bool,
+      friendAvgRating: freezed == friendAvgRating
+          ? _value.friendAvgRating
+          : friendAvgRating // ignore: cast_nullable_to_non_nullable
+              as double?,
+      friendRatingCount: null == friendRatingCount
+          ? _value.friendRatingCount
+          : friendRatingCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      ownedByFriends: null == ownedByFriends
+          ? _value.ownedByFriends
+          : ownedByFriends // ignore: cast_nullable_to_non_nullable
+              as List<UserSummary>,
     ) as $Val);
   }
 }
@@ -199,23 +247,29 @@ abstract class _$$GameImplCopyWith<$Res> implements $GameCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(name: 'title') String name,
+      @JsonKey(name: 'title', defaultValue: '') String name,
       String? description,
       String? imageUrl,
       String? thumbnailUrl,
       int? yearPublished,
       int? minPlayers,
       int? maxPlayers,
+      int? minAge,
       @JsonKey(name: 'playTime') int? minPlayTimeMinutes,
       @JsonKey(readValue: _readPlayTime) int? maxPlayTimeMinutes,
       @JsonKey(name: 'bggRating') double? averageRating,
       @JsonKey(name: 'complexityWeight') double? complexity,
+      int? rank,
       int? bggId,
       String? bggUrl,
-      List<String> categories,
-      List<String> mechanics,
-      List<String> designers,
-      bool hasRulebook});
+      @JsonKey(defaultValue: <String>[]) List<String> categories,
+      @JsonKey(defaultValue: <String>[]) List<String> mechanics,
+      @JsonKey(defaultValue: <String>[]) List<String> designers,
+      @JsonKey(defaultValue: <String>[]) List<String> publishers,
+      bool hasRulebook,
+      double? friendAvgRating,
+      int friendRatingCount,
+      List<UserSummary> ownedByFriends});
 }
 
 /// @nodoc
@@ -238,16 +292,22 @@ class __$$GameImplCopyWithImpl<$Res>
     Object? yearPublished = freezed,
     Object? minPlayers = freezed,
     Object? maxPlayers = freezed,
+    Object? minAge = freezed,
     Object? minPlayTimeMinutes = freezed,
     Object? maxPlayTimeMinutes = freezed,
     Object? averageRating = freezed,
     Object? complexity = freezed,
+    Object? rank = freezed,
     Object? bggId = freezed,
     Object? bggUrl = freezed,
     Object? categories = null,
     Object? mechanics = null,
     Object? designers = null,
+    Object? publishers = null,
     Object? hasRulebook = null,
+    Object? friendAvgRating = freezed,
+    Object? friendRatingCount = null,
+    Object? ownedByFriends = null,
   }) {
     return _then(_$GameImpl(
       id: null == id
@@ -282,6 +342,10 @@ class __$$GameImplCopyWithImpl<$Res>
           ? _value.maxPlayers
           : maxPlayers // ignore: cast_nullable_to_non_nullable
               as int?,
+      minAge: freezed == minAge
+          ? _value.minAge
+          : minAge // ignore: cast_nullable_to_non_nullable
+              as int?,
       minPlayTimeMinutes: freezed == minPlayTimeMinutes
           ? _value.minPlayTimeMinutes
           : minPlayTimeMinutes // ignore: cast_nullable_to_non_nullable
@@ -298,6 +362,10 @@ class __$$GameImplCopyWithImpl<$Res>
           ? _value.complexity
           : complexity // ignore: cast_nullable_to_non_nullable
               as double?,
+      rank: freezed == rank
+          ? _value.rank
+          : rank // ignore: cast_nullable_to_non_nullable
+              as int?,
       bggId: freezed == bggId
           ? _value.bggId
           : bggId // ignore: cast_nullable_to_non_nullable
@@ -318,39 +386,64 @@ class __$$GameImplCopyWithImpl<$Res>
           ? _value._designers
           : designers // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      publishers: null == publishers
+          ? _value._publishers
+          : publishers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       hasRulebook: null == hasRulebook
           ? _value.hasRulebook
           : hasRulebook // ignore: cast_nullable_to_non_nullable
               as bool,
+      friendAvgRating: freezed == friendAvgRating
+          ? _value.friendAvgRating
+          : friendAvgRating // ignore: cast_nullable_to_non_nullable
+              as double?,
+      friendRatingCount: null == friendRatingCount
+          ? _value.friendRatingCount
+          : friendRatingCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      ownedByFriends: null == ownedByFriends
+          ? _value._ownedByFriends
+          : ownedByFriends // ignore: cast_nullable_to_non_nullable
+              as List<UserSummary>,
     ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$GameImpl implements _Game {
+class _$GameImpl extends _Game {
   const _$GameImpl(
       {required this.id,
-      @JsonKey(name: 'title') required this.name,
+      @JsonKey(name: 'title', defaultValue: '') required this.name,
       this.description,
       this.imageUrl,
       this.thumbnailUrl,
       this.yearPublished,
       this.minPlayers,
       this.maxPlayers,
+      this.minAge,
       @JsonKey(name: 'playTime') this.minPlayTimeMinutes,
       @JsonKey(readValue: _readPlayTime) this.maxPlayTimeMinutes,
       @JsonKey(name: 'bggRating') this.averageRating,
       @JsonKey(name: 'complexityWeight') this.complexity,
+      this.rank,
       this.bggId,
       this.bggUrl,
-      final List<String> categories = const [],
-      final List<String> mechanics = const [],
-      final List<String> designers = const [],
-      this.hasRulebook = false})
+      @JsonKey(defaultValue: <String>[]) required final List<String> categories,
+      @JsonKey(defaultValue: <String>[]) required final List<String> mechanics,
+      @JsonKey(defaultValue: <String>[]) required final List<String> designers,
+      @JsonKey(defaultValue: <String>[]) required final List<String> publishers,
+      this.hasRulebook = false,
+      this.friendAvgRating,
+      this.friendRatingCount = 0,
+      final List<UserSummary> ownedByFriends = const <UserSummary>[]})
       : _categories = categories,
         _mechanics = mechanics,
-        _designers = designers;
+        _designers = designers,
+        _publishers = publishers,
+        _ownedByFriends = ownedByFriends,
+        super._();
 
   factory _$GameImpl.fromJson(Map<String, dynamic> json) =>
       _$$GameImplFromJson(json);
@@ -358,7 +451,7 @@ class _$GameImpl implements _Game {
   @override
   final String id;
   @override
-  @JsonKey(name: 'title')
+  @JsonKey(name: 'title', defaultValue: '')
   final String name;
   @override
   final String? description;
@@ -373,6 +466,8 @@ class _$GameImpl implements _Game {
   @override
   final int? maxPlayers;
   @override
+  final int? minAge;
+  @override
   @JsonKey(name: 'playTime')
   final int? minPlayTimeMinutes;
   @override
@@ -385,12 +480,14 @@ class _$GameImpl implements _Game {
   @JsonKey(name: 'complexityWeight')
   final double? complexity;
   @override
+  final int? rank;
+  @override
   final int? bggId;
   @override
   final String? bggUrl;
   final List<String> _categories;
   @override
-  @JsonKey()
+  @JsonKey(defaultValue: <String>[])
   List<String> get categories {
     if (_categories is EqualUnmodifiableListView) return _categories;
     // ignore: implicit_dynamic_type
@@ -399,7 +496,7 @@ class _$GameImpl implements _Game {
 
   final List<String> _mechanics;
   @override
-  @JsonKey()
+  @JsonKey(defaultValue: <String>[])
   List<String> get mechanics {
     if (_mechanics is EqualUnmodifiableListView) return _mechanics;
     // ignore: implicit_dynamic_type
@@ -408,20 +505,44 @@ class _$GameImpl implements _Game {
 
   final List<String> _designers;
   @override
-  @JsonKey()
+  @JsonKey(defaultValue: <String>[])
   List<String> get designers {
     if (_designers is EqualUnmodifiableListView) return _designers;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_designers);
   }
 
+  final List<String> _publishers;
+  @override
+  @JsonKey(defaultValue: <String>[])
+  List<String> get publishers {
+    if (_publishers is EqualUnmodifiableListView) return _publishers;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_publishers);
+  }
+
   @override
   @JsonKey()
   final bool hasRulebook;
 
+  /// GAP §6.1 [WP4] additions to `GameDetailResponse`.
+  @override
+  final double? friendAvgRating;
+  @override
+  @JsonKey()
+  final int friendRatingCount;
+  final List<UserSummary> _ownedByFriends;
+  @override
+  @JsonKey()
+  List<UserSummary> get ownedByFriends {
+    if (_ownedByFriends is EqualUnmodifiableListView) return _ownedByFriends;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_ownedByFriends);
+  }
+
   @override
   String toString() {
-    return 'Game(id: $id, name: $name, description: $description, imageUrl: $imageUrl, thumbnailUrl: $thumbnailUrl, yearPublished: $yearPublished, minPlayers: $minPlayers, maxPlayers: $maxPlayers, minPlayTimeMinutes: $minPlayTimeMinutes, maxPlayTimeMinutes: $maxPlayTimeMinutes, averageRating: $averageRating, complexity: $complexity, bggId: $bggId, bggUrl: $bggUrl, categories: $categories, mechanics: $mechanics, designers: $designers, hasRulebook: $hasRulebook)';
+    return 'Game(id: $id, name: $name, description: $description, imageUrl: $imageUrl, thumbnailUrl: $thumbnailUrl, yearPublished: $yearPublished, minPlayers: $minPlayers, maxPlayers: $maxPlayers, minAge: $minAge, minPlayTimeMinutes: $minPlayTimeMinutes, maxPlayTimeMinutes: $maxPlayTimeMinutes, averageRating: $averageRating, complexity: $complexity, rank: $rank, bggId: $bggId, bggUrl: $bggUrl, categories: $categories, mechanics: $mechanics, designers: $designers, publishers: $publishers, hasRulebook: $hasRulebook, friendAvgRating: $friendAvgRating, friendRatingCount: $friendRatingCount, ownedByFriends: $ownedByFriends)';
   }
 
   @override
@@ -443,6 +564,7 @@ class _$GameImpl implements _Game {
                 other.minPlayers == minPlayers) &&
             (identical(other.maxPlayers, maxPlayers) ||
                 other.maxPlayers == maxPlayers) &&
+            (identical(other.minAge, minAge) || other.minAge == minAge) &&
             (identical(other.minPlayTimeMinutes, minPlayTimeMinutes) ||
                 other.minPlayTimeMinutes == minPlayTimeMinutes) &&
             (identical(other.maxPlayTimeMinutes, maxPlayTimeMinutes) ||
@@ -451,6 +573,7 @@ class _$GameImpl implements _Game {
                 other.averageRating == averageRating) &&
             (identical(other.complexity, complexity) ||
                 other.complexity == complexity) &&
+            (identical(other.rank, rank) || other.rank == rank) &&
             (identical(other.bggId, bggId) || other.bggId == bggId) &&
             (identical(other.bggUrl, bggUrl) || other.bggUrl == bggUrl) &&
             const DeepCollectionEquality()
@@ -459,32 +582,47 @@ class _$GameImpl implements _Game {
                 .equals(other._mechanics, _mechanics) &&
             const DeepCollectionEquality()
                 .equals(other._designers, _designers) &&
+            const DeepCollectionEquality()
+                .equals(other._publishers, _publishers) &&
             (identical(other.hasRulebook, hasRulebook) ||
-                other.hasRulebook == hasRulebook));
+                other.hasRulebook == hasRulebook) &&
+            (identical(other.friendAvgRating, friendAvgRating) ||
+                other.friendAvgRating == friendAvgRating) &&
+            (identical(other.friendRatingCount, friendRatingCount) ||
+                other.friendRatingCount == friendRatingCount) &&
+            const DeepCollectionEquality()
+                .equals(other._ownedByFriends, _ownedByFriends));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      description,
-      imageUrl,
-      thumbnailUrl,
-      yearPublished,
-      minPlayers,
-      maxPlayers,
-      minPlayTimeMinutes,
-      maxPlayTimeMinutes,
-      averageRating,
-      complexity,
-      bggId,
-      bggUrl,
-      const DeepCollectionEquality().hash(_categories),
-      const DeepCollectionEquality().hash(_mechanics),
-      const DeepCollectionEquality().hash(_designers),
-      hasRulebook);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        description,
+        imageUrl,
+        thumbnailUrl,
+        yearPublished,
+        minPlayers,
+        maxPlayers,
+        minAge,
+        minPlayTimeMinutes,
+        maxPlayTimeMinutes,
+        averageRating,
+        complexity,
+        rank,
+        bggId,
+        bggUrl,
+        const DeepCollectionEquality().hash(_categories),
+        const DeepCollectionEquality().hash(_mechanics),
+        const DeepCollectionEquality().hash(_designers),
+        const DeepCollectionEquality().hash(_publishers),
+        hasRulebook,
+        friendAvgRating,
+        friendRatingCount,
+        const DeepCollectionEquality().hash(_ownedByFriends)
+      ]);
 
   /// Create a copy of Game
   /// with the given fields replaced by the non-null parameter values.
@@ -502,33 +640,40 @@ class _$GameImpl implements _Game {
   }
 }
 
-abstract class _Game implements Game {
+abstract class _Game extends Game {
   const factory _Game(
       {required final String id,
-      @JsonKey(name: 'title') required final String name,
+      @JsonKey(name: 'title', defaultValue: '') required final String name,
       final String? description,
       final String? imageUrl,
       final String? thumbnailUrl,
       final int? yearPublished,
       final int? minPlayers,
       final int? maxPlayers,
+      final int? minAge,
       @JsonKey(name: 'playTime') final int? minPlayTimeMinutes,
       @JsonKey(readValue: _readPlayTime) final int? maxPlayTimeMinutes,
       @JsonKey(name: 'bggRating') final double? averageRating,
       @JsonKey(name: 'complexityWeight') final double? complexity,
+      final int? rank,
       final int? bggId,
       final String? bggUrl,
-      final List<String> categories,
-      final List<String> mechanics,
-      final List<String> designers,
-      final bool hasRulebook}) = _$GameImpl;
+      @JsonKey(defaultValue: <String>[]) required final List<String> categories,
+      @JsonKey(defaultValue: <String>[]) required final List<String> mechanics,
+      @JsonKey(defaultValue: <String>[]) required final List<String> designers,
+      @JsonKey(defaultValue: <String>[]) required final List<String> publishers,
+      final bool hasRulebook,
+      final double? friendAvgRating,
+      final int friendRatingCount,
+      final List<UserSummary> ownedByFriends}) = _$GameImpl;
+  const _Game._() : super._();
 
   factory _Game.fromJson(Map<String, dynamic> json) = _$GameImpl.fromJson;
 
   @override
   String get id;
   @override
-  @JsonKey(name: 'title')
+  @JsonKey(name: 'title', defaultValue: '')
   String get name;
   @override
   String? get description;
@@ -543,6 +688,8 @@ abstract class _Game implements Game {
   @override
   int? get maxPlayers;
   @override
+  int? get minAge;
+  @override
   @JsonKey(name: 'playTime')
   int? get minPlayTimeMinutes;
   @override
@@ -555,17 +702,33 @@ abstract class _Game implements Game {
   @JsonKey(name: 'complexityWeight')
   double? get complexity;
   @override
+  int? get rank;
+  @override
   int? get bggId;
   @override
   String? get bggUrl;
   @override
+  @JsonKey(defaultValue: <String>[])
   List<String> get categories;
   @override
+  @JsonKey(defaultValue: <String>[])
   List<String> get mechanics;
   @override
+  @JsonKey(defaultValue: <String>[])
   List<String> get designers;
   @override
+  @JsonKey(defaultValue: <String>[])
+  List<String> get publishers;
+  @override
   bool get hasRulebook;
+
+  /// GAP §6.1 [WP4] additions to `GameDetailResponse`.
+  @override
+  double? get friendAvgRating;
+  @override
+  int get friendRatingCount;
+  @override
+  List<UserSummary> get ownedByFriends;
 
   /// Create a copy of Game
   /// with the given fields replaced by the non-null parameter values.

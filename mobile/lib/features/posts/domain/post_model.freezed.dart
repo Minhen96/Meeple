@@ -21,27 +21,20 @@ Post _$PostFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Post {
   String get id => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readAuthorId)
-  String get authorId => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readAuthorUsername)
-  String get authorUsername => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readAuthorDisplayName)
-  String get authorDisplayName => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readAuthorAvatarUrl)
-  String? get authorAvatarUrl => throw _privateConstructorUsedError;
-  @JsonKey(name: 'caption', defaultValue: '')
-  String get content => throw _privateConstructorUsedError;
+  UserSummary get author => throw _privateConstructorUsedError;
+  @JsonKey(defaultValue: '')
+  String get caption => throw _privateConstructorUsedError;
   String? get location => throw _privateConstructorUsedError;
   DateTime? get playedAt => throw _privateConstructorUsedError;
   List<String> get imageUrls => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readGameId)
-  String? get taggedGameId => throw _privateConstructorUsedError;
-  @JsonKey(readValue: _readGameTitle)
-  String? get taggedGameName => throw _privateConstructorUsedError;
+  Game? get game => throw _privateConstructorUsedError;
+  List<UserSummary> get taggedUsers => throw _privateConstructorUsedError;
   int get likeCount => throw _privateConstructorUsedError;
   int get commentCount => throw _privateConstructorUsedError;
-  @JsonKey(name: 'likedByMe')
-  bool get isLikedByMe => throw _privateConstructorUsedError;
+  bool get likedByMe => throw _privateConstructorUsedError;
+  bool get isBookmarked => throw _privateConstructorUsedError;
+  String? get eventId => throw _privateConstructorUsedError;
+  DateTime? get editedAt => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this Post to a JSON map.
@@ -60,20 +53,23 @@ abstract class $PostCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(readValue: _readAuthorId) String authorId,
-      @JsonKey(readValue: _readAuthorUsername) String authorUsername,
-      @JsonKey(readValue: _readAuthorDisplayName) String authorDisplayName,
-      @JsonKey(readValue: _readAuthorAvatarUrl) String? authorAvatarUrl,
-      @JsonKey(name: 'caption', defaultValue: '') String content,
+      UserSummary author,
+      @JsonKey(defaultValue: '') String caption,
       String? location,
       DateTime? playedAt,
       List<String> imageUrls,
-      @JsonKey(readValue: _readGameId) String? taggedGameId,
-      @JsonKey(readValue: _readGameTitle) String? taggedGameName,
+      Game? game,
+      List<UserSummary> taggedUsers,
       int likeCount,
       int commentCount,
-      @JsonKey(name: 'likedByMe') bool isLikedByMe,
+      bool likedByMe,
+      bool isBookmarked,
+      String? eventId,
+      DateTime? editedAt,
       DateTime createdAt});
+
+  $UserSummaryCopyWith<$Res> get author;
+  $GameCopyWith<$Res>? get game;
 }
 
 /// @nodoc
@@ -92,19 +88,19 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
   @override
   $Res call({
     Object? id = null,
-    Object? authorId = null,
-    Object? authorUsername = null,
-    Object? authorDisplayName = null,
-    Object? authorAvatarUrl = freezed,
-    Object? content = null,
+    Object? author = null,
+    Object? caption = null,
     Object? location = freezed,
     Object? playedAt = freezed,
     Object? imageUrls = null,
-    Object? taggedGameId = freezed,
-    Object? taggedGameName = freezed,
+    Object? game = freezed,
+    Object? taggedUsers = null,
     Object? likeCount = null,
     Object? commentCount = null,
-    Object? isLikedByMe = null,
+    Object? likedByMe = null,
+    Object? isBookmarked = null,
+    Object? eventId = freezed,
+    Object? editedAt = freezed,
     Object? createdAt = null,
   }) {
     return _then(_value.copyWith(
@@ -112,25 +108,13 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      authorId: null == authorId
-          ? _value.authorId
-          : authorId // ignore: cast_nullable_to_non_nullable
-              as String,
-      authorUsername: null == authorUsername
-          ? _value.authorUsername
-          : authorUsername // ignore: cast_nullable_to_non_nullable
-              as String,
-      authorDisplayName: null == authorDisplayName
-          ? _value.authorDisplayName
-          : authorDisplayName // ignore: cast_nullable_to_non_nullable
-              as String,
-      authorAvatarUrl: freezed == authorAvatarUrl
-          ? _value.authorAvatarUrl
-          : authorAvatarUrl // ignore: cast_nullable_to_non_nullable
-              as String?,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
+      author: null == author
+          ? _value.author
+          : author // ignore: cast_nullable_to_non_nullable
+              as UserSummary,
+      caption: null == caption
+          ? _value.caption
+          : caption // ignore: cast_nullable_to_non_nullable
               as String,
       location: freezed == location
           ? _value.location
@@ -144,14 +128,14 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
           ? _value.imageUrls
           : imageUrls // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      taggedGameId: freezed == taggedGameId
-          ? _value.taggedGameId
-          : taggedGameId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      taggedGameName: freezed == taggedGameName
-          ? _value.taggedGameName
-          : taggedGameName // ignore: cast_nullable_to_non_nullable
-              as String?,
+      game: freezed == game
+          ? _value.game
+          : game // ignore: cast_nullable_to_non_nullable
+              as Game?,
+      taggedUsers: null == taggedUsers
+          ? _value.taggedUsers
+          : taggedUsers // ignore: cast_nullable_to_non_nullable
+              as List<UserSummary>,
       likeCount: null == likeCount
           ? _value.likeCount
           : likeCount // ignore: cast_nullable_to_non_nullable
@@ -160,15 +144,51 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
           ? _value.commentCount
           : commentCount // ignore: cast_nullable_to_non_nullable
               as int,
-      isLikedByMe: null == isLikedByMe
-          ? _value.isLikedByMe
-          : isLikedByMe // ignore: cast_nullable_to_non_nullable
+      likedByMe: null == likedByMe
+          ? _value.likedByMe
+          : likedByMe // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBookmarked: null == isBookmarked
+          ? _value.isBookmarked
+          : isBookmarked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      eventId: freezed == eventId
+          ? _value.eventId
+          : eventId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      editedAt: freezed == editedAt
+          ? _value.editedAt
+          : editedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
     ) as $Val);
+  }
+
+  /// Create a copy of Post
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $UserSummaryCopyWith<$Res> get author {
+    return $UserSummaryCopyWith<$Res>(_value.author, (value) {
+      return _then(_value.copyWith(author: value) as $Val);
+    });
+  }
+
+  /// Create a copy of Post
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GameCopyWith<$Res>? get game {
+    if (_value.game == null) {
+      return null;
+    }
+
+    return $GameCopyWith<$Res>(_value.game!, (value) {
+      return _then(_value.copyWith(game: value) as $Val);
+    });
   }
 }
 
@@ -181,20 +201,25 @@ abstract class _$$PostImplCopyWith<$Res> implements $PostCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(readValue: _readAuthorId) String authorId,
-      @JsonKey(readValue: _readAuthorUsername) String authorUsername,
-      @JsonKey(readValue: _readAuthorDisplayName) String authorDisplayName,
-      @JsonKey(readValue: _readAuthorAvatarUrl) String? authorAvatarUrl,
-      @JsonKey(name: 'caption', defaultValue: '') String content,
+      UserSummary author,
+      @JsonKey(defaultValue: '') String caption,
       String? location,
       DateTime? playedAt,
       List<String> imageUrls,
-      @JsonKey(readValue: _readGameId) String? taggedGameId,
-      @JsonKey(readValue: _readGameTitle) String? taggedGameName,
+      Game? game,
+      List<UserSummary> taggedUsers,
       int likeCount,
       int commentCount,
-      @JsonKey(name: 'likedByMe') bool isLikedByMe,
+      bool likedByMe,
+      bool isBookmarked,
+      String? eventId,
+      DateTime? editedAt,
       DateTime createdAt});
+
+  @override
+  $UserSummaryCopyWith<$Res> get author;
+  @override
+  $GameCopyWith<$Res>? get game;
 }
 
 /// @nodoc
@@ -210,19 +235,19 @@ class __$$PostImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? authorId = null,
-    Object? authorUsername = null,
-    Object? authorDisplayName = null,
-    Object? authorAvatarUrl = freezed,
-    Object? content = null,
+    Object? author = null,
+    Object? caption = null,
     Object? location = freezed,
     Object? playedAt = freezed,
     Object? imageUrls = null,
-    Object? taggedGameId = freezed,
-    Object? taggedGameName = freezed,
+    Object? game = freezed,
+    Object? taggedUsers = null,
     Object? likeCount = null,
     Object? commentCount = null,
-    Object? isLikedByMe = null,
+    Object? likedByMe = null,
+    Object? isBookmarked = null,
+    Object? eventId = freezed,
+    Object? editedAt = freezed,
     Object? createdAt = null,
   }) {
     return _then(_$PostImpl(
@@ -230,25 +255,13 @@ class __$$PostImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      authorId: null == authorId
-          ? _value.authorId
-          : authorId // ignore: cast_nullable_to_non_nullable
-              as String,
-      authorUsername: null == authorUsername
-          ? _value.authorUsername
-          : authorUsername // ignore: cast_nullable_to_non_nullable
-              as String,
-      authorDisplayName: null == authorDisplayName
-          ? _value.authorDisplayName
-          : authorDisplayName // ignore: cast_nullable_to_non_nullable
-              as String,
-      authorAvatarUrl: freezed == authorAvatarUrl
-          ? _value.authorAvatarUrl
-          : authorAvatarUrl // ignore: cast_nullable_to_non_nullable
-              as String?,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
+      author: null == author
+          ? _value.author
+          : author // ignore: cast_nullable_to_non_nullable
+              as UserSummary,
+      caption: null == caption
+          ? _value.caption
+          : caption // ignore: cast_nullable_to_non_nullable
               as String,
       location: freezed == location
           ? _value.location
@@ -262,14 +275,14 @@ class __$$PostImplCopyWithImpl<$Res>
           ? _value._imageUrls
           : imageUrls // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      taggedGameId: freezed == taggedGameId
-          ? _value.taggedGameId
-          : taggedGameId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      taggedGameName: freezed == taggedGameName
-          ? _value.taggedGameName
-          : taggedGameName // ignore: cast_nullable_to_non_nullable
-              as String?,
+      game: freezed == game
+          ? _value.game
+          : game // ignore: cast_nullable_to_non_nullable
+              as Game?,
+      taggedUsers: null == taggedUsers
+          ? _value._taggedUsers
+          : taggedUsers // ignore: cast_nullable_to_non_nullable
+              as List<UserSummary>,
       likeCount: null == likeCount
           ? _value.likeCount
           : likeCount // ignore: cast_nullable_to_non_nullable
@@ -278,10 +291,22 @@ class __$$PostImplCopyWithImpl<$Res>
           ? _value.commentCount
           : commentCount // ignore: cast_nullable_to_non_nullable
               as int,
-      isLikedByMe: null == isLikedByMe
-          ? _value.isLikedByMe
-          : isLikedByMe // ignore: cast_nullable_to_non_nullable
+      likedByMe: null == likedByMe
+          ? _value.likedByMe
+          : likedByMe // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBookmarked: null == isBookmarked
+          ? _value.isBookmarked
+          : isBookmarked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      eventId: freezed == eventId
+          ? _value.eventId
+          : eventId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      editedAt: freezed == editedAt
+          ? _value.editedAt
+          : editedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -292,25 +317,26 @@ class __$$PostImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$PostImpl implements _Post {
+class _$PostImpl extends _Post {
   const _$PostImpl(
       {required this.id,
-      @JsonKey(readValue: _readAuthorId) required this.authorId,
-      @JsonKey(readValue: _readAuthorUsername) required this.authorUsername,
-      @JsonKey(readValue: _readAuthorDisplayName)
-      required this.authorDisplayName,
-      @JsonKey(readValue: _readAuthorAvatarUrl) this.authorAvatarUrl,
-      @JsonKey(name: 'caption', defaultValue: '') required this.content,
+      required this.author,
+      @JsonKey(defaultValue: '') required this.caption,
       this.location,
       this.playedAt,
-      final List<String> imageUrls = const [],
-      @JsonKey(readValue: _readGameId) this.taggedGameId,
-      @JsonKey(readValue: _readGameTitle) this.taggedGameName,
+      final List<String> imageUrls = const <String>[],
+      this.game,
+      final List<UserSummary> taggedUsers = const <UserSummary>[],
       this.likeCount = 0,
       this.commentCount = 0,
-      @JsonKey(name: 'likedByMe') this.isLikedByMe = false,
+      this.likedByMe = false,
+      this.isBookmarked = false,
+      this.eventId,
+      this.editedAt,
       required this.createdAt})
-      : _imageUrls = imageUrls;
+      : _imageUrls = imageUrls,
+        _taggedUsers = taggedUsers,
+        super._();
 
   factory _$PostImpl.fromJson(Map<String, dynamic> json) =>
       _$$PostImplFromJson(json);
@@ -318,20 +344,10 @@ class _$PostImpl implements _Post {
   @override
   final String id;
   @override
-  @JsonKey(readValue: _readAuthorId)
-  final String authorId;
+  final UserSummary author;
   @override
-  @JsonKey(readValue: _readAuthorUsername)
-  final String authorUsername;
-  @override
-  @JsonKey(readValue: _readAuthorDisplayName)
-  final String authorDisplayName;
-  @override
-  @JsonKey(readValue: _readAuthorAvatarUrl)
-  final String? authorAvatarUrl;
-  @override
-  @JsonKey(name: 'caption', defaultValue: '')
-  final String content;
+  @JsonKey(defaultValue: '')
+  final String caption;
   @override
   final String? location;
   @override
@@ -346,11 +362,16 @@ class _$PostImpl implements _Post {
   }
 
   @override
-  @JsonKey(readValue: _readGameId)
-  final String? taggedGameId;
+  final Game? game;
+  final List<UserSummary> _taggedUsers;
   @override
-  @JsonKey(readValue: _readGameTitle)
-  final String? taggedGameName;
+  @JsonKey()
+  List<UserSummary> get taggedUsers {
+    if (_taggedUsers is EqualUnmodifiableListView) return _taggedUsers;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_taggedUsers);
+  }
+
   @override
   @JsonKey()
   final int likeCount;
@@ -358,14 +379,21 @@ class _$PostImpl implements _Post {
   @JsonKey()
   final int commentCount;
   @override
-  @JsonKey(name: 'likedByMe')
-  final bool isLikedByMe;
+  @JsonKey()
+  final bool likedByMe;
+  @override
+  @JsonKey()
+  final bool isBookmarked;
+  @override
+  final String? eventId;
+  @override
+  final DateTime? editedAt;
   @override
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Post(id: $id, authorId: $authorId, authorUsername: $authorUsername, authorDisplayName: $authorDisplayName, authorAvatarUrl: $authorAvatarUrl, content: $content, location: $location, playedAt: $playedAt, imageUrls: $imageUrls, taggedGameId: $taggedGameId, taggedGameName: $taggedGameName, likeCount: $likeCount, commentCount: $commentCount, isLikedByMe: $isLikedByMe, createdAt: $createdAt)';
+    return 'Post(id: $id, author: $author, caption: $caption, location: $location, playedAt: $playedAt, imageUrls: $imageUrls, game: $game, taggedUsers: $taggedUsers, likeCount: $likeCount, commentCount: $commentCount, likedByMe: $likedByMe, isBookmarked: $isBookmarked, eventId: $eventId, editedAt: $editedAt, createdAt: $createdAt)';
   }
 
   @override
@@ -374,31 +402,28 @@ class _$PostImpl implements _Post {
         (other.runtimeType == runtimeType &&
             other is _$PostImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.authorId, authorId) ||
-                other.authorId == authorId) &&
-            (identical(other.authorUsername, authorUsername) ||
-                other.authorUsername == authorUsername) &&
-            (identical(other.authorDisplayName, authorDisplayName) ||
-                other.authorDisplayName == authorDisplayName) &&
-            (identical(other.authorAvatarUrl, authorAvatarUrl) ||
-                other.authorAvatarUrl == authorAvatarUrl) &&
-            (identical(other.content, content) || other.content == content) &&
+            (identical(other.author, author) || other.author == author) &&
+            (identical(other.caption, caption) || other.caption == caption) &&
             (identical(other.location, location) ||
                 other.location == location) &&
             (identical(other.playedAt, playedAt) ||
                 other.playedAt == playedAt) &&
             const DeepCollectionEquality()
                 .equals(other._imageUrls, _imageUrls) &&
-            (identical(other.taggedGameId, taggedGameId) ||
-                other.taggedGameId == taggedGameId) &&
-            (identical(other.taggedGameName, taggedGameName) ||
-                other.taggedGameName == taggedGameName) &&
+            (identical(other.game, game) || other.game == game) &&
+            const DeepCollectionEquality()
+                .equals(other._taggedUsers, _taggedUsers) &&
             (identical(other.likeCount, likeCount) ||
                 other.likeCount == likeCount) &&
             (identical(other.commentCount, commentCount) ||
                 other.commentCount == commentCount) &&
-            (identical(other.isLikedByMe, isLikedByMe) ||
-                other.isLikedByMe == isLikedByMe) &&
+            (identical(other.likedByMe, likedByMe) ||
+                other.likedByMe == likedByMe) &&
+            (identical(other.isBookmarked, isBookmarked) ||
+                other.isBookmarked == isBookmarked) &&
+            (identical(other.eventId, eventId) || other.eventId == eventId) &&
+            (identical(other.editedAt, editedAt) ||
+                other.editedAt == editedAt) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -408,19 +433,19 @@ class _$PostImpl implements _Post {
   int get hashCode => Object.hash(
       runtimeType,
       id,
-      authorId,
-      authorUsername,
-      authorDisplayName,
-      authorAvatarUrl,
-      content,
+      author,
+      caption,
       location,
       playedAt,
       const DeepCollectionEquality().hash(_imageUrls),
-      taggedGameId,
-      taggedGameName,
+      game,
+      const DeepCollectionEquality().hash(_taggedUsers),
       likeCount,
       commentCount,
-      isLikedByMe,
+      likedByMe,
+      isBookmarked,
+      eventId,
+      editedAt,
       createdAt);
 
   /// Create a copy of Post
@@ -439,45 +464,34 @@ class _$PostImpl implements _Post {
   }
 }
 
-abstract class _Post implements Post {
+abstract class _Post extends Post {
   const factory _Post(
       {required final String id,
-      @JsonKey(readValue: _readAuthorId) required final String authorId,
-      @JsonKey(readValue: _readAuthorUsername)
-      required final String authorUsername,
-      @JsonKey(readValue: _readAuthorDisplayName)
-      required final String authorDisplayName,
-      @JsonKey(readValue: _readAuthorAvatarUrl) final String? authorAvatarUrl,
-      @JsonKey(name: 'caption', defaultValue: '') required final String content,
+      required final UserSummary author,
+      @JsonKey(defaultValue: '') required final String caption,
       final String? location,
       final DateTime? playedAt,
       final List<String> imageUrls,
-      @JsonKey(readValue: _readGameId) final String? taggedGameId,
-      @JsonKey(readValue: _readGameTitle) final String? taggedGameName,
+      final Game? game,
+      final List<UserSummary> taggedUsers,
       final int likeCount,
       final int commentCount,
-      @JsonKey(name: 'likedByMe') final bool isLikedByMe,
+      final bool likedByMe,
+      final bool isBookmarked,
+      final String? eventId,
+      final DateTime? editedAt,
       required final DateTime createdAt}) = _$PostImpl;
+  const _Post._() : super._();
 
   factory _Post.fromJson(Map<String, dynamic> json) = _$PostImpl.fromJson;
 
   @override
   String get id;
   @override
-  @JsonKey(readValue: _readAuthorId)
-  String get authorId;
+  UserSummary get author;
   @override
-  @JsonKey(readValue: _readAuthorUsername)
-  String get authorUsername;
-  @override
-  @JsonKey(readValue: _readAuthorDisplayName)
-  String get authorDisplayName;
-  @override
-  @JsonKey(readValue: _readAuthorAvatarUrl)
-  String? get authorAvatarUrl;
-  @override
-  @JsonKey(name: 'caption', defaultValue: '')
-  String get content;
+  @JsonKey(defaultValue: '')
+  String get caption;
   @override
   String? get location;
   @override
@@ -485,18 +499,21 @@ abstract class _Post implements Post {
   @override
   List<String> get imageUrls;
   @override
-  @JsonKey(readValue: _readGameId)
-  String? get taggedGameId;
+  Game? get game;
   @override
-  @JsonKey(readValue: _readGameTitle)
-  String? get taggedGameName;
+  List<UserSummary> get taggedUsers;
   @override
   int get likeCount;
   @override
   int get commentCount;
   @override
-  @JsonKey(name: 'likedByMe')
-  bool get isLikedByMe;
+  bool get likedByMe;
+  @override
+  bool get isBookmarked;
+  @override
+  String? get eventId;
+  @override
+  DateTime? get editedAt;
   @override
   DateTime get createdAt;
 
@@ -520,6 +537,7 @@ mixin _$Comment {
   String? get authorAvatarUrl => throw _privateConstructorUsedError;
   @JsonKey(name: 'body')
   String get content => throw _privateConstructorUsedError;
+  DateTime? get editedAt => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this Comment to a JSON map.
@@ -542,6 +560,7 @@ abstract class $CommentCopyWith<$Res> {
       String authorUsername,
       String? authorAvatarUrl,
       @JsonKey(name: 'body') String content,
+      DateTime? editedAt,
       DateTime createdAt});
 }
 
@@ -565,6 +584,7 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
     Object? authorUsername = null,
     Object? authorAvatarUrl = freezed,
     Object? content = null,
+    Object? editedAt = freezed,
     Object? createdAt = null,
   }) {
     return _then(_value.copyWith(
@@ -588,6 +608,10 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
           ? _value.content
           : content // ignore: cast_nullable_to_non_nullable
               as String,
+      editedAt: freezed == editedAt
+          ? _value.editedAt
+          : editedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -609,6 +633,7 @@ abstract class _$$CommentImplCopyWith<$Res> implements $CommentCopyWith<$Res> {
       String authorUsername,
       String? authorAvatarUrl,
       @JsonKey(name: 'body') String content,
+      DateTime? editedAt,
       DateTime createdAt});
 }
 
@@ -630,6 +655,7 @@ class __$$CommentImplCopyWithImpl<$Res>
     Object? authorUsername = null,
     Object? authorAvatarUrl = freezed,
     Object? content = null,
+    Object? editedAt = freezed,
     Object? createdAt = null,
   }) {
     return _then(_$CommentImpl(
@@ -653,6 +679,10 @@ class __$$CommentImplCopyWithImpl<$Res>
           ? _value.content
           : content // ignore: cast_nullable_to_non_nullable
               as String,
+      editedAt: freezed == editedAt
+          ? _value.editedAt
+          : editedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -663,14 +693,16 @@ class __$$CommentImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$CommentImpl implements _Comment {
+class _$CommentImpl extends _Comment {
   const _$CommentImpl(
       {required this.id,
       required this.authorId,
-      required this.authorUsername,
+      this.authorUsername = '',
       this.authorAvatarUrl,
       @JsonKey(name: 'body') required this.content,
-      required this.createdAt});
+      this.editedAt,
+      required this.createdAt})
+      : super._();
 
   factory _$CommentImpl.fromJson(Map<String, dynamic> json) =>
       _$$CommentImplFromJson(json);
@@ -680,6 +712,7 @@ class _$CommentImpl implements _Comment {
   @override
   final String authorId;
   @override
+  @JsonKey()
   final String authorUsername;
   @override
   final String? authorAvatarUrl;
@@ -687,11 +720,13 @@ class _$CommentImpl implements _Comment {
   @JsonKey(name: 'body')
   final String content;
   @override
+  final DateTime? editedAt;
+  @override
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Comment(id: $id, authorId: $authorId, authorUsername: $authorUsername, authorAvatarUrl: $authorAvatarUrl, content: $content, createdAt: $createdAt)';
+    return 'Comment(id: $id, authorId: $authorId, authorUsername: $authorUsername, authorAvatarUrl: $authorAvatarUrl, content: $content, editedAt: $editedAt, createdAt: $createdAt)';
   }
 
   @override
@@ -707,6 +742,8 @@ class _$CommentImpl implements _Comment {
             (identical(other.authorAvatarUrl, authorAvatarUrl) ||
                 other.authorAvatarUrl == authorAvatarUrl) &&
             (identical(other.content, content) || other.content == content) &&
+            (identical(other.editedAt, editedAt) ||
+                other.editedAt == editedAt) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -714,7 +751,7 @@ class _$CommentImpl implements _Comment {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, authorId, authorUsername,
-      authorAvatarUrl, content, createdAt);
+      authorAvatarUrl, content, editedAt, createdAt);
 
   /// Create a copy of Comment
   /// with the given fields replaced by the non-null parameter values.
@@ -732,14 +769,16 @@ class _$CommentImpl implements _Comment {
   }
 }
 
-abstract class _Comment implements Comment {
+abstract class _Comment extends Comment {
   const factory _Comment(
       {required final String id,
       required final String authorId,
-      required final String authorUsername,
+      final String authorUsername,
       final String? authorAvatarUrl,
       @JsonKey(name: 'body') required final String content,
+      final DateTime? editedAt,
       required final DateTime createdAt}) = _$CommentImpl;
+  const _Comment._() : super._();
 
   factory _Comment.fromJson(Map<String, dynamic> json) = _$CommentImpl.fromJson;
 
@@ -754,6 +793,8 @@ abstract class _Comment implements Comment {
   @override
   @JsonKey(name: 'body')
   String get content;
+  @override
+  DateTime? get editedAt;
   @override
   DateTime get createdAt;
 
