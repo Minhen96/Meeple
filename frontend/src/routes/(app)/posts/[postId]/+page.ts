@@ -1,16 +1,16 @@
 import { postsApi } from '$lib/api/posts';
-import { error } from '@sveltejs/kit';
+import { throwLoadError } from '$lib/api/load';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ params, parent }) => {
+export const load: PageLoad = async ({ params, parent, fetch, url }) => {
 	const { user } = await parent();
 	try {
 		const [post, comments] = await Promise.all([
-			postsApi.getPost(params.postId),
-			postsApi.getComments(params.postId).catch(() => [])
+			postsApi.getPost(params.postId, { fetch }),
+			postsApi.getComments(params.postId, 0, 20, { fetch }).catch(() => [])
 		]);
 		return { user, post, comments };
-	} catch {
-		throw error(404, 'Post not found');
+	} catch (err) {
+		throwLoadError(err, url, 'Post not found');
 	}
 };

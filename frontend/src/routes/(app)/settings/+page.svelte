@@ -1,14 +1,19 @@
 <script lang="ts">
-	import { api } from "$lib/api/client";
+	import { authApi } from "$lib/api/auth";
 	import { goto } from "$app/navigation";
-	import { currentUser, setUser } from "$lib/stores/auth";
+	import { currentUser } from "$lib/stores/auth";
+	import { clearClientSession } from "$lib/session";
 	import SetupStatusModal from "$lib/components/admin/SetupStatusModal.svelte";
 
 	let showSetupModal = $state(false);
 
 	async function handleLogout() {
-		await api.post("/api/v1/auth/logout");
-		setUser(null);
+		try {
+			await authApi.logout();
+		} catch {
+			// clear local state regardless — the server session expires on its own
+		}
+		clearClientSession();
 		goto("/auth/login");
 	}
 
@@ -109,7 +114,12 @@
 		},
 	]);
 
-	function handleItemClick(item: any) {
+	interface SettingsItem {
+		href: string | null;
+		action: (() => void) | undefined;
+	}
+
+	function handleItemClick(item: SettingsItem) {
 		if (item.href) {
 			goto(item.href);
 		} else if (item.action) {

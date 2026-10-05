@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, type ApiOptions } from './client';
 import type { ApiResponse, Comment, Post } from '$lib/types';
 
 // Backend returns PageResponse<T> = { data: T[], meta: { page, limit, total, hasMore } }
@@ -19,20 +19,21 @@ export interface CreatePostPayload {
 
 export const postsApi = {
 	// Feed is at /api/v1/feed (not /api/v1/posts)
-	getFeed: async (page = 0, size = 20): Promise<Post[]> => {
-		const res = await api.get<PagedResponse<Post>>(`/api/v1/feed?page=${page}&size=${size}`);
+	getFeed: async (page = 0, size = 20, opts?: ApiOptions): Promise<Post[]> => {
+		const res = await api.get<PagedResponse<Post>>(`/api/v1/feed?page=${page}&size=${size}`, opts);
 		return res.data;
 	},
 
-	getUserPosts: async (userId: string, page = 0, size = 20): Promise<Post[]> => {
+	getUserPosts: async (userId: string, page = 0, size = 20, opts?: ApiOptions): Promise<Post[]> => {
 		const res = await api.get<PagedResponse<Post>>(
-			`/api/v1/users/${userId}/posts?page=${page}&size=${size}`
+			`/api/v1/users/${userId}/posts?page=${page}&size=${size}`,
+			opts
 		);
 		return res.data;
 	},
 
-	getPost: async (id: string): Promise<Post> => {
-		const res = await api.get<Post>(`/api/v1/posts/${id}`);
+	getPost: async (id: string, opts?: ApiOptions): Promise<Post> => {
+		const res = await api.get<Post>(`/api/v1/posts/${id}`, opts);
 		return res;
 	},
 
@@ -47,9 +48,15 @@ export const postsApi = {
 	likePost: (id: string) => api.post<void>(`/api/v1/posts/${id}/like`),
 	unlikePost: (id: string) => api.delete<void>(`/api/v1/posts/${id}/like`),
 
-	getComments: async (postId: string, page = 0, size = 20): Promise<Comment[]> => {
+	getComments: async (
+		postId: string,
+		page = 0,
+		size = 20,
+		opts?: ApiOptions
+	): Promise<Comment[]> => {
 		const res = await api.get<PagedResponse<Comment>>(
-			`/api/v1/posts/${postId}/comments?page=${page}&size=${size}`
+			`/api/v1/posts/${postId}/comments?page=${page}&size=${size}`,
+			opts
 		);
 		return res.data;
 	},

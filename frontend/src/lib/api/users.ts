@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, type ApiOptions } from './client';
 import type { ApiResponse, User } from '$lib/types';
 
 export interface UpdateProfilePayload {
@@ -15,8 +15,8 @@ export const usersApi = {
 		return res;
 	},
 
-	getUser: async (id: string): Promise<User> => {
-		const res = await api.get<User>(`/api/v1/users/${id}`);
+	getUser: async (id: string, opts?: ApiOptions): Promise<User> => {
+		const res = await api.get<User>(`/api/v1/users/${id}`, opts);
 		return res;
 	},
 

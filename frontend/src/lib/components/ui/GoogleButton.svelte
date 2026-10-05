@@ -15,6 +15,18 @@
 	let { onError }: Props = $props();
 
 	const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
+
+	function googleErrorMessage(err: unknown): string {
+		if (!(err instanceof ApiRequestError)) return 'Google sign-in failed. Try again.';
+		switch (err.code) {
+			case 'GOOGLE_EMAIL_NOT_VERIFIED':
+				return 'Your Google email address is not verified. Verify it with Google, then try again.';
+			case 'GOOGLE_ACCOUNT_CONFLICT':
+				return 'An account with this email already exists. Log in with your password instead.';
+		}
+		if (err.status === 429) return 'Too many requests, try later.';
+		return err.message || 'Google sign-in failed. Try again.';
+	}
 	let container: HTMLDivElement;
 
 	onMount(() => {
@@ -39,9 +51,7 @@
 							await api.post('/api/v1/auth/google', { idToken: response.credential });
 							window.location.href = '/';
 						} catch (err) {
-							const message =
-								err instanceof ApiRequestError ? err.message : 'Google sign-in failed. Try again.';
-							currentOnError?.(message);
+							currentOnError?.(googleErrorMessage(err));
 						}
 					}
 				});
