@@ -202,7 +202,7 @@ void main() {
 
     testWidgets('ACCOUNT_DELETED on login opens reactivation', (tester) async {
       api
-        ..post('/api/v1/auth/login', const FakeResponse.error(401, 'ACCOUNT_DELETED', 'Account deleted'))
+        ..post('/api/v1/auth/login', const FakeResponse.error(403, 'ACCOUNT_DELETED', 'Account deleted'))
         ..post('/api/v1/auth/reactivate', _loginOk(userJson()));
       await pumpApp(tester, api: api, signedIn: false);
 

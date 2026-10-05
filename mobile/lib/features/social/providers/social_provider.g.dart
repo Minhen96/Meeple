@@ -195,7 +195,7 @@ final reportActionsProvider = AutoDisposeProvider<ReportActions>.internal(
 // ignore: unused_element
 typedef ReportActionsRef = AutoDisposeProviderRef<ReportActions>;
 String _$friendStatusNotifierHash() =>
-    r'e7fdbcd21d9821d56e6dcfbb618490f626540b32';
+    r'ae65df555aab0e3b036a85337747022a3f0d1a1d';
 
 abstract class _$FriendStatusNotifier
     extends BuildlessAutoDisposeAsyncNotifier<FriendStatus> {
@@ -393,7 +393,7 @@ final receivedRequestsProvider = AutoDisposeAsyncNotifierProvider<
 );
 
 typedef _$ReceivedRequests = AutoDisposeAsyncNotifier<List<FriendRequest>>;
-String _$sentRequestsHash() => r'ad0ecceec9935101dec76b94592846c0caa69b94';
+String _$sentRequestsHash() => r'23fb1347a142abb29f7d1d28805f2e159d108853';
 
 /// Requests the viewer sent (still pending).
 ///

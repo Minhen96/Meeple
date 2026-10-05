@@ -30,8 +30,15 @@ class User with _$User {
     String? timezone,
     DateTime? usernameChangeAvailableAt,
 
-    /// Self only.
+    /// Self only (null on other users' profiles).
     String? bggUsername,
+
+    /// Self only: whether the account has a password (false for accounts
+    /// created with Google). Null when unknown.
+    bool? hasPassword,
+
+    /// Self only: whether a Google account is linked. Null when unknown.
+    bool? googleLinked,
     @Default(false) bool deleted,
     DateTime? createdAt,
   }) = _User;

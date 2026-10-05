@@ -36,17 +36,20 @@ class AppNotification with _$AppNotification {
     final explicit = data['path'];
     if (explicit is String && explicit.startsWith('/')) return explicit;
     final ref = referenceId;
+    // Never route to a deleted account's profile.
+    final actorProfile = actor == null || actor!.deleted
+        ? null
+        : '/profile/${actor!.id}';
     if (ref == null) {
-      return type.startsWith('FRIEND_') && actor != null
-          ? '/profile/${actor!.id}'
-          : null;
+      return type.startsWith('FRIEND_') ? actorProfile : null;
     }
     return switch (referenceType?.toUpperCase()) {
       'EVENT' => '/events/$ref',
       'POST' || 'COMMENT' => '/posts/$ref',
       'GAME' || 'RULEBOOK' || 'RULE_NOTE' => '/library/$ref',
-      'USER' || 'FRIEND_REQUEST' =>
-        actor != null ? '/profile/${actor!.id}' : '/profile/$ref',
+      'USER' || 'FRIEND_REQUEST' => actor == null
+          ? (isDeletedUserId(ref) ? null : '/profile/$ref')
+          : actorProfile,
       'MATCH' || 'MATCH_GROUP' => '/matching',
       _ => switch (type) {
           final t when t.startsWith('EVENT_') => '/events/$ref',

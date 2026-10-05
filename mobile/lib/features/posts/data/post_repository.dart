@@ -13,7 +13,11 @@ part 'post_repository.g.dart';
 PostRepository postRepository(Ref ref) =>
     PostRepository(ref.read(dioProvider));
 
-/// Fields of `CreatePostRequest` / the `PUT /posts/{id}` body.
+/// Fields of `CreatePostRequest` / `UpdatePostRequest`.
+///
+/// For an update the draft is the post's complete editable state: a null
+/// [gameId] removes the game tag (`clearGame: true`), and empty caption /
+/// location strings clear those fields.
 final class PostDraft {
   const PostDraft({
     this.caption,
@@ -40,6 +44,7 @@ final class PostDraft {
           'location': location,
         if (playedAt != null) 'playedAt': playedAt!.toUtc().toIso8601String(),
         if (gameId != null) 'gameId': gameId,
+        if (forUpdate && gameId == null) 'clearGame': true,
         if (!forUpdate && eventId != null) 'eventId': eventId,
         if (forUpdate || taggedUserIds.isNotEmpty)
           'taggedUserIds': taggedUserIds,
@@ -64,7 +69,7 @@ final class PostRepository {
         () async => _post(await _dio.post<Object?>(_posts, data: draft.toJson())),
       );
 
-  /// `PUT /posts/{id}` — allowed for 48 h (`EDIT_WINDOW_EXPIRED` after).
+  /// `PUT /posts/{id}` — allowed for 48 h (403 `EDIT_WINDOW_EXPIRED` after).
   Future<Post> updatePost(String postId, PostDraft draft) => guardApi(
         () async => _post(
           await _dio.put<Object?>(
@@ -98,9 +103,16 @@ final class PostRepository {
   Future<CursorPage<Post>> getBookmarks({String? cursor}) =>
       _page('${ApiConstants.me}/bookmarks', cursor);
 
-  /// `GET /users/{id}/posts`.
+  /// `GET /users/{id}/posts?page=&size=` — an offset `PageResponse`; its
+  /// next page is carried as a legacy `page:` cursor.
   Future<CursorPage<Post>> getUserPosts(String userId, {String? cursor}) =>
       _page('${ApiConstants.users}/$userId/posts', cursor);
+
+  /// `GET /users/{id}/tagged-posts?cursor=&limit=` — posts the user is
+  /// tagged in that the viewer may see. 404 `USER_NOT_FOUND` when the user
+  /// is gone or blocked.
+  Future<CursorPage<Post>> getTaggedPosts(String userId, {String? cursor}) =>
+      _page('${ApiConstants.users}/$userId/tagged-posts', cursor);
 
   /// `GET /posts?eventId=&cursor=` — memories of an event.
   Future<CursorPage<Post>> getEventPosts(String eventId, {String? cursor}) =>
@@ -125,6 +137,9 @@ final class PostRepository {
 
   // ── Comments ──────────────────────────────────────────────────────────────
 
+  /// `GET /posts/{id}/comments?cursor=&limit=` → `{items, nextCursor,
+  /// hasMore}`. Backends that only page by offset answer with
+  /// a `PageResponse`, which is followed with legacy `page:` cursors.
   Future<CursorPage<Comment>> getComments(String postId, {String? cursor}) =>
       guardApi(() async {
         final res = await _dio.get<Object?>(
@@ -142,7 +157,8 @@ final class PostRepository {
         return Comment.fromJson(res.data! as Map<String, dynamic>);
       });
 
-  /// `PUT /posts/{id}/comments/{cid}` — allowed for 24 h.
+  /// `PUT /posts/{id}/comments/{cid}` — comment author only, allowed for
+  /// 24 h (403 `EDIT_WINDOW_EXPIRED` after).
   Future<Comment> updateComment(String postId, String commentId, String body) =>
       guardApi(() async {
         final res = await _dio.put<Object?>(
@@ -152,6 +168,8 @@ final class PostRepository {
         return Comment.fromJson(res.data! as Map<String, dynamic>);
       });
 
+  /// `DELETE /posts/{id}/comments/{cid}` — the comment's author or the
+  /// post's author.
   Future<void> deleteComment(String postId, String commentId) => guardApi(
         () => _dio.delete<void>('$_posts/$postId/comments/$commentId'),
       );

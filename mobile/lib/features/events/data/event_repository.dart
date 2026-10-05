@@ -31,81 +31,31 @@ final class EventRepository {
       .map(Event.fromJson)
       .toList();
 
-  /// `GET /events?scope=upcoming|past|mine&limit=`.
-  ///
-  /// Backends without `scope` ignore it and return upcoming events; `mine`
-  /// then falls back to `GET /events/me` and `past` is filtered client-side.
+  /// `GET /events?scope=upcoming|past|mine&limit=` (limit ≤ 100). `past`
+  /// is newest first; `mine` is the events the viewer hosts or joined.
   Future<List<Event>> getEvents(EventScope scope, {int limit = 50}) =>
       guardApi(() async {
         final res = await _dio.get<Object?>(
           _events,
           queryParameters: {'scope': scope.wire, 'limit': limit},
         );
-        var events = _parseEvents(res.data);
-        if (scope == EventScope.past) {
-          final now = DateTime.now();
-          events = events.where((e) => e.scheduledAt.isBefore(now)).toList()
-            ..sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
-        }
-        return events;
+        return _parseEvents(res.data);
       });
 
-  /// Events the user hosts or joined (`scope=mine`, legacy `/events/me`).
-  Future<List<Event>> getMyEvents() => guardApiOr(
-        () async {
-          final res = await _dio.get<Object?>(
-            _events,
-            queryParameters: {'scope': EventScope.mine.wire, 'limit': 100},
-          );
-          final events = _parseEvents(res.data);
-          // A scope-unaware backend answers with all upcoming events; only
-          // keep the ones the user is part of.
-          return events
-              .where((e) => e.isHost || e.myRsvp == 'ACCEPTED' || e.isInvited)
-              .toList();
-        },
-        () async => _parseEvents((await _dio.get<Object?>(ApiConstants.myEvents)).data),
-      );
-
-  /// `GET /events/calendar?from=&to=` (≤ 62 days). Falls back to the
-  /// upcoming list filtered to the range while the endpoint is missing.
-  Future<List<Event>> getCalendar(DateTime from, DateTime to) => guardApiOr(
-        () async {
-          final res = await _dio.get<Object?>(
-            '$_events/calendar',
-            queryParameters: {
-              'from': from.toUtc().toIso8601String(),
-              'to': to.toUtc().toIso8601String(),
-            },
-          );
-          return _parseEvents(res.data);
-        },
-        () async {
-          final res = await _dio.get<Object?>(
-            _events,
-            queryParameters: {'limit': 100},
-          );
-          return _parseEvents(res.data)
-              .where(
-                (e) =>
-                    !e.scheduledAt.isBefore(from) && e.scheduledAt.isBefore(to),
-              )
-              .toList();
-        },
-      );
-
-  /// `GET /events/community?gameId=` — public events, optionally for a game.
-  Future<List<Event>> getCommunityEvents({String? gameId}) => guardApiOr(
-        () async {
-          final res = await _dio.get<Object?>(
-            '$_events/community',
-            queryParameters: {if (gameId != null) 'gameId': gameId},
-          );
-          final data = res.data;
-          return _parseEvents(data is Map ? data['items'] : data);
-        },
-        () async => const <Event>[],
-      );
+  /// `GET /events/calendar?from=&to=` — events in the viewer's circle
+  /// starting in `[from, to)`; the range is at most 62 days (400
+  /// `INVALID_RANGE`).
+  Future<List<Event>> getCalendar(DateTime from, DateTime to) =>
+      guardApi(() async {
+        final res = await _dio.get<Object?>(
+          '$_events/calendar',
+          queryParameters: {
+            'from': from.toUtc().toIso8601String(),
+            'to': to.toUtc().toIso8601String(),
+          },
+        );
+        return _parseEvents(res.data);
+      });
 
   /// Throws [NotFoundException] for events the caller may not see.
   Future<Event> getEvent(String eventId) =>
@@ -144,18 +94,20 @@ final class EventRepository {
         () => _dio.delete<void>('$_events/$eventId/participants/$userId'),
       );
 
-  /// `POST /events/{id}/rsvp` with `ACCEPTED` | `DECLINED`.
+  /// `POST /events/{id}/rsvp?status=ACCEPTED|DECLINED` → the event. 409
+  /// `EVENT_FULL` / `EVENT_CANCELLED` / `EVENT_COMPLETED`, 403 `NOT_INVITED` /
+  /// `KICKED`.
   Future<Event> rsvp(String eventId, String status) => guardApi(
         () async => _event(
           await _dio.post<Object?>(
             '$_events/$eventId/rsvp',
             queryParameters: {'status': status},
-            data: {'status': status},
           ),
         ),
       );
 
-  /// `DELETE /events/{id}/rsvp` — leave (status becomes `LEFT`).
+  /// `DELETE /events/{id}/rsvp` — leave (status becomes `LEFT`); 400
+  /// `HOST_CANNOT_LEAVE` for the host.
   Future<void> leave(String eventId) =>
       guardApi(() => _dio.delete<void>('$_events/$eventId/rsvp'));
 }

@@ -5,6 +5,7 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/auth/data/google_auth_client.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
@@ -12,8 +13,8 @@ import 'package:meeple_hearth/shared/widgets/app_button.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 
 /// Shown when login returns `ACCOUNT_DELETED` (within the 30-day grace
-/// period): `POST /auth/reactivate {emailOrUsername, password}` restores the
-/// account and signs in.
+/// period): `POST /auth/reactivate {emailOrUsername, password}` — or
+/// `{googleIdToken}` for Google accounts — restores the account and signs in.
 class ReactivateScreen extends ConsumerStatefulWidget {
   const ReactivateScreen({super.key, this.emailOrUsername = ''});
 
@@ -34,6 +35,22 @@ class _ReactivateScreenState extends ConsumerState<ReactivateScreen> {
     _identifier.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  Future<void> _reactivateWithGoogle() async {
+    setState(() => _loading = true);
+    final l10n = context.l10n;
+    try {
+      final done =
+          await ref.read(authNotifierProvider.notifier).reactivateWithGoogle();
+      if (done && mounted) {
+        showToast(context, l10n.reactivateDone, type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _reactivate() async {
@@ -122,6 +139,15 @@ class _ReactivateScreenState extends ConsumerState<ReactivateScreen> {
                 isLoading: _loading,
                 onPressed: _reactivate,
               ),
+              if (ref.watch(googleAuthClientProvider).isAvailable) ...[
+                AppSpacing.vGapMd,
+                TextButton.icon(
+                  key: const Key('reactivate-google'),
+                  onPressed: _loading ? null : _reactivateWithGoogle,
+                  icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+                  label: Text(l10n.reactivateWithGoogle),
+                ),
+              ],
             ],
           ),
         ),

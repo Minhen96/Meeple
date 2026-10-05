@@ -37,6 +37,19 @@ AuthTokens? extractAuthTokens(Response<dynamic> response) {
   return AuthTokens(accessToken: access, refreshToken: refresh);
 }
 
+/// The `access_token` cookie set by [response] alone (e.g. the reissued
+/// token of `POST /auth/sessions/revoke-others`), or null.
+String? extractAccessToken(Response<dynamic> response) {
+  for (final header in response.headers['set-cookie'] ?? const <String>[]) {
+    final pair = header.split(';').first;
+    final eq = pair.indexOf('=');
+    if (eq <= 0 || pair.substring(0, eq).trim() != 'access_token') continue;
+    final value = pair.substring(eq + 1).trim();
+    if (value.isNotEmpty) return value;
+  }
+  return null;
+}
+
 /// Expiry of a JWT access token, or null if it cannot be decoded.
 DateTime? jwtExpiry(String token) {
   final parts = token.split('.');
@@ -243,6 +256,26 @@ final class AuthSessionManager {
 
   /// Refresh token for the logout call, so the backend can revoke it.
   Future<String?> refreshToken() => _storage.getRefreshToken();
+
+  /// `Cookie` header identifying this device's session to endpoints that
+  /// tell sessions apart by the refresh-token cookie (`/auth/sessions*`,
+  /// logout). Empty when signed out.
+  Future<Map<String, String>> sessionCookieHeader() async {
+    final refresh = await _storage.getRefreshToken();
+    return refresh == null ? const {} : {'Cookie': 'refresh_token=$refresh'};
+  }
+
+  /// Stores a reissued access token next to the current refresh token
+  /// (`revoke-others` bumps the token version, invalidating the old one).
+  /// Ignored when signed out.
+  Future<void> replaceAccessToken(String accessToken) async {
+    final session = await _storage.getSession();
+    if (session == null) return;
+    await _storage.saveTokens(
+      accessToken: accessToken,
+      refreshToken: session.refreshToken,
+    );
+  }
 
   void _startNewGeneration() {
     _generation++;

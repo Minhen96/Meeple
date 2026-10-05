@@ -1130,3 +1130,60 @@ Code generation: `dart run build_runner build --delete-conflicting-outputs`
 (models/providers) and `flutter gen-l10n` (ARB → `lib/l10n/gen`). Strings live
 in `lib/l10n/app_en.arb` and `app_zh.arb` (Simplified Chinese, sent to the
 server as `zh-CN`).
+
+---
+
+## 18. API Contracts (as built)
+
+Every repository talks to the merged backend (WP1–WP5) directly; the
+temporary 404 fallbacks to legacy endpoints are gone. Errors surface as
+typed `ApiException`s and screens show their error/retry or empty states.
+`test/repository_contract_test.dart` pins each call's method, path, query and
+body.
+
+- **Envelope:** success bodies are `{data: T}` (unwrapped by
+  `ApiResponseUnwrapInterceptor`); `PageResponse` bodies stay `{data, meta}`.
+- **Paging:** `CursorPage.fromJson` reads both `{items, nextCursor, hasMore}`
+  and the offset `{data, meta}` shape. The first page sends
+  `limit`/`size`, a real cursor adds `cursor`, and an offset follow-up
+  (`page:N` cursor) sends only `page`/`size`, so endpoints serving both
+  shapes (comments, notifications) keep the shape of the first page.
+  Cursor endpoints: `/feed`, `/notifications`, `/posts/{id}/comments`,
+  `/posts?eventId=`, `/users/{id}/tagged-posts` (profile Tagged tab),
+  `/users/me/bookmarks`, `/games/{id}/sessions`. Offset: `/users/{id}/posts`,
+  `/friends`, `/friend-requests/received|sent`, `/users/search`,
+  `/users/suggestions`.
+- **Deleted users:** `UserSummary` parses `{id, deleted: true}` with null
+  names, the all-zero placeholder id of a hard-deleted account
+  (`00000000-0000-0000-0000-000000000000`), a missing `id`, or a null nested
+  user (post `author`, event `host`, feed activity `user`, game review/friend
+  `user`) as a deleted user, rendered as "Deleted User" without avatar or
+  profile link (notification paths skip deleted actors too). Comments accept
+  the flat `authorId/authorUsername/authorDisplayName/authorAvatarUrl` fields
+  and/or the nested `author`; `author.deleted`, a null or all-zero author id
+  marks the comment author deleted.
+  User lists accept an optional `friendshipStatus`
+  (`none|pending_sent|pending_received|friends`).
+- **Posts:** `PUT /posts/{id}` sends the full editable state; removing the
+  game sends `clearGame: true`. Edit windows: posts 48 h, comments 24 h
+  (403 `EDIT_WINDOW_EXPIRED`). A comment can be deleted by its author or the
+  post's author.
+- **Social:** cancel a sent request with `DELETE /users/{id}/friend-request`
+  (a 404 `REQUEST_NOT_FOUND` re-reads the friend status instead of failing);
+  blocked users from `GET /users/me/blocked`; reports `POST /reports
+  {targetType: user|post|comment, targetId, reason}`.
+- **Search:** `GET /search?q=&limit=&type=all|games|users|events`.
+- **Events:** `GET /events?scope=upcoming|past|mine&limit=`,
+  `GET /events/calendar?from=&to=` (≤ 62 days), RSVP status as a query
+  parameter.
+- **Library:** plays via `POST /users/me/games/{id}/plays`; BGG import
+  `POST /users/me/bgg-import` + `GET …/status` (409
+  `BGG_IMPORT_IN_PROGRESS` follows the running import).
+- **Account:** `GET /users/me` carries `hasPassword`/`googleLinked`; Google-only
+  accounts confirm deletion with `{confirm: "DELETE"}` and have no
+  change-email entry (it needs the current password). `/auth/sessions*`
+  identify this device by the refresh-token cookie, so the client sends
+  `Cookie: refresh_token=…` on them; `revoke-others` bumps the token version
+  and its reissued `access_token` cookie is stored. `ACCOUNT_DELETED` (403)
+  from password or Google sign-in opens reactivation, which accepts
+  `{emailOrUsername, password}` or `{googleIdToken}`.

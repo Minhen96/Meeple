@@ -292,7 +292,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   final _form = GlobalKey<FormState>();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  bool _passwordless = false;
+
+  /// Whether the account has a password, from `GET /users/me`; null when
+  /// unknown, in which case the user picks the confirmation method.
+  late final bool? _hasPassword =
+      ref.read(authNotifierProvider).valueOrNull?.hasPassword;
+  late bool _passwordless = _hasPassword == false;
   bool _deleting = false;
 
   @override
@@ -354,13 +359,14 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               ),
             ),
             AppSpacing.vGapLg,
-            SwitchListTile(
-              key: const Key('delete-passwordless'),
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.deletePasswordless),
-              value: _passwordless,
-              onChanged: (v) => setState(() => _passwordless = v),
-            ),
+            if (_hasPassword == null)
+              SwitchListTile(
+                key: const Key('delete-passwordless'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.deletePasswordless),
+                value: _passwordless,
+                onChanged: (v) => setState(() => _passwordless = v),
+              ),
             if (_passwordless)
               TextFormField(
                 key: const Key('delete-confirm'),

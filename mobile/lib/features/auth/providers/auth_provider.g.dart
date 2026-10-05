@@ -22,7 +22,7 @@ final logoutHooksProvider = Provider<LogoutHooks>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LogoutHooksRef = ProviderRef<LogoutHooks>;
-String _$authNotifierHash() => r'ce6512e98d3a888442c8e71da1a057ba62b6deed';
+String _$authNotifierHash() => r'621d86d8a23a9ad16ec776aa408cdd1c60ba71fc';
 
 /// See also [AuthNotifier].
 @ProviderFor(AuthNotifier)

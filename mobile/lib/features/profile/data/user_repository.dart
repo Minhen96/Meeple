@@ -13,7 +13,10 @@ part 'user_repository.g.dart';
 UserRepository userRepository(Ref ref) =>
     UserRepository(ref.read(dioProvider));
 
-/// Fields of `PUT /users/me` (only non-null ones are sent).
+/// Fields of `PUT /users/me` (`UpdateProfileRequest`; only non-null ones are
+/// sent). [username] can change once per 30 days (400
+/// `USERNAME_CHANGE_TOO_SOON`, 409 `USERNAME_TAKEN`); [preferredLanguage] is
+/// `en` | `zh-CN`; [timezone] an IANA zone (400 `INVALID_TIMEZONE`).
 final class ProfileUpdate {
   const ProfileUpdate({
     this.displayName,
@@ -73,13 +76,10 @@ final class UserRepository {
         return User.fromJson(res.data!);
       });
 
-  /// `GET /users/{id}/stats`; zeros while the endpoint is missing.
-  Future<UserStats> getStats(String userId) => guardApiOr(
-        () async {
-          final res = await _dio
-              .get<Map<String, dynamic>>('${ApiConstants.users}/$userId/stats');
-          return UserStats.fromJson(res.data ?? const {});
-        },
-        () async => const UserStats(),
-      );
+  /// `GET /users/{id}/stats` (`UserStatsResponse`).
+  Future<UserStats> getStats(String userId) => guardApi(() async {
+        final res = await _dio
+            .get<Map<String, dynamic>>('${ApiConstants.users}/$userId/stats');
+        return UserStats.fromJson(res.data ?? const {});
+      });
 }

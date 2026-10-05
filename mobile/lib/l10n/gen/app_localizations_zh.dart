@@ -1762,7 +1762,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileTabTagged => '被标记';
 
   @override
-  String get profileTaggedBody => '服务器支持后，这里将显示该玩家被标记的帖子。';
+  String get profileTaggedBody => '该玩家被标记的帖子会显示在这里。';
 
   @override
   String get profileTaggedTitle => '被标记的帖子';
@@ -1811,6 +1811,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reactivateTitle => '恢复你的账号？';
+
+  @override
+  String get reactivateWithGoogle => '使用 Google 恢复';
 
   @override
   String get reportComment => '举报评论';

@@ -53,13 +53,9 @@ final class MatchRepository {
       guardApi(() => _dio.delete<void>('$_matches/requests/$requestId'));
 
   /// `GET /matches/requests/mine` (alias of `/me`).
-  Future<List<MatchRequest>> getMyRequests() => guardApiOr(
+  Future<List<MatchRequest>> getMyRequests() => guardApi(
         () async => _list(
           (await _dio.get<Object?>('$_matches/requests/mine')).data,
-          MatchRequest.fromJson,
-        ),
-        () async => _list(
-          (await _dio.get<Object?>('$_matches/requests/me')).data,
           MatchRequest.fromJson,
         ),
       );

@@ -22,7 +22,8 @@ final class NotificationRepository {
   static const _base = ApiConstants.notifications;
 
   /// `GET /notifications?cursor=&limit=30` → `{items, nextCursor, hasMore}`
-  /// (legacy `page`/`size` responses are understood too).
+  /// (legacy `page`/`size` responses are understood too). Items are
+  /// `NotificationResponse`s whose `actor` is null-safe for deleted users.
   Future<CursorPage<AppNotification>> getNotifications({String? cursor}) =>
       guardApi(() async {
         final res = await _dio.get<Object?>(
@@ -47,27 +48,22 @@ final class NotificationRepository {
   Future<void> delete(String id) =>
       guardApi(() => _dio.delete<void>('$_base/$id'));
 
-  /// `GET /notifications/preferences`. Defaults (everything on) while the
-  /// endpoint is missing.
-  Future<List<NotificationPreference>> getPreferences() => guardApiOr(
-        () async {
-          final res = await _dio.get<Object?>('$_base/preferences');
-          final byType = {
-            for (final p in (res.data as List<dynamic>? ?? const [])
-                .whereType<Map<String, dynamic>>()
-                .map(NotificationPreference.fromJson))
-              p.type: p,
-          };
-          return [
-            for (final type in notificationTypes)
-              byType[type] ?? NotificationPreference(type: type),
-          ];
-        },
-        () async => [
+  /// `GET /notifications/preferences` → `[{type, inAppEnabled,
+  /// pushEnabled}]`, completed with defaults (everything on) for any type the
+  /// server did not list, in [notificationTypes] order.
+  Future<List<NotificationPreference>> getPreferences() => guardApi(() async {
+        final res = await _dio.get<Object?>('$_base/preferences');
+        final byType = {
+          for (final p in (res.data as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .map(NotificationPreference.fromJson))
+            p.type: p,
+        };
+        return [
           for (final type in notificationTypes)
-            NotificationPreference(type: type),
-        ],
-      );
+            byType[type] ?? NotificationPreference(type: type),
+        ];
+      });
 
   Future<void> savePreferences(List<NotificationPreference> prefs) => guardApi(
         () => _dio.put<void>(
@@ -76,13 +72,12 @@ final class NotificationRepository {
         ),
       );
 
-  Future<NotificationSettings> getSettings() => guardApiOr(
-        () async {
-          final res = await _dio.get<Map<String, dynamic>>('$_base/settings');
-          return NotificationSettings.fromJson(res.data ?? const {});
-        },
-        () async => const NotificationSettings(),
-      );
+  /// `GET /notifications/settings` → `{quietHoursEnabled, quietHoursStart,
+  /// quietHoursEnd, timezone}`.
+  Future<NotificationSettings> getSettings() => guardApi(() async {
+        final res = await _dio.get<Map<String, dynamic>>('$_base/settings');
+        return NotificationSettings.fromJson(res.data ?? const {});
+      });
 
   Future<void> saveSettings(NotificationSettings settings) => guardApi(
         () => _dio.put<void>('$_base/settings', data: settings.toJson()),

@@ -23,6 +23,8 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
           ? null
           : DateTime.parse(json['usernameChangeAvailableAt'] as String),
       bggUsername: json['bggUsername'] as String?,
+      hasPassword: json['hasPassword'] as bool?,
+      googleLinked: json['googleLinked'] as bool?,
       deleted: json['deleted'] as bool? ?? false,
       createdAt: json['createdAt'] == null
           ? null
@@ -46,6 +48,8 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'usernameChangeAvailableAt':
           instance.usernameChangeAvailableAt?.toIso8601String(),
       'bggUsername': instance.bggUsername,
+      'hasPassword': instance.hasPassword,
+      'googleLinked': instance.googleLinked,
       'deleted': instance.deleted,
       'createdAt': instance.createdAt?.toIso8601String(),
     };

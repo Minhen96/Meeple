@@ -79,6 +79,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.code == 'ACCOUNT_DELETED') {
+        await context.push(AppRoutes.reactivate);
+      } else {
+        showErrorToast(context, e);
+      }
     } catch (e) {
       if (mounted) showErrorToast(context, e);
     } finally {

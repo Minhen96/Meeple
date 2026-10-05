@@ -32,6 +32,10 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final language = ref.watch(appLocaleProvider);
     final biometric = ref.watch(biometricLockProvider).valueOrNull ?? false;
+    // Changing the email needs the current password, which Google-only
+    // accounts do not have.
+    final hasPassword =
+        ref.watch(authNotifierProvider).valueOrNull?.hasPassword ?? true;
     return Scaffold(
       appBar: MeepleAppBar(
         title: l10n.settingsTitle,
@@ -44,8 +48,9 @@ class SettingsScreen extends ConsumerWidget {
           _Section(l10n.settingsAccount),
           _Item(Icons.person_outline_rounded, l10n.settingsEditProfile,
               route: AppRoutes.editProfile),
-          _Item(Icons.alternate_email_rounded, l10n.settingsChangeEmail,
-              route: AppRoutes.changeEmail),
+          if (hasPassword)
+            _Item(Icons.alternate_email_rounded, l10n.settingsChangeEmail,
+                route: AppRoutes.changeEmail),
           _Item(Icons.password_rounded, l10n.settingsChangePassword,
               route: AppRoutes.changePassword),
           _Item(Icons.cloud_download_outlined, l10n.settingsBggImport,

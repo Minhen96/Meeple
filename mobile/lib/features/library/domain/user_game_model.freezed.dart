@@ -594,6 +594,7 @@ FriendGameEntry _$FriendGameEntryFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$FriendGameEntry {
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get user => throw _privateConstructorUsedError;
   int get playCount => throw _privateConstructorUsedError;
   double? get personalRating => throw _privateConstructorUsedError;
@@ -616,7 +617,10 @@ abstract class $FriendGameEntryCopyWith<$Res> {
       _$FriendGameEntryCopyWithImpl<$Res, FriendGameEntry>;
   @useResult
   $Res call(
-      {UserSummary user, int playCount, double? personalRating, bool isOwned});
+      {@JsonKey(readValue: readUserOrDeleted) UserSummary user,
+      int playCount,
+      double? personalRating,
+      bool isOwned});
 
   $UserSummaryCopyWith<$Res> get user;
 }
@@ -681,7 +685,10 @@ abstract class _$$FriendGameEntryImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {UserSummary user, int playCount, double? personalRating, bool isOwned});
+      {@JsonKey(readValue: readUserOrDeleted) UserSummary user,
+      int playCount,
+      double? personalRating,
+      bool isOwned});
 
   @override
   $UserSummaryCopyWith<$Res> get user;
@@ -730,7 +737,7 @@ class __$$FriendGameEntryImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$FriendGameEntryImpl implements _FriendGameEntry {
   const _$FriendGameEntryImpl(
-      {required this.user,
+      {@JsonKey(readValue: readUserOrDeleted) required this.user,
       this.playCount = 0,
       this.personalRating,
       this.isOwned = false});
@@ -739,6 +746,7 @@ class _$FriendGameEntryImpl implements _FriendGameEntry {
       _$$FriendGameEntryImplFromJson(json);
 
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   final UserSummary user;
   @override
   @JsonKey()
@@ -791,7 +799,7 @@ class _$FriendGameEntryImpl implements _FriendGameEntry {
 
 abstract class _FriendGameEntry implements FriendGameEntry {
   const factory _FriendGameEntry(
-      {required final UserSummary user,
+      {@JsonKey(readValue: readUserOrDeleted) required final UserSummary user,
       final int playCount,
       final double? personalRating,
       final bool isOwned}) = _$FriendGameEntryImpl;
@@ -800,6 +808,7 @@ abstract class _FriendGameEntry implements FriendGameEntry {
       _$FriendGameEntryImpl.fromJson;
 
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get user;
   @override
   int get playCount;
@@ -822,6 +831,7 @@ GameReview _$GameReviewFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$GameReview {
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get user => throw _privateConstructorUsedError;
   double? get personalRating => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
@@ -844,7 +854,10 @@ abstract class $GameReviewCopyWith<$Res> {
       _$GameReviewCopyWithImpl<$Res, GameReview>;
   @useResult
   $Res call(
-      {UserSummary user, double? personalRating, String? notes, int playCount});
+      {@JsonKey(readValue: readUserOrDeleted) UserSummary user,
+      double? personalRating,
+      String? notes,
+      int playCount});
 
   $UserSummaryCopyWith<$Res> get user;
 }
@@ -909,7 +922,10 @@ abstract class _$$GameReviewImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {UserSummary user, double? personalRating, String? notes, int playCount});
+      {@JsonKey(readValue: readUserOrDeleted) UserSummary user,
+      double? personalRating,
+      String? notes,
+      int playCount});
 
   @override
   $UserSummaryCopyWith<$Res> get user;
@@ -958,7 +974,7 @@ class __$$GameReviewImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$GameReviewImpl implements _GameReview {
   const _$GameReviewImpl(
-      {required this.user,
+      {@JsonKey(readValue: readUserOrDeleted) required this.user,
       this.personalRating,
       this.notes,
       this.playCount = 0});
@@ -967,6 +983,7 @@ class _$GameReviewImpl implements _GameReview {
       _$$GameReviewImplFromJson(json);
 
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   final UserSummary user;
   @override
   final double? personalRating;
@@ -1017,7 +1034,7 @@ class _$GameReviewImpl implements _GameReview {
 
 abstract class _GameReview implements GameReview {
   const factory _GameReview(
-      {required final UserSummary user,
+      {@JsonKey(readValue: readUserOrDeleted) required final UserSummary user,
       final double? personalRating,
       final String? notes,
       final int playCount}) = _$GameReviewImpl;
@@ -1026,6 +1043,7 @@ abstract class _GameReview implements GameReview {
       _$GameReviewImpl.fromJson;
 
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get user;
   @override
   double? get personalRating;

@@ -71,7 +71,6 @@ abstract final class ApiConstants {
 
   // ── Events / Matching ─────────────────────────────────────────────────────
   static const String events = '$v1/events';
-  static const String myEvents = '$v1/events/me';
   static const String matches = '$v1/matches';
 
   // ── Notifications ─────────────────────────────────────────────────────────

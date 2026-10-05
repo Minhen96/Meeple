@@ -225,6 +225,30 @@ class UserPosts extends _$UserPosts {
       );
 }
 
+/// Paged posts a user is tagged in (profile Tagged tab).
+@riverpod
+class TaggedPosts extends _$TaggedPosts {
+  @override
+  Future<PagedState<Post>> build(String userId) async {
+    listenToPostChanges(ref, (change) {
+      final current = state.valueOrNull;
+      if (current != null) state = AsyncValue.data(applyPostChange(current, change));
+    });
+    return PagedState.fromPage(
+      await ref.read(postRepositoryProvider).getTaggedPosts(userId),
+    );
+  }
+
+  Future<void> loadMore() => loadNextPage<Post>(
+        current: state.valueOrNull,
+        read: () => state.valueOrNull,
+        emit: (s) => state = AsyncValue.data(s),
+        fetch: (cursor) => ref
+            .read(postRepositoryProvider)
+            .getTaggedPosts(userId, cursor: cursor),
+      );
+}
+
 /// The viewer's saved posts.
 @riverpod
 class Bookmarks extends _$Bookmarks {

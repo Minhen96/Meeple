@@ -37,16 +37,10 @@ final class SocialRepository {
         return FriendRequest.fromJson(res.data!);
       });
 
-  /// Cancels a request the viewer sent: `DELETE /users/{id}/friend-request`,
-  /// or `DELETE /friend-requests/{requestId}` on backends without it.
-  Future<void> cancelFriendRequest(String userId, {String? requestId}) =>
-      guardApiOr(
-        () => _dio.delete<void>('$_users/$userId/friend-request'),
-        () async {
-          if (requestId == null) throw const NotFoundException();
-          await _dio.delete<void>('$_requests/$requestId');
-        },
-      );
+  /// `DELETE /users/{id}/friend-request` — withdraws the pending request the
+  /// viewer sent to [userId]. 404 `REQUEST_NOT_FOUND` when none is pending.
+  Future<void> cancelFriendRequest(String userId) =>
+      guardApi(() => _dio.delete<void>('$_users/$userId/friend-request'));
 
   Future<void> acceptRequest(String requestId) =>
       guardApi(() => _dio.post<void>('$_requests/$requestId/accept'));
@@ -73,16 +67,15 @@ final class SocialRepository {
   Future<void> unblock(String userId) =>
       guardApi(() => _dio.delete<void>('$_users/$userId/block'));
 
-  /// `GET /users/me/blocked`.
-  Future<List<UserSummary>> getBlocked() => guardApiOr(
-        () async {
-          final res = await _dio.get<Object?>('${ApiConstants.me}/blocked');
-          return CursorPage.fromJson(res.data, UserSummary.fromJson).items;
-        },
-        () async => const <UserSummary>[],
-      );
+  /// `GET /users/me/blocked` → `UserSummary[]`, most recent first.
+  Future<List<UserSummary>> getBlocked() => guardApi(() async {
+        final res = await _dio.get<Object?>('${ApiConstants.me}/blocked');
+        return CursorPage.fromJson(res.data, UserSummary.fromJson).items;
+      });
 
-  /// `POST /reports {targetType, targetId, reason}` → 201.
+  /// `POST /reports {targetType: user|post|comment, targetId, reason}` → 201
+  /// (also when already reported). 429 `REPORT_LIMIT_EXCEEDED` after 5 a day,
+  /// 404 `REPORT_TARGET_NOT_FOUND`, 400 `INVALID_TARGET` for oneself.
   Future<void> report({
     required String targetType,
     required String targetId,
@@ -99,18 +92,25 @@ final class SocialRepository {
         ),
       );
 
-  /// `GET /users/search?q=` (`UserSummaryWithStatus` items).
+  /// `GET /users/search?q=&size=` — a `PageResponse` of users; items carry
+  /// `friendshipStatus` on backends that send `UserSummaryWithStatus`
+  /// (absent → [FriendshipStatus.none]).
   Future<List<UserSummary>> searchUsers(String query) => guardApi(() async {
         final res = await _dio.get<Object?>(
           '$_users/search',
-          queryParameters: {'q': query, 'size': 20, 'limit': 20},
+          queryParameters: {'q': query, 'size': 20},
         );
         return CursorPage.fromJson(res.data, UserSummary.fromJson).items;
       });
 
-  /// `GET /users/suggestions`.
-  Future<List<UserSummary>> getSuggestions() => guardApi(() async {
-        final res = await _dio.get<Object?>('$_users/suggestions');
+  /// `GET /users/suggestions?size=` — people you may know (a `PageResponse`
+  /// or a plain list; items may carry `friendshipStatus`).
+  Future<List<UserSummary>> getSuggestions({int size = 10}) =>
+      guardApi(() async {
+        final res = await _dio.get<Object?>(
+          '$_users/suggestions',
+          queryParameters: {'size': size},
+        );
         return CursorPage.fromJson(res.data, UserSummary.fromJson).items;
       });
 

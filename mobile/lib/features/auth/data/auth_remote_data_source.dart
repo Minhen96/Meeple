@@ -80,6 +80,11 @@ final class AuthRemoteDataSource {
         {'emailOrUsername': emailOrUsername, 'password': password},
       );
 
+  /// `POST /auth/reactivate {googleIdToken}` — the same for accounts that
+  /// sign in with Google (a fresh ID token proves ownership).
+  Future<AuthResult> reactivateWithGoogle({required String idToken}) =>
+      _signIn(ApiConstants.reactivate, {'googleIdToken': idToken});
+
   Future<void> resendVerification({required String email}) async {
     try {
       await _dio.post<dynamic>(
