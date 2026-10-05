@@ -32,20 +32,31 @@ class NotificationIntegrationTest extends AuthWebIntegrationTest {
         notificationService.send(friend.getId(), NotificationType.FRIEND_ACCEPTED, me.getId(), me.getId(), "USER");
         entityManager.flush();
 
-        JsonNode page = body(mockMvc.perform(get("/api/v1/notifications").cookie(accessCookie(me)))
+        // Cursor shape (default)
+        JsonNode cursorPage = body(mockMvc.perform(get("/api/v1/notifications").cookie(accessCookie(me)))
                 .andExpect(status().isOk())
-                .andReturn());
-
-        assertThat(page.at("/meta/total").asLong()).isEqualTo(2);
-        assertThat(page.at("/meta/page").asInt()).isEqualTo(1);
-        JsonNode newest = page.at("/data/0");
+                .andReturn()).get("data");
+        assertThat(cursorPage.get("items")).hasSize(2);
+        assertThat(cursorPage.get("hasMore").asBoolean()).isFalse();
+        JsonNode newest = cursorPage.at("/items/0");
         assertThat(newest.get("type").asText()).isEqualTo("POST_LIKE");
-        assertThat(newest.get("actorId").asText()).isEqualTo(friend.getId().toString());
+        assertThat(newest.at("/actor/id").asText()).isEqualTo(friend.getId().toString());
         assertThat(newest.get("referenceId").asText()).isEqualTo(postId.toString());
         assertThat(newest.get("referenceType").asText()).isEqualTo("POST");
+        assertThat(newest.get("title").asText()).isEqualTo("New Like");
+        assertThat(newest.at("/data/path").asText()).isEqualTo("/posts/" + postId);
         assertThat(newest.get("read").asBoolean()).isFalse();
         assertThat(newest.get("createdAt").isNull()).isFalse();
-        assertThat(page.at("/data/1/type").asText()).isEqualTo("FRIEND_REQUEST");
+        assertThat(cursorPage.at("/items/1/type").asText()).isEqualTo("FRIEND_REQUEST");
+
+        // Legacy page/size parameters keep the {data, meta} shape
+        JsonNode page = body(mockMvc.perform(get("/api/v1/notifications").cookie(accessCookie(me))
+                        .param("page", "0"))
+                .andExpect(status().isOk())
+                .andReturn());
+        assertThat(page.at("/meta/total").asLong()).isEqualTo(2);
+        assertThat(page.at("/meta/page").asInt()).isEqualTo(1);
+        assertThat(page.at("/data/0/type").asText()).isEqualTo("POST_LIKE");
 
         JsonNode paged = body(mockMvc.perform(get("/api/v1/notifications").cookie(accessCookie(me))
                         .param("page", "1").param("size", "1"))
@@ -76,8 +87,8 @@ class NotificationIntegrationTest extends AuthWebIntegrationTest {
         mockMvc.perform(get("/api/v1/notifications/unread-count").cookie(accessCookie(me)))
                 .andExpect(jsonPath("$.data.count").value(0));
         mockMvc.perform(get("/api/v1/notifications").cookie(accessCookie(me)))
-                .andExpect(jsonPath("$.data[0].read").value(true))
-                .andExpect(jsonPath("$.data[1].read").value(true));
+                .andExpect(jsonPath("$.data.items[0].read").value(true))
+                .andExpect(jsonPath("$.data.items[1].read").value(true));
         mockMvc.perform(get("/api/v1/notifications/unread-count").cookie(accessCookie(other)))
                 .andExpect(jsonPath("$.data.count").value(1));
     }
