@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { api } from "$lib/api/client";
 	import { fade, fly } from "svelte/transition";
+	import Spinner from "$lib/components/ui/Spinner.svelte";
 
 	let healthData: any = $state(null);
 	let uptimeData: any = $state(null);
@@ -62,7 +63,7 @@
 
 {#if loading && !healthData}
 	<div class="flex flex-col items-center justify-center py-20 gap-4" in:fade>
-		<div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+		<Spinner className="w-12 h-12 text-primary" />
 		<p class="text-on-surface-variant font-medium animate-pulse">Monitoring vital signs...</p>
 	</div>
 {:else if error && !healthData}
@@ -82,7 +83,7 @@
 {:else}
 	<div class="space-y-6" in:fade>
 		<!-- Status Card -->
-		<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-outline-variant/30 relative overflow-hidden">
+		<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] relative overflow-hidden">
 			<div class="flex items-start justify-between relative z-10">
 				<div>
 					<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Service Status</p>
@@ -114,7 +115,7 @@
 
 		<!-- Components Grid -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			<div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 flex items-center gap-4 group hover:border-primary/50 transition-colors">
+			<div class="bg-surface-container-lowest p-5 rounded-2xl flex items-center gap-4 group hover:bg-surface-container-low transition-colors">
 				<div class="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
 					<span class="material-symbols-outlined">database</span>
 				</div>
@@ -127,7 +128,7 @@
 				</div>
 			</div>
 
-			<div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 flex items-center gap-4 group hover:border-primary/50 transition-colors">
+			<div class="bg-surface-container-lowest p-5 rounded-2xl flex items-center gap-4 group hover:bg-surface-container-low transition-colors">
 				<div class="w-12 h-12 rounded-xl bg-tertiary/10 text-tertiary flex items-center justify-center group-hover:scale-110 transition-transform">
 					<span class="material-symbols-outlined">storage</span>
 				</div>

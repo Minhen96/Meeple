@@ -254,7 +254,7 @@
 <div class="py-4 space-y-8 pb-12">
 	<!-- Hero Header -->
 	<div
-		class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-secondary/5 border border-outline-variant/10 p-6"
+		class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-secondary/5 p-6"
 	>
 		<div class="relative z-10 flex items-start justify-between">
 			<div class="space-y-1">
@@ -315,7 +315,7 @@
 		</div>
 	{:else if rulebookState === "no_rulebook" && howToPlayState === "idle"}
 		<div
-			class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4"
+			class="rounded-3xl bg-surface-container-low p-8 flex flex-col items-center text-center gap-4"
 		>
 			<div
 				class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary/60"
@@ -363,7 +363,7 @@
 		</div>
 	{:else if rulebookState === "generating"}
 		<div
-			class="rounded-3xl border border-primary/20 bg-primary/5 p-8 flex flex-col items-center text-center gap-4"
+			class="rounded-3xl bg-primary/10 p-8 flex flex-col items-center text-center gap-4"
 		>
 			<div
 				class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"
@@ -384,7 +384,7 @@
 		</div>
 	{:else if rulebookState === "pending_review"}
 		<div
-			class="rounded-3xl border border-secondary/20 bg-secondary/5 p-8 flex flex-col items-center text-center gap-4"
+			class="rounded-3xl bg-secondary/10 p-8 flex flex-col items-center text-center gap-4"
 		>
 			<div
 				class="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary"
@@ -409,7 +409,7 @@
 		{#if howToPlayState === "idle"}
 			<!-- Rulebook exists but guide not yet requested -->
 			<div
-				class="rounded-3xl border border-outline-variant/10 bg-surface-container-low/30 p-8 flex flex-col items-center text-center gap-4"
+				class="rounded-3xl bg-surface-container-low p-8 flex flex-col items-center text-center gap-4"
 			>
 				<div
 					class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary/60"
@@ -460,7 +460,7 @@
 			</div>
 		{:else if howToPlayState === "generating"}
 			<div
-				class="rounded-3xl border border-tertiary/20 bg-tertiary/5 p-8 flex flex-col items-center text-center gap-5"
+				class="rounded-3xl bg-tertiary/10 p-8 flex flex-col items-center text-center gap-5"
 			>
 				<div
 					class="w-16 h-16 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary"
@@ -768,7 +768,7 @@
 					</div>
 					<div class="pl-12 space-y-1">
 						{#each howToPlayData.scoring.methods as method}
-							<div class="flex justify-between items-center text-sm py-1.5 border-b border-outline-variant/10 last:border-none">
+							<div class="flex justify-between items-center text-sm py-1.5 px-2 rounded-lg even:bg-surface-container-low">
 								<span class="text-on-surface">{method.item}</span>
 								<span class="font-bold text-primary text-xs">{method.points}</span>
 							</div>
@@ -833,7 +833,7 @@
 					</div>
 					<div class="space-y-2">
 						{#each howToPlayData.faq as item, i}
-							<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/30 overflow-hidden">
+							<div class="rounded-2xl bg-surface-container-low overflow-hidden">
 								<button
 									onclick={() => toggleFaq(i)}
 									class="w-full flex items-center justify-between gap-3 p-4 text-left"
@@ -874,7 +874,7 @@
 					</div>
 					<div class="space-y-3 pl-12">
 						{#each approvedNotes as note}
-							<div class="rounded-xl bg-surface-container-low/40 border border-outline-variant/10 p-3 space-y-1.5">
+							<div class="rounded-xl bg-surface-container-low p-3 space-y-1.5">
 								<p class="text-sm text-on-surface leading-relaxed whitespace-pre-line">{note.content}</p>
 								<p class="text-[10px] text-on-surface-variant">by @{note.submittedByUsername}</p>
 							</div>
@@ -885,7 +885,7 @@
 
 			<!-- Add Rule Note (logged-in users) -->
 			{#if $currentUser}
-				<div class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-4 space-y-3">
+				<div class="rounded-2xl bg-surface-container-low p-4 space-y-3">
 					<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Your Rule Note</p>
 
 					{#if myNote && !showNoteEditor}
@@ -963,7 +963,7 @@
 			{/if}
 		{:else if howToPlayState === "error"}
 			<div
-				class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-5 text-center"
+				class="rounded-2xl bg-surface-container-low p-5 text-center"
 			>
 				<p class="text-sm text-on-surface-variant">
 					Could not load guide. Use the AI Assistant below for help.
@@ -980,7 +980,7 @@
 	<!-- Admin upload (always visible to admins) -->
 	{#if isAdmin}
 		<div
-			class="rounded-2xl border border-outline-variant/10 bg-surface-container-low/20 p-4"
+			class="rounded-2xl bg-surface-container-low p-4"
 		>
 			<p
 				class="text-[10px] font-bold uppercase tracking-widest text-primary mb-3"
@@ -1018,7 +1018,7 @@
 	<!-- AI Assistant CTA -->
 	<!-- <button
 		onclick={onOpenAssistant}
-		class="w-full bg-tertiary-container/30 rounded-3xl p-6 border border-tertiary/10 flex flex-col items-center text-center gap-3 mt-4 hover:bg-tertiary-container/40 transition-colors"
+		class="w-full bg-tertiary-container/30 rounded-3xl p-6 flex flex-col items-center text-center gap-3 mt-4 hover:bg-tertiary-container/40 transition-colors"
 	>
 		<div class="w-12 h-12 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary">
 			<span class="material-symbols-outlined">smart_toy</span>

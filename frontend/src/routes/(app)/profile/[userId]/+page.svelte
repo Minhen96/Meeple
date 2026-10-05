@@ -117,8 +117,8 @@
 <div class="grid grid-cols-4 gap-3 mb-8">
 	<button 
 		onclick={() => currentView = currentView === 'owned' ? 'activity' : 'owned'}
-		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border
-			{currentView === 'owned' ? 'bg-primary/10 border-primary shadow-sm' : 'bg-surface-container-low border-transparent active:scale-95'}"
+		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all
+			{currentView === 'owned' ? 'bg-primary/10 ring-2 ring-primary shadow-sm' : 'bg-surface-container-low active:scale-95'}"
 	>
 		<span class="material-symbols-outlined text-2xl {currentView === 'owned' ? 'text-primary' : 'text-on-surface-variant'}">inventory_2</span>
 		<div class="text-center">
@@ -129,8 +129,8 @@
 
 	<button 
 		onclick={() => currentView = currentView === 'favorites' ? 'activity' : 'favorites'}
-		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border
-			{currentView === 'favorites' ? 'bg-secondary/10 border-secondary shadow-sm' : 'bg-surface-container-low border-transparent active:scale-95'}"
+		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all
+			{currentView === 'favorites' ? 'bg-secondary/10 ring-2 ring-secondary shadow-sm' : 'bg-surface-container-low active:scale-95'}"
 	>
 		<span class="material-symbols-outlined text-2xl {currentView === 'favorites' ? 'text-secondary' : 'text-on-surface-variant'}">favorite</span>
 		<div class="text-center">
@@ -141,8 +141,8 @@
 
 	<button 
 		onclick={() => currentView = currentView === 'played' ? 'activity' : 'played'}
-		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border
-			{currentView === 'played' ? 'bg-tertiary/10 border-tertiary shadow-sm' : 'bg-surface-container-low border-transparent active:scale-95'}"
+		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all
+			{currentView === 'played' ? 'bg-tertiary/10 ring-2 ring-tertiary shadow-sm' : 'bg-surface-container-low active:scale-95'}"
 	>
 		<span class="material-symbols-outlined text-2xl {currentView === 'played' ? 'text-tertiary' : 'text-on-surface-variant'}">history_edu</span>
 		<div class="text-center">
@@ -153,8 +153,8 @@
 
 	<button 
 		onclick={() => currentView = currentView === 'friends' ? 'activity' : 'friends'}
-		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border
-			{currentView === 'friends' ? 'bg-outline/10 border-outline shadow-sm' : 'bg-surface-container-low border-transparent active:scale-95'}"
+		class="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all
+			{currentView === 'friends' ? 'bg-outline/10 ring-2 ring-outline shadow-sm' : 'bg-surface-container-low active:scale-95'}"
 	>
 		<span class="material-symbols-outlined text-2xl {currentView === 'friends' ? 'text-outline-variant' : 'text-on-surface-variant'}">group</span>
 		<div class="text-center">

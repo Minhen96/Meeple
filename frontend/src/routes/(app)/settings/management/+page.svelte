@@ -80,7 +80,7 @@
 	</div>
 
 	<!-- Description -->
-	<div class="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex gap-3 items-start">
+	<div class="bg-primary/10 rounded-2xl p-4 flex gap-3 items-start">
 		<span class="material-symbols-outlined text-primary text-[20px]">info</span>
 		<p class="text-xs text-on-surface-variant leading-relaxed">
 			Select a trusted friend to grant them administrative privileges. They will be able to review rulebooks, manage system settings, and moderate content.
@@ -94,7 +94,7 @@
 			type="text" 
 			placeholder="Search friends..."
 			bind:value={searchQuery}
-			class="w-full h-11 bg-surface-container-lowest border border-outline-variant/10 rounded-xl pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
+			class="w-full h-11 bg-surface-container-high rounded-xl pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
 		/>
 	</div>
 
@@ -114,7 +114,7 @@
 				</div>
 			{/each}
 		{:else if filteredFriends.length === 0}
-			<div class="text-center py-20 bg-surface-container-lowest rounded-3xl border border-outline-variant/10 border-dashed" in:fade>
+			<div class="text-center py-20 bg-surface-container-lowest rounded-3xl" in:fade>
 				<span class="material-symbols-outlined text-4xl text-on-surface-variant/20 block mb-3">person_search</span>
 				<p class="text-sm font-bold text-on-surface-variant">No friends found</p>
 				<p class="text-[10px] text-on-surface-variant opacity-60 mt-1">Try a different search or add more friends.</p>
@@ -122,7 +122,7 @@
 		{:else}
 			{#each filteredFriends as friend (friend.id)}
 				<div 
-					class="flex items-center justify-between p-3 bg-surface-container-lowest border border-outline-variant/10 rounded-2xl group hover:shadow-md transition-shadow"
+					class="flex items-center justify-between p-3 bg-surface-container-lowest rounded-2xl group hover:shadow-md transition-shadow"
 					in:fly={{ y: 10 }}
 				>
 					<div class="flex items-center gap-3">

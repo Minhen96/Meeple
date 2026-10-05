@@ -89,7 +89,7 @@
 	</div>
 
 	<!-- Post Content Card -->
-	<div class="bg-surface-container-low rounded-[32px] overflow-hidden shadow-sm border border-surface-variant/10 mb-6">
+	<div class="bg-surface-container-low rounded-[32px] overflow-hidden shadow-sm mb-6">
 		<!-- Images Carousel -->
 		{#if post.imageUrls.length > 0}
 			<div class="relative group">
@@ -123,7 +123,7 @@
 				</p>
 			{/if}
 
-			<div class="flex items-center justify-between pt-4 border-t border-surface-variant/20">
+			<div class="flex items-center justify-between pt-4">
 				<div class="flex items-center gap-6">
 					<button
 						onclick={toggleLike}
@@ -178,7 +178,7 @@
 
 <!-- Sticky Comment Input -->
 <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface via-surface to-surface/0 pt-8 z-20">
-	<form onsubmit={submitComment} class="max-w-2xl mx-auto flex gap-3 items-center bg-surface-container-highest rounded-full p-1.5 shadow-lg border border-surface-variant/20">
+	<form onsubmit={submitComment} class="max-w-2xl mx-auto flex gap-3 items-center bg-surface-container-highest rounded-full p-1.5 shadow-lg focus-within:ring-2 focus-within:ring-primary/40 transition-shadow">
 		<input
 			type="text"
 			placeholder="Add a comment…"

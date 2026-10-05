@@ -103,7 +103,7 @@
 		<div class="absolute top-4 left-4 z-20">
 			<button
 				onclick={() => history.back()}
-				class="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-90 shadow-lg"
+				class="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-90 shadow-lg"
 				aria-label="Back"
 			>
 				<span class="material-symbols-outlined text-[24px]">arrow_back</span>
@@ -135,7 +135,7 @@
 		
 		<!-- Quick Meta Bento -->
 		<div class="grid grid-cols-2 gap-3">
-			<div class="bg-surface-container-low rounded-3xl p-5 border border-outline-variant/10 flex flex-col gap-3">
+			<div class="bg-surface-container-low rounded-3xl p-5 flex flex-col gap-3">
 				<div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
 					<span class="material-symbols-outlined text-[22px]">calendar_today</span>
 				</div>
@@ -144,7 +144,7 @@
 					<p class="text-sm font-bold font-headline leading-tight">{dt.full}</p>
 				</div>
 			</div>
-			<div class="bg-surface-container-low rounded-3xl p-5 border border-outline-variant/10 flex flex-col gap-3">
+			<div class="bg-surface-container-low rounded-3xl p-5 flex flex-col gap-3">
 				<div class="w-10 h-10 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
 					<span class="material-symbols-outlined text-[22px]">location_on</span>
 				</div>
@@ -158,14 +158,14 @@
 		<!-- Game & Description -->
 		<div class="space-y-4">
 			{#if event.game}
-				<div class="group flex items-center gap-4 bg-on-surface/5 rounded-[2rem] p-4 border border-outline-variant/10 transition-all hover:bg-on-surface/[0.08]">
+				<div class="group flex items-center gap-4 bg-on-surface/5 rounded-[2rem] p-4 transition-all hover:bg-on-surface/[0.08]">
 					<div class="relative w-16 h-16 flex-shrink-0">
 						<img 
 							src={event.game.thumbnailUrl || '/game-placeholder.png'} 
 							alt={event.game.title} 
 							class="w-full h-full object-cover rounded-2xl shadow-md group-hover:scale-105 transition-transform"
 						/>
-						<div class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white border-2 border-surface shadow-sm">
+						<div class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white ring-2 ring-surface shadow-sm">
 							<span class="material-symbols-outlined text-[14px]">casino</span>
 						</div>
 					</div>
@@ -201,13 +201,13 @@
 				</div>
 			</div>
 
-			<div class="bg-surface-container-low rounded-3xl p-5 border border-outline-variant/10">
+			<div class="bg-surface-container-low rounded-3xl p-5">
 				<!-- Host -->
-				<div class="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant/10">
+				<div class="flex items-center justify-between mb-6 p-4 rounded-2xl bg-surface-container-lowest">
 					<div class="flex items-center gap-3">
 						<div class="relative">
 							<Avatar src={event.host.avatarUrl} name={event.host.displayName ?? event.host.username} size="sm" className="ring-2 ring-primary/20" />
-							<div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white border-2 border-surface shadow-sm">
+							<div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white ring-2 ring-surface shadow-sm">
 								<span class="material-symbols-outlined text-[12px]">crown</span>
 							</div>
 						</div>
@@ -241,7 +241,7 @@
 		{#if isHost}
 			<div class="flex gap-2">
 				<a href="/events/{event.id}/edit" class="flex-1">
-					<Button variant="secondary" fullWidth className="rounded-2xl border-outline-variant/30">Edit Details</Button>
+					<Button variant="secondary" fullWidth className="rounded-2xl">Edit Details</Button>
 				</a>
 				<button
 					onclick={() => (showDeleteConfirm = true)}

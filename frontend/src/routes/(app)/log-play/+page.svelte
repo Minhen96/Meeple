@@ -89,7 +89,7 @@
 
 	<!-- Results dropdown -->
 	{#if results.length > 0}
-		<div class="absolute top-full left-0 right-0 mt-2 z-50 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 overflow-hidden">
+		<div class="absolute top-full left-0 right-0 mt-2 z-50 bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden">
 			{#each results as game (game.bggId)}
 				<button
 					onclick={() => pick(game)}

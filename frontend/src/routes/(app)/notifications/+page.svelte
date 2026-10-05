@@ -50,18 +50,18 @@
 		}
 	}
 
-	function notifBorderColor(type: string): string {
+	function notifIconBg(type: string): string {
 		switch (type) {
 			case 'FRIEND_REQUEST':
-			case 'FRIEND_ACCEPTED': return 'border-l-primary';
-			case 'POST_LIKE':       return 'border-l-error';
-			case 'POST_COMMENT':    return 'border-l-secondary';
+			case 'FRIEND_ACCEPTED': return 'bg-primary/10';
+			case 'POST_LIKE':       return 'bg-error/10';
+			case 'POST_COMMENT':    return 'bg-secondary/10';
 			case 'EVENT_INVITE':
-			case 'EVENT_RSVP':      return 'border-l-primary-container';
-			case 'MATCH_FOUND':          return 'border-l-tertiary';
-			case 'RULE_NOTE_APPROVED':   return 'border-l-primary';
-			case 'RULE_NOTE_REJECTED':   return 'border-l-error';
-			default:                     return 'border-l-outline-variant';
+			case 'EVENT_RSVP':      return 'bg-primary-container/20';
+			case 'MATCH_FOUND':          return 'bg-tertiary/10';
+			case 'RULE_NOTE_APPROVED':   return 'bg-primary/10';
+			case 'RULE_NOTE_REJECTED':   return 'bg-error/10';
+			default:                     return 'bg-surface-container';
 		}
 	}
 
@@ -128,12 +128,11 @@
 		{#each $notifications as notification (notification.id)}
 			<a
 				href={notifHref(notification)}
-				class="flex items-start gap-3 p-4 rounded-xl border-l-4 transition-colors
-					{notification.read ? 'bg-surface' : 'bg-surface-container-low'}
-					{notifBorderColor(notification.type)}"
+				class="flex items-start gap-3 p-4 rounded-xl transition-colors
+					{notification.read ? 'bg-surface' : 'bg-surface-container-low'}"
 			>
 				<!-- Icon -->
-				<div class="flex-shrink-0 w-9 h-9 rounded-full bg-surface-container flex items-center justify-center">
+				<div class="flex-shrink-0 w-9 h-9 rounded-full {notifIconBg(notification.type)} flex items-center justify-center">
 					<span
 						class="material-symbols-outlined text-[18px] {notifIconColor(notification.type)}"
 						style={notification.type === 'POST_LIKE' ? "font-variation-settings: 'FILL' 1;" : ''}

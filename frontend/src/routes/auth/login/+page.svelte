@@ -69,7 +69,7 @@
 
 		<!-- Floating Die -->
 		<div
-			class="absolute bottom-[20%] right-[15%] w-20 h-20 bg-primary/10 backdrop-blur-2xl rounded-2xl border border-primary/20 shadow-xl transform -rotate-12 animate-float-slow hidden md:flex items-center justify-center"
+			class="absolute bottom-[20%] right-[15%] w-20 h-20 bg-primary/10 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-xl transform -rotate-12 animate-float-slow hidden md:flex items-center justify-center"
 		>
 			<div class="grid grid-cols-2 gap-2 p-4 opacity-40">
 				<div class="w-2 h-2 rounded-full bg-primary"></div>
@@ -103,7 +103,7 @@
 			class="flex items-center justify-center md:justify-start gap-4 mb-4"
 		>
 			<div
-				class="w-16 h-16 bg-white/90 dark:bg-surface-container-high/90 backdrop-blur-2xl rounded-2xl shadow-2xl flex items-center justify-center p-3 transform -rotate-6 hover:rotate-0 transition-all duration-500 border border-white/40 shadow-primary/10"
+				class="w-16 h-16 bg-white/90 dark:bg-surface-container-high/90 backdrop-blur-2xl rounded-2xl shadow-2xl flex items-center justify-center p-3 transform -rotate-6 hover:rotate-0 transition-all duration-500 border border-white/10 shadow-primary/10"
 			>
 				<img
 					src="/favicon.svg"
@@ -138,13 +138,13 @@
 		<div class="space-y-4 relative">
 			<!-- Glass backdrop for the form area itself to pop -->
 			<div
-				class="absolute -inset-8 bg-white/[0.02] dark:bg-black/[0.02] backdrop-blur-sm -z-10 rounded-[3rem] border border-white/5 lg:block hidden"
+				class="absolute -inset-8 bg-white/[0.02] dark:bg-black/[0.02] backdrop-blur-sm -z-10 rounded-[3rem] border border-white/10 lg:block hidden"
 			></div>
 
 			<form onsubmit={handleSubmit} class="space-y-5">
 				{#if error}
 					<div
-						class="text-sm text-error bg-error-container/40 backdrop-blur-md rounded-2xl px-5 py-4 flex items-center gap-3 border border-error/5"
+						class="text-sm text-error bg-error-container/40 backdrop-blur-md rounded-2xl px-5 py-4 flex items-center gap-3 border border-white/10"
 					>
 						<span class="material-symbols-outlined text-[20px]"
 							>error</span
@@ -166,7 +166,7 @@
 						bind:value={emailOrUsername}
 						required
 						autocomplete="username"
-						class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
+						class="w-full bg-surface-container-highest/60 backdrop-blur-md rounded-2xl px-5 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 					/>
 				</div>
 
@@ -191,7 +191,7 @@
 							bind:value={password}
 							required
 							autocomplete="current-password"
-							class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 pr-14 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
+							class="w-full bg-surface-container-highest/60 backdrop-blur-md rounded-2xl px-5 py-3.5 pr-14 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 						/>
 						<button
 							type="button"

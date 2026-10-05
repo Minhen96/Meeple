@@ -140,16 +140,13 @@
 				{section.title}
 			</p>
 			<div
-				class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_12px_32px_rgba(25,28,29,0.06)]"
+				class="bg-surface-container-low rounded-xl overflow-hidden p-1 space-y-1 shadow-[0_12px_32px_rgba(25,28,29,0.06)]"
 			>
-				{#each section.items as item, i}
+				{#each section.items as item (item.label)}
 					{#if item.href}
 						<a
 							href={item.href}
-							class="flex items-center gap-3 px-4 py-3.5 hover:bg-surface-container-low transition-colors {i >
-							0
-								? 'border-t border-outline-variant/10'
-								: ''} {item.danger
+							class="flex items-center gap-3 px-4 py-3.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container transition-colors {item.danger
 								? 'text-error'
 								: 'text-on-surface'}"
 						>
@@ -170,10 +167,7 @@
 					{:else}
 						<button
 							onclick={() => handleItemClick(item)}
-							class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface-container-low transition-colors text-left {i >
-							0
-								? 'border-t border-outline-variant/10'
-								: ''}"
+							class="w-full flex items-center gap-3 px-4 py-3.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container transition-colors text-left"
 						>
 							<span
 								class="material-symbols-outlined text-[20px] text-on-surface-variant"

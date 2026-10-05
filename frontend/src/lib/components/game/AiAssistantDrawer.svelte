@@ -161,10 +161,10 @@
 	<!-- Drawer -->
 	<div
 		transition:fly={{ x: 400, duration: 400, opacity: 1 }}
-		class="fixed right-0 top-0 h-full w-full max-w-[420px] bg-surface border-l border-outline-variant/20 z-[101] shadow-2xl flex flex-col"
+		class="fixed right-0 top-0 h-full w-full max-w-[420px] bg-surface z-[101] shadow-2xl flex flex-col"
 	>
 		<!-- Header -->
-		<div class="p-4 border-b border-outline-variant/10 flex items-center justify-between bg-surface-container-lowest">
+		<div class="p-4 flex items-center justify-between bg-surface-container-lowest">
 			<div class="flex items-center gap-3">
 				<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary shadow-inner">
 					<span class="material-symbols-outlined">smart_toy</span>
@@ -207,7 +207,7 @@
 							p-4 rounded-2xl text-sm leading-relaxed
 							{msg.role === 'user'
 								? 'bg-primary text-on-primary rounded-tr-none shadow-md shadow-primary/10'
-								: 'bg-surface-container-low text-on-surface rounded-tl-none border border-outline-variant/10 shadow-sm'}
+								: 'bg-surface-container-low text-on-surface rounded-tl-none'}
 						">
 							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 							{@html renderMd(msg.content)}
@@ -242,7 +242,7 @@
 
 			{#if isTyping}
 				<div class="flex justify-start">
-					<div class="bg-surface-container-low p-4 rounded-2xl rounded-tl-none border border-outline-variant/10 flex gap-1 items-center h-10">
+					<div class="bg-surface-container-low p-4 rounded-2xl rounded-tl-none flex gap-1 items-center h-10">
 						<div class="w-1.5 h-1.5 bg-on-surface-variant/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
 						<div class="w-1.5 h-1.5 bg-on-surface-variant/40 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
 						<div class="w-1.5 h-1.5 bg-on-surface-variant/40 rounded-full animate-bounce"></div>
@@ -252,15 +252,15 @@
 		</div>
 
 		<!-- Input area -->
-		<div class="p-4 bg-surface-container-lowest border-t border-outline-variant/10">
-			<div class="relative flex items-center gap-2 bg-surface-container-high rounded-2xl px-4 py-2 border border-outline-variant/10 focus-within:border-primary/30 transition-all shadow-inner">
+		<div class="p-4 bg-surface-container-lowest">
+			<div class="relative flex items-center gap-2 bg-surface-container-high rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all shadow-inner">
 				<input
 					type="text"
 					bind:value={inputValue}
 					onkeydown={handleKeydown}
 					placeholder="Ask a rule question…"
 					maxlength="500"
-					class="flex-1 bg-transparent border-none text-sm py-2 focus:outline-none"
+					class="flex-1 bg-transparent text-sm py-2 focus:outline-none"
 				/>
 				<button
 					onclick={sendMessage}

@@ -42,7 +42,7 @@
     {#if friends.length > 0}
         <div class="space-y-3">
             {#each friends as user (user.id)}
-                <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-3xl border border-surface-variant/10 hover:bg-surface-container transition-colors shadow-sm">
+                <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-3xl hover:bg-surface-container transition-colors shadow-sm">
                     <a href="/profile/{user.id}"><Avatar src={user.avatarUrl} size="md" /></a>
                     <div class="flex-1 min-w-0">
                         <a href="/profile/{user.id}" class="font-extrabold text-sm text-on-surface">

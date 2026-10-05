@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Spinner from './Spinner.svelte';
+
 	interface Props {
 		variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger';
 		size?: 'sm' | 'md' | 'lg';
@@ -30,8 +32,8 @@
 		primary:
 			'bg-gradient-to-r from-primary to-primary-container text-on-primary shadow-[0_8px_24px_rgba(137,81,0,0.20)]',
 		secondary: 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
-		tertiary: 'bg-tertiary-container text-on-tertiary-container border border-tertiary/10',
-		ghost: 'bg-white/50 backdrop-blur-md text-on-surface-variant border border-outline-variant/30 hover:bg-white',
+		tertiary: 'bg-tertiary-container text-on-tertiary-container',
+		ghost: 'bg-white/50 backdrop-blur-md text-on-surface-variant border border-white/10 hover:bg-white',
 		danger: 'bg-error text-on-error shadow-[0_8px_24px_rgba(186,26,26,0.20)]'
 	};
 
@@ -50,7 +52,7 @@
 	{onclick}
 >
 	{#if loading}
-		<span class="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+		<Spinner className="w-4 h-4" />
 	{/if}
 	{@render children?.()}
 </button>
