@@ -1,58 +1,78 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import AppBar from "$lib/components/layout/AppBar.svelte";
-	import BottomNav from "$lib/components/layout/BottomNav.svelte";
-	import { goto } from "$app/navigation";
-	import { page } from "$app/stores";
-	import { notificationsApi } from "$lib/api/notifications";
-	import { notifications } from "$lib/stores/notifications";
+	import { onMount, tick } from 'svelte';
+	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import AppBar from '$lib/components/layout/AppBar.svelte';
+	import BottomNav from '$lib/components/layout/BottomNav.svelte';
+	import {
+		hasInAppHistory,
+		logicalParent,
+		recordNavigation,
+		rememberScroll,
+		savedScroll
+	} from '$lib/components/layout/navigation';
+	import { getLocale, isLocale, m, setLocale } from '$lib/i18n';
+	import { notificationsApi } from '$lib/api/notifications';
+	import { notifications } from '$lib/stores/notifications';
+	import { currentUser } from '$lib/stores/auth';
 
 	interface Props {
-		children?: import("svelte").Snippet;
+		children?: import('svelte').Snippet;
 	}
 
 	let { children }: Props = $props();
 
-	// Detail pages show a back button instead of just title
-	const detailRoutes = [
-		"/library/",
-		"/events/",
-		"/posts/",
-		"/profile/",
-		"/settings",
-		"/admin",
-	];
+	const pathname = $derived(page.url.pathname);
+
+	// Detail pages show a back button instead of the logo
+	const detailRoutes = ['/library/', '/events/', '/posts/', '/profile/', '/settings', '/admin', '/search'];
 	const isDetailPage = $derived(
-		detailRoutes.some((r) => {
-			if (r.endsWith("/")) {
-				return (
-					$page.url.pathname.startsWith(r) &&
-					$page.url.pathname !== r.slice(0, -1)
-				);
-			}
-			return $page.url.pathname.startsWith(r);
-		}),
+		detailRoutes.some((r) =>
+			r.endsWith('/') ? pathname.startsWith(r) && pathname !== r.slice(0, -1) : pathname.startsWith(r)
+		)
 	);
 
-	// Pages that hide the global AppBar for a more immersive feel
+	// Pages that hide the global app bar and bottom nav for a focused, immersive screen
 	const isImmersiveRoute = $derived(
-		/^\/library\/[^/]+\/?$/.test($page.url.pathname) ||     // Game details
-		/^\/events\/[^/]+\/?$/.test($page.url.pathname) ||      // Event details
-		/^\/posts\/[^/]+\/?$/.test($page.url.pathname) ||       // Post details
-		$page.url.pathname.startsWith("/notifications") ||      // Notifications
-		$page.url.pathname.startsWith("/settings") ||           // Settings
-		$page.url.pathname.startsWith("/admin") ||              // Admin
-		$page.url.pathname.startsWith("/log-play") ||           // Log Play
-		$page.url.pathname.startsWith("/events/create") ||      // Create Event
-		$page.url.pathname.startsWith("/posts/create")          // Create Post
+		/^\/library\/[^/]+\/?$/.test(pathname) ||
+			/^\/events\/[^/]+\/?$/.test(pathname) ||
+			/^\/posts\/[^/]+\/?$/.test(pathname) ||
+			pathname.startsWith('/notifications') ||
+			pathname.startsWith('/settings') ||
+			pathname.startsWith('/admin') ||
+			pathname.startsWith('/log-play') ||
+			pathname.startsWith('/events/create') ||
+			pathname.startsWith('/posts/create')
 	);
-	const hideAppBar = $derived(isImmersiveRoute);
+	const isGameDetail = $derived(/^\/library\/[^/]+\/?$/.test(pathname));
 
-	// Pages that hide the FAB for a focused experience
-	const hideFAB = $derived(
-		(isImmersiveRoute && !/^\/library\/[^/]+\/?$/.test($page.url.pathname)) || 
-		$page.url.pathname === "/notifications"
-	);
+	// The account's language wins over the browser's once the user is known (settings switcher
+	// stores both); persisting writes the `lang` cookie so SSR renders in it next time.
+	$effect(() => {
+		const preferred = $currentUser?.preferredLanguage;
+		if (isLocale(preferred) && preferred !== getLocale()) {
+			setLocale(preferred, { persist: true });
+		}
+	});
+
+	// Per-tab scroll memory (SCREENS_AND_STATES section 15.4) and in-app history for back.
+	beforeNavigate(({ from }) => {
+		if (from?.url) rememberScroll(from.url.pathname, window.scrollY);
+	});
+	afterNavigate(async ({ type, to }) => {
+		recordNavigation(type);
+		if (type !== 'link' || !to?.url) return;
+		const saved = savedScroll(to.url.pathname);
+		if (saved !== null) {
+			await tick();
+			window.scrollTo({ top: saved });
+		}
+	});
+
+	function back() {
+		if (hasInAppHistory()) history.back();
+		else void goto(logicalParent(pathname));
+	}
 
 	onMount(async () => {
 		try {
@@ -62,102 +82,25 @@
 			// non-critical — badge stays at 0
 		}
 	});
-
-	let fabOpen = $state(false);
-
-	const fabActions = [
-		{
-			icon: "sports_esports",
-			label: "Log Play",
-			action: () => goto("/log-play"),
-		},
-		{
-			icon: "event",
-			label: "Create Event",
-			action: () => goto("/events/create"),
-		},
-		{
-			icon: "add_photo_alternate",
-			label: "Create Post",
-			action: () => goto("/posts/create"),
-		},
-	];
-
-	function handleAction(fn: () => void) {
-		fabOpen = false;
-		fn();
-	}
 </script>
 
-{#if !hideAppBar}
+{#if !isImmersiveRoute}
 	<AppBar showBack={isDetailPage} />
 {/if}
 
-<main
-	class="{isImmersiveRoute
-		? 'pt-4'
-		: 'pt-16'} px-4 max-w-lg mx-auto pb-32"
->
+<main class="{isImmersiveRoute ? 'pt-4' : 'pt-16'} px-4 max-w-lg mx-auto pb-32">
 	{@render children?.()}
 </main>
 
-<!-- Floating back button on game details -->
-{#if /^\/library\/[^/]+\/?$/.test($page.url.pathname)}
+<!-- Floating back button on the immersive game detail -->
+{#if isGameDetail}
 	<button
-		onclick={() => history.back()}
+		onclick={back}
 		class="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md text-white flex items-center justify-center shadow-md"
-		aria-label="Go back"
+		aria-label={m('common.back')}
 	>
 		<span class="material-symbols-outlined text-[20px]">arrow_back</span>
 	</button>
-{/if}
-
-<!-- FAB backdrop -->
-{#if fabOpen}
-	<button
-		class="fixed inset-0 z-40"
-		onclick={() => {
-			fabOpen = false;
-		}}
-		aria-label="Close menu"
-	></button>
-{/if}
-
-<!-- Floating Action Button -->
-{#if !hideFAB}
-	<div class="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
-		<!-- Mini action buttons (shown when open) -->
-		{#if fabOpen}
-			{#each fabActions as item (item.label)}
-				<button
-					onclick={() => handleAction(item.action)}
-					class="flex items-center gap-2 pr-3 pl-2 py-2 rounded-full bg-surface-container-highest text-on-surface shadow-md text-sm font-bold transition-all"
-				>
-					<span
-						class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center"
-					>
-						<span class="material-symbols-outlined text-[18px]"
-							>{item.icon}</span
-						>
-					</span>
-					{item.label}
-				</button>
-			{/each}
-		{/if}
-
-		<!-- Main FAB -->
-		<button
-			onclick={() => {
-				fabOpen = !fabOpen;
-			}}
-			class="w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_8px_24px_rgba(137,81,0,0.35)] flex items-center justify-center transition-all duration-200 {fabOpen
-				? 'rotate-45'
-				: ''}"
-			aria-label="Create"
-		>
-			<span class="material-symbols-outlined text-2xl">add</span>
-		</button>
-	</div>
 {/if}
 
 {#if !isImmersiveRoute}

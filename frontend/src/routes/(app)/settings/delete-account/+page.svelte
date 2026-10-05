@@ -1,68 +1,115 @@
 <script lang="ts">
-	import { usersApi } from '$lib/api/users';
-	import { clearClientSession } from '$lib/session';
+	// Delete account (SCREENS_AND_STATES section 11.5; decision C11): password accounts confirm
+	// with the password, Google-only accounts type DELETE. A bottom-sheet confirmation follows.
+	// The account is scheduled for deletion and can be reactivated for 30 days.
 	import { goto } from '$app/navigation';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import PageHeader from '$lib/components/layout/PageHeader.svelte';
+	import { ApiRequestError } from '$lib/api/client';
+	import { usersApi } from '$lib/api/users';
+	import { errorMessage, m } from '$lib/i18n';
+	import { clearClientSession } from '$lib/session';
+	import type { DeleteAccountRequest } from '$lib/types';
+	import type { PageData } from './$types';
 
-	let confirmed = $state('');
+	interface Props {
+		data: PageData;
+	}
+	let { data }: Props = $props();
+
+	const hasPassword = $derived(data.user?.hasPassword !== false);
+	let password = $state('');
+	let typed = $state('');
+	let confirming = $state(false);
 	let loading = $state(false);
 	let error = $state('');
 
-	const canDelete = $derived(confirmed === 'DELETE');
+	const ready = $derived(hasPassword ? password.length > 0 : typed === 'DELETE');
 
-	async function handleDelete() {
-		if (!canDelete) return;
+	function askConfirmation(event: Event) {
+		event.preventDefault();
+		if (ready) confirming = true;
+	}
+
+	async function deleteAccount() {
 		loading = true;
 		error = '';
+		const body: DeleteAccountRequest = hasPassword ? { password } : { confirm: 'DELETE' };
 		try {
-			await usersApi.deleteMe();
+			await usersApi.deleteMe(body);
 			clearClientSession();
-			goto('/auth/login');
-		} catch {
-			error = 'Could not delete account. Please try again.';
+			void goto('/auth/login?deleted=1');
+		} catch (err) {
+			confirming = false;
+			error = errorMessage(err instanceof ApiRequestError ? err.code : 'NETWORK_ERROR');
+		} finally {
 			loading = false;
 		}
 	}
 </script>
 
-<svelte:head><title>Delete Account — Meeple</title></svelte:head>
+<svelte:head><title>{m('account.delete.title')} — {m('common.appName')}</title></svelte:head>
 
-<div class="flex items-center gap-3 mb-6">
-	<button onclick={() => history.back()} class="text-on-surface-variant" aria-label="Back">
-		<span class="material-symbols-outlined">arrow_back</span>
-	</button>
-	<h2 class="text-xl font-extrabold font-headline">Delete Account</h2>
-</div>
+<PageHeader title={m('account.delete.title')} />
 
 <div class="bg-error/10 rounded-xl p-4 mb-6 space-y-2">
-	<p class="font-semibold text-error text-sm">This action is permanent</p>
-	<p class="text-sm text-on-surface-variant">
-		Your account, collection, posts, and events will be permanently deleted. This cannot be undone.
-	</p>
+	<p class="font-semibold text-error text-sm">{m('account.delete.warningTitle')}</p>
+	<ul class="text-sm text-on-surface-variant list-disc pl-5 space-y-1">
+		<li>{m('account.delete.consequenceGrace')}</li>
+		<li>{m('account.delete.consequenceImmediate')}</li>
+		<li>{m('account.delete.consequencePermanent')}</li>
+	</ul>
 </div>
 
 {#if error}
-	<p class="text-sm text-error bg-error-container rounded-xl px-4 py-3 mb-4">{error}</p>
+	<p class="text-sm text-error bg-error-container rounded-xl px-4 py-3 mb-4" role="alert">{error}</p>
 {/if}
 
-<div class="space-y-4">
-	<div>
-		<label for="delete-account-confirmed" class="block text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
-			Type DELETE to confirm
-		</label>
-		<input
-			id="delete-account-confirmed"
-			type="text"
-			bind:value={confirmed}
-			placeholder="DELETE"
-			class="w-full bg-surface-container-highest rounded-xl px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-error/20 focus:outline-none font-body text-sm"
-		/>
-	</div>
+<form class="space-y-4" onsubmit={askConfirmation}>
+	{#if hasPassword}
+		<div>
+			<label for="delete-password" class="block text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+				{m('account.delete.passwordLabel')}
+			</label>
+			<input
+				id="delete-password"
+				type="password"
+				bind:value={password}
+				autocomplete="current-password"
+				class="w-full bg-surface-container-highest rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-error/20 focus:outline-none font-body text-sm"
+			/>
+		</div>
+	{:else}
+		<div>
+			<label for="delete-typed" class="block text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+				{m('account.delete.typeLabel')}
+			</label>
+			<input
+				id="delete-typed"
+				type="text"
+				bind:value={typed}
+				placeholder="DELETE"
+				autocapitalize="characters"
+				class="w-full bg-surface-container-highest rounded-xl px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-error/20 focus:outline-none font-body text-sm"
+			/>
+		</div>
+	{/if}
 
-	<button
-		onclick={handleDelete}
-		disabled={!canDelete || loading}
-		class="w-full py-3 rounded-xl text-sm font-label font-bold bg-error text-on-primary disabled:opacity-40 transition-opacity"
-	>
-		{loading ? 'Deleting…' : 'Permanently Delete Account'}
-	</button>
-</div>
+	<Button type="submit" variant="danger" fullWidth disabled={!ready || loading}>
+		{m('account.delete.submit')}
+	</Button>
+</form>
+
+{#if confirming}
+	<ConfirmDialog
+		danger
+		icon="person_remove"
+		title={m('account.delete.confirmTitle')}
+		message={m('account.delete.confirmBody')}
+		confirmLabel={m('account.delete.confirmAction')}
+		{loading}
+		onConfirm={deleteAccount}
+		onCancel={() => (confirming = false)}
+	/>
+{/if}

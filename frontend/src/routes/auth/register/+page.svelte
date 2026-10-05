@@ -3,6 +3,7 @@
 	import GoogleButton from "$lib/components/ui/GoogleButton.svelte";
 	import { api, ApiRequestError } from "$lib/api/client";
 	import { goto } from "$app/navigation";
+	import { errorMessage, m } from "$lib/i18n";
 
 	let email = $state("");
 	let username = $state("");
@@ -68,12 +69,12 @@
 	);
 	const usernameError = $derived.by((): string => {
 		if (!touched.username || username.length === 0) return "";
-		if (username.length < 3) return "Too short — minimum 3 characters";
-		if (username.length > 20) return "Too long — maximum 20 characters";
+		if (username.length < 3) return m("account.username.tooShort");
+		if (username.length > 20) return m("account.username.tooLong");
 		if (!/^[a-z0-9]/.test(username))
-			return "Must start with a letter or number";
+			return m("account.username.startAlnum");
 		if (!/^[a-z0-9][a-z0-9_]*$/.test(username))
-			return "Only letters, numbers, and underscores allowed";
+			return m("account.username.invalid");
 		return "";
 	});
 	const isPasswordValid = $derived(
@@ -86,19 +87,19 @@
 	);
 	const passwordError = $derived.by((): string => {
 		if (!touched.password || password.length === 0) return "";
-		if (password.length < 8) return "Must be at least 8 characters";
-		if (!/[A-Z]/.test(password)) return "Include an uppercase letter";
-		if (!/[a-z]/.test(password)) return "Include a lowercase letter";
-		if (!/[0-9]/.test(password)) return "Include a number";
+		if (password.length < 8) return m("account.password.minLength");
+		if (!/[A-Z]/.test(password)) return m("account.password.needUpper");
+		if (!/[a-z]/.test(password)) return m("account.password.needLower");
+		if (!/[0-9]/.test(password)) return m("account.password.needNumber");
 		if (!/[^A-Za-z0-9]/.test(password))
-			return "Include a special character (!@#$ etc.)";
+			return m("account.password.needSpecial");
 		return "";
 	});
 
 	const doPasswordsMatch = $derived(password === confirmPassword);
 	const confirmPasswordError = $derived.by((): string => {
 		if (!touched.confirmPassword || confirmPassword.length === 0) return "";
-		if (!doPasswordsMatch) return "Passwords do not match";
+		if (!doPasswordsMatch) return m("account.password.mismatch");
 		return "";
 	});
 	const canSubmit = $derived(
@@ -124,11 +125,7 @@
 			});
 			goto("/auth/verify-email");
 		} catch (err) {
-			if (err instanceof ApiRequestError) {
-				error = err.message;
-			} else {
-				error = "Something went wrong. Please try again.";
-			}
+			error = errorMessage(err instanceof ApiRequestError ? err.code : "NETWORK_ERROR");
 		} finally {
 			loading = false;
 		}
@@ -136,7 +133,7 @@
 </script>
 
 <svelte:head>
-	<title>Create Account — Meeple</title>
+	<title>{m('account.register.title')} — {m('common.appName')}</title>
 </svelte:head>
 
 <!-- Premium Game Board Background -->
@@ -148,10 +145,10 @@
 
 	<!-- Board Grid Pattern -->
 	<div
-		class="absolute inset-0 opacity-[0.06] dark:opacity-[0.08] [background-image:radial-gradient(circle_at_center,_#000_1px,transparent_1px)] [background-size:32px_32px]"
+		class="absolute inset-0 opacity-[0.06] dark:opacity-[0.08] [background-image:radial-gradient(circle_at_center,_theme(colors.on-surface)_1px,transparent_1px)] [background-size:32px_32px]"
 	></div>
 	<div
-		class="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] [background-image:linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:128px_128px]"
+		class="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] [background-image:linear-gradient(to_right,theme(colors.on-surface)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.on-surface)_1px,transparent_1px)] [background-size:128px_128px]"
 	></div>
 
 	<!-- Floating Immersive Assets -->
@@ -212,14 +209,14 @@
 					>
 						<img
 							src="/favicon.svg"
-							alt="Meeple Logo"
+							alt=""
 							class="w-full h-full object-contain"
 						/>
 					</div>
 				</span>
 				<div class="block">
-					<span>Join</span> the
-					<span class="text-primary italic">table.</span>
+					<span>{m('account.register.heroLead')}</span>
+					<span class="text-primary italic">{m('account.register.heroAccent')}</span>
 				</div>
 			</h1>
 		</div>
@@ -234,7 +231,7 @@
 					>
 				</div>
 				<p class="text-on-surface-variant font-bold text-xs">
-					Join 10k+ board game enthusiasts
+					{m('account.register.perkCommunity')}
 				</p>
 			</div>
 			<div class="flex items-center gap-3 group">
@@ -247,7 +244,7 @@
 					>
 				</div>
 				<p class="text-on-surface-variant font-bold text-xs">
-					Manage and track your collection
+					{m('account.register.perkCollection')}
 				</p>
 			</div>
 		</div>
@@ -278,12 +275,12 @@
 						<label
 							for="email"
 							class="text-[9px] font-black text-on-surface-variant uppercase tracking-[.2em] pl-1"
-							>Email</label
+							>{m('account.field.email')}</label
 						>
 						<input
 							id="email"
 							type="email"
-							placeholder="Your email"
+							placeholder={m('account.register.emailPlaceholder')}
 							bind:value={email}
 							required
 							autocomplete="email"
@@ -295,13 +292,13 @@
 						<label
 							for="username"
 							class="text-[9px] font-black text-on-surface-variant uppercase tracking-[.2em] pl-1"
-							>Username</label
+							>{m('account.profile.username')}</label
 						>
 						<div class="relative">
 							<input
 								id="username"
 								type="text"
-								placeholder="Nickname"
+								placeholder={m('account.register.usernamePlaceholder')}
 								bind:value={username}
 								oninput={(e) => {
 									username = (
@@ -330,7 +327,7 @@
 							<p
 								class="text-[10px] text-error font-bold mt-1.5 animate-in fade-in slide-in-from-top-1 px-1"
 							>
-								{usernameError || "Nickname is already taken"}
+								{usernameError || m('errors.usernameTaken')}
 							</p>
 						{/if}
 					</div>
@@ -341,12 +338,12 @@
 						<label
 							for="password"
 							class="text-[9px] font-black text-on-surface-variant uppercase tracking-[.2em] pl-1"
-							>Secret Key</label
+							>{m('account.login.passwordLabel')}</label
 						>
 						<input
 							id="password"
 							type="password"
-							placeholder="Min 8 chars"
+							placeholder={m('account.register.passwordPlaceholder')}
 							bind:value={password}
 							oninput={() => (touched.password = true)}
 							required
@@ -377,12 +374,12 @@
 						<label
 							for="confirm"
 							class="text-[9px] font-black text-on-surface-variant uppercase tracking-[.2em] pl-1"
-							>Confirm Key</label
+							>{m('account.reset.confirmPassword')}</label
 						>
 						<input
 							id="confirm"
 							type="password"
-							placeholder="Repeat"
+							placeholder={m('account.register.confirmPlaceholder')}
 							bind:value={confirmPassword}
 							oninput={() => (touched.confirmPassword = true)}
 							required
@@ -407,17 +404,17 @@
 						fullWidth
 						disabled={!canSubmit}
 					>
-						Create Profile
+						{m('account.register.submit')}
 					</Button>
 				</div>
 
 				<div class="pt-4 text-center">
 					<p class="text-sm text-on-surface-variant font-medium">
-						Already a player?
+						{m('account.register.haveAccount')}
 						<a
 							href="/auth/login"
 							class="text-primary font-black hover:underline px-1"
-							>Sign In</a
+							>{m('account.register.signIn')}</a
 						>
 					</p>
 				</div>
@@ -426,7 +423,7 @@
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
 					<span
 						class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]"
-						>Quick Connect</span
+						>{m('account.login.quickConnect')}</span
 					>
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
 				</div>

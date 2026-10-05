@@ -26,5 +26,17 @@ export default {
 	usernameTaken: '该用户名已被使用。',
 	emailTaken: '该邮箱已注册。',
 	invalidPassword: '密码错误。',
-	fileTooLarge: '文件过大。'
+	fileTooLarge: '文件过大。',
+	passwordRequired: '请输入密码以继续。',
+	confirmationRequired: '请输入 DELETE 以确认。',
+	googleReauth: '请重新使用 Google 登录以确认。',
+	googleMismatch: '该 Google 账号未关联此 Meeple 账号。',
+	accountNotDeleted: '该账号正常使用中，请直接登录。',
+	emailUnchanged: '这已经是你的邮箱地址。',
+	emailNotVerified: '请先验证你的邮箱地址。',
+	invalidTimezone: '时区无效。',
+	cannotRevokeCurrent: '请使用“退出登录”退出本设备。',
+	sessionNotFound: '该设备已退出登录。',
+	linkInvalid: '此链接无效或已过期。',
+	uploadFailed: '上传失败，请重试。'
 } satisfies Translation<typeof en>;
