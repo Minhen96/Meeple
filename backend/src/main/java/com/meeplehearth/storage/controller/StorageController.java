@@ -2,8 +2,13 @@ package com.meeplehearth.storage.controller;
 
 import com.meeplehearth.config.AppProperties;
 import com.meeplehearth.common.exception.ApiException;
+import com.meeplehearth.storage.ImageType;
+import com.meeplehearth.storage.StorageKeys;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +26,8 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -31,7 +36,8 @@ import java.util.UUID;
 public class StorageController {
 
     private static final Duration PRESIGN_EXPIRY = Duration.ofMinutes(10);
-    private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
+    private static final String UNSUPPORTED_TYPE_MESSAGE =
+            "Only JPEG, PNG, WebP and GIF images are allowed";
 
     private final S3Presigner s3Presigner;
     private final S3Client s3Client;
@@ -48,9 +54,11 @@ public class StorageController {
      *
      * Returns a presigned PUT URL for direct Cloudflare R2 upload.
      * Client uploads directly to R2, then passes the returned key to the API.
+     * Content-Type and Content-Length are part of the signature, so the PUT must send exactly
+     * the declared type and size (browsers set Content-Length from the File automatically).
      *
-     * Body: { "contentType": "image/jpeg" }
-     * Response: { "uploadUrl": "https://...", "key": "uploads/uuid/uuid.jpg",
+     * Body: { "contentType": "image/jpeg", "size": 123456 }
+     * Response: { "uploadUrl": "https://...", "key": "uploads/<userId>/<uuid>.jpg",
      * "publicUrl": "https://cdn.../..." }
      */
     @PostMapping("/presign")
@@ -58,21 +66,12 @@ public class StorageController {
             @RequestBody @Validated PresignRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        String ext = extensionFor(request.contentType());
-        String key = "uploads/" + userDetails.getUsername() + "/" + UUID.randomUUID() + "." + ext;
+        ImageType type = ImageType.fromContentType(request.contentType())
+                .orElseThrow(() -> ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE", UNSUPPORTED_TYPE_MESSAGE));
+        requireAllowedSize(request.size());
 
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(appProperties.getR2().getBucket())
-                .key(key)
-                .contentType(request.contentType())
-                .build();
-
-        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(PRESIGN_EXPIRY)
-                .putObjectRequest(putObjectRequest)
-                .build();
-
-        String uploadUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
+        String key = StorageKeys.newUploadKey(UUID.fromString(userDetails.getUsername()), type);
+        String uploadUrl = presignPut(key, type, request.size());
         String publicUrl = appProperties.getR2().getPublicUrl() + "/" + key;
 
         return ResponseEntity.ok(Map.of(
@@ -81,35 +80,38 @@ public class StorageController {
                 "publicUrl", publicUrl));
     }
 
+    String presignPut(String key, ImageType type, long size) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(appProperties.getR2().getBucket())
+                .key(key)
+                .contentType(type.contentType())
+                .contentLength(size)
+                .build();
+
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(PRESIGN_EXPIRY)
+                .putObjectRequest(putObjectRequest)
+                .build();
+
+        return s3Presigner.presignPutObject(presignRequest).url().toString();
+    }
+
     /**
      * POST /api/v1/upload (multipart/form-data, field: "file")
      *
      * Generic direct upload to the backend, bypassing browser CORS.
-     * Response: { "publicUrl": "https://...", "key": "uploads/..." }
+     * The image type is detected from the file content; the declared Content-Type is ignored.
+     * Response: { "publicUrl": "https://...", "key": "uploads/<userId>/<uuid>.<ext>" }
      */
     @PostMapping(value = "", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, String>> upload(
             @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) throws IOException {
 
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE",
-                    "Only image/jpeg, image/png, image/webp, and image/gif are allowed");
-        }
-
-        String ext = extensionFor(contentType);
-        String key = "uploads/" + userDetails.getUsername() + "/" + UUID.randomUUID() + "." + ext;
-
-        PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(appProperties.getR2().getBucket())
-                .key(key)
-                .contentType(contentType)
-                .contentLength(file.getSize())
-                .build();
-
-        s3Client.putObject(putRequest,
-                software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
+        byte[] content = readValidatedImage(file);
+        ImageType type = detectImageType(content);
+        String key = StorageKeys.newUploadKey(UUID.fromString(userDetails.getUsername()), type);
+        putObject(key, type, content);
 
         String publicUrl = appProperties.getR2().getPublicUrl() + "/" + key;
         return ResponseEntity.ok(Map.of(
@@ -129,41 +131,52 @@ public class StorageController {
             @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) throws IOException {
 
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE",
-                    "Only image/jpeg, image/png, image/webp, and image/gif are allowed");
-        }
-
-        String ext = extensionFor(contentType);
-        String key = "avatars/" + userDetails.getUsername() + "/" + UUID.randomUUID() + "." + ext;
-
-        PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(appProperties.getR2().getBucket())
-                .key(key)
-                .contentType(contentType)
-                .contentLength(file.getSize())
-                .build();
-
-        s3Client.putObject(putRequest,
-                software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
+        byte[] content = readValidatedImage(file);
+        ImageType type = detectImageType(content);
+        String key = StorageKeys.newAvatarKey(UUID.fromString(userDetails.getUsername()), type);
+        putObject(key, type, content);
 
         String publicUrl = appProperties.getR2().getPublicUrl() + "/" + key;
         return ResponseEntity.ok(Map.of("publicUrl", publicUrl));
     }
 
-    private String extensionFor(String contentType) {
-        return switch (contentType) {
-            case "image/jpeg" -> "jpg";
-            case "image/png" -> "png";
-            case "image/webp" -> "webp";
-            case "image/gif" -> "gif";
-            default -> throw ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE",
-                    "Only image/jpeg, image/png, image/webp, and image/gif are allowed");
-        };
+    private byte[] readValidatedImage(MultipartFile file) throws IOException {
+        requireAllowedSize(file.getSize());
+        byte[] content = file.getBytes();
+        requireAllowedSize(content.length);
+        return content;
+    }
+
+    static ImageType detectImageType(byte[] content) {
+        byte[] header = Arrays.copyOf(content, Math.min(content.length, ImageType.SIGNATURE_LENGTH));
+        return ImageType.detect(header)
+                .orElseThrow(() -> ApiException.badRequest("UNSUPPORTED_CONTENT_TYPE", UNSUPPORTED_TYPE_MESSAGE));
+    }
+
+    private void requireAllowedSize(long size) {
+        if (size <= 0) {
+            throw ApiException.badRequest("EMPTY_FILE", "File is empty");
+        }
+        long max = appProperties.getStorage().getMaxUploadBytes();
+        if (size > max) {
+            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE",
+                    "File exceeds the maximum upload size of " + (max / (1024 * 1024)) + " MB");
+        }
+    }
+
+    private void putObject(String key, ImageType type, byte[] content) {
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(appProperties.getR2().getBucket())
+                .key(key)
+                .contentType(type.contentType())
+                .contentLength((long) content.length)
+                .build();
+
+        s3Client.putObject(putRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(content));
     }
 
     public record PresignRequest(
-            @NotBlank @Pattern(regexp = "image/(jpeg|png|webp|gif)", message = "contentType must be one of: image/jpeg, image/png, image/webp, image/gif") String contentType) {
+            @NotBlank @Pattern(regexp = "image/(jpeg|png|webp|gif)", message = "contentType must be one of: image/jpeg, image/png, image/webp, image/gif") String contentType,
+            @NotNull @Positive Long size) {
     }
 }

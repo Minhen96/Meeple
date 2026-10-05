@@ -8,6 +8,12 @@ spring:
     redis:
       url: ${REDIS_URL}
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 app:
   auth:
     cookie-domain: ${COOKIE_DOMAIN}

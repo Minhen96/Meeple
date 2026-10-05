@@ -48,8 +48,9 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,
+                                              HttpServletRequest httpRequest,
                                               HttpServletResponse response) {
-        AuthResponse authResponse = authService.login(request, response);
+        AuthResponse authResponse = authService.login(request, httpRequest.getRemoteAddr(), response);
         return ResponseEntity.ok(authResponse);
     }
 
@@ -98,12 +99,13 @@ public class AuthController {
      * Body: { "email": "user@example.com" }
      */
     @PostMapping("/resend-verification")
-    public ResponseEntity<MessageResponse> resendVerification(@RequestBody Map<String, String> body) {
+    public ResponseEntity<MessageResponse> resendVerification(@RequestBody Map<String, String> body,
+                                                              HttpServletRequest httpRequest) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
             throw com.meeplehearth.common.exception.ApiException.badRequest("MISSING_EMAIL", "Email is required");
         }
-        MessageResponse response = authService.resendVerification(email);
+        MessageResponse response = authService.resendVerification(email, httpRequest.getRemoteAddr());
         return ResponseEntity.ok(response);
     }
 
@@ -113,12 +115,13 @@ public class AuthController {
      * Body: { "email": "user@example.com" }
      */
     @PostMapping("/forgot-password")
-    public ResponseEntity<MessageResponse> forgotPassword(@RequestBody Map<String, String> body) {
+    public ResponseEntity<MessageResponse> forgotPassword(@RequestBody Map<String, String> body,
+                                                          HttpServletRequest httpRequest) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
             throw com.meeplehearth.common.exception.ApiException.badRequest("MISSING_EMAIL", "Email is required");
         }
-        MessageResponse response = authService.forgotPassword(email);
+        MessageResponse response = authService.forgotPassword(email, httpRequest.getRemoteAddr());
         return ResponseEntity.ok(response);
     }
 

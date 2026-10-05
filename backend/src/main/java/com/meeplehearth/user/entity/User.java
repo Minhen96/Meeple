@@ -61,6 +61,13 @@ public class User {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /**
+     * Embedded in every access token. Incrementing it invalidates all access tokens
+     * issued before the increment (password reset, session revocation).
+     */
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion = 0;
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
