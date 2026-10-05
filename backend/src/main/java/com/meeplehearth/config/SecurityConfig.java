@@ -4,8 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meeplehearth.auth.filter.JwtAuthFilter;
 import com.meeplehearth.auth.service.UserDetailsServiceImpl;
 import com.meeplehearth.auth.util.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,19 +36,32 @@ import java.util.Map;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+    private static final String[] ADMIN_PATHS = {
+            "/api/v1/games/import",
+            "/api/v1/games/hydrate-images",
+            "/api/v1/admin/**"
+    };
+
     private final AppProperties appProperties;
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final Environment environment;
 
-    @org.springframework.beans.factory.annotation.Value("${app.security.open-admin-endpoints:false}")
+    @Value("${app.security.open-admin-endpoints:false}")
     private boolean openAdminEndpoints;
+
+    @Value("${springdoc.api-docs.enabled:true}")
+    private boolean apiDocsEnabled;
 
     public SecurityConfig(AppProperties appProperties,
             JwtUtil jwtUtil,
-            UserDetailsServiceImpl userDetailsService) {
+            UserDetailsServiceImpl userDetailsService,
+            Environment environment) {
         this.appProperties = appProperties;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.environment = environment;
     }
 
     @Bean
@@ -51,14 +69,32 @@ public class SecurityConfig {
         return new JwtAuthFilter(jwtUtil, userDetailsService);
     }
 
+    /**
+     * Opening admin endpoints is a local-development convenience only. Outside the local
+     * profile the flag is ignored, so a stray environment variable can never expose them.
+     */
+    boolean adminEndpointsOpen() {
+        if (!openAdminEndpoints) {
+            return false;
+        }
+        if (environment.acceptsProfiles(Profiles.of("local"))) {
+            return true;
+        }
+        log.warn("app.security.open-admin-endpoints is ignored: it is only honoured with the 'local' profile");
+        return false;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
+        boolean adminOpen = adminEndpointsOpen();
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new OriginCheckFilter(appProperties.getCors().getAllowedOrigins()),
+                        UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> {
                         auth.requestMatchers(
@@ -66,19 +102,17 @@ public class SecurityConfig {
                                 "/api/v1/games",
                                 "/ws/**",
                                 "/actuator/health",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**")
+                                "/actuator/health/**")
                                 .permitAll();
-                        if (openAdminEndpoints) {
-                            auth.requestMatchers(
-                                    "/api/v1/games/import",
-                                    "/api/v1/games/hydrate-images",
-                                    "/api/v1/admin/**").permitAll();
+                        auth.requestMatchers("/actuator/**").hasRole("ADMIN");
+                        if (apiDocsEnabled) {
+                            auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")
+                                    .permitAll();
+                        }
+                        if (adminOpen) {
+                            auth.requestMatchers(ADMIN_PATHS).permitAll();
                         } else {
-                            auth.requestMatchers(
-                                    "/api/v1/games/import",
-                                    "/api/v1/games/hydrate-images",
-                                    "/api/v1/admin/**").hasRole("ADMIN");
+                            auth.requestMatchers(ADMIN_PATHS).hasRole("ADMIN");
                         }
                         auth.anyRequest().authenticated();
                 })

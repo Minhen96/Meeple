@@ -1,8 +1,13 @@
+# No default profile: run with SPRING_PROFILES_ACTIVE=local | staging | prod.
+# Without one, no datasource or JWT secret is configured and startup fails fast.
+server:
+  # Resolve the client IP from X-Forwarded-For via Tomcat's RemoteIpValve, which only trusts
+  # entries appended by internal (private-network) proxies, so clients cannot spoof their IP.
+  forward-headers-strategy: native
+
 spring:
   application:
     name: meeple-backend
-  profiles:
-    active: local
   main:
     lazy-initialization: true
 
