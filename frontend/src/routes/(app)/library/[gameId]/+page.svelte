@@ -13,7 +13,14 @@
 
 	const game = $derived(data.game);
 	let myEntry = $state<UserGame | null>(null);
-	let activeTab = $state<"overview" | "details" | "mystats" | "howtoplay">("overview");
+	type DetailTab = "overview" | "details" | "mystats" | "howtoplay";
+	let activeTab = $state<DetailTab>("overview");
+	const detailTabs: { id: DetailTab; label: string }[] = [
+		{ id: "overview", label: "Overview" },
+		{ id: "howtoplay", label: "How to Play" },
+		{ id: "details", label: "Details" },
+		{ id: "mystats", label: "My Stats" }
+	];
 	let showAssistant = $state(false);
 	let descExpanded = $state(false);
 	let saving = $state(false);
@@ -207,8 +214,7 @@
 	{#if game.bggRating}
 		<div class="flex items-center gap-1">
 			<span
-				class="material-symbols-outlined text-amber-400 text-[16px]"
-				style="font-variation-settings: 'FILL' 1;">star</span
+				class="icon-filled material-symbols-outlined text-amber-400 text-[16px]">star</span
 			>
 			<span class="font-bold text-sm">{game.bggRating.toFixed(2)}</span>
 			{#if game.usersRated}
@@ -249,9 +255,7 @@
 		>
 			<span
 				class="material-symbols-outlined text-[20px]"
-				style={myEntry?.[flag]
-					? "font-variation-settings: 'FILL' 1;"
-					: ""}
+				class:icon-filled={myEntry?.[flag]}
 			>
 				{flagLabel[flag].icon}
 			</span>
@@ -269,10 +273,9 @@
 
 <!-- Tabs -->
 <div class="mt-6 flex gap-6 border-b border-outline-variant/20 mb-4">
-	{#each [{ id: "overview", label: "Overview" }, { id: "howtoplay", label: "How to Play" }, { id: "details", label: "Details" }, { id: "mystats", label: "My Stats" }] as tab}
+	{#each detailTabs as tab}
 		<button
-			onclick={() =>
-				(activeTab = tab.id as any)}
+			onclick={() => (activeTab = tab.id)}
 			class="relative pb-3 text-sm font-bold transition-colors {activeTab ===
 			tab.id
 				? 'text-primary'
@@ -364,8 +367,7 @@
 				{#each game.honors! as honor}
 					<div class="flex items-center gap-2">
 						<span
-							class="material-symbols-outlined text-amber-400 text-[14px]"
-							style="font-variation-settings: 'FILL' 1;"
+							class="icon-filled material-symbols-outlined text-amber-400 text-[14px]"
 							>emoji_events</span
 						>
 						<span class="text-xs text-on-surface">{honor}</span>
@@ -440,9 +442,7 @@
 				>
 					<span
 						class="material-symbols-outlined text-[16px]"
-						style={(myEntry?.personalRating ?? 0) >= n
-							? "font-variation-settings: 'FILL' 1;"
-							: ""}>star</span
+						class:icon-filled={(myEntry?.personalRating ?? 0) >= n}>star</span
 					>
 					<span class="text-[9px] font-bold">{n}</span>
 				</button>

@@ -1,12 +1,5 @@
 import { writable } from 'svelte/store';
-
-interface GamesPage {
-	content: any[];
-	number: number;
-	last: boolean;
-	totalPages: number;
-	totalElements: number;
-}
+import type { GamesPage } from '$lib/api/games';
 
 interface LibraryState {
 	gamesPage: GamesPage;

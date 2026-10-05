@@ -57,7 +57,10 @@ export default {
 				error: '#BA1A1A',
 				'error-container': '#FFDAD6',
 				'on-error': '#FFFFFF',
-				'on-error-container': '#93000A'
+				'on-error-container': '#93000A',
+
+				// Warm paper backdrop behind the auth screens (login / register)
+				'auth-backdrop': '#EBE8E2'
 			},
 			fontFamily: {
 				headline: ['"Plus Jakarta Sans"', 'sans-serif'],

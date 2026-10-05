@@ -3,8 +3,15 @@
 	import { api } from "$lib/api/client";
 	import { fade, fly } from "svelte/transition";
 
-	let healthData: any = $state(null);
-	let uptimeData: any = $state(null);
+	interface HealthResponse {
+		status: string;
+	}
+	interface MetricResponse {
+		measurements?: { statistic: string; value: number }[];
+	}
+
+	let healthData: HealthResponse | null = $state(null);
+	let uptimeData: MetricResponse | null = $state(null);
 	let loading = $state(true);
 	let error: string | null = $state(null);
 
@@ -14,20 +21,22 @@
 		try {
 			// Fetch health and info/metrics in parallel
 			const [health, uptime] = await Promise.all([
-				api.get("/actuator/health").catch(() => ({ status: "DOWN" })),
-				api.get("/actuator/metrics/process.uptime").catch(() => null)
+				api
+					.get<HealthResponse>("/actuator/health")
+					.catch((): HealthResponse => ({ status: "DOWN" })),
+				api.get<MetricResponse>("/actuator/metrics/process.uptime").catch(() => null)
 			]);
 			
 			healthData = health;
 			uptimeData = uptime;
-		} catch (e: any) {
-			error = e.message || "Failed to load system health data";
+		} catch (e: unknown) {
+			error = (e instanceof Error && e.message) || "Failed to load system health data";
 		} finally {
 			loading = false;
 		}
 	}
 
-	function formatUptime(seconds: number) {
+	function formatUptime(seconds: number | undefined) {
 		if (!seconds) return "N/A";
 		const days = Math.floor(seconds / 86400);
 		const hours = Math.floor((seconds % 86400) / 3600);

@@ -4,7 +4,7 @@
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import PostCard from '$lib/components/social/PostCard.svelte';
 	import type { PageData } from './$types';
-	import type { Post } from '$lib/types';
+	import type { MatchGroup, Post } from '$lib/types';
 	import { postsApi } from '$lib/api/posts';
 	import { toast } from 'svelte-sonner';
 
@@ -16,7 +16,7 @@
 	const greeting = getGreeting();
 
 	let posts = $state<Post[]>([]);
-	let matchSuggestions = $state<any[]>([]);
+	let matchSuggestions = $state<MatchGroup[]>([]);
 
 	$effect(() => {
 		posts = data.posts;

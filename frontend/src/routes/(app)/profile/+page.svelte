@@ -105,8 +105,7 @@
 			class="absolute -bottom-2 -right-2 w-8 h-8 bg-secondary-container rounded-full shadow-md flex items-center justify-center"
 		>
 			<span
-				class="material-symbols-outlined text-on-secondary-container text-[16px]"
-				style="font-variation-settings: 'FILL' 1;">verified</span
+				class="icon-filled material-symbols-outlined text-on-secondary-container text-[16px]">verified</span
 			>
 		</div>
 	</div>
@@ -275,8 +274,7 @@
 						class="absolute -left-[13px] top-0 w-6 h-6 {item.type === 'event' ? 'bg-secondary' : item.type === 'post' ? 'bg-tertiary' : 'bg-primary'} rounded-full ring-4 ring-surface flex items-center justify-center"
 					>
 						<span
-							class="material-symbols-outlined text-white text-[12px]"
-							style="font-variation-settings: 'FILL' 1;"
+							class="icon-filled material-symbols-outlined text-white text-[12px]"
 							>{item.type === 'event' ? 'event' : item.type === 'post' ? 'add_photo_alternate' : 'sports_esports'}</span
 						>
 					</div>

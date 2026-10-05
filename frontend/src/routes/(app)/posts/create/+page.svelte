@@ -9,6 +9,7 @@
 	import { fade, fly, scale } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import type { GameSearchResult, User } from '$lib/types';
 
 	let caption = $state('');
 	let loading = $state(false);
@@ -20,13 +21,13 @@
 	let fileInput: HTMLInputElement;
 
 	// Tagging state
-	let taggedGame = $state<any>(null);
-	let taggedFriends = $state<any[]>([]);
+	let taggedGame = $state<GameSearchResult | null>(null);
+	let taggedFriends = $state<User[]>([]);
 	let showGameSearch = $state(false);
 	let showFriendSearch = $state(false);
 	let gameQuery = $state('');
-	let gameResults = $state<any[]>([]);
-	let friendsList = $state<any[]>([]);
+	let gameResults = $state<GameSearchResult[]>([]);
+	let friendsList = $state<User[]>([]);
 
 	// Quick tag chips
 	const quickTags = ['#GameNight', '#VictoryRoyale', '#TableTopLife', '#BoardGames', '#NewToMe'];
@@ -76,7 +77,7 @@
 		}
 	}
 
-	function toggleFriend(friend: any) {
+	function toggleFriend(friend: User) {
 		const exists = taggedFriends.find(f => f.id === friend.id);
 		if (exists) {
 			taggedFriends = taggedFriends.filter(f => f.id !== friend.id);
@@ -112,7 +113,7 @@
 			await postsApi.createPost({ 
 				caption: fullCaption,
 				imageKeys,
-				gameId: taggedGame?.id,
+				gameId: taggedGame?.id ?? undefined,
 				taggedUserIds: taggedFriends.map(f => f.id)
 			});
 

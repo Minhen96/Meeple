@@ -30,7 +30,7 @@
 		usernameStatus = "checking";
 		usernameTimer = setTimeout(async () => {
 			try {
-				const res = await api.get<{ data: { available: boolean } }>(
+				const res = await api.get<{ available: boolean }>(
 					`/api/v1/auth/check-username?username=${encodeURIComponent(username)}`,
 				);
 				usernameStatus = res.available ? "available" : "taken";
@@ -141,7 +141,7 @@
 </svelte:head>
 
 <!-- Premium Game Board Background -->
-<div class="fixed inset-0 -z-10 bg-[#ebe8e2] dark:bg-surface overflow-hidden">
+<div class="fixed inset-0 -z-10 bg-auth-backdrop dark:bg-surface overflow-hidden">
 	<!-- Base Gradients -->
 	<div
 		class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-from),_transparent_70%),_radial-gradient(circle_at_bottom_left,_var(--tw-gradient-to),_transparent_70%)] from-secondary/30 to-tertiary/30 opacity-90"

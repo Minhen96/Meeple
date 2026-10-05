@@ -3,7 +3,7 @@
 	import { matchesApi } from '$lib/api/matches';
 	import { gamesApi } from '$lib/api/games';
 	import { api } from '$lib/api/client';
-	import type { ApiResponse, GameDetail } from '$lib/types';
+	import type { GameDetail } from '$lib/types';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import type { MatchRequest, MatchGroup, GameSearchResult } from '$lib/types';
 
@@ -59,7 +59,7 @@
 			// If game not yet in DB, import it first via bggId
 			let gameId = selectedGame.id;
 			if (!gameId && selectedGame.bggId) {
-				const res = await api.get<ApiResponse<GameDetail>>(`/api/v1/games/bgg/${selectedGame.bggId}`).catch(() => null);
+				const res = await api.get<GameDetail>(`/api/v1/games/bgg/${selectedGame.bggId}`).catch(() => null);
 				gameId = res?.id ?? null;
 			}
 			if (!gameId) return;
@@ -135,13 +135,13 @@
 		<!-- Time window -->
 		<div class="grid grid-cols-2 gap-2">
 			<div>
-				<label class="text-xs text-on-surface-variant mb-1 block">Available from</label>
-				<input type="datetime-local" bind:value={availableFrom}
+				<label for="match-availableFrom" class="text-xs text-on-surface-variant mb-1 block">Available from</label>
+				<input id="match-availableFrom" type="datetime-local" bind:value={availableFrom}
 					class="w-full bg-surface px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" />
 			</div>
 			<div>
-				<label class="text-xs text-on-surface-variant mb-1 block">Until</label>
-				<input type="datetime-local" bind:value={availableTo}
+				<label for="match-availableTo" class="text-xs text-on-surface-variant mb-1 block">Until</label>
+				<input id="match-availableTo" type="datetime-local" bind:value={availableTo}
 					class="w-full bg-surface px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" />
 			</div>
 		</div>

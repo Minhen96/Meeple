@@ -4,11 +4,13 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import type { PageData } from './$types';
+	import { untrack } from 'svelte';
 
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-	const event = data.event;
+	// The form is seeded once from the loaded event (edits are local until saved).
+	const event = untrack(() => data.event);
 
 	let title = $state(event.title);
 	let description = $state(event.description ?? '');
@@ -78,10 +80,11 @@
 
 	<!-- Title -->
 	<div>
-		<label class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+		<label for="edit-event-title" class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
 			Event Title *
 		</label>
 		<input
+			id="edit-event-title"
 			type="text"
 			bind:value={title}
 			placeholder="e.g. Heavy Euro Night"
@@ -93,12 +96,13 @@
 	<!-- Date & Time -->
 	<div class="grid grid-cols-2 gap-3">
 		<div class="bg-surface-container-low rounded-xl px-4 py-3 space-y-1">
-			<label class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+			<label for="edit-event-date" class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
 				Date *
 			</label>
 			<div class="flex items-center gap-2">
 				<span class="material-symbols-outlined text-primary text-[18px]">calendar_today</span>
 				<input
+					id="edit-event-date"
 					type="date"
 					bind:value={date}
 					required
@@ -107,12 +111,13 @@
 			</div>
 		</div>
 		<div class="bg-surface-container-low rounded-xl px-4 py-3 space-y-1">
-			<label class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+			<label for="edit-event-time" class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
 				Time *
 			</label>
 			<div class="flex items-center gap-2">
 				<span class="material-symbols-outlined text-primary text-[18px]">schedule</span>
 				<input
+					id="edit-event-time"
 					type="time"
 					bind:value={time}
 					required
@@ -137,10 +142,11 @@
 	<div class="flex items-center gap-3 bg-surface-container-low rounded-xl px-4 py-3">
 		<span class="material-symbols-outlined text-primary text-[20px]">group</span>
 		<div class="flex-1">
-			<label class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+			<label for="edit-event-maxParticipants" class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 				Max Players
 			</label>
 			<input
+				id="edit-event-maxParticipants"
 				type="number"
 				bind:value={maxParticipants}
 				min="2"
@@ -152,9 +158,9 @@
 
 	<!-- Visibility -->
 	<div>
-		<label class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-3">
+		<p class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-3">
 			Visibility
-		</label>
+		</p>
 		<div class="flex gap-2">
 			{#each visibilityOptions as opt}
 				<button
@@ -174,10 +180,11 @@
 
 	<!-- Description -->
 	<div>
-		<label class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+		<label for="edit-event-description" class="block text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
 			Description
 		</label>
 		<textarea
+			id="edit-event-description"
 			bind:value={description}
 			rows="3"
 			placeholder="Tell people what to expect..."

@@ -69,9 +69,9 @@
 
 	let currentView = $state<'activity' | 'owned' | 'favorites' | 'played' | 'friends'>('activity');
 
-	const owned = $derived(data.collection.filter((ug: any) => ug.isOwned));
-	const favorites = $derived(data.collection.filter((ug: any) => ug.isFavorited));
-	const played = $derived(data.collection.filter((ug: any) => ug.playCount > 0));
+	const owned = $derived(data.collection.filter((ug) => ug.isOwned));
+	const favorites = $derived(data.collection.filter((ug) => ug.isFavorited));
+	const played = $derived(data.collection.filter((ug) => ug.playCount > 0));
 
 	function formatTimestamp(iso: string) {
 		const d = new Date(iso);

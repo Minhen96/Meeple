@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { setupApi, type SetupStatus, type CsvCheckResult } from '$lib/api/setup';
 
@@ -114,7 +115,7 @@
 			<div class="bg-surface-container-low rounded-2xl p-5 space-y-3">
 				<div class="flex items-center gap-2">
 					{#if status.catalog.imported}
-						<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings:'FILL' 1">check_circle</span>
+						<span class="icon-filled material-symbols-outlined text-[18px] text-primary">check_circle</span>
 					{:else}
 						<span class="material-symbols-outlined text-[18px] text-on-surface-variant animate-spin">progress_activity</span>
 					{/if}
@@ -127,10 +128,11 @@
 						{busy['import'] ? 'Starting…' : status.catalog.imported ? 'Re-import' : 'Start'}
 					</button>
 				</div>
-				<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
-					<div class="h-full rounded-full transition-all duration-700 {status.catalog.imported ? 'bg-primary' : 'bg-on-surface/20'}"
-						style="width:{status.catalog.imported ? 100 : 0}%"></div>
-				</div>
+				<ProgressBar
+					value={status.catalog.imported ? 100 : 0}
+					tone={status.catalog.imported ? 'primary' : 'muted'}
+					label="Catalog import progress"
+				/>
 				<p class="text-xs text-on-surface-variant">
 					{status.catalog.imported ? `${fmt(status.catalog.totalGames)} games imported` : status.catalog.totalGames > 0 ? `${fmt(status.catalog.totalGames)} games found — importing…` : 'Waiting for SEED_CSV_URL…'}
 				</p>
@@ -153,7 +155,7 @@
 			<div class="bg-surface-container-low rounded-2xl p-5 space-y-3">
 				<div class="flex items-center gap-2">
 					{#if status.hydration.percentDone >= 100}
-						<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings:'FILL' 1">check_circle</span>
+						<span class="icon-filled material-symbols-outlined text-[18px] text-primary">check_circle</span>
 					{:else if status.hydration.running}
 						<span class="material-symbols-outlined text-[18px] text-secondary animate-spin">progress_activity</span>
 					{:else}
@@ -177,9 +179,7 @@
 						>{busy['hydrate'] ? 'Starting…' : 'Start'}</button>
 					{/if}
 				</div>
-				<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
-					<div class="h-full bg-secondary rounded-full transition-all duration-700" style="width:{status.hydration.percentDone}%"></div>
-				</div>
+				<ProgressBar value={status.hydration.percentDone} tone="secondary" label="Hydration progress" />
 				<p class="text-xs text-on-surface-variant">
 					{fmt(status.hydration.hydrated)} / {fmt(status.hydration.total)} hydrated
 					{#if status.hydration.stopRequested}&nbsp;· <span class="text-error">stop requested</span>{/if}
@@ -190,7 +190,7 @@
 			<div class="bg-surface-container-low rounded-2xl p-5 space-y-3">
 				<div class="flex items-center gap-2">
 					{#if status.rulebooks.percentDone >= 100}
-						<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings:'FILL' 1">check_circle</span>
+						<span class="icon-filled material-symbols-outlined text-[18px] text-primary">check_circle</span>
 					{:else if status.rulebooks.running}
 						<span class="material-symbols-outlined text-[18px] text-tertiary animate-spin">progress_activity</span>
 					{:else}
@@ -214,9 +214,7 @@
 						>{busy['rulebooks'] ? 'Starting…' : 'Start'}</button>
 					{/if}
 				</div>
-				<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
-					<div class="h-full bg-tertiary rounded-full transition-all duration-700" style="width:{status.rulebooks.percentDone}%"></div>
-				</div>
+				<ProgressBar value={status.rulebooks.percentDone} tone="tertiary" label="Rulebook progress" />
 				<p class="text-xs text-on-surface-variant">
 					{fmt(status.rulebooks.approved)} approved · {fmt(status.rulebooks.ingesting)} ingesting · target {fmt(status.rulebooks.target)}
 					{#if status.rulebooks.stopRequested}&nbsp;· <span class="text-error">stop requested</span>{/if}
