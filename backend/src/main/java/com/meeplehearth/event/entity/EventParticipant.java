@@ -42,5 +42,9 @@ public class EventParticipant {
         this.status = status;
     }
 
-    public enum RsvpStatus { INVITED, ACCEPTED, DECLINED }
+    /**
+     * INVITED → ACCEPTED | DECLINED; ACCEPTED → LEFT (participant leaves); any → KICKED (host).
+     * LEFT and KICKED keep the row so history and re-join rules survive (FEATURES section 4.2).
+     */
+    public enum RsvpStatus { INVITED, ACCEPTED, DECLINED, LEFT, KICKED }
 }

@@ -1,210 +1,143 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import type { Event } from '$lib/types';
 	import { eventsApi } from '$lib/api/events';
-	import { toast } from 'svelte-sonner';
+	import { m } from '$lib/i18n';
+	import EventCard from '$lib/components/event/EventCard.svelte';
+	import MonthCalendar from '$lib/components/event/MonthCalendar.svelte';
+	import { eventErrorMessage } from '$lib/components/event/eventState';
+	import { eventsViewHref, type EventsTab } from '$lib/components/event/eventsView';
+	import type { MessageKey } from '$lib/i18n';
+	import type { PageData } from './$types';
 
 	interface Props {
 		data: PageData;
 	}
 	let { data }: Props = $props();
 
-	let tab = $state<'upcoming' | 'mine'>('upcoming');
-	// Writable derived: resets when load data changes, can be overridden optimistically.
-	let events = $derived({ upcoming: data.upcoming, mine: data.mine });
+	// Writable deriveds: follow load data, extended locally by "Load more" on the community tab.
+	let events = $derived(data.events);
+	let nextCursor = $derived(data.nextCursor);
+	let loadingMore = $state(false);
+	let moreError = $state<string | null>(null);
 
-	const displayed = $derived(
-		tab === 'upcoming' 
-			? events.upcoming 
-			: events.mine.filter(e => e.status !== 'CANCELLED')
+	const tabs: { value: EventsTab; label: MessageKey }[] = [
+		{ value: 'upcoming', label: 'event.tabs.upcoming' },
+		{ value: 'past', label: 'event.tabs.past' },
+		{ value: 'community', label: 'event.tabs.community' }
+	];
+
+	const empty = $derived(
+		{
+			upcoming: { title: m('event.empty.upcomingTitle'), body: m('event.empty.upcomingBody'), cta: true },
+			past: { title: m('event.empty.pastTitle'), body: m('event.empty.pastBody'), cta: false },
+			community: { title: m('event.empty.communityTitle'), body: m('event.empty.communityBody'), cta: true }
+		}[data.tab]
 	);
 
-	// Calendar strip — 7 days starting from today
-	const now = new Date();
-	const calendarDays = Array.from(
-		{ length: 7 },
-		(_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
-	);
-
-	let selectedDay = $state(0);
-
-	const eventDates = $derived(
-		new Set(
-			// toDateString() drops the time of day, so no normalisation is needed.
-			events.upcoming.map((e) => new Date(e.scheduledAt).toDateString())
-		)
-	);
-
-	function dayHasEvent(d: Date) {
-		return eventDates.has(d.toDateString());
-	}
-
-	function formatTime(iso: string) {
-		return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-	}
-
-
-	async function rsvp(event: Event, status: 'ACCEPTED' | 'DECLINED') {
+	async function loadMore() {
+		if (!nextCursor) return;
+		loadingMore = true;
+		moreError = null;
 		try {
-			const updated = await eventsApi.rsvp(event.id, status);
-			events = {
-				upcoming: events.upcoming.map((e) => (e.id === updated.id ? updated : e)),
-				mine:
-					status === 'ACCEPTED'
-						? [...events.mine.filter((e) => e.id !== updated.id), updated]
-						: events.mine.filter((e) => e.id !== updated.id)
-			};
-		} catch {
-			toast.error('Could not update RSVP');
+			const page = await eventsApi.getCommunity({ cursor: nextCursor });
+			events = [...events, ...page.items];
+			nextCursor = page.hasMore ? page.nextCursor : null;
+		} catch (err) {
+			moreError = eventErrorMessage(err);
+		} finally {
+			loadingMore = false;
 		}
 	}
 </script>
 
-<svelte:head><title>Events — Meeple</title></svelte:head>
+<svelte:head><title>{m('event.page.metaTitle')} — Meeple</title></svelte:head>
 
-<!-- Page title -->
-<section class="mb-6 space-y-1">
-	<h2 class="text-3xl font-headline font-extrabold tracking-tight">Game Nights</h2>
-	<p class="text-on-surface-variant text-sm">Find your next adventure at a table near you.</p>
+<section class="mb-5 flex items-end justify-between gap-3">
+	<div class="space-y-1">
+		<h2 class="text-3xl font-headline font-extrabold tracking-tight">{m('event.page.title')}</h2>
+		<p class="text-on-surface-variant text-sm">{m('event.page.subtitle')}</p>
+	</div>
+	<a
+		href="/events/create"
+		class="flex-shrink-0 flex items-center gap-1 px-4 py-2 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-label font-bold shadow-md hover:scale-[1.02] transition-transform spring-bounce"
+	>
+		<span class="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+		{m('event.action.create')}
+	</a>
 </section>
 
-<!-- Calendar strip -->
-<section class="mb-6">
-	<div class="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-2">
-		{#each calendarDays as day, i (i)}
-			{@const isSelected = selectedDay === i}
-			{@const hasEvent = dayHasEvent(day)}
-			<button
-				onclick={() => (selectedDay = i)}
-				class="flex-shrink-0 w-16 h-24 rounded-xl flex flex-col items-center justify-center gap-1 transition-all spring-bounce
-					{isSelected
-						? 'bg-primary-container text-on-primary-container shadow-lg scale-105'
-						: 'bg-surface-container-lowest text-on-surface hover:bg-surface-container-low'}"
-			>
-				<span class="text-[10px] font-label font-bold uppercase tracking-widest opacity-80">
-					{day.toLocaleDateString('en-US', { weekday: 'short' })}
-				</span>
-				<span class="text-2xl font-extrabold font-headline">{day.getDate()}</span>
-				{#if hasEvent}
-					<div class="w-1.5 h-1.5 rounded-full {isSelected ? 'bg-on-primary-container' : 'bg-primary opacity-60'}"></div>
-				{:else}
-					<div class="w-1.5 h-1.5"></div>
-				{/if}
-			</button>
-		{/each}
-	</div>
-</section>
-
-<!-- Tabs -->
-<div class="flex items-center justify-between mb-6">
-	<div class="flex gap-2">
-		<button
-			onclick={() => (tab = 'upcoming')}
-			class="px-4 py-2 rounded-full text-sm font-label font-bold transition-colors {tab === 'upcoming' ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}"
-		>Upcoming</button>
-		<button
-			onclick={() => (tab = 'mine')}
-			class="px-4 py-2 rounded-full text-sm font-label font-bold transition-colors {tab === 'mine' ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}"
-		>My Events</button>
-	</div>
-	{#if tab === 'upcoming'}
-		<span class="text-sm font-label font-medium text-primary">{displayed.length} found</span>
-	{/if}
+<!-- List / Calendar toggle (SCREENS section 6.1) -->
+<div class="flex gap-1 bg-surface-container-low p-1 rounded-full mb-4 w-fit" role="group" aria-label={m('event.view.label')}>
+	{#each [{ value: 'list', icon: 'view_agenda', label: m('event.view.list') }, { value: 'calendar', icon: 'calendar_month', label: m('event.view.calendar') }] as opt (opt.value)}
+		<a
+			href={eventsViewHref(data.tab, opt.value === 'calendar' ? 'calendar' : 'list')}
+			aria-current={data.view === opt.value ? 'page' : undefined}
+			class="flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-label font-bold transition-colors
+				{data.view === opt.value ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}"
+		>
+			<span class="material-symbols-outlined text-[18px]" aria-hidden="true">{opt.icon}</span>
+			{opt.label}
+		</a>
+	{/each}
 </div>
 
-<!-- Event list -->
-{#if displayed.length === 0}
-	<div class="text-center py-16 text-on-surface-variant">
-		<span class="material-symbols-outlined text-5xl mb-3 block opacity-40">event</span>
-		<p class="font-semibold">No events yet</p>
-		<p class="text-sm mt-1">Create one or check back later!</p>
-	</div>
+{#if data.view === 'calendar'}
+	<MonthCalendar />
 {:else}
-	<div class="space-y-4">
-		{#each displayed as event (event.id)}
+	<nav class="flex gap-2 mb-5" aria-label={m('event.page.metaTitle')}>
+		{#each tabs as t (t.value)}
 			<a
-				href="/events/{event.id}"
-				class="group block bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden"
+				href={eventsViewHref(t.value, 'list')}
+				aria-current={data.tab === t.value ? 'page' : undefined}
+				class="px-4 py-2 rounded-full text-sm font-label font-bold transition-colors
+					{data.tab === t.value ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}"
 			>
-				<div class="flex gap-4 p-4">
-					<!-- Game image or date block -->
-					{#if event.game?.thumbnailUrl}
-						<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-							<img
-								src={event.game.thumbnailUrl}
-								alt={event.game.title}
-								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-							/>
-						</div>
-					{:else}
-						<div class="w-20 h-20 flex-shrink-0 bg-primary/10 rounded-lg flex flex-col items-center justify-center">
-							<p class="text-[10px] font-label font-bold uppercase text-primary">
-								{new Date(event.scheduledAt).toLocaleDateString('en-US', { month: 'short' })}
-							</p>
-							<p class="text-2xl font-extrabold font-headline text-primary leading-none">
-								{new Date(event.scheduledAt).getDate()}
-							</p>
-						</div>
-					{/if}
-
-					<!-- Details -->
-					<div class="flex-1 min-w-0">
-						<div class="flex items-start justify-between gap-2 mb-1">
-							<p class="font-bold text-on-surface line-clamp-1 flex-1">{event.title}</p>
-							<span class="flex-shrink-0 text-[10px] font-label font-bold px-2 py-0.5 rounded-full
-								{event.status === 'FULL' ? 'bg-error-container text-error' :
-								 event.status === 'OPEN' ? 'bg-tertiary-container/30 text-on-tertiary-container' :
-								 'bg-surface-container text-on-surface-variant'}">
-								{event.status}
-							</span>
-						</div>
-
-						<!-- Stats grid -->
-						<div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
-							<div class="flex items-center gap-1 text-[11px] text-on-surface-variant">
-								<span class="material-symbols-outlined text-[13px]">person</span>
-								<span class="truncate">{event.host.displayName ?? event.host.username}</span>
-							</div>
-							<div class="flex items-center gap-1 text-[11px] text-on-surface-variant">
-								<span class="material-symbols-outlined text-[13px]">group</span>
-								<span>{event.participantCount}/{event.maxParticipants}</span>
-							</div>
-							<div class="flex items-center gap-1 text-[11px] text-on-surface-variant">
-								<span class="material-symbols-outlined text-[13px]">schedule</span>
-								<span>{formatTime(event.scheduledAt)}</span>
-							</div>
-							{#if event.location}
-								<div class="flex items-center gap-1 text-[11px] text-on-surface-variant">
-									<span class="material-symbols-outlined text-[13px]">location_on</span>
-									<span class="truncate">{event.location}</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-				</div>
-
-				<!-- RSVP buttons -->
-				{#if event.myRsvp !== 'ACCEPTED' && event.status !== 'CANCELLED'}
-					<div class="flex gap-2 px-4 pb-4" role="presentation" onclick={(e) => e.preventDefault()}>
-						<button
-							onclick={() => rsvp(event, 'ACCEPTED')}
-							disabled={event.status === 'FULL'}
-							class="flex-1 py-2 rounded-xl text-sm font-label font-bold bg-primary text-on-primary disabled:opacity-40 transition-colors"
-						>Join</button>
-						{#if event.myRsvp === 'INVITED'}
-							<button
-								onclick={() => rsvp(event, 'DECLINED')}
-								class="flex-1 py-2 rounded-xl text-sm font-label font-bold bg-surface-container-high text-on-surface-variant"
-							>Decline</button>
-						{/if}
-					</div>
-				{:else if event.myRsvp === 'ACCEPTED'}
-					<p class="px-4 pb-4 text-xs font-label font-bold text-tertiary flex items-center gap-1">
-						<span class="icon-filled material-symbols-outlined text-[14px]">check_circle</span>
-						You're going
-					</p>
-				{/if}
+				{m(t.label)}
 			</a>
 		{/each}
-	</div>
+	</nav>
+
+	{#if data.loadFailed}
+		<div class="text-center py-16 text-on-surface-variant" role="alert">
+			<span class="material-symbols-outlined text-5xl mb-3 block opacity-40" aria-hidden="true">cloud_off</span>
+			<p class="font-semibold">{m('event.list.loadError')}</p>
+			<a href={eventsViewHref(data.tab, 'list')} class="inline-block mt-3 text-sm font-bold text-primary">
+				{m('common.retry')}
+			</a>
+		</div>
+	{:else if events.length === 0}
+		<div class="text-center py-16 text-on-surface-variant">
+			<span class="material-symbols-outlined text-5xl mb-3 block opacity-40" aria-hidden="true">event</span>
+			<p class="font-semibold">{empty.title}</p>
+			<p class="text-sm mt-1">{empty.body}</p>
+			{#if empty.cta}
+				<a
+					href="/events/create"
+					class="inline-block mt-4 px-5 py-2.5 rounded-full bg-primary text-on-primary text-sm font-label font-bold"
+				>
+					{m('event.action.create')}
+				</a>
+			{/if}
+		</div>
+	{:else}
+		<div class="space-y-4">
+			{#each events as event (event.id)}
+				<EventCard {event} muted={data.tab === 'past'} />
+			{/each}
+		</div>
+		{#if data.tab === 'community' && nextCursor}
+			<div class="mt-6 text-center">
+				<button
+					type="button"
+					onclick={loadMore}
+					disabled={loadingMore}
+					class="px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface text-sm font-label font-bold disabled:opacity-50 spring-bounce"
+				>
+					{loadingMore ? m('common.loading') : m('event.list.loadMore')}
+				</button>
+				{#if moreError}
+					<p class="mt-2 text-sm text-error" role="alert">{moreError}</p>
+				{/if}
+			</div>
+		{/if}
+	{/if}
 {/if}

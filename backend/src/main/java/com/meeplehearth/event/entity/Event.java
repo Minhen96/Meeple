@@ -38,6 +38,10 @@ public class Event {
     @Column(name = "location", length = 255)
     private String location;
 
+    /** Area or venue name shown on PUBLIC events to viewers who have not joined (V41). */
+    @Column(name = "location_display", length = 100)
+    private String locationDisplay;
+
     @Column(name = "location_lat", precision = 9, scale = 6)
     private java.math.BigDecimal locationLat;
 
@@ -57,6 +61,10 @@ public class Event {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EventStatus status = EventStatus.OPEN;
+
+    /** Set once the 24h reminder went out, or at creation when the event starts within 24h (V41). */
+    @Column(name = "reminder_sent", nullable = false)
+    private boolean reminderSent = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
