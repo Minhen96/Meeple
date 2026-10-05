@@ -8,6 +8,7 @@ describe('$lib/push barrel', () => {
 		expect(push.enablePush).toBe(fcm.enablePush);
 		expect(push.disablePush).toBe(fcm.disablePush);
 		expect(push.pushStatus).toBe(fcm.pushStatus);
+		expect(push.syncPushUser).toBe(fcm.syncPushUser);
 		expect(push.isPushConfigured).toBe(fcm.isPushConfigured);
 	});
 });

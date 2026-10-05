@@ -26,11 +26,16 @@ export function clearAiChatHistory() {
 }
 
 /**
- * Tear down all client-side session state: user store, WebSocket connection
- * and per-user local caches. Call on logout, account deletion and when the
- * session can no longer be refreshed.
+ * Tear down all client-side session state: user store, WebSocket connection,
+ * this browser's push token and per-user local caches. Call on logout, account
+ * deletion and when the session can no longer be refreshed.
+ *
+ * The push token is forgotten locally right away and removed from the account
+ * best-effort in the background (never awaited, never throws), so a later
+ * account on this browser does not inherit the previous user's pushes.
  */
 export function clearClientSession() {
+	void pushApi.unregister().catch(() => undefined);
 	setUser(null);
 	identifyUser(null);
 	disconnectWS();
