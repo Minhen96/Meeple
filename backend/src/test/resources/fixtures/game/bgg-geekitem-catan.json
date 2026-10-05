@@ -1,0 +1,37 @@
+{
+  "item": {
+    "objectid": "13",
+    "objecttype": "thing",
+    "subtype": "boardgame",
+    "name": "CATAN",
+    "href": "/boardgame/13/catan",
+    "yearpublished": "1995",
+    "minplayers": "3",
+    "maxplayers": "4",
+    "minplaytime": "60",
+    "maxplaytime": "120",
+    "minage": "10",
+    "description": "<p>In <b>CATAN</b>, players try to be the dominant force on the island.</p>\n",
+    "imageurl": "https://cf.geekdo-images.com/legacy.jpg",
+    "images": {
+      "thumb": "https://cf.geekdo-images.com/thumb.jpg",
+      "square200": "https://cf.geekdo-images.com/square200.jpg",
+      "previewthumb": "https://cf.geekdo-images.com/previewthumb.jpg",
+      "original": "https://cf.geekdo-images.com/original.jpg"
+    },
+    "links": {
+      "boardgamemechanic": [
+        {"name": "Dice Rolling", "objectid": "2072"},
+        {"name": "Trading", "objectid": "2008"},
+        {"name": "", "objectid": "1"}
+      ],
+      "boardgamecategory": [{"name": "Negotiation", "objectid": "1026"}],
+      "boardgamesubdomain": [{"name": "Strategy Games", "objectid": "5497"}, {"name": "Family Games", "objectid": "5499"}],
+      "boardgamedesigner": [{"name": "Klaus Teuber", "objectid": "11"}],
+      "boardgameartist": [{"name": "Michael Menzel", "objectid": "11883"}],
+      "boardgamepublisher": [{"name": "KOSMOS", "objectid": "37"}],
+      "boardgamehonor": [{"name": "1995 Spiel des Jahres Winner", "objectid": "8432"}],
+      "boardgameexpansion": [{"name": "Catan: Seafarers", "objectid": "325"}, {"name": "No id"}]
+    }
+  }
+}
