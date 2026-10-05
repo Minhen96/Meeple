@@ -95,8 +95,34 @@ jobs:
         run: pnpm run check
       - name: Lint
         run: pnpm run lint
-      - name: Unit tests
-        run: pnpm run test:unit
+      - name: Unit tests with coverage
+        run: pnpm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          node - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const path = 'coverage/coverage-summary.json';
+          if (!fs.existsSync(path)) {
+            console.log('No frontend coverage report generated.');
+          } else {
+            const { total } = JSON.parse(fs.readFileSync(path, 'utf8'));
+            console.log('### Frontend coverage (TypeScript modules)');
+            console.log('| Metric | Covered | Total | % |');
+            console.log('|---|---|---|---|');
+            for (const key of ['lines', 'branches', 'functions', 'statements']) {
+              const m = total[key];
+              console.log(`| ${key} | ${m.covered} | ${m.total} | ${m.pct}% |`);
+            }
+          }
+          EOF
+      - name: Upload coverage HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage
+          if-no-files-found: warn
       - name: Build
         run: pnpm run build
 
