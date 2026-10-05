@@ -151,6 +151,41 @@ class WebSocketSessionRevokerTest {
         }
     }
 
+    @Test
+    void expirySweepClosesOnlySessionsWhoseTokenHasExpired() throws Exception {
+        UUID alice = UUID.randomUUID();
+        long t = now.get().toEpochMilli();
+        WebSocketSession expiring = open("expiring", t);
+        expiring.getAttributes().put(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR, t + 1_000);
+        WebSocketSession live = open("live", t);
+        live.getAttributes().put(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR, t + 120_000);
+        WebSocketSession unauthenticated = open("unauthenticated", null);
+        connected("expiring", alice);
+        connected("live", alice);
+
+        revoker.closeExpiredSessions();
+        verify(expiring, never()).close(any());
+
+        now.set(now.get().plusSeconds(1));
+        revoker.closeExpiredSessions();
+
+        verify(expiring).close(WebSocketSessionRevoker.TOKEN_EXPIRED);
+        verify(live, never()).close(any());
+        verify(unauthenticated, never()).close(any());
+    }
+
+    @Test
+    void expirySweepSkipsSessionsAlreadyClosed() throws Exception {
+        long t = now.get().toEpochMilli();
+        WebSocketSession closing = open("closing", t);
+        closing.getAttributes().put(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR, t);
+        when(closing.isOpen()).thenReturn(false);
+
+        revoker.closeExpiredSessions();
+
+        verify(closing, never()).close(any());
+    }
+
     @Configuration
     @EnableTransactionManagement
     static class TxConfig {
