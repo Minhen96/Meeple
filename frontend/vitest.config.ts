@@ -22,7 +22,8 @@ const stub = (name: string) => fileURLToPath(new URL(`./src/test/stubs/${name}`,
  * (*.svelte.test.ts) run in jsdom.
  */
 export default defineConfig({
-	plugins: [svelte({ hot: false }), svelteTesting()],
+	// Auto-cleanup is registered in src/test/setup.ts for component tests only.
+	plugins: [svelte({ hot: false }), svelteTesting({ autoCleanup: false })],
 	resolve: {
 		alias: {
 			$lib: fileURLToPath(new URL('./src/lib', import.meta.url)),

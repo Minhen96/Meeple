@@ -178,7 +178,10 @@ const cases: Case[] = [
 	['users.deleteMe sends body', () => usersApi.deleteMe({ confirm: 'DELETE' }), 'DELETE', '/api/v1/users/me', { confirm: 'DELETE' }],
 	['users.changeEmail', () => usersApi.changeEmail('pw', 'n@e.w'), 'POST', '/api/v1/users/me/change-email', { currentPassword: 'pw', newEmail: 'n@e.w' }],
 	['users.requestExport', () => usersApi.requestExport(), 'GET', '/api/v1/users/me/export'],
-	['users.getStats', () => usersApi.getStats('u1'), 'GET', '/api/v1/users/u1/stats']
+	['users.getStats', () => usersApi.getStats('u1'), 'GET', '/api/v1/users/u1/stats'],
+	['users.searchUsers encodes the query', () => usersApi.searchUsers('a&b c'), 'GET', '/api/v1/users/search?q=a%26b+c&page=0&size=20'],
+	['users.searchUsers paged', () => usersApi.searchUsers('ann', 2, 5), 'GET', '/api/v1/users/search?q=ann&page=2&size=5'],
+	['users.getSuggestions', () => usersApi.getSuggestions(), 'GET', '/api/v1/users/suggestions?limit=10']
 ];
 
 describe('endpoint contracts', () => {
@@ -279,12 +282,19 @@ describe('response mapping', () => {
 		expect(lastCall(fetchMock).path).toBe('/api/v1/search?q=ann&limit=5&type=users');
 	});
 
-	it('posts.getUserPosts / getComments unwrap the {data, meta} page', async () => {
+	it('posts.getUserPosts unwraps the {data, meta} page', async () => {
 		fetchMock = installFetch(() => jsonResponse(200, { data: [{ id: 'p1' }], meta: { total: 1 } }));
 		await expect(postsApi.getUserPosts('u1')).resolves.toEqual([{ id: 'p1' }]);
 		expect(lastCall(fetchMock).path).toBe('/api/v1/users/u1/posts?page=0&size=20');
-		await expect(postsApi.getComments('p1', 1, 5)).resolves.toEqual([{ id: 'p1' }]);
-		expect(lastCall(fetchMock).path).toBe('/api/v1/posts/p1/comments?page=1&size=5');
+	});
+
+	it('posts.getComments is cursor-paginated', async () => {
+		const pageBody = { items: [{ id: 'c1' }], nextCursor: 'n', hasMore: true };
+		fetchMock = installFetch(() => jsonResponse(200, pageBody));
+		await expect(postsApi.getComments('p1')).resolves.toEqual(pageBody);
+		expect(lastCall(fetchMock).path).toBe('/api/v1/posts/p1/comments?limit=20');
+		await postsApi.getComments('p1', 'n', 5);
+		expect(lastCall(fetchMock).path).toBe('/api/v1/posts/p1/comments?limit=5&cursor=n');
 	});
 
 	it('unwraps the generic {data} ApiResponse envelope', async () => {

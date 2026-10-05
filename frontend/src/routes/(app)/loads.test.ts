@@ -226,31 +226,40 @@ describe('library loads', () => {
 });
 
 describe('post detail load', () => {
-	it('returns post + comments and reads ?edit=1', async () => {
+	const commentPage = (items: unknown[], nextCursor: string | null) => ({ items, nextCursor, hasMore: nextCursor !== null });
+
+	it('returns post + first comment page with its cursor, and reads ?edit=1', async () => {
 		apis.posts.getPost.mockResolvedValue({ id: 'p1' });
-		apis.posts.getComments.mockResolvedValue([{ id: 'c1' }]);
+		apis.posts.getComments.mockResolvedValue(commentPage([{ id: 'c1' }], 'c2'));
 		const { data } = await run(post.load, { path: '/posts/p1?edit=1', params: { postId: 'p1' } });
-		expect(data).toMatchObject({ post: { id: 'p1' }, comments: [{ id: 'c1' }], editRequested: true });
-		expect(apis.posts.getComments).toHaveBeenCalledWith('p1', 0, 50, { fetch: fetchFn });
+		expect(data).toMatchObject({ post: { id: 'p1' }, comments: [{ id: 'c1' }], commentsCursor: 'c2', editRequested: true });
+		expect(apis.posts.getComments).toHaveBeenCalledWith('p1', null, 20, { fetch: fetchFn });
+	});
+
+	it('no cursor when there are no more comments', async () => {
+		apis.posts.getPost.mockResolvedValue({ id: 'p1' });
+		apis.posts.getComments.mockResolvedValue({ items: [], nextCursor: 'stale', hasMore: false });
+		const { data } = await run(post.load, { params: { postId: 'p1' } });
+		expect(data?.commentsCursor).toBeNull();
 	});
 
 	it('comments failing still renders the post', async () => {
 		apis.posts.getPost.mockResolvedValue({ id: 'p1' });
 		apis.posts.getComments.mockRejectedValue(apiError(500));
 		const { data } = await run(post.load, { params: { postId: 'p1' } });
-		expect(data).toMatchObject({ comments: [], editRequested: false });
+		expect(data).toMatchObject({ comments: [], commentsCursor: null, editRequested: false });
 	});
 
 	it('a 404 renders the "removed" state instead of an error page', async () => {
 		apis.posts.getPost.mockRejectedValue(apiError(404));
-		apis.posts.getComments.mockResolvedValue([]);
+		apis.posts.getComments.mockResolvedValue(commentPage([], null));
 		const { data } = await run(post.load, { path: '/posts/p1?edit=1', params: { postId: 'p1' } });
-		expect(data).toEqual({ user: ME, post: null, comments: [], editRequested: false });
+		expect(data).toEqual({ user: ME, post: null, comments: [], commentsCursor: null, editRequested: false });
 	});
 
 	it('other errors go through throwLoadError', async () => {
 		apis.posts.getPost.mockRejectedValue(apiError(401));
-		apis.posts.getComments.mockResolvedValue([]);
+		apis.posts.getComments.mockResolvedValue(commentPage([], null));
 		const { thrown } = await run(post.load, { path: '/posts/p1', params: { postId: 'p1' } });
 		expect(isRedirect(thrown)).toBe(true);
 	});

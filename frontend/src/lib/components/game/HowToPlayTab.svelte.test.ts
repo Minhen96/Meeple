@@ -5,6 +5,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError } from '$lib/api/client';
+import { errorMessage } from '$lib/i18n';
 import { setUser } from '$lib/stores/auth';
 import type { HowToPlayApiResponse, RulebookStatus, User } from '$lib/types';
 import type { HowToPlayProgressMessage } from '$lib/stores/websocket';
@@ -211,14 +212,14 @@ describe('HowToPlayTab', () => {
 			h.htp.generate.mockRejectedValueOnce(new ApiRequestError('RATE_LIMITED', 'slow', 429, 30));
 			render(HowToPlayTab, { gameId: 'g1' });
 			await userEvent.click(await screen.findByRole('button'));
-			await waitFor(() => expect(h.toast.error).toHaveBeenCalled());
+			await waitFor(() => expect(h.toast.error).toHaveBeenCalledWith(errorMessage('RATE_LIMITED')));
 			expect(screen.queryByRole('alert')).toBeNull();
 			expect(screen.getByRole('button')).toBeInTheDocument();
 
 			h.htp.generate.mockRejectedValueOnce(new ApiRequestError('REFRESH_UNAVAILABLE', 'Could not reach the server', 0));
 			await userEvent.click(screen.getByRole('button'));
 			expect(await screen.findByRole('alert')).toBeInTheDocument();
-			expect(h.toast.error).toHaveBeenLastCalledWith('Could not reach the server');
+			expect(h.toast.error).toHaveBeenLastCalledWith(errorMessage('REFRESH_UNAVAILABLE'));
 		});
 
 		it('polls as a fallback when WS frames are missed', async () => {
