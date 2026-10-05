@@ -11,6 +11,10 @@ spring:
     redis:
       url: ${REDIS_URL:redis://localhost:6379}
 
+  # Work packages merge in any order, so a higher migration may land before a lower one.
+  flyway:
+    out-of-order: true
+
   mail:
     host: localhost
     port: 1025

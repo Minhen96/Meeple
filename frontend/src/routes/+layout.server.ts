@@ -7,6 +7,7 @@ import {
 	refreshSession,
 	type ParsedSetCookie
 } from '$lib/api/server';
+import { DEFAULT_LOCALE } from '$lib/i18n';
 import type { User } from '$lib/types';
 import type { LayoutServerLoad } from './$types';
 
@@ -51,7 +52,17 @@ function deleteAuthCookies(cookies: Cookies, backendCookies: ParsedSetCookie[]) 
 	}
 }
 
-export const load: LayoutServerLoad = async ({ cookies, url, fetch, locals }) => {
+export const load: LayoutServerLoad = async (event) => {
+	const session = await loadSession(event);
+	return { ...session, locale: event.locals.locale ?? DEFAULT_LOCALE };
+};
+
+async function loadSession({
+	cookies,
+	url,
+	fetch,
+	locals
+}: Parameters<LayoutServerLoad>[0]): Promise<{ user: User | null }> {
 	const isPublic = PUBLIC_PREFIXES.some((p) => url.pathname.startsWith(p));
 	const accessToken = cookies.get(ACCESS_TOKEN_COOKIE);
 	const refreshToken = cookies.get(REFRESH_TOKEN_COOKIE);
@@ -123,4 +134,4 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch, locals }) =>
 	}
 
 	return { user };
-};
+}

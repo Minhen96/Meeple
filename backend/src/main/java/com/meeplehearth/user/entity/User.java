@@ -68,6 +68,26 @@ public class User {
     @Column(name = "token_version", nullable = false)
     private int tokenVersion = 0;
 
+    /** BoardGameGeek username used for collection import. */
+    @Column(name = "bgg_username", length = 50)
+    private String bggUsername;
+
+    /** Verified badge (set by admins); unrelated to {@link #emailVerified}. */
+    @Column(name = "is_verified", nullable = false)
+    private boolean verified = false;
+
+    /** Last username change; enforces the change cooldown. Null if never changed. */
+    @Column(name = "username_changed_at")
+    private Instant usernameChangedAt;
+
+    /** UI and notification language: "en" or "zh-CN". */
+    @Column(name = "preferred_language", nullable = false, length = 10)
+    private String preferredLanguage = "en";
+
+    /** IANA time zone (for example "Asia/Kuala_Lumpur"); null means unknown, treat as UTC. */
+    @Column(name = "timezone", length = 50)
+    private String timezone;
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();

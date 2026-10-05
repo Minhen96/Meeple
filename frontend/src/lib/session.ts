@@ -1,3 +1,4 @@
+import { identifyUser } from '$lib/observability';
 import { setUser } from '$lib/stores/auth';
 import { disconnectWS } from '$lib/stores/websocket';
 
@@ -29,6 +30,7 @@ export function clearAiChatHistory() {
  */
 export function clearClientSession() {
 	setUser(null);
+	identifyUser(null);
 	disconnectWS();
 	clearAiChatHistory();
 }

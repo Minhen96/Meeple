@@ -18,6 +18,8 @@ public class AppProperties {
     private Ai ai = new Ai();
     private Seed seed = new Seed();
     private Storage storage = new Storage();
+    private Fcm fcm = new Fcm();
+    private Bgg bgg = new Bgg();
 
     public Jwt getJwt() {
         return jwt;
@@ -275,5 +277,27 @@ public class AppProperties {
             public String getModel() { return model; }
             public void setModel(String v) { this.model = v; }
         }
+    }
+
+    public Fcm getFcm() { return fcm; }
+    public void setFcm(Fcm f) { this.fcm = f; }
+
+    /** Firebase Cloud Messaging. A blank service account disables push sending (no-op). */
+    public static class Fcm {
+        private String serviceAccountJson = "";
+        public String getServiceAccountJson() { return serviceAccountJson; }
+        public void setServiceAccountJson(String v) { this.serviceAccountJson = v; }
+        public boolean isEnabled() { return serviceAccountJson != null && !serviceAccountJson.isBlank(); }
+    }
+
+    public Bgg getBgg() { return bgg; }
+    public void setBgg(Bgg b) { this.bgg = b; }
+
+    /** BoardGameGeek. xmlapi2/collection requires a registered application token. */
+    public static class Bgg {
+        private String apiToken = "";
+        public String getApiToken() { return apiToken; }
+        public void setApiToken(String v) { this.apiToken = v; }
+        public boolean hasApiToken() { return apiToken != null && !apiToken.isBlank(); }
     }
 }

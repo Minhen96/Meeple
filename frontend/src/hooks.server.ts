@@ -5,9 +5,18 @@ import {
 	REFRESH_TOKEN_COOKIE,
 	buildForwardedCookieHeader
 } from '$lib/api/server';
+import { LOCALE_COOKIE, detectLocale, isLocale } from '$lib/i18n';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	return resolve(event);
+	const cookieLocale = event.cookies.get(LOCALE_COOKIE);
+	const locale = isLocale(cookieLocale)
+		? cookieLocale
+		: detectLocale(event.request.headers.get('accept-language'));
+	event.locals.locale = locale;
+
+	return resolve(event, {
+		transformPageChunk: ({ html }) => html.replace('%lang%', locale)
+	});
 };
 
 /**

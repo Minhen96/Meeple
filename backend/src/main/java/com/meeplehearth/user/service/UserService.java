@@ -3,6 +3,7 @@ package com.meeplehearth.user.service;
 import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
 import com.meeplehearth.common.dto.PageResponse;
+import com.meeplehearth.common.event.UserSoftDeletedEvent;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.dto.UpdateProfileRequest;
@@ -68,6 +69,8 @@ public class UserService {
         refreshTokenRepository.deleteByUserId(userId);
         // Closes the user's open WebSocket sessions once the soft-delete commits
         eventPublisher.publishEvent(new UserSessionsRevokedEvent(userId));
+        // Each package cleans up its own data after the soft-delete commits
+        eventPublisher.publishEvent(new UserSoftDeletedEvent(userId));
     }
 
     public PageResponse<UserProfileResponse> search(String q, int page, int size) {

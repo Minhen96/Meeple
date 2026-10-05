@@ -61,12 +61,14 @@ A board game community + recording app. Stack: SvelteKit + Tailwind (frontend), 
 
 ## Development Phases — Do Not Skip Ahead
 
-- **Phase 1 (current):** Auth (email + Google OAuth), Game Library (BGG), Collection, Posts, Events
-- **Phase 2:** Matching, Notifications (WS + FCM), Social graph (friend requests), i18n
-- **Phase 3:** AI assistant (RAG + conversation), Flutter mobile
-- **Phase 4:** Stories, DMs, leaderboards
+- **Phase 1 (in progress):** Auth (email + Google OAuth), Game Library (BGG), Collection, Posts, Events
+- **Phase 2 (in progress):** Matching, Notifications (WS + FCM), Social graph (friend requests), i18n
+- **Phase 3 (in progress):** AI assistant (RAG + conversation), Flutter mobile
+- **Phase 4 (not started — needs a spec first):** Stories, DMs, leaderboards
 
-Only implement what the current phase requires. Do not add Phase 2+ code during Phase 1.
+**Current state:** the owner directed completion of all unfinished Phase 1–3 work, so Phases 1–3 are
+in progress concurrently, split into work packages in `docs/GAP_ANALYSIS.md` §5 (shared contracts in
+§6). Do not add Phase 4 code until it has been specified and confirmed.
 
 ---
 
