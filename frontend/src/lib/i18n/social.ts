@@ -25,9 +25,6 @@ export default {
 	'home.moreMatches': '+{count} more',
 	'home.upcomingTitle': 'Upcoming Events',
 	'home.viewCalendar': 'View Calendar',
-	'home.players': '{count}/{max} players',
-	'home.full': 'Full',
-	'home.open': 'Open',
 	'home.feedTitle': 'Activity Feed',
 
 	// Feed

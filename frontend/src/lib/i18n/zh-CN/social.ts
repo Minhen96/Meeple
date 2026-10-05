@@ -21,9 +21,6 @@ export default {
 	'home.moreMatches': '还有 {count} 个',
 	'home.upcomingTitle': '即将开始的活动',
 	'home.viewCalendar': '查看日历',
-	'home.players': '{count}/{max} 名玩家',
-	'home.full': '已满',
-	'home.open': '可加入',
 	'home.feedTitle': '动态',
 
 	'feed.loadingMore': '正在加载更多…',

@@ -69,6 +69,10 @@ class PostFeaturesIntegrationTest extends ApiIntegrationTestBase {
         assertThat(sessions.get(0).postId()).isEqualTo(postId);
 
         assertThat(notifications(friend, "POST_TAG")).isEqualTo(1);
+        assertThat(string("SELECT data ->> 'gameName' FROM notifications WHERE recipient_id = ? AND type = 'POST_TAG'",
+                friend)).isEqualTo("IT Game");
+        assertThat(string("SELECT data ->> 'path' FROM notifications WHERE recipient_id = ? AND type = 'POST_TAG'",
+                friend)).isEqualTo("/posts/" + postId);
         assertThat(notifications(author, "POST_TAG")).isZero();
         assertThat(notifications(blocker, "POST_TAG")).isZero();
     }
@@ -238,6 +242,8 @@ class PostFeaturesIntegrationTest extends ApiIntegrationTestBase {
         assertThat(comment.get("editedAt").isNull()).isTrue();
 
         assertThat(notifications(mentioned, "COMMENT_MENTION")).isEqualTo(1);
+        assertThat(string("SELECT data ->> 'commentId' FROM notifications WHERE recipient_id = ? AND type = 'COMMENT_MENTION'",
+                mentioned)).isEqualTo(comment.get("id").asText());
         assertThat(notifications(commenter, "COMMENT_MENTION")).isZero();
         assertThat(notifications(author, "COMMENT_MENTION")).isZero();
         assertThat(notifications(author, "POST_COMMENT")).isEqualTo(1);

@@ -2,6 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import PostCard from '$lib/components/social/PostCard.svelte';
+	import EventCardCompact from '$lib/components/event/EventCardCompact.svelte';
 	import ActivityItem from '$lib/components/social/ActivityItem.svelte';
 	import PostCardSkeleton from '$lib/components/social/PostCardSkeleton.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
@@ -13,7 +14,7 @@
 	} from '$lib/components/social/cursorPager';
 	import { daysUntil, greetingKey } from '$lib/components/social/format';
 	import { postsApi } from '$lib/api/posts';
-	import { getLocale, m } from '$lib/i18n';
+	import { m } from '$lib/i18n';
 	import type { FeedItem, MatchGroup } from '$lib/types';
 	import type { PageData } from './$types';
 
@@ -85,13 +86,7 @@
 		pager?.update((items) => items.filter((i) => !(i.kind === 'post' && i.post.id === postId)));
 	}
 
-	function formatDay(iso: string) {
-		return new Date(iso).toLocaleDateString(getLocale(), { weekday: 'short' }).toUpperCase();
-	}
 
-	function formatDate(iso: string) {
-		return new Date(iso).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
-	}
 </script>
 
 <svelte:head>
@@ -140,42 +135,7 @@
 			</div>
 			<div class="hide-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
 				{#each data.upcomingEvents.slice(0, 6) as event (event.id)}
-					<a
-						href="/events/{event.id}"
-						class="spring-bounce w-[42%] min-w-48 flex-shrink-0 rounded-xl bg-surface-container-low p-4 shadow-sm"
-					>
-						<div class="mb-3 flex items-start justify-between">
-							<span
-								class="rounded bg-secondary-container px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-tight text-on-secondary-container"
-							>
-								{formatDay(event.scheduledAt)}
-							</span>
-							<span class="font-label text-[10px] text-on-surface-variant"
-								>{formatDate(event.scheduledAt)}</span
-							>
-						</div>
-						<h4 class="mb-1 line-clamp-1 text-sm font-bold text-on-surface">{event.title}</h4>
-						{#if event.game}
-							<p class="mb-3 line-clamp-1 text-xs text-on-surface-variant">{event.game.title}</p>
-						{:else}
-							<div class="mb-3"></div>
-						{/if}
-						<div class="flex items-center justify-between">
-							<span class="font-label text-[10px] font-bold text-on-surface-variant">
-								{m('social.home.players', {
-									count: event.participantCount,
-									max: event.maxParticipants
-								})}
-							</span>
-							<span
-								class="font-label text-[10px] font-bold {event.status === 'FULL'
-									? 'text-error'
-									: 'text-tertiary'}"
-							>
-								{m(event.status === 'FULL' ? 'social.home.full' : 'social.home.open')}
-							</span>
-						</div>
-					</a>
+					<EventCardCompact {event} />
 				{/each}
 			</div>
 		</section>

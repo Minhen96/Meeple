@@ -15,6 +15,7 @@ import com.meeplehearth.feed.service.FeedCursor;
 import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.notification.entity.Notification;
+import com.meeplehearth.notification.service.NotificationMessageFactory;
 import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.post.dto.CreateCommentRequest;
 import com.meeplehearth.post.dto.CreatePostRequest;
@@ -398,7 +399,7 @@ public class PostService {
         if (!userId.equals(postAuthorId)) {
             notificationService.send(postAuthorId, Notification.NotificationType.POST_COMMENT, userId, postId, "POST");
         }
-        notifyMentions(post, userId, MentionParser.usernames(saved.getBody()));
+        notifyMentions(post, saved.getId(), userId, MentionParser.usernames(saved.getBody()));
 
         return PostCommentResponse.from(saved);
     }
@@ -421,7 +422,7 @@ public class PostService {
 
         Set<String> newMentions = new LinkedHashSet<>(MentionParser.usernames(saved.getBody()));
         newMentions.removeAll(before);
-        notifyMentions(saved.getPost(), userId, newMentions);
+        notifyMentions(saved.getPost(), saved.getId(), userId, newMentions);
         return PostCommentResponse.from(saved);
     }
 
@@ -522,10 +523,13 @@ public class PostService {
     }
 
     private void notifyTagged(Post post, UUID authorId, List<User> tagged) {
+        Map<String, Object> extra = post.getGame() != null && post.getGame().getNameEn() != null
+                ? Map.of(NotificationMessageFactory.GAME_NAME, post.getGame().getNameEn())
+                : Map.of();
         for (User user : tagged) {
             if (!user.getId().equals(authorId)) {
                 notificationService.send(user.getId(), Notification.NotificationType.POST_TAG, authorId,
-                        post.getId(), "POST");
+                        post.getId(), "POST", extra);
             }
         }
     }
@@ -534,7 +538,7 @@ public class PostService {
      * Notifies mentioned users who exist, are not the commenter or the post author (who already
      * gets POST_COMMENT), and are not blocked either way with the commenter or the post author.
      */
-    private void notifyMentions(Post post, UUID commenterId, Set<String> usernames) {
+    private void notifyMentions(Post post, UUID commentId, UUID commenterId, Set<String> usernames) {
         if (usernames.isEmpty()) {
             return;
         }
@@ -545,7 +549,7 @@ public class PostService {
             UUID id = user.getId();
             if (!id.equals(commenterId) && !id.equals(postAuthorId) && !hidden.contains(id)) {
                 notificationService.send(id, Notification.NotificationType.COMMENT_MENTION, commenterId,
-                        post.getId(), "POST");
+                        post.getId(), "POST", Map.of("commentId", commentId.toString()));
             }
         }
     }

@@ -11,8 +11,4 @@ public record CursorPage<T>(List<T> items, String nextCursor, boolean hasMore) {
     public CursorPage {
         items = List.copyOf(items);
     }
-
-    public static <T> CursorPage<T> empty() {
-        return new CursorPage<>(List.of(), null, false);
-    }
 }
