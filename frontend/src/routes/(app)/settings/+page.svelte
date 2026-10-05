@@ -142,7 +142,7 @@
 </div>
 
 <div class="space-y-6">
-	{#each sections as section}
+	{#each sections as section (section.title)}
 		<div>
 			<p
 				class="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant px-1 mb-2"

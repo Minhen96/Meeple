@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { SvelteSet } from "svelte/reactivity";
 	import ProgressBar from "$lib/components/ui/ProgressBar.svelte";
 	import { rulebookApi } from "$lib/api/rulebook";
 	import { adminApi } from "$lib/api/admin";
@@ -18,9 +19,8 @@
 
 	interface Props {
 		gameId: string;
-		onOpenAssistant: () => void;
 	}
-	let { gameId, onOpenAssistant }: Props = $props();
+	let { gameId }: Props = $props();
 
 	const isAdmin = $derived($currentUser?.isAdmin ?? false);
 
@@ -36,18 +36,19 @@
 	let myQueuePosition: number | null = $state(null);
 
 	// How-to-play content
-	type HowToPlayState = "idle" | "loading" | "generating" | "ready" | "error";
+	type HowToPlayState = "idle" | "loading" | "generating" | "ready" | "failed" | "error";
 	let howToPlayState: HowToPlayState = $state("idle");
 	let howToPlayData: HowToPlayContent | null = $state(null);
 	let howToPlaySourceMode: string | null = $state(null);
 	let howToPlayDisclaimer: string | null = $state(null);
 	let howToPlayRulebookUrl: string | null = $state(null);
 	let howToPlayProgress: number = $state(0);
+	let howToPlayErrorMessage: string | null = $state(null);
 	let rulebookPollInterval: ReturnType<typeof setInterval> | null = null;
 	let unsubscribeHtp: (() => void) | null = null;
 
 	// FAQ expand state
-	let expandedFaq = $state<Set<number>>(new Set());
+	const expandedFaq = new SvelteSet<number>();
 
 	// File input refs
 	let fileInput: HTMLInputElement = $state() as HTMLInputElement;
@@ -62,11 +63,18 @@
 	let deletingNote = $state(false);
 
 	const HTP_POLL_MS = 5000;
-	/** Consecutive "not_generated" polls before we treat generation as failed. */
-	const HTP_MAX_NOT_GENERATED = 3;
+	/**
+	 * Safety net: if the backend still reports "not_generated" this long after we
+	 * started tracking a generation, assume the job was lost and offer a retry.
+	 */
+	const HTP_NOT_GENERATED_TIMEOUT_MS = 2 * 60 * 1000;
+	const HTP_FAILED_FALLBACK = "Could not generate the guide. Please try again.";
 
 	let destroyed = false;
 	let htpPollInterval: ReturnType<typeof setInterval> | null = null;
+	// True while POST /generate is in flight: until the backend has accepted the
+	// new job, a REST "failed" status may still describe the previous attempt.
+	let htpGenerateRequestPending = false;
 	// Bumped on every start/stop so late async callbacks from an older run are ignored.
 	let htpGeneration = 0;
 
@@ -121,6 +129,8 @@
 				howToPlayState = "generating";
 				howToPlayProgress = res.progress ?? 0;
 				startHtpTracking();
+			} else if (res.status === "failed") {
+				showHtpFailed(res.errorMessage);
 			} else {
 				// not_generated
 				howToPlayState = "idle";
@@ -148,9 +158,15 @@
 		htpPollInterval = null;
 	}
 
-	function failHtp() {
+	function showHtpFailed(message: string | null | undefined) {
+		howToPlayErrorMessage = message?.trim() ? message : HTP_FAILED_FALLBACK;
+		howToPlayState = "failed";
+	}
+
+	/** Terminal generation failure: stop polling, unsubscribe, offer a retry. */
+	function failHtp(message?: string | null) {
 		stopHtpTracking();
-		howToPlayState = "error";
+		showHtpFailed(message);
 	}
 
 	async function loadReadyHtp(generation: number) {
@@ -160,6 +176,8 @@
 			if (res.status === "ready" && res.data) {
 				stopHtpTracking();
 				applyHowToPlayReady(res);
+			} else if (res.status === "failed") {
+				failHtp(res.errorMessage);
 			}
 		} catch {
 			if (!destroyed && generation === htpGeneration) failHtp();
@@ -182,12 +200,12 @@
 				howToPlayProgress = Math.max(howToPlayProgress, msg.progress);
 			} else if (msg.status === "ready") {
 				void loadReadyHtp(generation);
-			} else if (msg.status === "error") {
-				failHtp();
+			} else if (msg.status === "failed" || msg.status === "error") {
+				failHtp(msg.errorMessage);
 			}
 		});
 
-		let notGeneratedStreak = 0;
+		const startedAt = Date.now();
 		htpPollInterval = setInterval(async () => {
 			try {
 				const res = await howToPlayApi.get(gameId);
@@ -195,12 +213,16 @@
 				if (res.status === "ready" && res.data) {
 					stopHtpTracking();
 					applyHowToPlayReady(res);
+				} else if (res.status === "failed") {
+					if (!htpGenerateRequestPending) failHtp(res.errorMessage);
 				} else if (res.status === "generating") {
-					notGeneratedStreak = 0;
 					if (res.progress !== null) {
 						howToPlayProgress = Math.max(howToPlayProgress, res.progress);
 					}
-				} else if (++notGeneratedStreak >= HTP_MAX_NOT_GENERATED) {
+				} else if (
+					res.status === "not_generated" &&
+					Date.now() - startedAt > HTP_NOT_GENERATED_TIMEOUT_MS
+				) {
 					failHtp();
 				}
 			} catch {
@@ -212,16 +234,22 @@
 	async function handleGenerateHowToPlay() {
 		howToPlayState = "generating";
 		howToPlayProgress = 0;
+		howToPlayErrorMessage = null;
 		// Subscribe first so a fast "ready" message can't be missed.
 		startHtpTracking();
+		htpGenerateRequestPending = true;
 		try {
 			const res = await howToPlayApi.generate(gameId);
+			htpGenerateRequestPending = false;
 			if (destroyed) return;
 			if (res?.status === "ready" && res.data) {
 				stopHtpTracking();
 				applyHowToPlayReady(res);
+			} else if (res?.status === "failed") {
+				failHtp(res.errorMessage);
 			}
 		} catch (err) {
+			htpGenerateRequestPending = false;
 			stopHtpTracking();
 			if (destroyed) return;
 			if (err instanceof ApiRequestError && err.status === 429) {
@@ -266,7 +294,7 @@
 			if (result.status === "pending_review") {
 				// User uploads must be approved by an admin before they go live.
 				rulebookState = "pending_review";
-				myQueuePosition = null;
+				myQueuePosition = result.queuePosition ?? null;
 				toast.success("Submitted for review. Rules will appear once an admin approves it.");
 			} else if (result.status === "ingesting") {
 				rulebookState = "generating";
@@ -344,10 +372,8 @@
 	}
 
 	function toggleFaq(i: number) {
-		const next = new Set(expandedFaq);
-		if (next.has(i)) next.delete(i);
-		else next.add(i);
-		expandedFaq = next;
+		if (expandedFaq.has(i)) expandedFaq.delete(i);
+		else expandedFaq.add(i);
 	}
 </script>
 
@@ -392,7 +418,7 @@
 	<!-- Rulebook status section -->
 	{#if rulebookState === "loading"}
 		<div class="space-y-6">
-			{#each [1, 2, 3] as _}
+			{#each [1, 2, 3] as n (n)}
 				<div class="space-y-3 animate-pulse">
 					<div class="flex items-center gap-3">
 						<div
@@ -532,7 +558,7 @@
 			</div>
 		{:else if howToPlayState === "loading"}
 			<div class="space-y-5">
-				{#each [1, 2, 3] as _}
+				{#each [1, 2, 3] as n (n)}
 					<div
 						class="rounded-2xl bg-surface-container-low/40 p-5 space-y-3 animate-pulse"
 					>
@@ -629,7 +655,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">What's in the Box</h3>
 					</div>
 					<div class="pl-12 flex flex-wrap gap-2">
-						{#each howToPlayData.components as comp}
+						{#each howToPlayData.components as comp, i (i)}
 							<span class="text-xs bg-surface-container-high text-on-surface px-3 py-1.5 rounded-xl font-medium">
 								{comp.quantity ? `${comp.quantity}× ` : ""}{comp.name}
 							</span>
@@ -657,7 +683,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Resources</h3>
 					</div>
 					<div class="pl-12 space-y-3">
-						{#each howToPlayData.resources as resource}
+						{#each howToPlayData.resources as resource, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{resource.name}</p>
 								{#if resource.usedFor}
@@ -688,7 +714,7 @@
 						{/if}
 						{#if howToPlayData.cardSystem.cardTypes?.length}
 							<div class="space-y-2">
-								{#each howToPlayData.cardSystem.cardTypes as ct}
+								{#each howToPlayData.cardSystem.cardTypes as ct, i (i)}
 									<div>
 										<p class="text-sm font-bold text-on-surface">{ct.name}</p>
 										<p class="text-xs text-on-surface-variant leading-relaxed">{ct.description}</p>
@@ -724,7 +750,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Player Roles</h3>
 					</div>
 					<div class="pl-12 space-y-3">
-						{#each howToPlayData.roles.list as role}
+						{#each howToPlayData.roles.list as role, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{role.name}</p>
 								<p class="text-xs text-on-surface-variant leading-relaxed">{role.abilities}</p>
@@ -745,7 +771,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Actions</h3>
 					</div>
 					<div class="pl-12 space-y-3">
-						{#each howToPlayData.actions as action}
+						{#each howToPlayData.actions as action, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{action.name}{#if action.type}<span class="text-xs font-normal text-on-surface-variant"> · {action.type}</span>{/if}</p>
 								{#if action.cost}
@@ -771,7 +797,7 @@
 						{#if howToPlayData.gameStructure.turnOrder}
 							<p class="text-xs text-on-surface-variant leading-relaxed">{howToPlayData.gameStructure.turnOrder}</p>
 						{/if}
-						{#each howToPlayData.gameStructure.phases as phase, i}
+						{#each howToPlayData.gameStructure.phases as phase, i (i)}
 							<div class="relative pl-5">
 								<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center">
 									<span class="text-[8px] font-black text-secondary">{i + 1}</span>
@@ -782,7 +808,7 @@
 								{/if}
 								{#if phase.actions?.length}
 									<ul class="mt-1.5 space-y-0.5">
-										{#each phase.actions as action}
+										{#each phase.actions as action, j (j)}
 											<li class="text-xs text-on-surface-variant flex items-start gap-1.5">
 												<span class="material-symbols-outlined text-[10px] mt-0.5 text-secondary/60">arrow_forward</span>
 												{action}
@@ -815,7 +841,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Special Rules</h3>
 					</div>
 					<div class="pl-12 space-y-3">
-						{#each howToPlayData.rules.specialRules as rule}
+						{#each howToPlayData.rules.specialRules as rule, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{rule.name}</p>
 								<p class="text-xs text-on-surface-variant leading-relaxed">{rule.description}</p>
@@ -844,7 +870,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Variants</h3>
 					</div>
 					<div class="pl-12 space-y-3">
-						{#each howToPlayData.variants as variant}
+						{#each howToPlayData.variants as variant, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{variant.name}</p>
 								<p class="text-xs text-on-surface-variant leading-relaxed">{variant.description}</p>
@@ -862,7 +888,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Scoring</h3>
 					</div>
 					<div class="pl-12 space-y-1">
-						{#each howToPlayData.scoring.methods as method}
+						{#each howToPlayData.scoring.methods as method, i (i)}
 							<div class="flex justify-between items-center text-sm py-1.5 px-2 rounded-lg even:bg-surface-container-low">
 								<span class="text-on-surface">{method.item}</span>
 								<span class="font-bold text-primary text-xs">{method.points}</span>
@@ -909,7 +935,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Tips for New Players</h3>
 					</div>
 					<ul class="pl-12 space-y-2">
-						{#each howToPlayData.tips as tip}
+						{#each howToPlayData.tips as tip, i (i)}
 							<li class="flex items-start gap-2 text-sm text-on-surface leading-relaxed">
 								<span class="material-symbols-outlined text-[14px] mt-0.5 text-secondary flex-shrink-0">check_circle</span>
 								{tip}
@@ -927,7 +953,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">FAQ</h3>
 					</div>
 					<div class="space-y-2">
-						{#each howToPlayData.faq as item, i}
+						{#each howToPlayData.faq as item, i (i)}
 							<div class="rounded-2xl bg-surface-container-low overflow-hidden">
 								<button
 									onclick={() => toggleFaq(i)}
@@ -968,7 +994,7 @@
 						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Community Notes</h3>
 					</div>
 					<div class="space-y-3 pl-12">
-						{#each approvedNotes as note}
+						{#each approvedNotes as note (note.id)}
 							<div class="rounded-xl bg-surface-container-low p-3 space-y-1.5">
 								<p class="text-sm text-on-surface leading-relaxed whitespace-pre-line">{note.content}</p>
 								<p class="text-[10px] text-on-surface-variant">by @{note.submittedByUsername}</p>
@@ -1056,6 +1082,30 @@
 					</a>
 				</div>
 			{/if}
+		{:else if howToPlayState === "failed"}
+			<div
+				class="rounded-3xl bg-surface-container-low p-8 flex flex-col items-center text-center gap-4"
+				role="alert"
+			>
+				<div
+					class="w-16 h-16 rounded-2xl bg-error/10 flex items-center justify-center text-error"
+				>
+					<span class="material-symbols-outlined text-[36px]">error</span>
+				</div>
+				<div class="space-y-1">
+					<h3 class="font-bold text-on-surface">Guide generation failed</h3>
+					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
+						{howToPlayErrorMessage ?? HTP_FAILED_FALLBACK}
+					</p>
+				</div>
+				<button
+					onclick={handleGenerateHowToPlay}
+					class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
+				>
+					<span class="material-symbols-outlined text-[18px]">refresh</span>
+					Retry
+				</button>
+			</div>
 		{:else if howToPlayState === "error"}
 			<div
 				class="rounded-2xl bg-surface-container-low p-5 text-center"
@@ -1110,21 +1160,6 @@
 		</div>
 	{/if}
 
-	<!-- AI Assistant CTA -->
-	<!-- <button
-		onclick={onOpenAssistant}
-		class="w-full bg-tertiary-container/30 rounded-3xl p-6 flex flex-col items-center text-center gap-3 mt-4 hover:bg-tertiary-container/40 transition-colors"
-	>
-		<div class="w-12 h-12 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary">
-			<span class="material-symbols-outlined">smart_toy</span>
-		</div>
-		<div class="space-y-1">
-			<h4 class="font-bold text-on-tertiary-container">Still have questions?</h4>
-			<p class="text-[11px] text-on-tertiary-container/70 leading-relaxed px-4">
-				Our AI Assistant can answer specific edge cases and unusual situations.
-			</p>
-		</div>
-	</button> -->
 </div>
 
 <style>

@@ -18,7 +18,7 @@
 	class="fixed bottom-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]"
 >
 	<div class="flex justify-around items-center px-4 pb-safe pt-2 max-w-lg mx-auto">
-		{#each navItems as item}
+		{#each navItems as item (item.href)}
 			<a
 				href={item.href}
 				class="flex flex-col items-center gap-0.5 p-3 transition-all spring-bounce duration-300 rounded-full {isActive(item.href)

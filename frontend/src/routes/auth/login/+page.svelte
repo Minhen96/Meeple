@@ -2,9 +2,6 @@
 	import Button from "$lib/components/ui/Button.svelte";
 	import GoogleButton from "$lib/components/ui/GoogleButton.svelte";
 	import { api, ApiRequestError } from "$lib/api/client";
-	import { goto } from "$app/navigation";
-	import { page } from "$app/stores";
-	import AppBar from "$lib/components/layout/AppBar.svelte";
 
 	let emailOrUsername = $state("");
 	let password = $state("");

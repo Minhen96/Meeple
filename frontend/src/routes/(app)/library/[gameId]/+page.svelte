@@ -74,30 +74,7 @@
 		}
 	}
 
-	async function remove() {
-		if (!myEntry) return;
-		saving = true;
-		try {
-			await gamesApi.removeFromCollection(game.id);
-			myEntry = null;
-			notesValue = "";
-			toast.success("Removed from collection");
-		} catch {
-			toast.error("Could not remove");
-		} finally {
-			saving = false;
-		}
-	}
 
-	async function logPlay() {
-		try {
-			myEntry = await gamesApi.logPlay(game.id);
-			playLogs = await gamesApi.getPlays(game.id);
-			toast.success("Play logged!");
-		} catch {
-			toast.error("Could not log play");
-		}
-	}
 
 	async function setRating(rating: number) {
 		try {
@@ -191,7 +168,7 @@
 
 <!-- Stats bar -->
 <div class="grid grid-cols-3 gap-2 mb-5">
-	{#each [{ label: "Players", value: game.minPlayers && game.maxPlayers ? `${game.minPlayers}–${game.maxPlayers}` : game.minPlayers ? `${game.minPlayers}+` : "—", icon: "group" }, { label: "Time", value: game.playTime ? `${game.playTime}m` : "—", icon: "timer" }, { label: "Complexity", value: game.complexityWeight ? game.complexityWeight.toFixed(1) : "—", icon: "psychology" }] as stat}
+	{#each [{ label: "Players", value: game.minPlayers && game.maxPlayers ? `${game.minPlayers}–${game.maxPlayers}` : game.minPlayers ? `${game.minPlayers}+` : "—", icon: "group" }, { label: "Time", value: game.playTime ? `${game.playTime}m` : "—", icon: "timer" }, { label: "Complexity", value: game.complexityWeight ? game.complexityWeight.toFixed(1) : "—", icon: "psychology" }] as stat (stat.label)}
 		<div class="bg-surface-container-low rounded-xl p-3 text-center">
 			<span
 				class="material-symbols-outlined text-on-surface-variant text-[16px]"
@@ -243,7 +220,7 @@
 
 <!-- Collection action buttons + AI -->
 <div class="flex gap-2 mb-2">
-	{#each ["isFavorited", "isOwned"] as const as flag}
+	{#each ["isFavorited", "isOwned"] as const as flag (flag)}
 		<button
 			onclick={() => toggle(flag)}
 			disabled={saving}
@@ -273,7 +250,7 @@
 
 <!-- Tabs -->
 <div class="mt-6 flex gap-6 mb-4">
-	{#each detailTabs as tab}
+	{#each detailTabs as tab (tab.id)}
 		<button
 			onclick={() => (activeTab = tab.id)}
 			class="relative pb-3 text-sm font-bold transition-colors {activeTab ===
@@ -326,7 +303,7 @@
 				Categories
 			</p>
 			<div class="flex flex-wrap gap-2">
-				{#each game.categories! as cat}
+				{#each game.categories! as cat, i (i)}
 					<span
 						class="text-xs font-medium bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full"
 						>{cat}</span
@@ -345,7 +322,7 @@
 				Mechanics
 			</p>
 			<div class="flex flex-wrap gap-2">
-				{#each game.mechanics! as mech}
+				{#each game.mechanics! as mech, i (i)}
 					<span
 						class="text-xs font-medium bg-surface-container-high text-on-surface px-3 py-1 rounded-full"
 						>{mech}</span
@@ -364,7 +341,7 @@
 				Awards
 			</p>
 			<div class="space-y-1">
-				{#each game.honors! as honor}
+				{#each game.honors! as honor, i (i)}
 					<div class="flex items-center gap-2">
 						<span
 							class="icon-filled material-symbols-outlined text-amber-400 text-[14px]"
@@ -399,7 +376,7 @@
 				<div
 					class="absolute left-1.5 top-0 bottom-0 w-px bg-outline-variant/30"
 				></div>
-				{#each playLogs as log, i}
+				{#each playLogs as log, i (log.id)}
 					<div class="relative mb-3 last:mb-0">
 						<div
 							class="absolute -left-[14px] top-1 w-2.5 h-2.5 rounded-full bg-primary {i ===
@@ -431,7 +408,7 @@
 			My Rating
 		</p>
 		<div class="flex gap-1.5">
-			{#each Array.from({ length: 10 }, (_, i) => i + 1) as n}
+			{#each Array.from({ length: 10 }, (_, i) => i + 1) as n (n)}
 				<button
 					onclick={() =>
 						setRating(myEntry?.personalRating === n ? 0 : n)}
@@ -486,7 +463,7 @@
 
 	<!-- Details tab -->
 {:else if activeTab === "howtoplay"}
-	<HowToPlayTab gameId={game.id} onOpenAssistant={() => (showAssistant = true)} />
+	<HowToPlayTab gameId={game.id} />
 {:else}
 	<!-- Details tab -->
 	<!-- Designers & Publishers -->
@@ -498,7 +475,7 @@
 				Designers
 			</p>
 			<div class="flex flex-wrap gap-2">
-				{#each game.designers! as d}
+				{#each game.designers! as d, i (i)}
 					<span
 						class="text-xs font-medium bg-surface-container-high text-on-surface px-3 py-1 rounded-full"
 						>{d}</span
@@ -516,7 +493,7 @@
 				Publishers
 			</p>
 			<div class="flex flex-wrap gap-2">
-				{#each game.publishers!.slice(0, 5) as p}
+				{#each game.publishers!.slice(0, 5) as p, i (i)}
 					<span
 						class="text-xs font-medium bg-surface-container-high text-on-surface px-3 py-1 rounded-full"
 						>{p}</span
@@ -535,7 +512,7 @@
 				Genre
 			</p>
 			<div class="flex flex-wrap gap-2">
-				{#each game.families! as f}
+				{#each game.families! as f, i (i)}
 					<span
 						class="text-xs font-medium bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full"
 						>{f}</span

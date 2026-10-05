@@ -212,7 +212,7 @@
 			bind:this={scrollContainer}
 			class="flex-1 overflow-y-auto p-4 space-y-6 bg-surface-container-lowest/30"
 		>
-			{#each messages as msg, i}
+			{#each messages as msg, i (i)}
 				<div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
 					<div class="max-w-[85%] space-y-1">
 						<div class="

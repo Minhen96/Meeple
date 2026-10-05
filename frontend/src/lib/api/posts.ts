@@ -1,5 +1,5 @@
 import { api, type ApiOptions } from './client';
-import type { ApiResponse, Comment, Post } from '$lib/types';
+import type { Comment, Post } from '$lib/types';
 
 // Backend returns PageResponse<T> = { data: T[], meta: { page, limit, total, hasMore } }
 interface PagedResponse<T> {

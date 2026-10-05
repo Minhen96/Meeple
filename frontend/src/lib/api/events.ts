@@ -1,5 +1,5 @@
 import { api, type ApiOptions } from './client';
-import type { ApiResponse, Event } from '$lib/types';
+import type { Event } from '$lib/types';
 
 export interface CreateEventPayload {
 	title: string;

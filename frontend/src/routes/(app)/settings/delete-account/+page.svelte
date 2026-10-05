@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
 	import { usersApi } from '$lib/api/users';
 	import { clearClientSession } from '$lib/session';
 	import { goto } from '$app/navigation';

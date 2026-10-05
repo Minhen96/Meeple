@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import { goto } from '$app/navigation';
 </script>
 
 <svelte:head><title>Import Collection — Meeple</title></svelte:head>

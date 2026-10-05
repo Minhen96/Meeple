@@ -190,7 +190,7 @@
 	{#if loading && items.length === 0}
 		<!-- Skeleton -->
 		<div class="space-y-3">
-			{#each [1, 2, 3] as _}
+			{#each [1, 2, 3] as n (n)}
 				<div class="bg-surface-container-low rounded-2xl p-4 animate-pulse space-y-3">
 					<div class="h-4 w-2/3 rounded-full bg-surface-container-high"></div>
 					<div class="h-3 w-1/3 rounded-full bg-surface-container-high"></div>
@@ -292,7 +292,7 @@
 	<!-- Rule Notes Tab -->
 	{#if notesLoading && noteItems.length === 0}
 		<div class="space-y-3">
-			{#each [1, 2, 3] as _}
+			{#each [1, 2, 3] as n (n)}
 				<div class="bg-surface-container-low rounded-2xl p-4 animate-pulse space-y-3">
 					<div class="h-4 w-2/3 rounded-full bg-surface-container-high"></div>
 					<div class="h-3 w-full rounded-full bg-surface-container-high"></div>

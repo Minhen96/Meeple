@@ -3,7 +3,7 @@
 	import { ApiRequestError } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { fade, fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	let title = $state('');
 	let description = $state('');
@@ -180,7 +180,7 @@
 					Visibility Setup
 				</p>
 				<div class="grid grid-cols-1 gap-3">
-					{#each visibilityOptions as opt}
+					{#each visibilityOptions as opt (opt.value)}
 						<button
 							type="button"
 							onclick={() => (visibility = opt.value)}

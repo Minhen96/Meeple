@@ -39,7 +39,7 @@
 	<header class="flex items-center justify-between px-6 py-4 max-w-lg mx-auto w-full">
 		{#if showSteps}
 			<div class="flex gap-2">
-				{#each steps as _, i}
+				{#each steps as _, i (i)}
 					<div
 						class="w-2 h-2 rounded-full transition-colors {i <= currentStep ? 'bg-primary' : 'bg-surface-container-highest'}"
 					></div>

@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { RulebookQueueItem, RulebookQueuePage, RuleNoteQueuePage } from '$lib/types';
+import type { RulebookQueuePage, RuleNoteQueuePage } from '$lib/types';
 
 export const adminApi = {
 	getRulebookQueue: (status = 'pending_review', page = 0, size = 20): Promise<RulebookQueuePage> =>

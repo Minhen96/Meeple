@@ -128,7 +128,7 @@
 	<div class="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
 		<!-- Mini action buttons (shown when open) -->
 		{#if fabOpen}
-			{#each fabActions as item}
+			{#each fabActions as item (item.label)}
 				<button
 					onclick={() => handleAction(item.action)}
 					class="flex items-center gap-2 pr-3 pl-2 py-2 rounded-full bg-surface-container-highest text-on-surface shadow-md text-sm font-bold transition-all"

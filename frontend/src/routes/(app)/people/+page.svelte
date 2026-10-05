@@ -62,7 +62,7 @@
 {#if searchQuery.trim()}
 	{#if loading && searchResults.length === 0}
 		<div class="space-y-4">
-			{#each Array(3) as _}
+			{#each Array(3) as _, i (i)}
 				<div class="h-16 bg-surface-container-low rounded-xl animate-pulse"></div>
 			{/each}
 		</div>
@@ -73,7 +73,7 @@
 		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each searchResults as user}
+			{#each searchResults as user (user.id)}
 				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
 					<a href="/profile/{user.id}" onclick={() => handleUserClick(user)}>
 						<Avatar src={user.avatarUrl} size="sm" />
@@ -109,7 +109,7 @@
 				</button>
 			</div>
 			<div class="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide">
-				{#each $peopleSearchHistory as user}
+				{#each $peopleSearchHistory as user (user.id)}
 					<div class="flex flex-col items-center gap-1.5 min-w-[72px] relative group">
 						<button 
 							onclick={() => peopleSearchHistory.remove(user.id)}
@@ -136,13 +136,13 @@
 	</h3>
 	{#if suggestions.length === 0}
 		<div class="space-y-2">
-			{#each Array(3) as _}
+			{#each Array(3) as _, i (i)}
 				<div class="h-16 bg-surface-container-low rounded-xl animate-pulse"></div>
 			{/each}
 		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each suggestions as user}
+			{#each suggestions as user (user.id)}
 				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
 					<a href="/profile/{user.id}" onclick={() => handleUserClick(user)}><Avatar src={user.avatarUrl} size="sm" /></a>
 					<div class="flex-1 min-w-0">

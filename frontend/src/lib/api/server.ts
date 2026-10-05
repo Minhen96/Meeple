@@ -92,8 +92,9 @@ export function parseSetCookie(header: string): ParsedSetCookie | null {
 				cookie.domain = val;
 				break;
 			case 'max-age': {
-				const n = Number(val);
-				if (Number.isFinite(n)) cookie.maxAge = n;
+				// Strict integer only: Number('') === 0 would turn a malformed
+				// `Max-Age=` into a deletion.
+				if (/^-?\d+$/.test(val)) cookie.maxAge = Number(val);
 				break;
 			}
 			case 'expires': {
@@ -117,44 +118,66 @@ export function parseSetCookie(header: string): ParsedSetCookie | null {
 	return cookie;
 }
 
-export interface RefreshResult {
-	/** Cookies the backend asked to set (rotated access + refresh tokens). */
-	cookies: ParsedSetCookie[];
-	accessToken: string | null;
-	refreshToken: string | null;
+/** Backend error code for a refresh token that was rotated moments ago by a concurrent refresh. */
+export const REFRESH_RACE_CODE = 'REFRESH_RACE';
+
+export type RefreshResult =
+	/** Tokens rotated; `cookies` carries the new access + refresh cookies. */
+	| { kind: 'refreshed'; cookies: ParsedSetCookie[]; accessToken: string | null; refreshToken: string | null }
+	/** Refresh token rejected (401/403); `cookies` carries any deletions the backend sent. */
+	| { kind: 'rejected'; cookies: ParsedSetCookie[] }
+	/** 409 REFRESH_RACE: a concurrent refresh already rotated the token; no cookie changes. */
+	| { kind: 'race' }
+	/** Backend unreachable or errored; `cookies` carries any Set-Cookie it still sent. */
+	| { kind: 'unavailable'; cookies: ParsedSetCookie[] };
+
+async function readErrorCode(res: Response): Promise<string | null> {
+	try {
+		const body = (await res.json()) as { code?: unknown };
+		return typeof body.code === 'string' ? body.code : null;
+	} catch {
+		return null;
+	}
 }
 
-/**
- * POST /api/v1/auth/refresh with an explicit refresh token cookie.
- * Returns null if the backend rejected the token or was unreachable.
- */
+/** POST /api/v1/auth/refresh with an explicit refresh token cookie. */
 export async function refreshSession(
 	fetchFn: FetchFn,
 	refreshToken: string
-): Promise<RefreshResult | null> {
+): Promise<RefreshResult> {
+	let res: Response;
 	try {
-		const res = await fetchFn(`${API_BASE_URL}/api/v1/auth/refresh`, {
+		res = await fetchFn(`${API_BASE_URL}/api/v1/auth/refresh`, {
 			method: 'POST',
 			headers: {
 				Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken}`,
 				'Content-Type': 'application/json'
 			}
 		});
-		if (!res.ok) return null;
+	} catch {
+		return { kind: 'unavailable', cookies: [] };
+	}
 
-		const cookies = getSetCookies(res.headers)
-			.map(parseSetCookie)
-			.filter((c): c is ParsedSetCookie => c !== null);
+	// Parsed for every status: a rejected refresh (e.g. reuse detection) clears
+	// the cookies with Max-Age=0, and those deletions must reach the browser.
+	const cookies = getSetCookies(res.headers)
+		.map(parseSetCookie)
+		.filter((c): c is ParsedSetCookie => c !== null);
 
+	if (res.ok) {
 		const find = (name: string) => cookies.find((c) => c.name === name)?.value || null;
 		return {
+			kind: 'refreshed',
 			cookies,
 			accessToken: find(ACCESS_TOKEN_COOKIE),
 			refreshToken: find(REFRESH_TOKEN_COOKIE)
 		};
-	} catch {
-		return null;
 	}
+	if (res.status === 409 && (await readErrorCode(res)) === REFRESH_RACE_CODE) {
+		return { kind: 'race' };
+	}
+	if (res.status === 401 || res.status === 403) return { kind: 'rejected', cookies };
+	return { kind: 'unavailable', cookies };
 }
 
 /**

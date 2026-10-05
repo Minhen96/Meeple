@@ -113,7 +113,7 @@
 
 {#if loading}
 	<div class="space-y-3">
-		{#each Array(5) as _}
+		{#each Array(5) as _, i (i)}
 			<div class="h-16 bg-surface-container-low rounded-xl animate-pulse"></div>
 		{/each}
 	</div>

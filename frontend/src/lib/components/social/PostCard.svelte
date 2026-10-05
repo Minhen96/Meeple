@@ -84,7 +84,7 @@
 	{#if post.imageUrls.length > 0}
 		<div class="relative group -mt-2">
 			<div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
-				{#each post.imageUrls as url}
+				{#each post.imageUrls as url, i (i)}
 					<div class="flex-shrink-0 w-full aspect-square snap-center">
 						<img src={url} alt="Post" class="w-full h-full object-cover" loading="lazy" />
 					</div>
@@ -92,7 +92,7 @@
 			</div>
 			{#if post.imageUrls.length > 1}
 				<div class="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
-					{#each post.imageUrls as _, i}
+					{#each post.imageUrls as _, i (i)}
 						<div class="w-1.5 h-1.5 rounded-full bg-white/40 ring-1 ring-black/5 shadow-sm"></div>
 					{/each}
 				</div>
@@ -108,8 +108,7 @@
 
 		{#if post.caption}
 			<p class="text-sm text-on-surface leading-snug">
-				<a href="/profile/{post.author.id}" class="font-bold hover:underline">{post.author.displayName ?? post.author.username}</a>
-				{' '}{post.caption}
+				<a href="/profile/{post.author.id}" class="font-bold hover:underline">{post.author.displayName ?? post.author.username}</a> {post.caption}
 			</p>
 		{/if}
 

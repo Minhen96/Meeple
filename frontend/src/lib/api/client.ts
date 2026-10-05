@@ -12,6 +12,10 @@ const REFRESH_PATH = '/api/v1/auth/refresh';
  */
 const AUTH_PREFIX = '/api/v1/auth/';
 const REFRESH_LOCK = 'meeple-refresh';
+/** Backend code (HTTP 409) for a refresh token that a concurrent refresh rotated moments ago. */
+const REFRESH_RACE_CODE = 'REFRESH_RACE';
+/** How long to let the winning refresh's Set-Cookie land before retrying. */
+const REFRESH_RACE_RETRY_MS = 300;
 
 export class ApiRequestError extends Error {
 	constructor(
@@ -38,7 +42,48 @@ interface RequestOptions extends RequestInit {
 	fetch?: FetchFn;
 }
 
-type RefreshOutcome = 'refreshed' | 'expired' | 'unavailable';
+/**
+ * 'race': the backend answered 409 REFRESH_RACE — another refresh (another tab,
+ * an SSR request) already rotated this token. Its response updates the shared
+ * cookies, so wait briefly and retry; this is never treated as an expiry.
+ */
+type RefreshOutcome = 'refreshed' | 'expired' | 'unavailable' | 'race';
+
+// ── Session-refreshed listeners ──────────────────────────────────────────────
+// Lets other modules (e.g. the WebSocket store) react to fresh cookies without
+// client.ts importing them (avoids an import cycle).
+
+const refreshListeners = new Set<() => void>();
+
+/** Run `listener` whenever a token refresh succeeds. Returns an unsubscribe function. */
+export function onSessionRefreshed(listener: () => void): () => void {
+	refreshListeners.add(listener);
+	return () => {
+		refreshListeners.delete(listener);
+	};
+}
+
+function notifyRefreshed() {
+	refreshListeners.forEach((listener) => {
+		try {
+			listener();
+		} catch {
+			// a listener failing must not break the request that refreshed
+		}
+	});
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+async function isRefreshRace(res: Response): Promise<boolean> {
+	if (res.status !== 409) return false;
+	try {
+		const body = (await res.json()) as Partial<ApiError>;
+		return body.code === REFRESH_RACE_CODE;
+	} catch {
+		return false;
+	}
+}
 
 // ── Refresh single-flight ────────────────────────────────────────────────────
 // In-tab: concurrent 401s share one refresh promise.
@@ -57,6 +102,7 @@ async function callRefresh(fetchFn: FetchFn): Promise<RefreshOutcome> {
 			headers: { 'Content-Type': 'application/json' }
 		});
 		if (res.ok) return 'refreshed';
+		if (await isRefreshRace(res)) return 'race';
 		// Only an explicit rejection of the refresh token ends the session.
 		if (res.status === 401 || res.status === 403) return 'expired';
 		return 'unavailable';
@@ -99,9 +145,14 @@ function refreshSingleFlight(
 	probe: () => Promise<boolean>
 ): Promise<RefreshOutcome> {
 	if (!inflightRefresh) {
-		inflightRefresh = refreshUnderLock(fetchFn, probe).finally(() => {
-			inflightRefresh = null;
-		});
+		inflightRefresh = refreshUnderLock(fetchFn, probe)
+			.then((outcome) => {
+				if (outcome === 'refreshed') notifyRefreshed();
+				return outcome;
+			})
+			.finally(() => {
+				inflightRefresh = null;
+			});
 	}
 	return inflightRefresh;
 }
@@ -109,6 +160,7 @@ function refreshSingleFlight(
 /** Test hook — resets module-level refresh state. */
 export function __resetRefreshStateForTests() {
 	inflightRefresh = null;
+	refreshListeners.clear();
 }
 
 // ── Core request ─────────────────────────────────────────────────────────────
@@ -212,7 +264,14 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
 				0
 			);
 		}
-		res = probed.res ?? (await doFetch());
+		if (outcome === 'race') {
+			// The winner's Set-Cookie may still be landing; give it a moment. A
+			// still-failing retry surfaces as a normal 401 error, not a logout.
+			await sleep(REFRESH_RACE_RETRY_MS);
+			res = await doFetch();
+		} else {
+			res = probed.res ?? (await doFetch());
+		}
 	}
 
 	if (!res.ok) throw await parseError(res);
@@ -223,6 +282,26 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
 	const text = await res.text();
 	if (!text) return undefined as T;
 	return normalizeBody(JSON.parse(text)) as T;
+}
+
+export type SessionCheck = 'ok' | 'expired' | 'unavailable';
+
+/**
+ * Make sure the browser holds a valid access cookie, refreshing it if needed
+ * (via the normal 401 → single-flight refresh path), e.g. before opening a
+ * WebSocket whose upgrade request authenticates with that cookie.
+ *
+ * 'expired' means the refresh token itself was rejected: the client session
+ * has already been cleared. 'unavailable' covers network/server errors.
+ */
+export async function ensureSession(): Promise<SessionCheck> {
+	try {
+		await request<unknown>('/api/v1/users/me', { method: 'GET' });
+		return 'ok';
+	} catch (err) {
+		if (err instanceof ApiRequestError && err.code === 'SESSION_EXPIRED') return 'expired';
+		return 'unavailable';
+	}
 }
 
 function encodeBody(body: unknown): BodyInit | undefined {

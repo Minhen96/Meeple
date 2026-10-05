@@ -6,7 +6,7 @@
 	import { ApiRequestError } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { fade, fly, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import type { GameSearchResult, User } from '$lib/types';
@@ -188,7 +188,7 @@
 				</button>
 			{:else}
 				<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-					{#each previews as url, i}
+					{#each previews as url, i (url)}
 						<div class="relative flex-shrink-0 w-32 aspect-square rounded-2xl overflow-hidden shadow-sm group">
 							<img src={url} alt="Preview" class="w-full h-full object-cover" />
 							<button 
@@ -224,7 +224,7 @@
 			></textarea>
 			
 			<div class="flex flex-wrap gap-2 pt-2">
-				{#each quickTags as tag}
+				{#each quickTags as tag (tag)}
 					<button
 						type="button"
 						onclick={() => toggleTag(tag)}
@@ -330,7 +330,7 @@
 			</div>
 
 			<div class="max-h-64 overflow-y-auto space-y-2 pr-1 pb-10">
-				{#each gameResults as game}
+				{#each gameResults as game (game.bggId)}
 					<button 
 						onclick={() => { taggedGame = game; showGameSearch = false; }}
 						class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-surface-container transition-colors"
@@ -363,7 +363,7 @@
 				{#if friendsList.length === 0}
 					<p class="text-center py-12 text-sm text-on-surface-variant opacity-50">No friends found</p>
 				{:else}
-					{#each friendsList as friend}
+					{#each friendsList as friend (friend.id)}
 						<button 
 							onclick={() => toggleFriend(friend)}
 							class="w-full flex items-center justify-between p-3 rounded-2xl transition-colors

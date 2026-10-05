@@ -93,7 +93,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Type check
         run: pnpm run check
+      - name: Lint
+        run: pnpm run lint
       - name: Unit tests
-        run: pnpm exec vitest run --passWithNoTests
+        run: pnpm run test:unit
       - name: Build
         run: pnpm run build

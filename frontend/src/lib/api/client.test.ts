@@ -15,7 +15,8 @@ vi.mock('$lib/session', () => ({ clearClientSession: clearSessionMock }));
 const BASE = 'http://api.test';
 vi.stubEnv('VITE_API_URL', BASE);
 
-const { api, ApiRequestError, __resetRefreshStateForTests } = await import('./client');
+const { api, ApiRequestError, __resetRefreshStateForTests, ensureSession, onSessionRefreshed } =
+	await import('./client');
 
 function json(status: number, body: unknown = {}): Response {
 	return new Response(JSON.stringify(body), {
@@ -236,5 +237,130 @@ describe('refresh single-flight', () => {
 		await expect(api.get('/a', { fetch: fetchMock })).rejects.toMatchObject({ status: 401 });
 		expect(refreshCalls()).toBe(0);
 		expect(gotoMock).not.toHaveBeenCalled();
+	});
+});
+
+describe('refresh race (409 REFRESH_RACE)', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('waits briefly and retries the original request instead of logging out', async () => {
+		vi.useFakeTimers();
+		let winnerCookiesLanded = false;
+		const fetchMock = vi.fn<FetchArgs, Promise<Response>>(async (input) => {
+			if (urlOf(input).endsWith('/api/v1/auth/refresh')) {
+				// Another tab won the rotation; its Set-Cookie lands shortly after.
+				setTimeout(() => (winnerCookiesLanded = true), 100);
+				return json(409, { error: 'Refresh raced', code: 'REFRESH_RACE' });
+			}
+			return winnerCookiesLanded ? json(200, { ok: true }) : json(401);
+		});
+
+		const pending = api.get<{ ok: boolean }>('/a', { fetch: fetchMock });
+		await vi.advanceTimersByTimeAsync(300);
+
+		await expect(pending).resolves.toEqual({ ok: true });
+		expect(clearSessionMock).not.toHaveBeenCalled();
+		expect(gotoMock).not.toHaveBeenCalled();
+	});
+
+	it('surfaces a plain 401 (no logout) if the retry still fails', async () => {
+		vi.useFakeTimers();
+		const fetchMock = vi.fn<FetchArgs, Promise<Response>>(async (input) =>
+			urlOf(input).endsWith('/api/v1/auth/refresh')
+				? json(409, { code: 'REFRESH_RACE' })
+				: json(401, { error: 'Unauthorized', code: 'UNAUTHORIZED' })
+		);
+
+		const pending = api.get('/a', { fetch: fetchMock }).catch((e: unknown) => e);
+		await vi.advanceTimersByTimeAsync(300);
+		const err = await pending;
+
+		expect(err).toMatchObject({ status: 401, code: 'UNAUTHORIZED' });
+		expect(clearSessionMock).not.toHaveBeenCalled();
+	});
+
+	it('treats a 409 without the REFRESH_RACE code as unavailable', async () => {
+		const fetchMock = vi.fn<FetchArgs, Promise<Response>>(async (input) =>
+			urlOf(input).endsWith('/api/v1/auth/refresh') ? json(409, { code: 'OTHER' }) : json(401)
+		);
+
+		await expect(api.get('/a', { fetch: fetchMock })).rejects.toMatchObject({
+			code: 'REFRESH_UNAVAILABLE'
+		});
+		expect(clearSessionMock).not.toHaveBeenCalled();
+	});
+});
+
+describe('onSessionRefreshed', () => {
+	it('notifies listeners once per successful refresh, not on failure', async () => {
+		const listener = vi.fn();
+		onSessionRefreshed(listener);
+		let refreshed = false;
+		const ok = vi.fn<FetchArgs, Promise<Response>>(async (input) => {
+			if (urlOf(input).endsWith('/api/v1/auth/refresh')) {
+				refreshed = true;
+				return json(200);
+			}
+			return refreshed ? json(200) : json(401);
+		});
+
+		await Promise.all([api.get('/a', { fetch: ok }), api.get('/b', { fetch: ok })]);
+		expect(listener).toHaveBeenCalledTimes(1);
+
+		const failing = vi.fn<FetchArgs, Promise<Response>>(async (input) =>
+			urlOf(input).endsWith('/api/v1/auth/refresh') ? json(503) : json(401)
+		);
+		await api.get('/c', { fetch: failing }).catch(() => undefined);
+		expect(listener).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('ensureSession', () => {
+	it("returns 'ok' when the access cookie is valid", async () => {
+		const fetchMock = vi.fn<FetchArgs, Promise<Response>>(async () => json(200, { id: 'u1' }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		await expect(ensureSession()).resolves.toBe('ok');
+		expect(urlOf(fetchMock.mock.calls[0][0])).toBe(`${BASE}/api/v1/users/me`);
+	});
+
+	it("refreshes an expired access cookie and returns 'ok'", async () => {
+		let refreshed = false;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<FetchArgs, Promise<Response>>(async (input) => {
+				if (urlOf(input).endsWith('/api/v1/auth/refresh')) {
+					refreshed = true;
+					return json(200);
+				}
+				return refreshed ? json(200, { id: 'u1' }) : json(401);
+			})
+		);
+
+		await expect(ensureSession()).resolves.toBe('ok');
+	});
+
+	it("returns 'expired' only when the refresh token is rejected", async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<FetchArgs, Promise<Response>>(async () => json(401))
+		);
+
+		await expect(ensureSession()).resolves.toBe('expired');
+		expect(clearSessionMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("returns 'unavailable' on network errors", async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<FetchArgs, Promise<Response>>(async () => {
+				throw new TypeError('Failed to fetch');
+			})
+		);
+
+		await expect(ensureSession()).resolves.toBe('unavailable');
+		expect(clearSessionMock).not.toHaveBeenCalled();
 	});
 });

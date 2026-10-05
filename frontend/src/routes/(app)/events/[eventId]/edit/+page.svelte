@@ -162,7 +162,7 @@
 			Visibility
 		</p>
 		<div class="flex gap-2">
-			{#each visibilityOptions as opt}
+			{#each visibilityOptions as opt (opt.value)}
 				<button
 					type="button"
 					onclick={() => (visibility = opt.value)}

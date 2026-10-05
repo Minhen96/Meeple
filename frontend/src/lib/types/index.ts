@@ -287,14 +287,18 @@ export interface HowToPlayContent {
 	raw?: string;
 }
 
+export type HowToPlayStatus = 'ready' | 'generating' | 'not_generated' | 'failed';
+
 export interface HowToPlayApiResponse {
-	status: 'ready' | 'generating' | 'not_generated';
+	status: HowToPlayStatus;
 	data: HowToPlayContent | null;
 	sourceMode: 'rulebook' | 'general' | null;
 	disclaimer: string | null;
 	rulebookUrl: string | null;
 	approvedNotes: RuleNote[];
 	progress: number | null;
+	/** Set when status is 'failed'; a user-facing reason for the failed generation. */
+	errorMessage: string | null;
 }
 
 export interface RuleNote {

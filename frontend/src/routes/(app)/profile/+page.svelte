@@ -264,7 +264,7 @@
 			Recent Activity
 		</h3>
 		<div class="space-y-8 max-w-lg">
-			{#each mergedActivity as item, i}
+			{#each mergedActivity as item (`${item.type}-${item.id}`)}
 				<div
 					class="relative pl-10"
 				>

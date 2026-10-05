@@ -114,7 +114,7 @@
 			/>
 			{#if gameResults.length > 0}
 				<div class="absolute z-10 top-full left-0 right-0 mt-1 bg-surface rounded-xl shadow-lg overflow-hidden">
-					{#each gameResults.slice(0, 6) as game}
+					{#each gameResults.slice(0, 6) as game (game.bggId)}
 						<button
 							onclick={() => selectGame(game)}
 							class="w-full text-left px-4 py-2.5 text-sm hover:bg-surface-container-low flex items-center gap-2"
@@ -158,7 +158,7 @@
 
 <!-- Tabs -->
 <div class="flex gap-1 bg-surface-container-low p-1 rounded-xl mb-5">
-	{#each [['suggestions', `Suggestions${suggestions.length ? ` (${suggestions.length})` : ''}`], ['requests', 'My Requests']] as [value, label]}
+	{#each [['suggestions', `Suggestions${suggestions.length ? ` (${suggestions.length})` : ''}`], ['requests', 'My Requests']] as [value, label] (value)}
 		<button
 			onclick={() => tab = value as typeof tab}
 			class="flex-1 text-sm font-semibold py-2 rounded-lg transition-colors {tab === value ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}"
@@ -170,7 +170,7 @@
 
 {#if loading}
 	<div class="space-y-3">
-		{#each Array(2) as _}
+		{#each Array(2) as _, i (i)}
 			<div class="h-36 bg-surface-container-low rounded-2xl animate-pulse"></div>
 		{/each}
 	</div>
