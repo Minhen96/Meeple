@@ -21,18 +21,15 @@ UserGame _$UserGameFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$UserGame {
   String get id => throw _privateConstructorUsedError;
-  String get userId => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readGameId)
   String get gameId => throw _privateConstructorUsedError;
   Game get game => throw _privateConstructorUsedError;
   bool get isOwned => throw _privateConstructorUsedError;
   bool get isWishlisted => throw _privateConstructorUsedError;
   bool get isFavorited => throw _privateConstructorUsedError;
   int get playCount => throw _privateConstructorUsedError;
-  int? get personalRating => throw _privateConstructorUsedError;
+  double? get personalRating => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
-  DateTime? get lastPlayedAt => throw _privateConstructorUsedError;
-  DateTime get createdAt => throw _privateConstructorUsedError;
-  DateTime? get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this UserGame to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -51,18 +48,14 @@ abstract class $UserGameCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String userId,
-      String gameId,
+      @JsonKey(readValue: _readGameId) String gameId,
       Game game,
       bool isOwned,
       bool isWishlisted,
       bool isFavorited,
       int playCount,
-      int? personalRating,
-      String? notes,
-      DateTime? lastPlayedAt,
-      DateTime createdAt,
-      DateTime? updatedAt});
+      double? personalRating,
+      String? notes});
 
   $GameCopyWith<$Res> get game;
 }
@@ -83,7 +76,6 @@ class _$UserGameCopyWithImpl<$Res, $Val extends UserGame>
   @override
   $Res call({
     Object? id = null,
-    Object? userId = null,
     Object? gameId = null,
     Object? game = null,
     Object? isOwned = null,
@@ -92,18 +84,11 @@ class _$UserGameCopyWithImpl<$Res, $Val extends UserGame>
     Object? playCount = null,
     Object? personalRating = freezed,
     Object? notes = freezed,
-    Object? lastPlayedAt = freezed,
-    Object? createdAt = null,
-    Object? updatedAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      userId: null == userId
-          ? _value.userId
-          : userId // ignore: cast_nullable_to_non_nullable
               as String,
       gameId: null == gameId
           ? _value.gameId
@@ -132,23 +117,11 @@ class _$UserGameCopyWithImpl<$Res, $Val extends UserGame>
       personalRating: freezed == personalRating
           ? _value.personalRating
           : personalRating // ignore: cast_nullable_to_non_nullable
-              as int?,
+              as double?,
       notes: freezed == notes
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
-      lastPlayedAt: freezed == lastPlayedAt
-          ? _value.lastPlayedAt
-          : lastPlayedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
     ) as $Val);
   }
 
@@ -173,18 +146,14 @@ abstract class _$$UserGameImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
-      String userId,
-      String gameId,
+      @JsonKey(readValue: _readGameId) String gameId,
       Game game,
       bool isOwned,
       bool isWishlisted,
       bool isFavorited,
       int playCount,
-      int? personalRating,
-      String? notes,
-      DateTime? lastPlayedAt,
-      DateTime createdAt,
-      DateTime? updatedAt});
+      double? personalRating,
+      String? notes});
 
   @override
   $GameCopyWith<$Res> get game;
@@ -204,7 +173,6 @@ class __$$UserGameImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? userId = null,
     Object? gameId = null,
     Object? game = null,
     Object? isOwned = null,
@@ -213,18 +181,11 @@ class __$$UserGameImplCopyWithImpl<$Res>
     Object? playCount = null,
     Object? personalRating = freezed,
     Object? notes = freezed,
-    Object? lastPlayedAt = freezed,
-    Object? createdAt = null,
-    Object? updatedAt = freezed,
   }) {
     return _then(_$UserGameImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      userId: null == userId
-          ? _value.userId
-          : userId // ignore: cast_nullable_to_non_nullable
               as String,
       gameId: null == gameId
           ? _value.gameId
@@ -253,23 +214,11 @@ class __$$UserGameImplCopyWithImpl<$Res>
       personalRating: freezed == personalRating
           ? _value.personalRating
           : personalRating // ignore: cast_nullable_to_non_nullable
-              as int?,
+              as double?,
       notes: freezed == notes
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
-      lastPlayedAt: freezed == lastPlayedAt
-          ? _value.lastPlayedAt
-          : lastPlayedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
     ));
   }
 }
@@ -279,18 +228,14 @@ class __$$UserGameImplCopyWithImpl<$Res>
 class _$UserGameImpl implements _UserGame {
   const _$UserGameImpl(
       {required this.id,
-      required this.userId,
-      required this.gameId,
+      @JsonKey(readValue: _readGameId) required this.gameId,
       required this.game,
       this.isOwned = false,
       this.isWishlisted = false,
       this.isFavorited = false,
       this.playCount = 0,
       this.personalRating,
-      this.notes,
-      this.lastPlayedAt,
-      required this.createdAt,
-      this.updatedAt});
+      this.notes});
 
   factory _$UserGameImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserGameImplFromJson(json);
@@ -298,8 +243,7 @@ class _$UserGameImpl implements _UserGame {
   @override
   final String id;
   @override
-  final String userId;
-  @override
+  @JsonKey(readValue: _readGameId)
   final String gameId;
   @override
   final Game game;
@@ -316,19 +260,13 @@ class _$UserGameImpl implements _UserGame {
   @JsonKey()
   final int playCount;
   @override
-  final int? personalRating;
+  final double? personalRating;
   @override
   final String? notes;
-  @override
-  final DateTime? lastPlayedAt;
-  @override
-  final DateTime createdAt;
-  @override
-  final DateTime? updatedAt;
 
   @override
   String toString() {
-    return 'UserGame(id: $id, userId: $userId, gameId: $gameId, game: $game, isOwned: $isOwned, isWishlisted: $isWishlisted, isFavorited: $isFavorited, playCount: $playCount, personalRating: $personalRating, notes: $notes, lastPlayedAt: $lastPlayedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserGame(id: $id, gameId: $gameId, game: $game, isOwned: $isOwned, isWishlisted: $isWishlisted, isFavorited: $isFavorited, playCount: $playCount, personalRating: $personalRating, notes: $notes)';
   }
 
   @override
@@ -337,7 +275,6 @@ class _$UserGameImpl implements _UserGame {
         (other.runtimeType == runtimeType &&
             other is _$UserGameImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.gameId, gameId) || other.gameId == gameId) &&
             (identical(other.game, game) || other.game == game) &&
             (identical(other.isOwned, isOwned) || other.isOwned == isOwned) &&
@@ -349,32 +286,13 @@ class _$UserGameImpl implements _UserGame {
                 other.playCount == playCount) &&
             (identical(other.personalRating, personalRating) ||
                 other.personalRating == personalRating) &&
-            (identical(other.notes, notes) || other.notes == notes) &&
-            (identical(other.lastPlayedAt, lastPlayedAt) ||
-                other.lastPlayedAt == lastPlayedAt) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt) &&
-            (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+            (identical(other.notes, notes) || other.notes == notes));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      userId,
-      gameId,
-      game,
-      isOwned,
-      isWishlisted,
-      isFavorited,
-      playCount,
-      personalRating,
-      notes,
-      lastPlayedAt,
-      createdAt,
-      updatedAt);
+  int get hashCode => Object.hash(runtimeType, id, gameId, game, isOwned,
+      isWishlisted, isFavorited, playCount, personalRating, notes);
 
   /// Create a copy of UserGame
   /// with the given fields replaced by the non-null parameter values.
@@ -395,18 +313,14 @@ class _$UserGameImpl implements _UserGame {
 abstract class _UserGame implements UserGame {
   const factory _UserGame(
       {required final String id,
-      required final String userId,
-      required final String gameId,
+      @JsonKey(readValue: _readGameId) required final String gameId,
       required final Game game,
       final bool isOwned,
       final bool isWishlisted,
       final bool isFavorited,
       final int playCount,
-      final int? personalRating,
-      final String? notes,
-      final DateTime? lastPlayedAt,
-      required final DateTime createdAt,
-      final DateTime? updatedAt}) = _$UserGameImpl;
+      final double? personalRating,
+      final String? notes}) = _$UserGameImpl;
 
   factory _UserGame.fromJson(Map<String, dynamic> json) =
       _$UserGameImpl.fromJson;
@@ -414,8 +328,7 @@ abstract class _UserGame implements UserGame {
   @override
   String get id;
   @override
-  String get userId;
-  @override
+  @JsonKey(readValue: _readGameId)
   String get gameId;
   @override
   Game get game;
@@ -428,15 +341,9 @@ abstract class _UserGame implements UserGame {
   @override
   int get playCount;
   @override
-  int? get personalRating;
+  double? get personalRating;
   @override
   String? get notes;
-  @override
-  DateTime? get lastPlayedAt;
-  @override
-  DateTime get createdAt;
-  @override
-  DateTime? get updatedAt;
 
   /// Create a copy of UserGame
   /// with the given fields replaced by the non-null parameter values.

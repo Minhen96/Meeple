@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
@@ -39,7 +40,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+            content: Text(
+          e is ApiException
+              ? e.message
+              : 'Something went wrong. Please try again.',
+        )),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -58,12 +64,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.pagePadding,
-          child: _emailSent ? _SuccessView(email: _emailController.text.trim()) : _FormView(
-            formKey: _formKey,
-            emailController: _emailController,
-            isLoading: _isLoading,
-            onSubmit: _submit,
-          ),
+          child: _emailSent
+              ? _SuccessView(email: _emailController.text.trim())
+              : _FormView(
+                  formKey: _formKey,
+                  emailController: _emailController,
+                  isLoading: _isLoading,
+                  onSubmit: _submit,
+                ),
         ),
       ),
     );

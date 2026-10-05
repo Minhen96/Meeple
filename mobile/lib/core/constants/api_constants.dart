@@ -38,6 +38,8 @@ abstract final class ApiConstants {
   static const String forgotPassword = '$v1/auth/forgot-password';
   static const String resetPassword = '$v1/auth/reset-password';
   static const String verifyEmail = '$v1/auth/verify-email';
+  static const String resendVerification = '$v1/auth/resend-verification';
+  static const String googleLogin = '$v1/auth/google';
 
   // ── Users ─────────────────────────────────────────────────────────────────
   static const String me = '$v1/users/me';
@@ -55,12 +57,18 @@ abstract final class ApiConstants {
 
   // ── Events ────────────────────────────────────────────────────────────────
   static const String events = '$v1/events';
+  static const String myEvents = '$v1/events/me';
 
-  // ── BGG ───────────────────────────────────────────────────────────────────
-  static const String bgg = '$v1/users/me/bgg';
+  // ── Uploads ────────────────────────────────────────────────────────────────
+  /// Body `{contentType, size}` → `{uploadUrl, key, publicUrl}`.
+  static const String uploadPresign = '$v1/upload/presign';
 
-  // ── FCM ───────────────────────────────────────────────────────────────────
-  static const String fcmToken = '$v1/users/me/fcm-token';
+  /// Must match the backend's `storage.max-upload-bytes` (10 MB).
+  static const int maxUploadBytes = 10 * 1024 * 1024;
+
+  // ── WebSocket (STOMP) ──────────────────────────────────────────────────────
+  /// Per-user notification queue; the broker resolves it to the session user.
+  static const String wsNotificationsQueue = '/user/queue/notifications';
 
   // ── Timeouts ──────────────────────────────────────────────────────────────
   static const int connectTimeoutMs = 15000;

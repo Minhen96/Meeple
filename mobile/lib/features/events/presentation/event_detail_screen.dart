@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:meeple_hearth/features/events/data/event_repository.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
@@ -261,14 +263,51 @@ class EventRsvpBar extends ConsumerWidget {
         child: event.isAttending
             ? AppOutlinedButton(
                 label: 'Cancel RSVP',
-                onPressed: () =>
-                    ref.read(eventsNotifierProvider.notifier).refresh(),
+                onPressed: () => _update(
+                  context,
+                  ref,
+                  () => ref.read(eventRepositoryProvider).cancelRsvp(event.id),
+                ),
               )
             : AppButton(
-                label: isFull ? 'Join Waitlist' : 'RSVP',
-                onPressed: isFull ? null : () {},
+                label: isFull ? 'Event Full' : 'RSVP',
+                onPressed: isFull
+                    ? null
+                    : () => _update(
+                          context,
+                          ref,
+                          () =>
+                              ref.read(eventRepositoryProvider).rsvp(event.id),
+                        ),
               ),
       ),
     );
+  }
+
+  Future<void> _update(
+    BuildContext context,
+    WidgetRef ref,
+    Future<Object?> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e is ApiException
+                  ? e.message
+                  : 'Something went wrong. Please try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      ref
+        ..invalidate(eventDetailProvider(event.id))
+        ..invalidate(eventsNotifierProvider)
+        ..invalidate(myEventsNotifierProvider);
+    }
   }
 }

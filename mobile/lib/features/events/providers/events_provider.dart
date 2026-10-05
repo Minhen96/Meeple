@@ -5,89 +5,46 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'events_provider.g.dart';
 
-/// Upcoming public events (default tab).
+/// Upcoming events visible to the caller (default tab).
+///
+/// `GET /events` is not paginated: it returns up to [_limit] events, soonest
+/// first, so [loadMore] is a no-op kept for the list widgets.
 @riverpod
 class EventsNotifier extends _$EventsNotifier {
-  static const _pageSize = 20;
+  static const _limit = 50;
 
   @override
-  Future<PaginatedResult<Event>> build() => ref
-      .read(eventRepositoryProvider)
-      .getEvents(params: PageParams(size: _pageSize));
+  Future<PaginatedResult<Event>> build() =>
+      ref.read(eventRepositoryProvider).getEvents(limit: _limit);
 
   Future<void> refresh() async {
     state = const AsyncValue<PaginatedResult<Event>>.loading();
     state = await AsyncValue.guard<PaginatedResult<Event>>(
-      () => ref
-          .read(eventRepositoryProvider)
-          .getEvents(params: PageParams(size: _pageSize)),
+      () => ref.read(eventRepositoryProvider).getEvents(limit: _limit),
     );
   }
 
-  Future<void> loadMore() async {
-    final current = state.valueOrNull;
-    if (current == null || !current.hasMore) return;
-
-    final next = await ref.read(eventRepositoryProvider).getEvents(
-          params: PageParams(page: current.page + 1, size: _pageSize),
-        );
-
-    state = AsyncValue.data(
-      PaginatedResult(
-        content: [...current.content, ...next.content],
-        page: next.page,
-        size: next.size,
-        totalElements: next.totalElements,
-        totalPages: next.totalPages,
-        last: next.last,
-      ),
-    );
-  }
+  Future<void> loadMore() async {}
 }
 
-/// Events the current user is attending or has organised (My Events tab).
+/// Events the current user has accepted (My Events tab).
 @riverpod
 class MyEventsNotifier extends _$MyEventsNotifier {
-  static const _pageSize = 20;
-
   @override
-  Future<PaginatedResult<Event>> build() => ref
-      .read(eventRepositoryProvider)
-      .getEvents(params: PageParams(size: _pageSize), myEventsOnly: true);
+  Future<PaginatedResult<Event>> build() =>
+      ref.read(eventRepositoryProvider).getEvents(myEventsOnly: true);
 
   Future<void> refresh() async {
     state = const AsyncValue<PaginatedResult<Event>>.loading();
     state = await AsyncValue.guard<PaginatedResult<Event>>(
-      () => ref.read(eventRepositoryProvider).getEvents(
-            params: PageParams(size: _pageSize),
-            myEventsOnly: true,
-          ),
+      () => ref.read(eventRepositoryProvider).getEvents(myEventsOnly: true),
     );
   }
 
-  Future<void> loadMore() async {
-    final current = state.valueOrNull;
-    if (current == null || !current.hasMore) return;
-
-    final next = await ref.read(eventRepositoryProvider).getEvents(
-          params: PageParams(page: current.page + 1, size: _pageSize),
-          myEventsOnly: true,
-        );
-
-    state = AsyncValue.data(
-      PaginatedResult(
-        content: [...current.content, ...next.content],
-        page: next.page,
-        size: next.size,
-        totalElements: next.totalElements,
-        totalPages: next.totalPages,
-        last: next.last,
-      ),
-    );
-  }
+  Future<void> loadMore() async {}
 }
 
-/// Single event detail.
+/// Single event detail. Events the caller may not see return 404.
 @riverpod
 Future<Event> eventDetail(EventDetailRef ref, String eventId) =>
     ref.read(eventRepositoryProvider).getEvent(eventId);

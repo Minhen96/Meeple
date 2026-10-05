@@ -1,3 +1,4 @@
+import 'package:meeple_hearth/core/network/auth_session.dart';
 import 'package:meeple_hearth/core/storage/secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,16 +18,16 @@ final class AuthLocalStorage {
   Future<String?> getRefreshToken() => _storage.getRefreshToken();
   Future<String?> getUserId() => _storage.getUserId();
 
-  Future<void> saveTokens({
-    required String accessToken,
-    required String refreshToken,
+  /// Persists the token pair and user id in one atomic write.
+  Future<void> saveSession({
+    required AuthTokens tokens,
     required String userId,
   }) =>
       _storage.saveTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
         userId: userId,
       );
 
-  Future<void> clearAll() => _storage.clearAll();
+  Future<void> clearSession() => _storage.clearSession();
 }

@@ -9,13 +9,13 @@ part of 'user_model.dart';
 _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       id: json['id'] as String,
       username: json['username'] as String,
-      email: json['email'] as String,
-      displayName: json['displayName'] as String,
+      email: json['email'] as String?,
+      displayName: _readDisplayName(json, 'displayName') as String,
       avatarUrl: json['avatarUrl'] as String?,
       bio: json['bio'] as String?,
       location: json['location'] as String?,
       onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
-      emailVerified: json['emailVerified'] as bool? ?? false,
+      isAdmin: json['isAdmin'] as bool? ?? false,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -31,6 +31,6 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'bio': instance.bio,
       'location': instance.location,
       'onboardingCompleted': instance.onboardingCompleted,
-      'emailVerified': instance.emailVerified,
+      'isAdmin': instance.isAdmin,
       'createdAt': instance.createdAt?.toIso8601String(),
     };

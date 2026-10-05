@@ -1,28 +1,35 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meeple_hearth/core/constants/api_constants.dart';
-import 'package:meeple_hearth/core/storage/secure_storage.dart';
+import 'package:meeple_hearth/core/network/auth_session.dart';
 
-/// Dio interceptor that:
-/// 1. Attaches the Bearer token to every request.
-/// 2. Transparently refreshes the access token on 401 and retries once.
-/// 3. Forces logout (clears storage) if the refresh itself fails.
+/// Attaches the access token and recovers from expired ones.
+///
+/// On a 401 every concurrent request queues behind ONE refresh owned by
+/// [AuthSessionManager] (refresh tokens are single-use), then retries once with
+/// the new token. Auth endpoints are never retried: their 401s mean bad
+/// credentials, not an expired session.
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor({required SecureStorage storage, required Ref ref})
-      : _storage = storage,
-        _ref = ref;
+  AuthInterceptor({
+    required AuthSessionManager session,
+    required Dio retryClient,
+  })  : _session = session,
+        _retryClient = retryClient;
 
-  final SecureStorage _storage;
-  final Ref _ref;
+  static const _retriedKey = 'authRetried';
+
+  final AuthSessionManager _session;
+  final Dio _retryClient;
 
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _storage.getAccessToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    if (!_isAuthEndpoint(options.path)) {
+      final token = await _session.currentAccessToken();
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
     handler.next(options);
   }
@@ -32,49 +39,44 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
-      try {
-        await _refreshAndRetry(err, handler);
-      } catch (_) {
-        // Refresh failed — clear all credentials and let the router redirect.
-        await _storage.clearAll();
-        // Invalidating the provider notifies the RouterNotifier → GoRouter
-        // redirect will send the user to /auth/login.
-        _ref.invalidate(secureStorageProvider);
-        handler.reject(err);
-      }
+    final options = err.requestOptions;
+    final sentToken = _bearer(options.headers['Authorization']);
+    if (err.response?.statusCode != 401 ||
+        _isAuthEndpoint(options.path) ||
+        options.extra[_retriedKey] == true ||
+        sentToken == null) {
+      handler.next(err);
       return;
     }
-    handler.next(err);
+
+    final String freshToken;
+    try {
+      freshToken = await _session.refresh(staleAccessToken: sentToken);
+    } on SessionExpiredException {
+      // Session is gone; listeners of sessionExpired route to login.
+      handler.next(err);
+      return;
+    } on DioException {
+      // Refresh failed for a transient reason; keep the session.
+      handler.next(err);
+      return;
+    }
+
+    try {
+      options.extra[_retriedKey] = true;
+      options.headers['Authorization'] = 'Bearer $freshToken';
+      final response = await _retryClient.fetch<dynamic>(options);
+      handler.resolve(response);
+    } on DioException catch (retryError) {
+      handler.next(retryError);
+    }
   }
 
-  Future<void> _refreshAndRetry(
-    DioException err,
-    ErrorInterceptorHandler handler,
-  ) async {
-    final refreshToken = await _storage.getRefreshToken();
-    if (refreshToken == null) throw Exception('No refresh token stored');
-
-    // Use a fresh Dio instance to avoid recursive interceptor triggering.
-    final refreshDio = Dio(
-      BaseOptions(baseUrl: ApiConstants.baseUrl),
-    );
-
-    final response = await refreshDio.post<Map<String, dynamic>>(
-      ApiConstants.refresh,
-      data: {'refreshToken': refreshToken},
-    );
-
-    final data = response.data!;
-    await _storage.saveTokens(
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-    );
-
-    // Retry the original request with the new access token.
-    final opts = err.requestOptions;
-    opts.headers['Authorization'] = 'Bearer ${data['accessToken']}';
-    final retryResponse = await refreshDio.fetch<dynamic>(opts);
-    handler.resolve(retryResponse);
+  static String? _bearer(Object? header) {
+    if (header is! String || !header.startsWith('Bearer ')) return null;
+    return header.substring(7);
   }
+
+  static bool _isAuthEndpoint(String path) =>
+      path.contains('${ApiConstants.v1}/auth/');
 }

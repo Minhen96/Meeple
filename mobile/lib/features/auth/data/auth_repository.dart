@@ -1,3 +1,4 @@
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/features/auth/data/auth_local_storage.dart';
 import 'package:meeple_hearth/features/auth/data/auth_remote_data_source.dart';
 import 'package:meeple_hearth/features/auth/domain/user_model.dart';
@@ -25,16 +26,19 @@ final class AuthRepository {
   /// Falls back to a minimal stub if the network is unavailable.
   Future<User?> currentUser() async {
     final userId = await _local.getUserId();
-    if (userId == null) return null;
+    if (userId == null || await _local.getRefreshToken() == null) return null;
 
     try {
       return await _remote.getMe();
-    } catch (_) {
-      // Offline or token issue — treat as authenticated; interceptor handles 401.
+    } on UnauthorizedException {
+      // The interceptor already tried a refresh; the session is gone.
+      await _local.clearSession();
+      return null;
+    } on ApiException {
+      // Offline or server trouble — stay signed in with a minimal stub.
       return User(
         id: userId,
         username: '',
-        email: '',
         displayName: '',
         onboardingCompleted: true,
       );
@@ -45,43 +49,45 @@ final class AuthRepository {
     required String emailOrUsername,
     required String password,
   }) async {
-    final response = await _remote.login(
+    final result = await _remote.login(
       emailOrUsername: emailOrUsername,
       password: password,
     );
-    await _local.saveTokens(
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
-      userId: response.user.id,
-    );
-    return response.user;
+    await _local.saveSession(tokens: result.tokens, userId: result.user.id);
+    return result.user;
   }
 
-  Future<User> register({
+  /// Registers the account. The user must verify their email and then sign
+  /// in; registration itself does not start a session.
+  Future<void> register({
     required String username,
     required String email,
     required String password,
-    required String displayName,
-  }) async {
-    final response = await _remote.register(
-      username: username,
-      email: email,
-      password: password,
-      displayName: displayName,
-    );
-    await _local.saveTokens(
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
-      userId: response.user.id,
-    );
-    return response.user;
+  }) =>
+      _remote.register(username: username, email: email, password: password);
+
+  Future<User> verifyEmail({required String token}) async {
+    final result = await _remote.verifyEmail(token: token);
+    await _local.saveSession(tokens: result.tokens, userId: result.user.id);
+    return result.user;
   }
+
+  Future<User> googleLogin({required String idToken}) async {
+    final result = await _remote.googleLogin(idToken: idToken);
+    await _local.saveSession(tokens: result.tokens, userId: result.user.id);
+    return result.user;
+  }
+
+  Future<void> resendVerification({required String email}) =>
+      _remote.resendVerification(email: email);
 
   Future<void> logout() async {
     try {
-      await _remote.logout();
+      await _remote.logout(refreshToken: await _local.getRefreshToken());
+    } on ApiException {
+      // Best effort — the local session is cleared regardless.
     } finally {
-      await _local.clearAll();
+      await _local.clearSession();
     }
   }
 

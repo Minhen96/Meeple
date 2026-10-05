@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
@@ -53,7 +54,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+            content: Text(
+          e is ApiException
+              ? e.message
+              : 'Something went wrong. Please try again.',
+        )),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -71,16 +77,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.pagePadding,
-          child: _success ? _SuccessView() : _FormView(
-            formKey: _formKey,
-            passwordController: _passwordController,
-            confirmController: _confirmController,
-            passwordFocus: _passwordFocus,
-            confirmFocus: _confirmFocus,
-            isLoading: _isLoading,
-            onSubmit: _submit,
-            hasToken: widget.token.isNotEmpty,
-          ),
+          child: _success
+              ? _SuccessView()
+              : _FormView(
+                  formKey: _formKey,
+                  passwordController: _passwordController,
+                  confirmController: _confirmController,
+                  passwordFocus: _passwordFocus,
+                  confirmFocus: _confirmFocus,
+                  isLoading: _isLoading,
+                  onSubmit: _submit,
+                  hasToken: widget.token.isNotEmpty,
+                ),
         ),
       ),
     );

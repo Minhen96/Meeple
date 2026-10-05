@@ -11,15 +11,21 @@ part 'collection_repository.g.dart';
 CollectionRepository collectionRepository(CollectionRepositoryRef ref) =>
     CollectionRepository(ref.read(dioProvider));
 
+/// The signed-in user's collection. All write endpoints are keyed by the
+/// game's id: `PUT|DELETE /users/me/games/{gameId}`.
 final class CollectionRepository {
   const CollectionRepository(this._dio);
 
   final Dio _dio;
 
-  Future<List<UserGame>> getMyCollection() async {
+  /// [filter]: `all` | `owned` | `wishlisted` | `favorited`.
+  Future<List<UserGame>> getMyCollection({String filter = 'all'}) async {
     try {
-      final response = await _dio.get<List<dynamic>>(ApiConstants.myCollection);
-      return (response.data!)
+      final response = await _dio.get<List<dynamic>>(
+        ApiConstants.myCollection,
+        queryParameters: {'filter': filter},
+      );
+      return response.data!
           .map((e) => UserGame.fromJson(e as Map<String, dynamic>))
           .toList();
     } catch (e) {
@@ -27,45 +33,21 @@ final class CollectionRepository {
     }
   }
 
-  Future<UserGame> addToCollection({
+  /// Adds or updates a collection entry (`PUT` upsert; only non-null fields
+  /// are applied). [personalRating] must be between 1.0 and 10.0.
+  Future<UserGame> upsertUserGame({
     required String gameId,
-    bool isOwned = false,
-    bool isWishlisted = false,
-    bool isFavorited = false,
-  }) async {
-    try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        ApiConstants.myCollection,
-        data: {
-          'gameId': gameId,
-          'isOwned': isOwned,
-          'isWishlisted': isWishlisted,
-          'isFavorited': isFavorited,
-        },
-      );
-      return UserGame.fromJson(response.data!);
-    } catch (e) {
-      throw ApiException.from(e);
-    }
-  }
-
-  Future<UserGame> updateUserGame({
-    required String userGameId,
     bool? isOwned,
-    bool? isWishlisted,
     bool? isFavorited,
-    int? playCount,
-    int? personalRating,
+    double? personalRating,
     String? notes,
   }) async {
     try {
-      final response = await _dio.patch<Map<String, dynamic>>(
-        '${ApiConstants.myCollection}/$userGameId',
+      final response = await _dio.put<Map<String, dynamic>>(
+        '${ApiConstants.myCollection}/$gameId',
         data: {
           if (isOwned != null) 'isOwned': isOwned,
-          if (isWishlisted != null) 'isWishlisted': isWishlisted,
           if (isFavorited != null) 'isFavorited': isFavorited,
-          if (playCount != null) 'playCount': playCount,
           if (personalRating != null) 'personalRating': personalRating,
           if (notes != null) 'notes': notes,
         },
@@ -76,9 +58,21 @@ final class CollectionRepository {
     }
   }
 
-  Future<void> removeFromCollection(String userGameId) async {
+  /// `POST /users/me/games/{gameId}/log-play` — increments the play count.
+  Future<UserGame> logPlay(String gameId) async {
     try {
-      await _dio.delete<void>('${ApiConstants.myCollection}/$userGameId');
+      final response = await _dio.post<Map<String, dynamic>>(
+        '${ApiConstants.myCollection}/$gameId/log-play',
+      );
+      return UserGame.fromJson(response.data!);
+    } catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
+  Future<void> removeFromCollection(String gameId) async {
+    try {
+      await _dio.delete<void>('${ApiConstants.myCollection}/$gameId');
     } catch (e) {
       throw ApiException.from(e);
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
@@ -25,7 +26,6 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   final _maxAttendeesController = TextEditingController();
 
   DateTime? _startTime;
-  DateTime? _endTime;
   bool _isSubmitting = false;
 
   @override
@@ -48,20 +48,6 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     if (picked != null) setState(() => _startTime = picked);
   }
 
-  Future<void> _pickEndTime() async {
-    final initial = _endTime ??
-        (_startTime != null
-            ? _startTime!.add(const Duration(hours: 3))
-            : DateTime.now().add(const Duration(days: 1, hours: 3)));
-    final picked = await showOmniDateTimePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: _startTime ?? DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked != null) setState(() => _endTime = picked);
-  }
-
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_startTime == null) {
@@ -81,7 +67,6 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             title: _titleController.text.trim(),
             description: _descriptionController.text.trim(),
             startTime: _startTime!,
-            endTime: _endTime,
             location: _locationController.text.trim(),
             locationDetails: _locationDetailsController.text.trim().isEmpty
                 ? null
@@ -93,7 +78,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(
+              content: Text(
+            e is ApiException
+                ? e.message
+                : 'Something went wrong. Please try again.',
+          )),
         );
       }
     } finally {
@@ -165,18 +155,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               onTap: _pickStartTime,
               required: true,
             ),
-            AppSpacing.vGapSm,
-            _DateTimePickerTile(
-              label: 'End time (optional)',
-              value: _endTime,
-              onTap: _pickEndTime,
-            ),
             AppSpacing.vGapXl,
             Text('Capacity (optional)', style: AppTypography.titleMedium),
             AppSpacing.vGapMd,
             AuthTextField(
               label: 'Max attendees',
-              hint: 'Leave blank for unlimited',
+              hint: 'Leave blank for the default of 8',
               controller: _maxAttendeesController,
               prefixIcon: Icons.people_outline_rounded,
               keyboardType: TextInputType.number,

@@ -17,29 +17,29 @@ final class EventRepository {
 
   final Dio _dio;
 
+  /// Upcoming events visible to the caller (`GET /events?limit=`) or the
+  /// caller's accepted events (`GET /events/me`). Neither endpoint is paged,
+  /// so the result is a single complete page.
   Future<PaginatedResult<Event>> getEvents({
-    PageParams params = const PageParams(),
+    int limit = 50,
     bool myEventsOnly = false,
-    bool pastOnly = false,
   }) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        ApiConstants.events,
-        queryParameters: {
-          ...params.toQueryParams(),
-          if (myEventsOnly) 'mine': true,
-          if (pastOnly) 'past': true,
-        },
+      final response = await _dio.get<List<dynamic>>(
+        myEventsOnly ? ApiConstants.myEvents : ApiConstants.events,
+        queryParameters: myEventsOnly ? null : {'limit': limit},
       );
-      return PaginatedResult.fromJson(
-        response.data!,
-        (item) => Event.fromJson(item as Map<String, dynamic>),
+      return PaginatedResult.single(
+        response.data!
+            .map((e) => Event.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
     } catch (e) {
       throw ApiException.from(e);
     }
   }
 
+  /// Throws [NotFoundException] for events the caller may not see.
   Future<Event> getEvent(String eventId) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -51,28 +51,35 @@ final class EventRepository {
     }
   }
 
+  /// `POST /events` (`CreateEventRequest`).
+  ///
+  /// [visibility] is `INVITE_ONLY` (default), `FRIENDS` or `PUBLIC`. The
+  /// backend has a single location field, so [locationDetails] is appended
+  /// to it.
   Future<Event> createEvent({
     required String title,
     required String description,
     required DateTime startTime,
-    DateTime? endTime,
     required String location,
     String? locationDetails,
     int? maxAttendees,
-    List<String>? gameIds,
+    String? gameId,
+    String visibility = 'INVITE_ONLY',
   }) async {
+    final fullLocation = locationDetails == null || locationDetails.isEmpty
+        ? location
+        : '$location, $locationDetails';
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         ApiConstants.events,
         data: {
           'title': title,
-          'description': description,
-          'startTime': startTime.toIso8601String(),
-          if (endTime != null) 'endTime': endTime.toIso8601String(),
-          'location': location,
-          if (locationDetails != null) 'locationDetails': locationDetails,
-          if (maxAttendees != null) 'maxAttendees': maxAttendees,
-          if (gameIds != null) 'gameIds': gameIds,
+          if (description.isNotEmpty) 'description': description,
+          'scheduledAt': startTime.toUtc().toIso8601String(),
+          if (fullLocation.isNotEmpty) 'location': fullLocation,
+          if (maxAttendees != null) 'maxParticipants': maxAttendees,
+          if (gameId != null) 'gameId': gameId,
+          'visibility': visibility,
         },
       );
       return Event.fromJson(response.data!);
@@ -81,17 +88,23 @@ final class EventRepository {
     }
   }
 
-  Future<void> rsvp(String eventId) async {
+  /// `POST /events/{id}/rsvp?status=ACCEPTED`.
+  Future<Event> rsvp(String eventId) async {
     try {
-      await _dio.post<void>('${ApiConstants.events}/$eventId/attend');
+      final response = await _dio.post<Map<String, dynamic>>(
+        '${ApiConstants.events}/$eventId/rsvp',
+        queryParameters: {'status': 'ACCEPTED'},
+      );
+      return Event.fromJson(response.data!);
     } catch (e) {
       throw ApiException.from(e);
     }
   }
 
+  /// `DELETE /events/{id}/rsvp` — leave the event.
   Future<void> cancelRsvp(String eventId) async {
     try {
-      await _dio.delete<void>('${ApiConstants.events}/$eventId/attend');
+      await _dio.delete<void>('${ApiConstants.events}/$eventId/rsvp');
     } catch (e) {
       throw ApiException.from(e);
     }

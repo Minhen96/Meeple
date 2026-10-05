@@ -4,20 +4,82 @@ import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 
-/// Shown after registration. Prompts user to check email and verify.
+/// Shown after registration (and when sign-in reports `EMAIL_NOT_VERIFIED`).
 ///
-/// User can resend the verification email or sign out and try again.
-class VerifyEmailScreen extends ConsumerWidget {
-  const VerifyEmailScreen({super.key});
+/// Registration starts no session: the user opens the emailed link, which
+/// lands here with `?token=` and signs them in, or verifies elsewhere and
+/// then signs in with their password.
+class VerifyEmailScreen extends ConsumerStatefulWidget {
+  const VerifyEmailScreen({super.key, this.email, this.token});
+
+  /// Address the link was sent to, when known (needed to resend).
+  final String? email;
+
+  /// Verification token from the email link.
+  final String? token;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authNotifierProvider);
-    final email = authState.valueOrNull?.email ?? 'your email';
+  ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
+}
+
+class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final token = widget.token;
+    if (token != null && token.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _verify(token));
+    }
+  }
+
+  Future<void> _verify(String token) => _run(
+        () => ref.read(authNotifierProvider.notifier).verifyEmail(token),
+        // On success the router redirects away from the auth pages.
+      );
+
+  Future<void> _resend(String email) => _run(
+        () => ref.read(authNotifierProvider.notifier).resendVerification(email),
+        successMessage: 'Verification email resent',
+      );
+
+  Future<void> _run(
+    Future<void> Function() action, {
+    String? successMessage,
+  }) async {
+    if (_busy) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      await action();
+      if (successMessage != null) {
+        messenger.showSnackBar(SnackBar(content: Text(successMessage)));
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException
+                ? e.message
+                : 'Something went wrong. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final knownEmail = widget.email;
+    final email = knownEmail ?? 'your email';
 
     return Scaffold(
       body: SafeArea(
@@ -30,12 +92,7 @@ class VerifyEmailScreen extends ConsumerWidget {
                 alignment: Alignment.centerLeft,
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: () => ref
-                      .read(authNotifierProvider.notifier)
-                      .logout()
-                      .then((_) {
-                    if (context.mounted) context.go(AppRoutes.login);
-                  }),
+                  onPressed: () => context.go(AppRoutes.login),
                 ),
               ),
               const Spacer(),
@@ -79,22 +136,18 @@ class VerifyEmailScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const Spacer(),
-              // Once they've verified, tapping this checks auth state.
+              // Verified via the link in another app/browser — sign in now.
               AppButton(
                 label: "I've Verified My Email",
-                onPressed: () => context.go(AppRoutes.home),
+                onPressed: _busy ? null : () => context.go(AppRoutes.login),
               ),
-              AppSpacing.vGapMd,
-              AppOutlinedButton(
-                label: 'Resend Email',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Verification email resent'),
-                    ),
-                  );
-                },
-              ),
+              if (knownEmail != null) ...[
+                AppSpacing.vGapMd,
+                AppOutlinedButton(
+                  label: 'Resend Email',
+                  onPressed: _busy ? null : () => _resend(knownEmail),
+                ),
+              ],
               AppSpacing.vGapXl,
             ],
           ),
