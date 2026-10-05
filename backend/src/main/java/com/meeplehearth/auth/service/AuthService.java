@@ -10,12 +10,15 @@ import com.meeplehearth.auth.repository.EmailVerificationTokenRepository;
 import com.meeplehearth.auth.repository.PasswordResetTokenRepository;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
 import com.meeplehearth.auth.dto.LoginRequest;
+import com.meeplehearth.auth.dto.ReactivateRequest;
 import com.meeplehearth.auth.dto.RegisterRequest;
 import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
+import com.meeplehearth.auth.util.DeviceInfo;
 import com.meeplehearth.auth.util.JwtUtil;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.common.ratelimit.RedisRateLimiter;
 import com.meeplehearth.config.AppProperties;
+import com.meeplehearth.user.AccountPolicy;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -149,14 +152,69 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest req, String clientIp, HttpServletResponse response) {
-        String identifier = req.emailOrUsername().trim();
+        // Lockout is scoped to (account, client IP): email and username share one counter,
+        // and a remote attacker cannot lock the owner out from the owner's own network.
+        // The password is verified before anything about the account's state is revealed.
+        User user = authenticateWithPassword(req.emailOrUsername(), req.password(), clientIp);
 
+        if (user.getDeletedAt() != null) {
+            throw deletedAccount(user);
+        }
+
+        if (!user.isEmailVerified()) {
+            throw ApiException.badRequest("EMAIL_NOT_VERIFIED", "Please verify your email address before logging in");
+        }
+
+        return issueTokensAndBuildResponse(user, response);
+    }
+
+    // -------------------------------------------------------------------------
+    // Reactivate (within the deletion grace period)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Restores a soft-deleted account inside its 30-day grace period and signs the user in.
+     * Password accounts authenticate exactly like login (same lockout counters); Google accounts
+     * present a Google ID token instead. Data other packages removed on deletion (collection,
+     * friendships, notifications, match requests) is not restored.
+     */
+    @Transactional
+    public AuthResponse reactivate(ReactivateRequest req, String clientIp, HttpServletResponse response) {
+        User user = req.hasGoogleIdToken()
+                ? findGoogleAccountForReactivation(req.googleIdToken())
+                : authenticateWithPassword(req.emailOrUsername(), req.password(), clientIp);
+
+        if (user.getDeletedAt() == null) {
+            throw ApiException.badRequest("ACCOUNT_NOT_DELETED", "This account is active. Log in instead.");
+        }
+        if (!AccountPolicy.withinDeletionGrace(user.getDeletedAt(), Instant.now())) {
+            throw ApiException.unauthorized("Invalid credentials");
+        }
+        if (!user.isEmailVerified()) {
+            throw ApiException.badRequest("EMAIL_NOT_VERIFIED", "Please verify your email address before logging in");
+        }
+
+        user.setDeletedAt(null);
+        userRepository.save(user);
+        log.info("Account {} reactivated", user.getId());
+        return issueTokensAndBuildResponse(user, response);
+    }
+
+    private User findGoogleAccountForReactivation(String idToken) {
+        GoogleAuthService.GoogleUserInfo googleUser = googleAuthService.verify(idToken);
+        return userRepository.findByGoogleId(googleUser.googleId())
+                .orElseThrow(() -> ApiException.unauthorized("Invalid credentials"));
+    }
+
+    /** Password check with the same per-(account, IP) lockout as {@link #login}; ignores deletion state. */
+    private User authenticateWithPassword(String emailOrUsername, String password, String clientIp) {
+        if (emailOrUsername == null || emailOrUsername.isBlank() || password == null || password.isEmpty()) {
+            throw ApiException.badRequest("VALIDATION_ERROR", "emailOrUsername and password are required");
+        }
+        String identifier = emailOrUsername.trim();
         Optional<User> userOpt = identifier.contains("@")
                 ? userRepository.findByEmailIgnoreCase(identifier)
                 : userRepository.findByUsernameIgnoreCase(identifier);
-
-        // Lockout is scoped to (account, client IP): email and username share one counter,
-        // and a remote attacker cannot lock the owner out from the owner's own network.
         String subject = userOpt
                 .map(u -> "u:" + u.getId())
                 .orElseGet(() -> "i:" + sha256Hex(identifier.toLowerCase()));
@@ -168,34 +226,19 @@ public class AuthService {
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS",
                     "Account temporarily locked due to too many failed login attempts");
         }
-
         if (userOpt.isEmpty()) {
-            // Spend the same bcrypt time as a real check so response timing does not reveal accounts
-            passwordEncoder.matches(req.password(), dummyPasswordHash);
+            passwordEncoder.matches(password, dummyPasswordHash);
             incrementFailureCounter(failKey, lockKey);
             throw ApiException.unauthorized("Invalid credentials");
         }
-
         User user = userOpt.get();
-
-        // Verify the password before revealing anything about the account's state
-        if (user.getPasswordHash() == null || !passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+        if (user.getPasswordHash() == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
             incrementFailureCounter(failKey, lockKey);
             throw ApiException.unauthorized("Invalid credentials");
         }
-
         redisTemplate.delete(failKey);
         redisTemplate.delete(lockKey);
-
-        if (user.getDeletedAt() != null) {
-            throw ApiException.unauthorized("Account has been deactivated");
-        }
-
-        if (!user.isEmailVerified()) {
-            throw ApiException.badRequest("EMAIL_NOT_VERIFIED", "Please verify your email address before logging in");
-        }
-
-        return issueTokensAndBuildResponse(user, response);
+        return user;
     }
 
     // -------------------------------------------------------------------------
@@ -253,7 +296,20 @@ public class AuthService {
             throw ApiException.unauthorized("Account has been deactivated");
         }
 
-        return issueTokensAndBuildResponse(user, response, predecessor.getTokenHash());
+        return issueTokensAndBuildResponse(user, response, predecessor);
+    }
+
+    /**
+     * A soft-deleted account inside its grace period answers 403 ACCOUNT_DELETED so the client
+     * can offer reactivation; past the grace period the account is as good as gone (the
+     * hard-delete job has not run yet) and the caller gets the generic credentials error.
+     */
+    private static ApiException deletedAccount(User user) {
+        if (AccountPolicy.withinDeletionGrace(user.getDeletedAt(), Instant.now())) {
+            return ApiException.forbidden("ACCOUNT_DELETED",
+                    "This account is scheduled for deletion. Reactivate it to continue.");
+        }
+        return ApiException.unauthorized("Invalid credentials");
     }
 
     private static ApiException refreshRace() {
@@ -480,7 +536,7 @@ public class AuthService {
                 });
 
         if (user.getDeletedAt() != null) {
-            throw ApiException.unauthorized("ACCOUNT_DELETED", "This account has been deleted");
+            throw deletedAccount(user);
         }
 
         // Existing users who predate the onboardingCompleted column have it as false.
@@ -501,7 +557,7 @@ public class AuthService {
      */
     private User linkGoogleAccount(User existing, String googleId) {
         if (existing.getDeletedAt() != null) {
-            throw ApiException.unauthorized("ACCOUNT_DELETED", "This account has been deleted");
+            throw deletedAccount(existing);
         }
         if (existing.getGoogleId() != null && !existing.getGoogleId().equals(googleId)) {
             throw ApiException.conflict("GOOGLE_ACCOUNT_CONFLICT",
@@ -554,8 +610,8 @@ public class AuthService {
         return issueTokensAndBuildResponse(user, response, null);
     }
 
-    /** @param predecessorHash hash of the refresh token being rotated, linked to the new one; null on login */
-    private AuthResponse issueTokensAndBuildResponse(User user, HttpServletResponse response, String predecessorHash) {
+    /** @param predecessor the refresh token being rotated, linked to the new one; null on login */
+    private AuthResponse issueTokensAndBuildResponse(User user, HttpServletResponse response, RefreshToken predecessor) {
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getTokenVersion());
         String rawRefreshToken = jwtUtil.generateRefreshToken();
         String refreshTokenHash = sha256Hex(rawRefreshToken);
@@ -565,26 +621,24 @@ public class AuthService {
         refreshToken.setUserId(user.getId());
         refreshToken.setTokenHash(refreshTokenHash);
         refreshToken.setExpiresAt(Instant.now().plus(Duration.ofDays(refreshExpiryDays)));
+        // A session keeps the device it started on: refreshes may come from a server-side
+        // renderer whose User-Agent says nothing about the user's device
+        String device = predecessor != null && predecessor.getDeviceInfo() != null
+                ? predecessor.getDeviceInfo()
+                : DeviceInfo.fromCurrentRequest();
+        refreshToken.setDeviceInfo(device);
+        refreshToken.setSessionStartedAt(predecessor != null && predecessor.getSessionStartedAt() != null
+                ? predecessor.getSessionStartedAt()
+                : Instant.now());
         refreshTokenRepository.save(refreshToken);
-        if (predecessorHash != null) {
-            refreshTokenRepository.setReplacedBy(predecessorHash, refreshToken.getId());
+        if (predecessor != null) {
+            refreshTokenRepository.setReplacedBy(predecessor.getTokenHash(), refreshToken.getId());
         }
 
         boolean isSecure = isProductionEnvironment();
         long refreshMaxAgeSeconds = refreshExpiryDays * 24 * 60 * 60;
 
-        ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("access_token", accessToken)
-                .httpOnly(true)
-                .secure(isSecure)
-                .path("/")
-                .maxAge(appProperties.getJwt().getAccessTokenExpiryMs() / 1000)
-                .sameSite("Lax");
-
-        if (appProperties.getAuth().getCookieDomain() != null && !appProperties.getAuth().getCookieDomain().isBlank()) {
-            accessCookieBuilder.domain(appProperties.getAuth().getCookieDomain());
-        }
-
-        ResponseCookie accessCookie = accessCookieBuilder.build();
+        ResponseCookie accessCookie = accessCookie(accessToken);
 
         ResponseCookie.ResponseCookieBuilder refreshCookieBuilder = ResponseCookie.from("refresh_token", rawRefreshToken)
                 .httpOnly(true)
@@ -611,7 +665,37 @@ public class AuthService {
                 user.isOnboardingCompleted());
     }
 
-    private void clearAuthCookies(HttpServletResponse response) {
+    private ResponseCookie accessCookie(String accessToken) {
+        ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("access_token", accessToken)
+                .httpOnly(true)
+                .secure(isProductionEnvironment())
+                .path("/")
+                .maxAge(appProperties.getJwt().getAccessTokenExpiryMs() / 1000)
+                .sameSite("Lax");
+        String cookieDomain = appProperties.getAuth().getCookieDomain();
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            accessCookieBuilder.domain(cookieDomain);
+        }
+        return accessCookieBuilder.build();
+    }
+
+    /**
+     * Sets a fresh access-token cookie for {@code user} (current token version) without touching
+     * the refresh token, e.g. after the token version was bumped to revoke other sessions.
+     */
+    public void reissueAccessCookie(User user, HttpServletResponse response) {
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getTokenVersion());
+        response.addHeader("Set-Cookie", accessCookie(accessToken).toString());
+    }
+
+    /** SHA-256 of the refresh_token cookie on {@code request} (the caller's own session), or null. */
+    public String currentRefreshTokenHash(HttpServletRequest request) {
+        String raw = extractCookie(request, "refresh_token");
+        return raw == null || raw.isBlank() ? null : sha256Hex(raw);
+    }
+
+    /** Expires both auth cookies (logout, account deletion). */
+    public void clearAuthCookies(HttpServletResponse response) {
         response.addHeader("Set-Cookie", expiredCookie("access_token").toString());
         response.addHeader("Set-Cookie", expiredCookie("refresh_token").toString());
     }

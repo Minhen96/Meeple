@@ -18,6 +18,10 @@ public class ResponseWrappingAdvice implements ResponseBodyAdvice<Object> {
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
         // Only process our own controllers, not Actuator or SpringDoc
         String className = returnType.getDeclaringClass().getName();
+        if (returnType.getDeclaringClass().isAnnotationPresent(RawResponse.class)
+                || returnType.hasMethodAnnotation(RawResponse.class)) {
+            return false;
+        }
         return className.startsWith("com.meeplehearth") &&
                !className.contains("actuator");
     }

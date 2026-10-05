@@ -1,4 +1,11 @@
 spring:
+  # Schema changes only through Flyway; Hibernate just checks the mapping (ENGINEERING_STANDARDS 12)
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    out-of-order: false
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}

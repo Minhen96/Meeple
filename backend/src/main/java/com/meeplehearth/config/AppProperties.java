@@ -290,6 +290,55 @@ public class AppProperties {
         public boolean isEnabled() { return serviceAccountJson != null && !serviceAccountJson.isBlank(); }
     }
 
+    private RateLimit rateLimit = new RateLimit();
+    private DeepLinks deepLinks = new DeepLinks();
+
+    public RateLimit getRateLimit() { return rateLimit; }
+    public void setRateLimit(RateLimit r) { this.rateLimit = r; }
+
+    public DeepLinks getDeepLinks() { return deepLinks; }
+    public void setDeepLinks(DeepLinks d) { this.deepLinks = d; }
+
+    /**
+     * Global API rate limits (FEATURES_COMPLETE section 12.6), per one-minute window:
+     * authenticated requests per user, unauthenticated requests per client IP, and the stricter
+     * login / reactivation limit per client IP.
+     */
+    public static class RateLimit {
+        private boolean enabled = true;
+        private long perUserPerMinute = 200;
+        private long perIpPerMinute = 20;
+        private long loginPerMinute = 10;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean v) { this.enabled = v; }
+        public long getPerUserPerMinute() { return perUserPerMinute; }
+        public void setPerUserPerMinute(long v) { this.perUserPerMinute = v; }
+        public long getPerIpPerMinute() { return perIpPerMinute; }
+        public void setPerIpPerMinute(long v) { this.perIpPerMinute = v; }
+        public long getLoginPerMinute() { return loginPerMinute; }
+        public void setLoginPerMinute(long v) { this.loginPerMinute = v; }
+    }
+
+    /**
+     * App links / universal links served under /.well-known (FEATURES_COMPLETE section 12.3).
+     * Empty values publish valid files with no apps.
+     */
+    public static class DeepLinks {
+        /** iOS app id: {@code <TeamID>.<bundle id>}. */
+        private String iosAppId = "";
+        private String androidPackage = "";
+        /** Comma-separated SHA-256 signing certificate fingerprints ("AB:CD:..."). */
+        private String androidSha256Fingerprints = "";
+
+        public String getIosAppId() { return iosAppId; }
+        public void setIosAppId(String v) { this.iosAppId = v; }
+        public String getAndroidPackage() { return androidPackage; }
+        public void setAndroidPackage(String v) { this.androidPackage = v; }
+        public String getAndroidSha256Fingerprints() { return androidSha256Fingerprints; }
+        public void setAndroidSha256Fingerprints(String v) { this.androidSha256Fingerprints = v; }
+    }
+
     public Bgg getBgg() { return bgg; }
     public void setBgg(Bgg b) { this.bgg = b; }
 
