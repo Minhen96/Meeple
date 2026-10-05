@@ -65,7 +65,7 @@ class WebSocketEventTopicFeatureTest {
                 // closed by the server
             }
         }
-        users.forEach(id -> jdbc.update("DELETE FROM users WHERE id = ?", id));
+        users.forEach(id -> com.meeplehearth.support.social.ApiIntegrationTestBase.deleteUserRows(jdbc, id));
     }
 
     private UUID user() {

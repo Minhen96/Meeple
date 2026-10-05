@@ -106,6 +106,19 @@ public class PostQueryRepository {
         return jdbc.update("DELETE FROM posts WHERE author_id = :userId", new MapSqlParameterSource("userId", userId));
     }
 
+    /**
+     * Image URLs of every post by {@code userId} (deleted or not) that no post by another author
+     * also uses, so removing them from storage cannot break someone else's post.
+     */
+    public List<String> imageUrlsOnlyUsedBy(UUID userId) {
+        return jdbc.queryForList("""
+                SELECT DISTINCT pi.url FROM post_images pi JOIN posts p ON p.id = pi.post_id
+                WHERE p.author_id = :userId
+                  AND NOT EXISTS (SELECT 1 FROM post_images o JOIN posts op ON op.id = o.post_id
+                                  WHERE o.url = pi.url AND op.author_id <> :userId)
+                """, new MapSqlParameterSource("userId", userId), String.class);
+    }
+
     private static MapSqlParameterSource params(UUID viewerId, FeedCursor cursor, int limit) {
         MapSqlParameterSource params = new MapSqlParameterSource("viewerId", viewerId).addValue("limit", limit);
         if (cursor != null) {

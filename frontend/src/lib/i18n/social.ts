@@ -91,6 +91,8 @@ export default {
 	'detail.backHome': 'Back to Home',
 	'detail.commentsTitle': 'Comments',
 	'detail.noComments': 'Be the first to comment!',
+	'detail.loadMoreComments': 'Load more comments',
+	'detail.loadCommentsFailed': 'Could not load more comments',
 
 	// Comments
 	'comment.edit': 'Edit',

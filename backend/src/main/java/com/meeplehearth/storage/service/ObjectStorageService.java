@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -57,6 +58,35 @@ public class ObjectStorageService {
                         .contentLength((long) content.length)
                         .build(),
                 RequestBody.fromBytes(content));
+    }
+
+    /** Server-side copy of one object to another key in the same bucket (S3 CopyObject). */
+    public void copy(String sourceKey, String destinationKey) {
+        s3Client.copyObject(CopyObjectRequest.builder()
+                .sourceBucket(bucket())
+                .sourceKey(sourceKey)
+                .destinationBucket(bucket())
+                .destinationKey(destinationKey)
+                .build());
+    }
+
+    /** Same as {@link #deleteKeys} but logs and swallows storage failures (best-effort cleanup). */
+    public int deleteKeysQuietly(List<String> keys) {
+        if (keys.isEmpty()) {
+            return 0;
+        }
+        try {
+            return deleteKeys(keys);
+        } catch (RuntimeException e) {
+            log.warn("Could not delete {} objects: {}", keys.size(), e.getClass().getSimpleName());
+            return 0;
+        }
+    }
+
+    /** The public CDN URL of an object key in this bucket ({@code {publicUrl}/{key}}). */
+    public String publicUrl(String key) {
+        String base = appProperties.getR2().getPublicUrl();
+        return (base.endsWith("/") ? base : base + "/") + key;
     }
 
     /** A GET link for a private object, valid for {@code validFor} (capped at 7 days). */

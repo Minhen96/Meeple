@@ -319,8 +319,9 @@ class PostApiIntegrationTest extends ApiIntegrationTestBase {
 
         JsonNode all = json(mvc.perform(get("/api/v1/posts/{id}/comments", postId).with(as(author)))
                 .andExpect(status().isOk()).andReturn());
-        assertThat(all.get("data")).extracting(n -> n.get("body").asText()).containsExactly("first!", "meh", "thanks");
-        assertThat(all.get("data").get(0).get("id").asText()).isEqualTo(first.toString());
+        assertThat(all.get("data").get("items")).extracting(n -> n.get("body").asText())
+                .containsExactly("first!", "meh", "thanks");
+        assertThat(all.get("data").get("items").get(0).get("id").asText()).isEqualTo(first.toString());
 
         // Alice blocked the troll: she no longer sees the troll's comment
         block(alice, troll);

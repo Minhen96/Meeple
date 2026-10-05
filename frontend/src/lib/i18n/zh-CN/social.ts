@@ -83,6 +83,8 @@ export default {
 	'detail.backHome': '返回首页',
 	'detail.commentsTitle': '评论',
 	'detail.noComments': '来发表第一条评论吧！',
+	'detail.loadMoreComments': '加载更多评论',
+	'detail.loadCommentsFailed': '无法加载更多评论',
 
 	'comment.edit': '编辑',
 	'comment.delete': '删除',

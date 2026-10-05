@@ -93,18 +93,17 @@ export const postsApi = {
 	bookmarkPost: (id: string) => api.post<void>(`/api/v1/posts/${id}/bookmark`),
 	unbookmarkPost: (id: string) => api.delete<void>(`/api/v1/posts/${id}/bookmark`),
 
-	getComments: async (
+	/** Comments oldest first; pass the previous page's `nextCursor` for the next one. */
+	getComments: (
 		postId: string,
-		page = 0,
-		size = 20,
+		cursor?: string | null,
+		limit = 20,
 		opts?: ApiOptions
-	): Promise<Comment[]> => {
-		const res = await api.get<PaginatedResponse<Comment>>(
-			`/api/v1/posts/${postId}/comments?page=${page}&size=${size}`,
+	): Promise<CursorPage<Comment>> =>
+		api.get<CursorPage<Comment>>(
+			`/api/v1/posts/${postId}/comments?${cursorQuery(cursor, limit)}`,
 			opts
-		);
-		return res.data;
-	},
+		),
 
 	addComment: (postId: string, body: string): Promise<Comment> =>
 		api.post<Comment>(`/api/v1/posts/${postId}/comments`, { body }),

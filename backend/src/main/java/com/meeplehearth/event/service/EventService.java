@@ -391,8 +391,8 @@ public class EventService {
         if (target != RsvpStatus.ACCEPTED && target != RsvpStatus.DECLINED) {
             throw ApiException.badRequest("INVALID_STATUS", "RSVP must be ACCEPTED or DECLINED");
         }
-        UUID hostId = event.getHost().getId();
-        if (hostId.equals(userId)) {
+        UUID hostId = event.hostIdOrNull();
+        if (event.isHostedBy(userId)) {
             if (target == RsvpStatus.DECLINED) {
                 throw ApiException.badRequest("HOST_CANNOT_LEAVE", "Cancel the event or transfer host.");
             }
@@ -443,8 +443,8 @@ public class EventService {
         Event event = lockVisibleEvent(userId, eventId);
         EventParticipant row = participantRepository.findByEventIdAndUserId(eventId, userId)
                 .orElseThrow(() -> ApiException.notFound("RSVP_NOT_FOUND", "You have not RSVP'd to this event"));
-        UUID hostId = event.getHost().getId();
-        if (hostId.equals(userId)) {
+        UUID hostId = event.hostIdOrNull();
+        if (event.isHostedBy(userId)) {
             throw ApiException.badRequest("HOST_CANNOT_LEAVE", "Cancel the event or transfer host.");
         }
         if (row.getStatus() == RsvpStatus.LEFT) {
@@ -556,7 +556,7 @@ public class EventService {
      */
     private Event lockHostedEvent(UUID userId, UUID eventId) {
         Event event = lockVisibleEvent(userId, eventId);
-        if (!event.getHost().getId().equals(userId)) {
+        if (!event.isHostedBy(userId)) {
             throw ApiException.forbidden("NOT_HOST", "Only the host can do that");
         }
         return event;

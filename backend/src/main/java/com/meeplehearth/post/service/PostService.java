@@ -267,6 +267,10 @@ public class PostService {
         if (saved.getGame() != null) {
             publishSession(saved, participants(userId, tagged));
         }
+        if (!saved.getImages().isEmpty()) {
+            // Moved from uploads/{userId}/ to posts/{postId}/ after commit (PostImageRelocator)
+            eventPublisher.publishEvent(new PostImageRelocator.PostImagesAdded(saved.getId()));
+        }
         feedCache.invalidateAfterCommit(userId);
         return PostResponse.from(saved, false, false);
     }
@@ -425,7 +429,7 @@ public class PostService {
         findVisiblePost(postId, userId);
         PostComment comment = postCommentRepository.findActive(postId, commentId)
                 .orElseThrow(() -> ApiException.notFound("COMMENT_NOT_FOUND", "Comment not found"));
-        if (!comment.getAuthor().getId().equals(userId)) {
+        if (!isAuthorOf(comment, userId)) {
             throw ApiException.forbidden("FORBIDDEN", "You can only edit your own comments");
         }
         requireWithinWindow(comment.getCreatedAt(), COMMENT_EDIT_WINDOW);
@@ -447,7 +451,7 @@ public class PostService {
         findVisiblePost(postId, userId);
         PostComment comment = postCommentRepository.findActive(postId, commentId)
                 .orElseThrow(() -> ApiException.notFound("COMMENT_NOT_FOUND", "Comment not found"));
-        boolean isCommentAuthor = comment.getAuthor().getId().equals(userId);
+        boolean isCommentAuthor = isAuthorOf(comment, userId);
         boolean isPostAuthor = comment.getPost().getAuthor().getId().equals(userId);
         if (!isCommentAuthor && !isPostAuthor) {
             throw ApiException.forbidden("FORBIDDEN", "You cannot delete this comment");
@@ -457,6 +461,7 @@ public class PostService {
         postRepository.decrementCommentCount(postId);
     }
 
+    /** Legacy offset page of comments ({@code GET /posts/{id}/comments?page=}), oldest first. */
     @Transactional(readOnly = true)
     public PageResponse<PostCommentResponse> getComments(UUID postId, UUID currentUserId, int page, int size) {
         findVisiblePost(postId, currentUserId);
@@ -465,9 +470,35 @@ public class PostService {
         return PageResponse.of(comments, PostCommentResponse::from);
     }
 
+    /**
+     * Cursor page of comments, oldest first ({@code GET /posts/{id}/comments?cursor=&limit=}).
+     * {@code nextCursor} is the opaque key of the last comment returned.
+     */
+    @Transactional(readOnly = true)
+    public CursorPage<PostCommentResponse> getCommentPage(UUID postId, UUID viewerId, String cursor, int limit) {
+        FeedCursor parsed = FeedCursor.parse(cursor);
+        findVisiblePost(postId, viewerId);
+        int safeLimit = clampSize(limit);
+        Instant afterTime = parsed != null ? parsed.at() : Instant.EPOCH;
+        UUID afterId = parsed != null ? parsed.id() : new UUID(0L, 0L);
+        List<PostComment> rows = postCommentRepository.findVisibleAfter(postId, viewerId, afterTime, afterId,
+                PageRequest.of(0, safeLimit + 1));
+        boolean hasMore = rows.size() > safeLimit;
+        List<PostComment> page = hasMore ? rows.subList(0, safeLimit) : rows;
+        String next = hasMore
+                ? FeedCursor.encode(page.get(page.size() - 1).getCreatedAt(), page.get(page.size() - 1).getId())
+                : null;
+        return new CursorPage<>(page.stream().map(PostCommentResponse::from).toList(), next, hasMore);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /** False for a comment whose author's account was permanently deleted (author NULL). */
+    private static boolean isAuthorOf(PostComment comment, UUID userId) {
+        return comment.getAuthor() != null && comment.getAuthor().getId().equals(userId);
+    }
 
     private Post findActivePost(UUID postId) {
         return postRepository.findActiveById(postId)
@@ -492,7 +523,7 @@ public class PostService {
     private Event findEventForMemories(UUID eventId, UUID authorId) {
         Event event = eventRepository.findVisibleById(eventId, authorId)
                 .orElseThrow(() -> ApiException.notFound("EVENT_NOT_FOUND", "Event not found"));
-        boolean host = event.getHost().getId().equals(authorId);
+        boolean host = event.isHostedBy(authorId);
         boolean attended = eventParticipantRepository.findByEventIdAndUserId(eventId, authorId)
                 .map(p -> p.getStatus() == EventParticipant.RsvpStatus.ACCEPTED)
                 .orElse(false);
