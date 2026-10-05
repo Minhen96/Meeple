@@ -81,7 +81,7 @@ describe('root layout server load', () => {
 			return json(200, { data: USER });
 		});
 
-		expect(result).toEqual({ user: USER });
+		expect(result).toEqual({ user: USER, locale: 'en' });
 		expect(locals).toEqual({ accessToken: 'a2', refreshToken: 'r2' });
 		expect(writes.filter((w) => w.op === 'set').map((w) => [w.name, w.value])).toEqual([
 			['access_token', 'a2'],

@@ -1,0 +1,30 @@
+import type en from '../errors';
+import type { Translation } from '../types';
+
+export default {
+	unknown: '出了点问题，请重试。',
+	network: '无法连接到 Meeple，请检查网络后重试。',
+	notFound: '找不到该内容，可能已被删除。',
+	forbidden: '你没有权限执行此操作。',
+	validation: '部分信息无效，请检查后重试。',
+	rateLimited: '操作过于频繁，请稍后再试。',
+	sessionExpired: '登录已过期，请重新登录。',
+	accountDeleted: '该账号已被删除。',
+	userNotFound: '该用户不可用。',
+	notFriends: '需要先成为好友才能执行此操作。',
+	eventCancelled: '该活动已取消。',
+	eventCompleted: '该活动已结束。',
+	eventFull: '该活动已满员。',
+	notHost: '只有主办人可以执行此操作。',
+	editWindowExpired: '已超过可编辑时间。',
+	requestCooldown: '请稍后再向此人发送请求。',
+	pendingLimit: '你待处理的好友请求过多。',
+	reportLimitExceeded: '你今天的举报次数已达上限。',
+	bggUserNotFound: '找不到该 BoardGameGeek 用户名。',
+	bggUnavailable: 'BoardGameGeek 暂时无法访问，请稍后再试。',
+	usernameChangeTooSoon: '用户名每 30 天只能修改一次。',
+	usernameTaken: '该用户名已被使用。',
+	emailTaken: '该邮箱已注册。',
+	invalidPassword: '密码错误。',
+	fileTooLarge: '文件过大。'
+} satisfies Translation<typeof en>;
