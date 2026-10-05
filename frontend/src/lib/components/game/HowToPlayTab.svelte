@@ -1108,11 +1108,20 @@
 			</div>
 		{:else if howToPlayState === "error"}
 			<div
-				class="rounded-2xl bg-surface-container-low p-5 text-center"
+				class="rounded-2xl bg-surface-container-low p-5 flex flex-col items-center text-center gap-3"
+				role="alert"
 			>
 				<p class="text-sm text-on-surface-variant">
-					Could not load guide. Use the AI Assistant below for help.
+					Could not load guide. Check your connection and try again.
 				</p>
+				<!-- Reload the guide status: shows the guide, progress, or the Generate button. -->
+				<button
+					onclick={fetchHowToPlay}
+					class="flex items-center justify-center gap-2 px-5 py-2 rounded-2xl bg-primary text-on-primary text-sm font-bold"
+				>
+					<span class="material-symbols-outlined text-[18px]">refresh</span>
+					Retry
+				</button>
 			</div>
 		{/if}
 	{/if}
