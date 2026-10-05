@@ -1154,11 +1154,14 @@ body.
   `/friends`, `/friend-requests/received|sent`, `/users/search`,
   `/users/suggestions`.
 - **Deleted users:** `UserSummary` parses `{id, deleted: true}` with null
-  names, a missing `id`, or a null nested user (post `author`, feed activity
-  `user`, game review/friend `user`) as a deleted user, rendered as
-  "Deleted User" without avatar or profile link. Comments accept the flat
-  `authorId/authorUsername/authorDisplayName/authorAvatarUrl` fields or a
-  nested `author`; a null author id marks the comment author deleted.
+  names, the all-zero placeholder id of a hard-deleted account
+  (`00000000-0000-0000-0000-000000000000`), a missing `id`, or a null nested
+  user (post `author`, event `host`, feed activity `user`, game review/friend
+  `user`) as a deleted user, rendered as "Deleted User" without avatar or
+  profile link (notification paths skip deleted actors too). Comments accept
+  the flat `authorId/authorUsername/authorDisplayName/authorAvatarUrl` fields
+  and/or the nested `author`; `author.deleted`, a null or all-zero author id
+  marks the comment author deleted.
   User lists accept an optional `friendshipStatus`
   (`none|pending_sent|pending_received|friends`).
 - **Posts:** `PUT /posts/{id}` sends the full editable state; removing the
