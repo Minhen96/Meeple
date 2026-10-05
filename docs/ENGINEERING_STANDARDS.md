@@ -30,25 +30,32 @@ Benefits: Neon branches are instant and cheap. Staging always has a copy of prod
 
 ```
 src/main/resources/
-├── application.properties          # shared config (port, app name, etc.)
-├── application-local.properties    # local overrides (debug logging, Docker DB)
-├── application-staging.properties  # staging-specific
-└── application-production.properties # production (secrets from env vars, not files)
+├── application.yml          # shared config (no default profile is activated here)
+├── application-local.yml    # local overrides (Docker DB/Redis, MailHog, dev JWT secret)
+├── application-staging.yml  # staging (all secrets from env vars)
+└── application-prod.yml     # production (all secrets from env vars, Swagger/OpenAPI disabled)
 ```
 
-**Active profile set via env var:**
+**Active profile set via env var — there is no default, so it must always be set:**
 ```
-SPRING_PROFILES_ACTIVE=production   # Railway
-SPRING_PROFILES_ACTIVE=staging      # Railway staging
-SPRING_PROFILES_ACTIVE=local        # local (set in IDE or shell)
+SPRING_PROFILES_ACTIVE=prod      # Railway production
+SPRING_PROFILES_ACTIVE=staging   # Railway staging
+SPRING_PROFILES_ACTIVE=local     # local (backend/.env, IDE or shell)
 ```
 
-**Never commit secrets.** All sensitive values in `application-production.properties` are placeholders:
-```properties
-# application-production.properties
-db.url=${DB_URL}
-jwt.secret=${JWT_SECRET}
-resend.api-key=${RESEND_API_KEY}
+Starting without a profile fails fast (no datasource, no JWT secret). The app also refuses to
+start if `JWT_SECRET` is shorter than 32 bytes. `app.security.open-admin-endpoints` is honoured
+only under the `local` profile and ignored (with a warning) everywhere else.
+
+**Never commit secrets.** All sensitive values in `application-prod.yml` are env-var placeholders:
+```yaml
+# application-prod.yml
+spring:
+  datasource:
+    url: ${DB_URL}
+app:
+  jwt:
+    secret: ${JWT_SECRET}   # at least 32 bytes
 ```
 
 ### SvelteKit Environments
@@ -250,8 +257,8 @@ sample.stop(bgApiResponseTimer);
 ### Logging (Grafana Loki)
 
 ```xml
-<!-- logback-spring.xml — production profile -->
-<springProfile name="production">
+<!-- logback-spring.xml — prod profile -->
+<springProfile name="prod">
   <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
     <http>
       <url>${LOKI_URL}</url>
