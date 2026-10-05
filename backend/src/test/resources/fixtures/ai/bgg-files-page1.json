@@ -1,0 +1,63 @@
+{
+  "files": [
+    {
+      "filepageid": "317826",
+      "fileid": "220001",
+      "filename": "Catan_Rules_5th_Ed.pdf",
+      "title": "Catan Rulebook 5th edition",
+      "size": "4823011",
+      "language": "English",
+      "languageid": "2184",
+      "href": "/filepage/317826/catan-rulebook-5th-edition",
+      "postdate": "2024-02-01 10:11:12"
+    },
+    {
+      "filepageid": "100200",
+      "fileid": "220002",
+      "filename": "catan_summary.pdf",
+      "title": "Rules summary and player aid",
+      "size": "120000",
+      "language": "English",
+      "languageid": "2184",
+      "href": "/filepage/100200/rules-summary",
+      "postdate": "2023-05-05 09:00:00"
+    },
+    {
+      "filepageid": "100201",
+      "fileid": "220003",
+      "filename": "board_photo.jpg",
+      "title": "Rules photo",
+      "size": "350000",
+      "language": "English",
+      "languageid": "2184",
+      "href": "/filepage/100201/photo",
+      "postdate": "2023-04-04 09:00:00"
+    },
+    {
+      "filepageid": "100202",
+      "fileid": "220004",
+      "filename": "Base_Manual.PDF",
+      "title": "Base game",
+      "size": "900000",
+      "language": "English",
+      "languageid": "2184",
+      "href": "/filepage/100202/base-game",
+      "postdate": "2022-03-03 09:00:00"
+    },
+    {
+      "filepageid": "100203",
+      "fileid": "220005",
+      "filename": "seafarers_rules.pdf",
+      "title": "Seafarers expansion rules",
+      "size": "700000",
+      "language": "English",
+      "languageid": "2184",
+      "href": "/filepage/100203/seafarers",
+      "postdate": null
+    }
+  ],
+  "config": {
+    "endpage": 2,
+    "numitems": 15
+  }
+}

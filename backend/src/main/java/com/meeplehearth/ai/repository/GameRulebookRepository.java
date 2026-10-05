@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -32,6 +33,7 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
 
     Optional<GameRulebook> findFirstByGame_IdAndUploadedBy_IdAndStatusIn(UUID gameId, UUID uploadedById, List<String> statuses);
 
+    @EntityGraph(attributePaths = {"game", "uploadedBy"})
     Page<GameRulebook> findByStatusOrderByCreatedAtAsc(String status, Pageable pageable);
 
     int countByGame_IdAndStatus(UUID gameId, String status);
