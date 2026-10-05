@@ -4,7 +4,8 @@
 	import { currentUser } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import type { RulebookQueueItem, RuleNoteQueueItem } from '$lib/types';
+	import { ApiRequestError } from '$lib/api/client';
+	import type { RulebookQueueItem, RulebookQueueStatus, RuleNoteQueueItem } from '$lib/types';
 
 	let activeTab: 'rulebooks' | 'notes' = $state('rulebooks');
 
@@ -16,6 +17,19 @@
 	let rejectingId: string | null = $state(null);
 	let rejectReason = $state('');
 	let processingId: string | null = $state(null);
+	let statusFilter: RulebookQueueStatus = $state('pending_review');
+
+	const statusFilters: { value: RulebookQueueStatus; label: string }[] = [
+		{ value: 'pending_review', label: 'Pending' },
+		{ value: 'failed', label: 'Failed' },
+		{ value: 'ingesting', label: 'Ingesting' }
+	];
+
+	const emptyMessage: Record<RulebookQueueStatus, string> = {
+		pending_review: 'No pending rulebooks to review.',
+		failed: 'No failed rulebooks.',
+		ingesting: 'No rulebooks are ingesting.'
+	};
 
 	// ── Rule note queue ────────────────────────────────────────────────────────
 	let noteItems: RuleNoteQueueItem[] = $state([]);
@@ -35,16 +49,19 @@
 	});
 
 	async function loadPage(p: number) {
+		const status = statusFilter;
 		loading = true;
 		try {
-			const res = await adminApi.getRulebookQueue('pending_review', p, 20);
+			const res = await adminApi.getRulebookQueue(status, p, 20);
+			// The filter changed while this page was loading; the newer load owns the list
+			if (status !== statusFilter) return;
 			items = p === 0 ? (res.content ?? []) : [...items, ...(res.content ?? [])];
 			page = res.number;
 			hasMore = !res.last;
 		} catch {
-			toast.error('Failed to load queue');
+			if (status === statusFilter) toast.error('Failed to load queue');
 		} finally {
-			loading = false;
+			if (status === statusFilter) loading = false;
 		}
 	}
 
@@ -59,6 +76,27 @@
 		} finally {
 			processingId = null;
 		}
+	}
+
+	async function selectStatus(status: RulebookQueueStatus) {
+		if (status === statusFilter) return;
+		statusFilter = status;
+		items = [];
+		hasMore = false;
+		await loadPage(0);
+	}
+
+	async function retry(id: string) {
+		processingId = id;
+		try {
+			await adminApi.retryRulebook(id);
+			toast.success('Retry started — ingestion restarted');
+		} catch (e) {
+			toast.error(e instanceof ApiRequestError ? e.message : 'Failed to retry');
+		} finally {
+			processingId = null;
+		}
+		await loadPage(0);
 	}
 
 	function startReject(id: string) {
@@ -187,6 +225,18 @@
 	</div>
 
 	{#if activeTab === 'rulebooks'}
+	<!-- Status filter -->
+	<div class="flex gap-2" role="tablist" aria-label="Rulebook status">
+		{#each statusFilters as f (f.value)}
+			<button
+				role="tab"
+				aria-selected={statusFilter === f.value}
+				onclick={() => selectStatus(f.value)}
+				class="px-4 py-1.5 rounded-full text-xs font-bold transition-colors {statusFilter === f.value ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
+			>{f.label}</button>
+		{/each}
+	</div>
+
 	{#if loading && items.length === 0}
 		<!-- Skeleton -->
 		<div class="space-y-3">
@@ -206,7 +256,7 @@
 		<div class="bg-surface-container-low rounded-3xl p-10 text-center">
 			<span class="material-symbols-outlined text-4xl text-primary/20 block mb-3">check_circle</span>
 			<p class="font-bold text-on-surface">Queue is empty</p>
-			<p class="text-xs text-on-surface-variant mt-1">No pending rulebooks to review.</p>
+			<p class="text-xs text-on-surface-variant mt-1">{emptyMessage[statusFilter]}</p>
 		</div>
 
 	{:else}
@@ -250,6 +300,7 @@
 					{/if}
 
 					<!-- Actions -->
+					{#if statusFilter === 'pending_review'}
 					<div class="flex gap-2">
 						<button
 							onclick={() => approve(item.id)}
@@ -272,6 +323,20 @@
 							Reject
 						</button>
 					</div>
+					{:else}
+					<button
+						onclick={() => retry(item.id)}
+						disabled={processingId === item.id}
+						class="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
+					>
+						{#if processingId === item.id}
+							<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+						{:else}
+							<span class="material-symbols-outlined text-[16px]">refresh</span>
+						{/if}
+						Retry
+					</button>
+					{/if}
 				</div>
 			{/each}
 		</div>
