@@ -12,8 +12,10 @@ import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * BGG API client using api.geekdo.com JSON API.
@@ -68,15 +70,34 @@ public class BggApiClient {
      * Makes one HTTP call per ID to api.geekdo.com/api/geekitems with a short
      * inter-call delay. Per-game failures are swallowed so one bad ID does not
      * abort the whole batch — but if EVERY request in the batch fails (network
-     * error, 5xx, 429, ...) this throws, so the "bgg" circuit breaker records the
-     * failure and the fallback raises {@link BggUnavailableException}.
-     * A 404 for an id is not a failure: it just yields no detail for that id.
+     * error, 5xx, 429, a 200 whose body is not JSON such as a challenge page, ...)
+     * this throws, so the "bgg" circuit breaker records the failure and the
+     * fallback raises {@link BggUnavailableException}.
+     * A 404 (or a JSON answer without an item) is not a failure: the id is reported
+     * in {@link BggBatchResult#notFound()}.
      */
+    @CircuitBreaker(name = "bgg", fallbackMethod = "fetchDetailsFallback")
+    public BggBatchResult fetchDetails(List<Long> bggIds) {
+        return fetchBatch(bggIds);
+    }
+
+    @SuppressWarnings("unused")
+    private BggBatchResult fetchDetailsFallback(List<Long> bggIds, Exception e) {
+        throw new BggUnavailableException("BGG details unavailable: " + e.getMessage());
+    }
+
+    /** Details only; see {@link #fetchDetails} for the per-id outcome. */
     @CircuitBreaker(name = "bgg", fallbackMethod = "getDetailsFallback")
     public List<BggGameDetail> getDetails(List<Long> bggIds) {
-        if (bggIds == null || bggIds.isEmpty()) return List.of();
+        return fetchBatch(bggIds).details();
+    }
+
+    private BggBatchResult fetchBatch(List<Long> bggIds) {
+        if (bggIds == null || bggIds.isEmpty()) return new BggBatchResult(List.of(), Set.of(), Set.of(), Set.of());
         List<BggGameDetail> results = new ArrayList<>();
-        int failures = 0;
+        Set<Long> returned = new HashSet<>();
+        Set<Long> notFound = new HashSet<>();
+        Set<Long> failed = new HashSet<>();
         int attempted = 0;
         Exception lastError = null;
         for (Long id : bggIds) {
@@ -87,7 +108,13 @@ public class BggApiClient {
                         .uri("/api/geekitems?nosession=1&objecttype=thing&objectid={id}", id)
                         .retrieve()
                         .body(String.class);
-                parseGeekItem(json).ifPresent(results::add);
+                Optional<BggGameDetail> detail = parseGeekItem(json);
+                if (detail.isPresent()) {
+                    results.add(detail.get());
+                    returned.add(id);
+                } else {
+                    notFound.add(id);
+                }
                 if (bggIds.size() > 1) {
                     Thread.sleep(INTER_CALL_DELAY_MS);
                 }
@@ -96,17 +123,18 @@ public class BggApiClient {
                 break;
             } catch (HttpClientErrorException.NotFound nf) {
                 log.debug("BGG: game id={} not found", id);
+                notFound.add(id);
             } catch (Exception e) {
-                failures++;
+                failed.add(id);
                 lastError = e;
                 log.warn("BGG: failed to fetch game id={}: {}", id, e.getMessage());
             }
         }
-        if (attempted > 0 && failures == attempted) {
-            throw new IllegalStateException("All " + failures + " BGG requests in batch failed: "
+        if (attempted > 0 && failed.size() == attempted) {
+            throw new IllegalStateException("All " + failed.size() + " BGG requests in batch failed: "
                     + (lastError != null ? lastError.getMessage() : "unknown error"), lastError);
         }
-        return results;
+        return new BggBatchResult(results, returned, notFound, failed);
     }
 
     @SuppressWarnings("unused")
@@ -128,10 +156,21 @@ public class BggApiClient {
     // JSON parsing
     // -------------------------------------------------------------------------
 
-    private Optional<BggGameDetail> parseGeekItem(String json) {
-        if (json == null) return Optional.empty();
+    /**
+     * @return the detail, or empty when BGG answered with JSON that has no item
+     * @throws BggResponseException when the body is missing or not the expected JSON
+     *         (e.g. an HTML challenge page served with 200): counted as a failed request
+     */
+    Optional<BggGameDetail> parseGeekItem(String json) {
+        if (json == null || json.isBlank()) throw new BggResponseException("Empty BGG response body");
+        JsonNode root;
         try {
-            JsonNode root = objectMapper.readTree(json);
+            root = objectMapper.readTree(json);
+        } catch (Exception e) {
+            throw new BggResponseException("BGG response is not JSON");
+        }
+        if (!root.isObject()) throw new BggResponseException("BGG response is not a JSON object");
+        try {
             JsonNode item = root.path("item");
             if (item.isMissingNode() || item.isNull()) return Optional.empty();
 
@@ -187,8 +226,7 @@ public class BggApiClient {
                     honors, expansions, subtype, bggUrl
             ));
         } catch (Exception e) {
-            log.warn("BGG: failed to parse geekitem response: {}", e.getMessage());
-            return Optional.empty();
+            throw new BggResponseException("Failed to parse BGG geekitem: " + e.getMessage());
         }
     }
 
@@ -252,6 +290,27 @@ public class BggApiClient {
             String subtype,
             String bggUrl
     ) {}
+
+    /**
+     * Outcome of one batch: {@code returned} and {@code notFound} ids got a definitive answer;
+     * {@code failed} ids did not (network error, 5xx, unparseable body) and should be retried.
+     */
+    public record BggBatchResult(List<BggGameDetail> details, Set<Long> returned,
+                                 Set<Long> notFound, Set<Long> failed) {
+        /** Ids BGG answered for (with data or a definitive "no such item"). */
+        public Set<Long> resolved() {
+            Set<Long> resolved = new HashSet<>(returned);
+            resolved.addAll(notFound);
+            return resolved;
+        }
+    }
+
+    /** BGG answered, but not with the JSON we expect. */
+    static class BggResponseException extends RuntimeException {
+        BggResponseException(String message) {
+            super(message);
+        }
+    }
 
     public static class BggUnavailableException extends RuntimeException {
         public BggUnavailableException(String message) {

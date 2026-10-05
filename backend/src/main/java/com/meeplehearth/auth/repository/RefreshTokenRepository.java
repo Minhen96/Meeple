@@ -32,6 +32,20 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
             + "WHERE r.tokenHash = :tokenHash AND r.usedAt IS NULL")
     int markUsed(@Param("tokenHash") String tokenHash, @Param("now") Instant now);
 
+    /** Links a rotated token to the token that replaced it. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE RefreshToken r SET r.replacedBy = :successorId WHERE r.tokenHash = :tokenHash")
+    int setReplacedBy(@Param("tokenHash") String tokenHash, @Param("successorId") UUID successorId);
+
+    /** Current successor of a token, read from the database (not the persistence context). */
+    @Query("SELECT r.replacedBy FROM RefreshToken r WHERE r.id = :id")
+    Optional<UUID> findReplacedById(@Param("id") UUID id);
+
+    /** Deletes a token only if it has never been used; returns 1 for the single caller that wins. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM RefreshToken r WHERE r.id = :id AND r.usedAt IS NULL")
+    int deleteUnusedById(@Param("id") UUID id);
+
     @Modifying
     @Query("DELETE FROM RefreshToken r WHERE r.tokenHash = :tokenHash")
     int deleteByTokenHash(@Param("tokenHash") String tokenHash);

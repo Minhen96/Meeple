@@ -20,7 +20,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * GET  /api/v1/games/{gameId}/how-to-play        — fetch current state (never auto-triggers)
+ * GET  /api/v1/games/{gameId}/how-to-play        — fetch current state (never auto-triggers):
+ *      ready | generating | failed (latest attempt failed, kept 30 min) | not_generated
  * POST /api/v1/games/{gameId}/how-to-play/generate — explicitly start AI extraction
  *
  * Progress is pushed over WebSocket (/topic/how-to-play/{gameId}) so the
@@ -74,6 +75,12 @@ public class HowToPlayController {
         // Extraction in progress — return current progress (frontend already subscribed to WS)
         if (extractionService.isGenerating(gameId)) {
             return ResponseEntity.ok(HowToPlayResponse.generating(extractionService.getProgress(gameId)));
+        }
+
+        // Latest attempt failed (kept for 30 min) — let the frontend show the error and a retry
+        var failure = extractionService.getFailureMessage(gameId);
+        if (failure.isPresent()) {
+            return ResponseEntity.ok(HowToPlayResponse.failed(failure.get()));
         }
 
         // Nothing yet — let the frontend show the generate button

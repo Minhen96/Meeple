@@ -1,6 +1,7 @@
 package com.meeplehearth.ai.service;
 
 import com.meeplehearth.ai.entity.GameRulebook;
+import com.meeplehearth.ai.job.RulebookAutoFetchJob;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.config.AppProperties;
 import com.meeplehearth.common.exception.ApiException;
@@ -163,7 +164,7 @@ public class RulebookQueueService {
             });
 
             log.info("Admin '{}' uploaded rulebook for '{}' — ingestion queued",
-                    admin.getUsername(), game.getNameEn());
+                    actorName(admin), game.getNameEn());
             return saved;
         } catch (RuntimeException e) {
             deleteFromR2(key);
@@ -209,7 +210,39 @@ public class RulebookQueueService {
 
         eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(rulebook.getId()));
         log.info("Admin '{}' approved rulebook {} for game '{}'",
-                admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn());
+                actorName(admin), rulebook.getId(), rulebook.getGame().getNameEn());
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin: retry a failed or stalled ingestion
+    // -------------------------------------------------------------------------
+
+    /**
+     * Re-queues a 'failed' rulebook, or an 'ingesting' one whose ingestion started longer than
+     * {@link RulebookAutoFetchJob#STALE_INGESTING_AFTER} ago (its task was lost). Ingestion starts
+     * after this transaction commits; reviewedAt is reset so the stale clock restarts.
+     */
+    @Transactional
+    public void retry(UUID rulebookId, User admin) {
+        GameRulebook rulebook = rulebookRepository.findByIdWithGame(rulebookId)
+                .orElseThrow(() -> ApiException.notFound("RULEBOOK_NOT_FOUND", "Rulebook not found"));
+        Instant now = Instant.now();
+        Instant startedAt = rulebook.getReviewedAt() != null ? rulebook.getReviewedAt() : rulebook.getCreatedAt();
+        boolean stale = "ingesting".equals(rulebook.getStatus())
+                && startedAt != null
+                && startedAt.isBefore(now.minus(RulebookAutoFetchJob.STALE_INGESTING_AFTER));
+        if (!"failed".equals(rulebook.getStatus()) && !stale) {
+            throw ApiException.badRequest("INVALID_STATUS", "Only failed or stalled rulebooks can be retried");
+        }
+
+        rulebook.setStatus("ingesting");
+        rulebook.setReviewedBy(admin);
+        rulebook.setReviewedAt(now);
+        rulebookRepository.save(rulebook);
+
+        eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(rulebook.getId()));
+        log.info("Admin '{}' retried ingestion of rulebook {} for game '{}'",
+                actorName(admin), rulebook.getId(), rulebook.getGame().getNameEn());
     }
 
     // -------------------------------------------------------------------------
@@ -246,7 +279,7 @@ public class RulebookQueueService {
         }
 
         log.info("Admin '{}' rejected rulebook {} for game '{}'",
-                admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn());
+                actorName(admin), rulebook.getId(), rulebook.getGame().getNameEn());
     }
 
     // -------------------------------------------------------------------------
@@ -288,6 +321,11 @@ public class RulebookQueueService {
                 RequestBody.fromBytes(bytes)
         );
         return r2.getPublicUrl() + "/" + key;
+    }
+
+    /** Log label for the acting admin; null when admin endpoints are open in local dev. */
+    private static String actorName(User admin) {
+        return admin != null ? admin.getUsername() : "(unauthenticated)";
     }
 
     private void cancelAllPendingForGame(UUID gameId, User reviewer, String reason) {

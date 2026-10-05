@@ -9,6 +9,7 @@ import com.meeplehearth.ai.service.RulebookIngestionRequestedEvent;
 import com.meeplehearth.game.entity.Game;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationEventPublisher;
@@ -59,13 +60,21 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
     private final RulebookUrlValidator urlValidator;
     private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
+    /** A game whose latest rulebook failed is not retried by the batch for this long. */
+    private final Duration failedRetryBackoff;
+    /** The batch stops retrying a game once it has this many failed rulebooks. */
+    private final int maxFailedAttempts;
 
     public RulebookAutoFetchJob(GameRulebookRepository rulebookRepository,
             RuleBookOrgClient ruleBookOrgClient,
             OnjRulebookClient onjClient,
             RulebookUrlValidator urlValidator,
             ApplicationEventPublisher eventPublisher,
-            StringRedisTemplate redisTemplate) {
+            StringRedisTemplate redisTemplate,
+            @Value("${meeple.rulebook.failed-retry-backoff-days:7}") int failedRetryBackoffDays,
+            @Value("${meeple.rulebook.max-failed-attempts:3}") int maxFailedAttempts) {
+        this.failedRetryBackoff = Duration.ofDays(failedRetryBackoffDays);
+        this.maxFailedAttempts = maxFailedAttempts;
         this.rulebookRepository = rulebookRepository;
         this.ruleBookOrgClient = ruleBookOrgClient;
         this.onjClient = onjClient;
@@ -99,9 +108,10 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
         try {
             log.info("Rulebook auto-fetch starting (limit={})", limit);
 
-            Instant ingestingCutoff = Instant.now().minus(STALE_INGESTING_AFTER);
+            Instant now = Instant.now();
             List<Game> games = rulebookRepository.findGamesWithoutApprovedRulebook(
-                    ingestingCutoff, PageRequest.of(0, limit));
+                    now.minus(STALE_INGESTING_AFTER), now.minus(failedRetryBackoff), maxFailedAttempts,
+                    PageRequest.of(0, limit));
             log.info("Found {} games without an approved rulebook", games.size());
 
             if (games.isEmpty()) {

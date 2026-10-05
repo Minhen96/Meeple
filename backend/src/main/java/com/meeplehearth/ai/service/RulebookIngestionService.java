@@ -10,7 +10,9 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -57,6 +59,7 @@ public class RulebookIngestionService {
     private final S3Client s3Client;
     private final AppProperties appProperties;
     private final StringRedisTemplate redisTemplate;
+    private final TaskExecutor taskExecutor;
 
     public RulebookIngestionService(GameRulebookRepository rulebookRepository,
             RulebookChunkWriter chunkWriter,
@@ -65,7 +68,9 @@ public class RulebookIngestionService {
             SafePdfDownloader pdfDownloader,
             S3Client s3Client,
             AppProperties appProperties,
-            StringRedisTemplate redisTemplate) {
+            StringRedisTemplate redisTemplate,
+            @Qualifier("taskExecutor") TaskExecutor taskExecutor) {
+        this.taskExecutor = taskExecutor;
         this.rulebookRepository = rulebookRepository;
         this.chunkWriter = chunkWriter;
         this.embeddingService = embeddingService;
@@ -81,13 +86,24 @@ public class RulebookIngestionService {
     // -------------------------------------------------------------------------
 
     /**
-     * Runs after the enqueuing transaction commits (or immediately if published
-     * outside a transaction), on the async executor.
+     * Runs after the enqueuing transaction commits (or immediately if published outside a
+     * transaction) and hands the pipeline to the async executor. If the executor rejects the
+     * task the rulebook is marked failed instead of staying 'ingesting' forever; tasks lost
+     * to a restart are caught by the stale-ingestion sweeper.
      */
-    @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onIngestionRequested(RulebookIngestionRequestedEvent event) {
-        ingest(event.rulebookId());
+        UUID rulebookId = event.rulebookId();
+        try {
+            taskExecutor.execute(() -> ingest(rulebookId));
+        } catch (TaskRejectedException e) {
+            log.error("Ingestion executor rejected rulebook {} — marking failed", rulebookId);
+            try {
+                chunkWriter.markFailed(rulebookId);
+            } catch (Exception ex) {
+                log.error("Could not update rulebook {} status to failed: {}", rulebookId, ex.getMessage());
+            }
+        }
     }
 
     /** Not transactional: network + embedding work happens with no DB transaction open. */

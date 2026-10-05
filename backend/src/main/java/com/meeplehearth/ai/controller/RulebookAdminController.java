@@ -84,6 +84,21 @@ public class RulebookAdminController {
     }
 
     // -------------------------------------------------------------------------
+    // POST /api/v1/admin/rulebooks/{id}/retry
+    // -------------------------------------------------------------------------
+
+    /** Re-runs ingestion for a 'failed' rulebook or one stuck in 'ingesting'. */
+    @PostMapping("/rulebooks/{id}/retry")
+    public ResponseEntity<Map<String, String>> retry(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        User admin = resolveUser(userDetails);
+        queueService.retry(id, admin);
+        return ResponseEntity.ok(Map.of("status", "ingesting"));
+    }
+
+    // -------------------------------------------------------------------------
     // POST /api/v1/admin/rulebooks/{id}/reject
     // -------------------------------------------------------------------------
 
@@ -125,7 +140,14 @@ public class RulebookAdminController {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * The acting admin, or null when the request is unauthenticated (only possible with
+     * app.security.open-admin-endpoints in the local profile); the reviewer is then recorded as null.
+     */
     private User resolveUser(UserDetails userDetails) {
+        if (userDetails == null) {
+            return null;
+        }
         UUID userId = UUID.fromString(userDetails.getUsername());
         return userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "User not found"));

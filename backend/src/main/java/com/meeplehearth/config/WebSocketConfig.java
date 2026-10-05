@@ -23,10 +23,12 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -45,11 +47,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final AppProperties appProperties;
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final WebSocketSessionRevoker sessionRevoker;
 
-    public WebSocketConfig(AppProperties appProperties, JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+    public WebSocketConfig(AppProperties appProperties, JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService,
+                           WebSocketSessionRevoker sessionRevoker) {
         this.appProperties = appProperties;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.sessionRevoker = sessionRevoker;
+    }
+
+    /** Tracks raw sessions so revoked users' sockets can be closed (see {@link WebSocketSessionRevoker}). */
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        registration.addDecoratorFactory(sessionRevoker::decorate);
     }
 
     @Override
@@ -96,7 +107,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new StompAuthorizationInterceptor(jwtUtil, userDetailsService));
+        registration.interceptors(new StompAuthorizationInterceptor(jwtUtil, userDetailsService, sessionRevoker));
     }
 
     /**
@@ -104,7 +115,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      * <ul>
      *   <li>CONNECT must carry a valid access token (Authorization header for mobile, or the
      *       access_token cookie captured during the handshake for web); otherwise it is rejected.
-     *       The session principal's name is the user's id, which routes /user destinations.</li>
+     *       The session principal's name is the user's id, which routes /user destinations.
+     *       The token's expiry is stored in the session attributes.</li>
+     *   <li>SUBSCRIBE and SEND are rejected, and the socket closed, once the token presented on
+     *       CONNECT has expired, so clients reconnect with a fresh token.</li>
      *   <li>SUBSCRIBE is allowed only to the caller's own user queues ({@code /user/queue/**})
      *       and to public game progress topics ({@code /topic/how-to-play/**}).</li>
      *   <li>SEND is allowed only to application destinations ({@code /app/**}), so clients can
@@ -115,10 +129,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         private final JwtUtil jwtUtil;
         private final UserDetailsServiceImpl userDetailsService;
+        private final WebSocketSessionRevoker sessionRevoker;
 
-        StompAuthorizationInterceptor(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+        StompAuthorizationInterceptor(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService,
+                                      WebSocketSessionRevoker sessionRevoker) {
             this.jwtUtil = jwtUtil;
             this.userDetailsService = userDetailsService;
+            this.sessionRevoker = sessionRevoker;
         }
 
         @Override
@@ -133,11 +150,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 accessor.setUser(authenticate(accessor));
             } else if (StompCommand.SUBSCRIBE.equals(command)) {
                 requireUser(accessor);
+                requireUnexpiredToken(accessor);
                 if (!isSubscriptionAllowed(accessor.getDestination())) {
                     throw new MessageDeliveryException("Subscription to this destination is not allowed");
                 }
             } else if (StompCommand.SEND.equals(command)) {
                 requireUser(accessor);
+                requireUnexpiredToken(accessor);
                 String destination = accessor.getDestination();
                 if (destination == null || !destination.startsWith(APP_DESTINATION_PREFIX + "/")) {
                     throw new MessageDeliveryException("Sending to this destination is not allowed");
@@ -161,9 +180,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             }
 
             try {
+                // Taken before the token version is read: a revocation committed after this
+                // instant may not be visible to the check below (see WebSocketSessionRevoker)
+                long authenticatedAt = sessionRevoker.currentTimeMillis();
                 Claims claims = jwtUtil.validateAccessToken(token);
                 UserDetails userDetails = userDetailsService.loadUserForAccessToken(
                         UUID.fromString(claims.getSubject()), JwtUtil.getTokenVersion(claims));
+                Map<String, Object> attributes = accessor.getSessionAttributes();
+                if (attributes != null) {
+                    attributes.put(WebSocketSessionRevoker.AUTHENTICATED_AT_ATTR, authenticatedAt);
+                    Date expiration = claims.getExpiration();
+                    if (expiration != null) {
+                        attributes.put(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR, expiration.getTime());
+                    }
+                }
                 // Principal name is the user id: convertAndSendToUser(userId, ...) routes on it
                 return new UsernamePasswordAuthenticationToken(
                         userDetails.getUsername(), null, userDetails.getAuthorities());
@@ -177,6 +207,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             if (user == null) {
                 throw new MessageDeliveryException("Authentication required");
             }
+        }
+
+        /**
+         * The token presented on CONNECT must still be valid. A missing expiry is treated as
+         * expired. The socket is closed as well, since an ERROR frame alone does not make
+         * clients reconnect.
+         */
+        private void requireUnexpiredToken(StompHeaderAccessor accessor) {
+            Map<String, Object> attributes = accessor.getSessionAttributes();
+            Object expiresAt = attributes == null ? null : attributes.get(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR);
+            if (expiresAt instanceof Long exp && sessionRevoker.currentTimeMillis() < exp) {
+                return;
+            }
+            sessionRevoker.closeSession(accessor.getSessionId(), WebSocketSessionRevoker.TOKEN_EXPIRED);
+            throw new MessageDeliveryException("Access token expired");
         }
 
         static boolean isSubscriptionAllowed(String destination) {

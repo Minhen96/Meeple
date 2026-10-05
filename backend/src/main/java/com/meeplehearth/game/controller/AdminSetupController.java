@@ -85,7 +85,8 @@ public class AdminSetupController {
         hydration.put("unhydrated", unhydrated);
         hydration.put("total", total);
         hydration.put("percentDone", hydrationPct);
-        hydration.put("running", hydrationStarted && unhydrated > 0 && !hydrationStop);
+        // The bulk run holds its Redis lock for as long as it runs (refreshed every batch)
+        hydration.put("running", Boolean.TRUE.equals(redis.hasKey(GameHydrationService.RUN_LOCK_KEY)));
         hydration.put("stopRequested", hydrationStop);
 
         Map<String, Object> rulebooks = new LinkedHashMap<>();

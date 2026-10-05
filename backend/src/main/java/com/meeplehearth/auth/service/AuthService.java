@@ -11,6 +11,7 @@ import com.meeplehearth.auth.repository.PasswordResetTokenRepository;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
 import com.meeplehearth.auth.dto.LoginRequest;
 import com.meeplehearth.auth.dto.RegisterRequest;
+import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import com.meeplehearth.auth.util.JwtUtil;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.common.ratelimit.RedisRateLimiter;
@@ -21,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -41,6 +43,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -72,6 +75,7 @@ public class AuthService {
     private final Environment environment;
     private final GoogleAuthService googleAuthService;
     private final RedisRateLimiter rateLimiter;
+    private final ApplicationEventPublisher eventPublisher;
     private final SecureRandom secureRandom = new SecureRandom();
     private final String dummyPasswordHash;
 
@@ -86,8 +90,10 @@ public class AuthService {
             AppProperties appProperties,
             Environment environment,
             GoogleAuthService googleAuthService,
-            RedisRateLimiter rateLimiter) {
+            RedisRateLimiter rateLimiter,
+            ApplicationEventPublisher eventPublisher) {
         this.rateLimiter = rateLimiter;
+        this.eventPublisher = eventPublisher;
         this.dummyPasswordHash = passwordEncoder.encode(generateSecureHexToken(16));
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -197,10 +203,17 @@ public class AuthService {
     // -------------------------------------------------------------------------
 
     /**
-     * Rotates the refresh token. Rotated tokens are kept (marked used) until the cleanup job
-     * removes them, so presenting one again is detected as reuse: that means the token was
-     * copied, and every session of the user is revoked. Revocations must survive the 401,
-     * hence no rollback for ApiException.
+     * Rotates the refresh token. Rotated tokens are kept (marked used, linked to their
+     * successor) until the cleanup job removes them. Presenting a used token again means:
+     * <ul>
+     *   <li>within {@link #REFRESH_REUSE_GRACE}: a concurrent refresh race (two tabs) →
+     *       409 REFRESH_RACE, cookies untouched (the winning response sets them)</li>
+     *   <li>successor never used: the client never received the rotation response →
+     *       the successor is discarded and a fresh pair issued</li>
+     *   <li>successor already used: the token was copied → every session of the user is
+     *       revoked, 401 and cookies cleared</li>
+     * </ul>
+     * Revocations must survive the error response, hence no rollback for ApiException.
      */
     @Transactional(noRollbackFor = ApiException.class)
     public AuthResponse refresh(HttpServletRequest request, HttpServletResponse response) {
@@ -216,8 +229,7 @@ public class AuthService {
         Instant now = Instant.now();
 
         if (stored.getUsedAt() != null) {
-            handleRefreshTokenReuse(stored, now, response);
-            throw ApiException.unauthorized("Refresh token has already been used");
+            return handleUsedRefreshToken(stored, now, response);
         }
 
         if (now.isAfter(stored.getExpiresAt())) {
@@ -227,29 +239,69 @@ public class AuthService {
 
         // Only the request that flips used_at from NULL may rotate; a concurrent duplicate gets 0 rows
         if (refreshTokenRepository.markUsed(tokenHash, now) != 1) {
-            throw ApiException.unauthorized("Refresh token has already been used");
+            throw refreshRace();
         }
 
-        User user = userRepository.findById(stored.getUserId())
+        return rotate(stored, response);
+    }
+
+    private AuthResponse rotate(RefreshToken predecessor, HttpServletResponse response) {
+        User user = userRepository.findById(predecessor.getUserId())
                 .orElseThrow(() -> ApiException.unauthorized("User not found"));
 
         if (user.getDeletedAt() != null) {
             throw ApiException.unauthorized("Account has been deactivated");
         }
 
-        return issueTokensAndBuildResponse(user, response);
+        return issueTokensAndBuildResponse(user, response, predecessor.getTokenHash());
     }
 
-    private void handleRefreshTokenReuse(RefreshToken stored, Instant now, HttpServletResponse response) {
+    private static ApiException refreshRace() {
+        return ApiException.conflict("REFRESH_RACE", "Refresh token was rotated by a concurrent request");
+    }
+
+    private AuthResponse handleUsedRefreshToken(RefreshToken stored, Instant now, HttpServletResponse response) {
         // Two tabs refreshing at the same moment both present the same token; that is not theft
         if (stored.getUsedAt().plus(REFRESH_REUSE_GRACE).isAfter(now)) {
-            return;
+            throw refreshRace();
         }
-        log.warn("Refresh token reuse detected for user {} — revoking all sessions", stored.getUserId());
-        refreshTokenRepository.deleteByUserId(stored.getUserId());
-        userRepository.findById(stored.getUserId()).ifPresent(user -> {
+
+        UUID successorId = stored.getReplacedBy();
+        if (successorId != null) {
+            Optional<RefreshToken> successor = refreshTokenRepository.findById(successorId);
+            if (successor.isPresent() && successor.get().getUsedAt() == null) {
+                // The client never received (or never stored) the successor: rotate again
+                if (now.isAfter(stored.getExpiresAt())) {
+                    throw ApiException.unauthorized("Refresh token has expired");
+                }
+                if (refreshTokenRepository.deleteUnusedById(successorId) == 1) {
+                    log.info("Refresh token successor for user {} was never used — re-issuing", stored.getUserId());
+                    return rotate(stored, response);
+                }
+                // Lost the delete to a concurrent request: decide on what it left behind
+                successor = refreshTokenRepository.findById(successorId);
+            }
+            if (successor.isEmpty()) {
+                boolean recoveredConcurrently = refreshTokenRepository.findReplacedById(stored.getId())
+                        .filter(current -> !current.equals(successorId))
+                        .isPresent();
+                if (recoveredConcurrently) {
+                    throw refreshRace();
+                }
+            }
+        }
+
+        revokeAllSessions(stored.getUserId(), response);
+        throw ApiException.unauthorized("Refresh token has already been used");
+    }
+
+    private void revokeAllSessions(UUID userId, HttpServletResponse response) {
+        log.warn("Refresh token reuse detected for user {} — revoking all sessions", userId);
+        refreshTokenRepository.deleteByUserId(userId);
+        userRepository.findById(userId).ifPresent(user -> {
             user.setTokenVersion(user.getTokenVersion() + 1);
             userRepository.save(user);
+            eventPublisher.publishEvent(new UserSessionsRevokedEvent(user.getId()));
         });
         clearAuthCookies(response);
     }
@@ -388,6 +440,8 @@ public class AuthService {
         // Invalidate every access token issued before the reset
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
+        // Open WebSocket sessions were authenticated with the old version: close them after commit
+        eventPublisher.publishEvent(new UserSessionsRevokedEvent(user.getId()));
 
         resetToken.setUsedAt(Instant.now());
         passwordResetTokenRepository.save(resetToken);
@@ -460,6 +514,7 @@ public class AuthService {
             existing.setTokenVersion(existing.getTokenVersion() + 1);
             emailVerificationTokenRepository.deleteByUserId(existing.getId());
             refreshTokenRepository.deleteByUserId(existing.getId());
+            eventPublisher.publishEvent(new UserSessionsRevokedEvent(existing.getId()));
         }
         return userRepository.save(existing);
     }
@@ -496,6 +551,11 @@ public class AuthService {
     // -------------------------------------------------------------------------
 
     private AuthResponse issueTokensAndBuildResponse(User user, HttpServletResponse response) {
+        return issueTokensAndBuildResponse(user, response, null);
+    }
+
+    /** @param predecessorHash hash of the refresh token being rotated, linked to the new one; null on login */
+    private AuthResponse issueTokensAndBuildResponse(User user, HttpServletResponse response, String predecessorHash) {
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getTokenVersion());
         String rawRefreshToken = jwtUtil.generateRefreshToken();
         String refreshTokenHash = sha256Hex(rawRefreshToken);
@@ -506,6 +566,9 @@ public class AuthService {
         refreshToken.setTokenHash(refreshTokenHash);
         refreshToken.setExpiresAt(Instant.now().plus(Duration.ofDays(refreshExpiryDays)));
         refreshTokenRepository.save(refreshToken);
+        if (predecessorHash != null) {
+            refreshTokenRepository.setReplacedBy(predecessorHash, refreshToken.getId());
+        }
 
         boolean isSecure = isProductionEnvironment();
         long refreshMaxAgeSeconds = refreshExpiryDays * 24 * 60 * 60;

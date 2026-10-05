@@ -3,6 +3,7 @@ package com.meeplehearth.auth.service;
 import com.meeplehearth.auth.dto.LoginRequest;
 import com.meeplehearth.auth.dto.MessageResponse;
 import com.meeplehearth.auth.entity.RefreshToken;
+import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import com.meeplehearth.auth.repository.EmailVerificationTokenRepository;
 import com.meeplehearth.auth.repository.PasswordResetTokenRepository;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
@@ -15,6 +16,7 @@ import com.meeplehearth.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -51,6 +53,7 @@ class AuthServiceTest {
     private JavaMailSender mailSender;
     private GoogleAuthService googleAuthService;
     private RedisRateLimiter rateLimiter;
+    private ApplicationEventPublisher eventPublisher;
     private AuthService authService;
 
     private final UUID userId = UUID.randomUUID();
@@ -66,6 +69,7 @@ class AuthServiceTest {
         mailSender = mock(JavaMailSender.class);
         googleAuthService = mock(GoogleAuthService.class);
         rateLimiter = mock(RedisRateLimiter.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         JwtUtil jwtUtil = mock(JwtUtil.class);
         when(jwtUtil.generateAccessToken(any(), anyInt())).thenReturn("access-jwt");
         when(jwtUtil.generateRefreshToken()).thenReturn("new-refresh-token");
@@ -78,7 +82,8 @@ class AuthServiceTest {
 
         authService = new AuthService(userRepository, refreshTokenRepository, emailVerificationTokenRepository,
                 mock(PasswordResetTokenRepository.class), jwtUtil, passwordEncoder, redisTemplate, mailSender,
-                props, mock(Environment.class), googleAuthService, rateLimiter);
+                props, mock(Environment.class), googleAuthService, rateLimiter,
+                eventPublisher);
 
         user = new User();
         user.setId(userId);
@@ -119,9 +124,10 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), new MockHttpServletResponse()))
                 .isInstanceOf(ApiException.class)
-                .extracting("status").isEqualTo(HttpStatus.UNAUTHORIZED);
+                .extracting("status", "code").containsExactly(HttpStatus.CONFLICT, "REFRESH_RACE");
 
         verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
+        verify(refreshTokenRepository).setReplacedBy(eq("hash"), any());
         verify(refreshTokenRepository, never()).deleteByUserId(any());
     }
 
@@ -135,19 +141,87 @@ class AuthServiceTest {
 
         verify(refreshTokenRepository).deleteByUserId(userId);
         assertThat(user.getTokenVersion()).isEqualTo(1);
+        verify(eventPublisher).publishEvent(new UserSessionsRevokedEvent(userId));
         verify(refreshTokenRepository, never()).markUsed(anyString(), any());
         verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
     }
 
     @Test
-    void reuseWithinGraceWindowIsRejectedWithoutRevocation() {
+    void reuseWithinGraceWindowIsARaceNotTheft() {
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken(Instant.now())));
+        MockHttpServletResponse response = new MockHttpServletResponse();
 
-        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), new MockHttpServletResponse()))
-                .isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), response))
+                .isInstanceOf(ApiException.class)
+                .extracting("status", "code").containsExactly(HttpStatus.CONFLICT, "REFRESH_RACE");
+
+        assertThat(response.getHeaders("Set-Cookie")).isEmpty();
 
         verify(refreshTokenRepository, never()).deleteByUserId(any());
         assertThat(user.getTokenVersion()).isZero();
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void reusedTokenWhoseSuccessorWasNeverUsedRotatesAgain() {
+        UUID successorId = UUID.randomUUID();
+        RefreshToken stored = storedToken(Instant.now().minus(Duration.ofMinutes(5)));
+        stored.setReplacedBy(successorId);
+        RefreshToken successor = storedToken(null);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.findById(successorId)).thenReturn(Optional.of(successor));
+        when(refreshTokenRepository.deleteUnusedById(successorId)).thenReturn(1);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        authService.refresh(requestWithRefreshCookie("raw"), response);
+
+        assertThat(response.getHeaders("Set-Cookie")).anyMatch(c -> c.startsWith("refresh_token=new-refresh-token"));
+        verify(refreshTokenRepository).deleteUnusedById(successorId);
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
+        verify(refreshTokenRepository).setReplacedBy(eq("hash"), any());
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
+        assertThat(user.getTokenVersion()).isZero();
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void reusedTokenWhoseSuccessorWasUsedRevokesAllSessions() {
+        UUID successorId = UUID.randomUUID();
+        RefreshToken stored = storedToken(Instant.now().minus(Duration.ofMinutes(5)));
+        stored.setReplacedBy(successorId);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.findById(successorId))
+                .thenReturn(Optional.of(storedToken(Instant.now().minus(Duration.ofMinutes(1)))));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), response))
+                .isInstanceOf(ApiException.class)
+                .extracting("status").isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        verify(refreshTokenRepository, never()).deleteUnusedById(any());
+        verify(refreshTokenRepository).deleteByUserId(userId);
+        assertThat(user.getTokenVersion()).isEqualTo(1);
+        verify(eventPublisher).publishEvent(new UserSessionsRevokedEvent(userId));
+        assertThat(response.getHeaders("Set-Cookie")).anyMatch(c -> c.startsWith("refresh_token=;"));
+    }
+
+    @Test
+    void concurrentLostResponseRecoveryIsARaceNotTheft() {
+        UUID successorId = UUID.randomUUID();
+        RefreshToken stored = storedToken(Instant.now().minus(Duration.ofMinutes(5)));
+        stored.setId(UUID.randomUUID());
+        stored.setReplacedBy(successorId);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+        // Successor looked unused, but a concurrent request deleted it and re-issued first
+        when(refreshTokenRepository.findById(successorId))
+                .thenReturn(Optional.of(storedToken(null)), Optional.empty());
+        when(refreshTokenRepository.deleteUnusedById(successorId)).thenReturn(0);
+        when(refreshTokenRepository.findReplacedById(stored.getId())).thenReturn(Optional.of(UUID.randomUUID()));
+
+        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), new MockHttpServletResponse()))
+                .isInstanceOf(ApiException.class)
+                .extracting("status", "code").containsExactly(HttpStatus.CONFLICT, "REFRESH_RACE");
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
     }
 
     @Test
@@ -233,6 +307,7 @@ class AuthServiceTest {
         assertThat(user.getTokenVersion()).isEqualTo(1);
         verify(emailVerificationTokenRepository).deleteByUserId(userId);
         verify(refreshTokenRepository).deleteByUserId(userId);
+        verify(eventPublisher).publishEvent(new UserSessionsRevokedEvent(userId));
     }
 
     @Test
@@ -246,5 +321,6 @@ class AuthServiceTest {
 
         assertThat(user.getPasswordHash()).isEqualTo("hash");
         verify(refreshTokenRepository, never()).deleteByUserId(any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 }

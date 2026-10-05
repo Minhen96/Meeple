@@ -1,6 +1,7 @@
 package com.meeplehearth.ai.controller;
 
 import com.meeplehearth.ai.dto.RulebookStatusResponse;
+import com.meeplehearth.ai.dto.RulebookUploadResponse;
 import com.meeplehearth.ai.entity.GameRulebook;
 import com.meeplehearth.ai.job.RulebookAutoFetchJob;
 import com.meeplehearth.ai.repository.GameHowToPlayRepository;
@@ -65,7 +66,7 @@ public class RulebookUserController {
      * approval.
      */
     @PostMapping(value = "/{gameId}/rulebook", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> uploadRulebook(
+    public ResponseEntity<RulebookUploadResponse> uploadRulebook(
             @PathVariable UUID gameId,
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -74,16 +75,14 @@ public class RulebookUserController {
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
 
         if (rulebookRepository.existsByGame_IdAndStatus(gameId, "approved")) {
-            return ResponseEntity.ok(Map.of("status", "already_done"));
+            return ResponseEntity.ok(RulebookUploadResponse.alreadyDone());
         }
 
         User uploader = resolveUser(userDetails);
         GameRulebook rulebook = queueService.handleUserUpload(game, uploader, file);
 
-        return ResponseEntity.ok(Map.of(
-                "status", "pending_review",
-                "rulebookId", rulebook.getId(),
-                "queuePosition", rulebook.getQueuePosition()));
+        // queuePosition may be null; Map.of would throw on it
+        return ResponseEntity.ok(RulebookUploadResponse.pendingReview(rulebook.getId(), rulebook.getQueuePosition()));
     }
 
     // -------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 package com.meeplehearth.user.service;
 
+import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
 import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.common.exception.ApiException;
@@ -8,6 +9,7 @@ import com.meeplehearth.user.dto.UpdateProfileRequest;
 import com.meeplehearth.user.dto.UserProfileResponse;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +24,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final FriendRequestRepository friendRequestRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public UserService(UserRepository userRepository,
                        RefreshTokenRepository refreshTokenRepository,
-                       FriendRequestRepository friendRequestRepository) {
+                       FriendRequestRepository friendRequestRepository,
+                       ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.friendRequestRepository = friendRequestRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public UserProfileResponse getMe(UUID userId) {
@@ -61,6 +66,8 @@ public class UserService {
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
         refreshTokenRepository.deleteByUserId(userId);
+        // Closes the user's open WebSocket sessions once the soft-delete commits
+        eventPublisher.publishEvent(new UserSessionsRevokedEvent(userId));
     }
 
     public PageResponse<UserProfileResponse> search(String q, int page, int size) {

@@ -40,4 +40,8 @@ public class RefreshToken {
     /** Set when the token is rotated. A used token presented again signals token theft. */
     @Column(name = "used_at")
     private Instant usedAt;
+
+    /** The token issued when this one was rotated (null until rotated, or once that token is deleted). */
+    @Column(name = "replaced_by")
+    private UUID replacedBy;
 }

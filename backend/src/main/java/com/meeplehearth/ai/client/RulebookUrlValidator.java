@@ -50,6 +50,11 @@ public class RulebookUrlValidator {
         this.resolver = resolver;
     }
 
+    /** The resolver used for validation; downloads resolve through it again at connect time. */
+    HostResolver hostResolver() {
+        return resolver;
+    }
+
     /**
      * Syntax + allowlist check only (no DNS). Used to reject obviously bad URLs
      * before they are persisted.
