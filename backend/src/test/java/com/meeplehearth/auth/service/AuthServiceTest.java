@@ -124,9 +124,10 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), new MockHttpServletResponse()))
                 .isInstanceOf(ApiException.class)
-                .extracting("status").isEqualTo(HttpStatus.UNAUTHORIZED);
+                .extracting("status", "code").containsExactly(HttpStatus.CONFLICT, "REFRESH_RACE");
 
         verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
+        verify(refreshTokenRepository).setReplacedBy(eq("hash"), any());
         verify(refreshTokenRepository, never()).deleteByUserId(any());
     }
 
@@ -146,15 +147,81 @@ class AuthServiceTest {
     }
 
     @Test
-    void reuseWithinGraceWindowIsRejectedWithoutRevocation() {
+    void reuseWithinGraceWindowIsARaceNotTheft() {
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken(Instant.now())));
+        MockHttpServletResponse response = new MockHttpServletResponse();
 
-        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), new MockHttpServletResponse()))
-                .isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), response))
+                .isInstanceOf(ApiException.class)
+                .extracting("status", "code").containsExactly(HttpStatus.CONFLICT, "REFRESH_RACE");
+
+        assertThat(response.getHeaders("Set-Cookie")).isEmpty();
 
         verify(refreshTokenRepository, never()).deleteByUserId(any());
         assertThat(user.getTokenVersion()).isZero();
         verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void reusedTokenWhoseSuccessorWasNeverUsedRotatesAgain() {
+        UUID successorId = UUID.randomUUID();
+        RefreshToken stored = storedToken(Instant.now().minus(Duration.ofMinutes(5)));
+        stored.setReplacedBy(successorId);
+        RefreshToken successor = storedToken(null);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.findById(successorId)).thenReturn(Optional.of(successor));
+        when(refreshTokenRepository.deleteUnusedById(successorId)).thenReturn(1);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        authService.refresh(requestWithRefreshCookie("raw"), response);
+
+        assertThat(response.getHeaders("Set-Cookie")).anyMatch(c -> c.startsWith("refresh_token=new-refresh-token"));
+        verify(refreshTokenRepository).deleteUnusedById(successorId);
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
+        verify(refreshTokenRepository).setReplacedBy(eq("hash"), any());
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
+        assertThat(user.getTokenVersion()).isZero();
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void reusedTokenWhoseSuccessorWasUsedRevokesAllSessions() {
+        UUID successorId = UUID.randomUUID();
+        RefreshToken stored = storedToken(Instant.now().minus(Duration.ofMinutes(5)));
+        stored.setReplacedBy(successorId);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.findById(successorId))
+                .thenReturn(Optional.of(storedToken(Instant.now().minus(Duration.ofMinutes(1)))));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), response))
+                .isInstanceOf(ApiException.class)
+                .extracting("status").isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        verify(refreshTokenRepository, never()).deleteUnusedById(any());
+        verify(refreshTokenRepository).deleteByUserId(userId);
+        assertThat(user.getTokenVersion()).isEqualTo(1);
+        verify(eventPublisher).publishEvent(new UserSessionsRevokedEvent(userId));
+        assertThat(response.getHeaders("Set-Cookie")).anyMatch(c -> c.startsWith("refresh_token=;"));
+    }
+
+    @Test
+    void concurrentLostResponseRecoveryIsARaceNotTheft() {
+        UUID successorId = UUID.randomUUID();
+        RefreshToken stored = storedToken(Instant.now().minus(Duration.ofMinutes(5)));
+        stored.setId(UUID.randomUUID());
+        stored.setReplacedBy(successorId);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+        // Successor looked unused, but a concurrent request deleted it and re-issued first
+        when(refreshTokenRepository.findById(successorId))
+                .thenReturn(Optional.of(storedToken(null)), Optional.empty());
+        when(refreshTokenRepository.deleteUnusedById(successorId)).thenReturn(0);
+        when(refreshTokenRepository.findReplacedById(stored.getId())).thenReturn(Optional.of(UUID.randomUUID()));
+
+        assertThatThrownBy(() -> authService.refresh(requestWithRefreshCookie("raw"), new MockHttpServletResponse()))
+                .isInstanceOf(ApiException.class)
+                .extracting("status", "code").containsExactly(HttpStatus.CONFLICT, "REFRESH_RACE");
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
     }
 
     @Test
