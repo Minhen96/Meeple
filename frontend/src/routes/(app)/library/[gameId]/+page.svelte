@@ -272,7 +272,7 @@
 </div>
 
 <!-- Tabs -->
-<div class="mt-6 flex gap-6 border-b border-outline-variant/20 mb-4">
+<div class="mt-6 flex gap-6 mb-4">
 	{#each detailTabs as tab}
 		<button
 			onclick={() => (activeTab = tab.id)}

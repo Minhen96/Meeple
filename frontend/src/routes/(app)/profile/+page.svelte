@@ -97,7 +97,6 @@
 				src={data.user.avatarUrl}
 				name={data.user.displayName ?? data.user.username}
 				size="lg"
-				className="border-2 border-outline-variant/30"
 			/>
 		</div>
 		<!-- Verified-style badge -->
@@ -176,7 +175,7 @@
 		<p class="text-2xl font-extrabold font-headline">{gamesOwned}</p>
 	</div>
 	<div
-		class="bg-surface-container-low p-4 rounded-2xl text-center border-l-4 border-primary"
+		class="bg-primary/10 p-4 rounded-2xl text-center"
 	>
 		<p
 			class="font-label text-[10px] font-bold uppercase tracking-widest text-primary opacity-70 mb-1"
@@ -267,11 +266,11 @@
 		<div class="space-y-8 max-w-lg">
 			{#each mergedActivity as item, i}
 				<div
-					class="relative pl-10 border-l-2 border-surface-container-high"
+					class="relative pl-10"
 				>
 					<!-- Circle icon -->
 					<div
-						class="absolute -left-[13px] top-0 w-6 h-6 {item.type === 'event' ? 'bg-secondary' : item.type === 'post' ? 'bg-tertiary' : 'bg-primary'} rounded-full ring-4 ring-surface flex items-center justify-center"
+						class="absolute -left-[11px] top-0 w-6 h-6 {item.type === 'event' ? 'bg-secondary' : item.type === 'post' ? 'bg-tertiary' : 'bg-primary'} rounded-full ring-4 ring-surface flex items-center justify-center"
 					>
 						<span
 							class="icon-filled material-symbols-outlined text-white text-[12px]"
@@ -290,10 +289,10 @@
 						<!-- Activity card -->
 						<a
 							href={item.type === 'event' ? `/events/${item.eventId}` : item.type === 'post' ? `/posts/${item.id}` : `/library/${item.game?.id}`}
-							class="flex items-start gap-4 p-4 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border-l-4 transition-all hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:scale-[0.99]
-								{item.type === 'event' ? 'bg-secondary/5 border-secondary' : 
-								 item.type === 'post' ? 'bg-tertiary/5 border-tertiary shadow-[0_4px_12px_rgba(0,0,0,0.05)]' : 
-								 'bg-primary/5 border-primary'}"
+							class="flex items-start gap-4 p-4 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-all hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:scale-[0.99]
+								{item.type === 'event' ? 'bg-secondary/10' : 
+								 item.type === 'post' ? 'bg-tertiary/10 shadow-[0_4px_12px_rgba(0,0,0,0.05)]' : 
+								 'bg-primary/10'}"
 						>
 							<div
 								class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-sm

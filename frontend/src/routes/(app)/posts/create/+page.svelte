@@ -10,6 +10,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import type { GameSearchResult, User } from '$lib/types';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 
 	let caption = $state('');
 	let loading = $state(false);
@@ -145,7 +146,7 @@
 	<div class="flex items-center gap-3 mb-6 mt-4 px-4 sticky top-4 z-20">
 		<button
 			onclick={() => history.back()}
-			class="w-11 h-11 rounded-2xl bg-surface-container-low/80 backdrop-blur-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-all active:scale-90 shadow-sm"
+			class="w-11 h-11 rounded-2xl bg-surface-container-low/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-all active:scale-90 shadow-sm"
 			aria-label="Back"
 		>
 			<span class="material-symbols-outlined text-[24px]">arrow_back</span>
@@ -157,7 +158,7 @@
 
 	<form onsubmit={handleSubmit} class="px-4 space-y-6 max-w-2xl mx-auto">
 		{#if error}
-			<div class="text-xs font-semibold text-error bg-error-container/30 border border-error/20 rounded-2xl px-4 py-3 animate-in fade-in slide-in-from-top-2">
+			<div class="text-xs font-semibold text-error bg-error-container rounded-2xl px-4 py-3 animate-in fade-in slide-in-from-top-2">
 				{error}
 			</div>
 		{/if}
@@ -175,7 +176,7 @@
 				<button 
 					type="button"
 					onclick={() => fileInput.click()}
-					class="w-full aspect-square rounded-[2.5rem] border-2 border-dashed border-outline-variant/30 bg-surface-container-low/50 flex flex-col items-center justify-center gap-4 text-on-surface-variant hover:border-tertiary/40 transition-all active:scale-[0.99]"
+					class="w-full aspect-square rounded-[2.5rem] bg-surface-container-low flex flex-col items-center justify-center gap-4 text-on-surface-variant hover:bg-surface-container transition-all active:scale-[0.99]"
 				>
 					<div class="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center shadow-inner">
 						<span class="material-symbols-outlined text-3xl text-tertiary">add_photo_alternate</span>
@@ -203,7 +204,7 @@
 						<button 
 							type="button"
 							onclick={() => fileInput.click()}
-							class="flex-shrink-0 w-32 aspect-square rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-container-low/50 flex flex-col items-center justify-center text-on-surface-variant"
+							class="flex-shrink-0 w-32 aspect-square rounded-2xl bg-surface-container-low flex flex-col items-center justify-center text-on-surface-variant"
 						>
 							<span class="material-symbols-outlined text-xl">add</span>
 						</button>
@@ -214,15 +215,15 @@
 		</div>
 
 		<!-- Story Card -->
-		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm border border-outline-variant/20 space-y-4">
+		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm space-y-4">
 			<textarea
 				rows="4"
 				placeholder="Share the story behind this session…"
 				bind:value={caption}
-				class="w-full bg-transparent border-none text-base font-body text-on-surface placeholder:text-on-surface-variant/30 focus:ring-0 focus:outline-none resize-none px-1"
+				class="w-full bg-transparent text-base font-body text-on-surface placeholder:text-on-surface-variant/30 focus:ring-0 focus:outline-none resize-none px-1"
 			></textarea>
 			
-			<div class="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/10">
+			<div class="flex flex-wrap gap-2 pt-2">
 				{#each quickTags as tag}
 					<button
 						type="button"
@@ -244,7 +245,7 @@
 				tabindex="0"
 				onclick={() => { showGameSearch = true; }}
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') showGameSearch = true; }}
-				class="flex items-center gap-4 bg-surface-container-low/60 rounded-2xl p-4 border border-outline-variant/10 text-left hover:border-primary/30 transition-all active:scale-[0.98] cursor-pointer"
+				class="flex items-center gap-4 bg-surface-container-low rounded-2xl p-4 text-left hover:bg-primary/10 transition-all active:scale-[0.98] cursor-pointer"
 			>
 				<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
 					<span class="material-symbols-outlined text-[20px]">casino</span>
@@ -271,7 +272,7 @@
 			<button
 				type="button"
 				onclick={() => showFriendSearch = true}
-				class="flex items-center gap-4 bg-surface-container-low/60 rounded-2xl p-4 border border-outline-variant/10 text-left hover:border-secondary/30 transition-all active:scale-[0.98]"
+				class="flex items-center gap-4 bg-surface-container-low rounded-2xl p-4 text-left hover:bg-secondary/10 transition-all active:scale-[0.98]"
 			>
 				<div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
 					<span class="material-symbols-outlined text-[20px]">group</span>
@@ -294,7 +295,7 @@
 				class="w-full h-16 bg-on-surface text-surface rounded-3xl font-headline font-black text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3 overflow-hidden"
 			>
 				{#if loading}
-					<div class="w-5 h-5 border-2 border-surface/30 border-t-surface rounded-full animate-spin"></div>
+					<Spinner className="w-5 h-5 text-surface" />
 					<span>Uploading & Posting…</span>
 				{:else}
 					<span class="material-symbols-outlined text-[20px]">send</span>

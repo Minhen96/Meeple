@@ -59,14 +59,13 @@
 	}
 </script>
 
-<article class="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.04)] overflow-hidden border border-outline-variant/10">
+<article class="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.04)] overflow-hidden">
 	<!-- Author header -->
 	<div class="p-4 flex items-center gap-3">
 		<Avatar
 			src={post.author.avatarUrl}
 			name={post.author.displayName ?? post.author.username}
 			size="sm"
-			className="border border-outline-variant/30"
 		/>
 		<div class="flex-1 min-w-0">
 			<a href="/profile/{post.author.id}" class="text-sm font-bold text-on-surface hover:underline">
@@ -150,12 +149,12 @@
 
 	<!-- Quick Comment Input -->
 	<div class="px-4 pb-4 pt-1">
-		<form onsubmit={handleQuickComment} class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full border border-surface-variant/10">
+		<form onsubmit={handleQuickComment} class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full focus-within:ring-2 focus-within:ring-primary/40 transition-shadow">
 			<input 
 				type="text" 
 				placeholder="Add a comment..." 
 				bind:value={quickCommentBody}
-				class="bg-transparent text-[11px] w-full outline-none text-on-surface border-none p-0 focus:ring-0 placeholder:text-on-surface-variant/30"
+				class="bg-transparent text-[11px] w-full outline-none text-on-surface p-0 focus:ring-0 placeholder:text-on-surface-variant/30"
 			/>
 			{#if quickCommentBody.trim()}
 				<button 

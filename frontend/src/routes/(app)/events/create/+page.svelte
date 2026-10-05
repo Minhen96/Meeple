@@ -55,7 +55,7 @@
 	<div class="flex items-center gap-3 mb-8 mt-4 px-4 sticky top-4 z-20">
 		<button
 			onclick={() => history.back()}
-			class="w-11 h-11 rounded-2xl bg-surface-container-low/80 backdrop-blur-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-all active:scale-90 shadow-sm"
+			class="w-11 h-11 rounded-2xl bg-surface-container-low/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-all active:scale-90 shadow-sm"
 			aria-label="Back"
 		>
 			<span class="material-symbols-outlined text-[24px]">arrow_back</span>
@@ -68,13 +68,13 @@
 
 	<form onsubmit={handleSubmit} class="px-4 space-y-6 pb-32 max-w-2xl mx-auto" in:fade={{ duration: 300 }}>
 		{#if error}
-			<div class="text-xs font-semibold text-error bg-error-container/30 border border-error/20 rounded-2xl px-4 py-3 animate-in fade-in slide-in-from-top-2">
+			<div class="text-xs font-semibold text-error bg-error-container rounded-2xl px-4 py-3 animate-in fade-in slide-in-from-top-2">
 				{error}
 			</div>
 		{/if}
 
 		<!-- Main Card -->
-		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm border border-outline-variant/20 space-y-6">
+		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm space-y-6">
 			<!-- Title -->
 			<div class="space-y-2">
 				<label for="title" class="px-1 text-[10px] font-label font-black uppercase tracking-[0.15em] text-on-surface-variant/70">
@@ -86,13 +86,13 @@
 					bind:value={title}
 					placeholder="e.g. Epic Twilight Imperium"
 					required
-					class="w-full bg-surface-container-highest/50 border border-outline-variant/30 rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-4 focus:ring-primary/10 focus:border-primary/40 focus:outline-none font-body text-base transition-all"
+					class="w-full bg-surface-container-highest rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-base transition-all"
 				/>
 			</div>
 
 			<!-- Date & Time Bento -->
 			<div class="grid grid-cols-2 gap-4">
-				<div class="bg-surface-container-high/40 rounded-2xl p-4 border border-outline-variant/20 space-y-3 transition-colors hover:bg-surface-container-high/60 group">
+				<div class="bg-surface-container-high/40 rounded-2xl p-4 space-y-3 transition-colors hover:bg-surface-container-high/60 group">
 					<div class="flex items-center justify-between">
 						<label for="eventDate" class="text-[9px] font-label font-black uppercase tracking-widest text-on-surface-variant/80">Date</label>
 						<span class="material-symbols-outlined text-primary text-[20px] opacity-70 group-hover:scale-110 transition-transform">calendar_today</span>
@@ -106,7 +106,7 @@
 						class="w-full bg-transparent text-on-surface font-headline font-extrabold text-sm focus:outline-none accent-primary"
 					/>
 				</div>
-				<div class="bg-surface-container-high/40 rounded-2xl p-4 border border-outline-variant/20 space-y-3 transition-colors hover:bg-surface-container-high/60 group">
+				<div class="bg-surface-container-high/40 rounded-2xl p-4 space-y-3 transition-colors hover:bg-surface-container-high/60 group">
 					<div class="flex items-center justify-between">
 						<label for="eventTime" class="text-[9px] font-label font-black uppercase tracking-widest text-on-surface-variant/80">Time</label>
 						<span class="material-symbols-outlined text-secondary text-[20px] opacity-70 group-hover:scale-110 transition-transform">schedule</span>
@@ -130,13 +130,13 @@
 					type="text"
 					bind:value={location}
 					placeholder="Venue or Online address"
-					class="w-full bg-surface-container-high/40 border border-outline-variant/20 rounded-2xl pl-12 pr-5 py-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-4 focus:ring-primary/10 focus:border-primary/40 focus:outline-none font-body text-sm transition-all"
+					class="w-full bg-surface-container-high rounded-2xl pl-12 pr-5 py-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 				/>
 			</div>
 		</div>
 
 		<!-- Player & Visibility Card -->
-		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm border border-outline-variant/20 space-y-6">
+		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm space-y-6">
 			<!-- Max players slider/stepper mix -->
 			<div class="space-y-4">
 				<div class="flex items-center justify-between px-1">
@@ -173,7 +173,6 @@
 				</div>
 			</div>
 
-			<hr class="border-outline-variant/10" />
 
 			<!-- Visibility -->
 			<div class="space-y-4">
@@ -185,10 +184,10 @@
 						<button
 							type="button"
 							onclick={() => (visibility = opt.value)}
-							class="flex items-center gap-4 p-4 rounded-2xl text-left border-2 transition-all
+							class="flex items-center gap-4 p-4 rounded-2xl text-left transition-all
 								{visibility === opt.value
-									? 'bg-primary/5 border-primary shadow-sm'
-									: 'bg-surface-container border-transparent grayscale-[0.6] opacity-60 hover:opacity-100 hover:grayscale-0'}"
+									? 'bg-primary/10 ring-2 ring-primary shadow-sm'
+									: 'bg-surface-container grayscale-[0.6] opacity-60 hover:opacity-100 hover:grayscale-0'}"
 						>
 							<div class="w-10 h-10 rounded-xl flex items-center justify-center
 								{visibility === opt.value ? 'bg-primary text-on-primary' : 'bg-surface-container-highest text-on-surface-variant'}">
@@ -210,7 +209,7 @@
 		</div>
 
 		<!-- Description Card -->
-		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm border border-outline-variant/20">
+		<div class="bg-surface-container-low rounded-[2rem] p-6 shadow-sm">
 			<label for="description" class="px-1 block text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant/70 mb-3">
 				Briefing / Notes
 			</label>
@@ -219,7 +218,7 @@
 				bind:value={description}
 				rows="4"
 				placeholder="Rules, food plan, or what to bring..."
-				class="w-full bg-surface-container-high/40 border border-outline-variant/20 rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-4 focus:ring-primary/10 focus:border-primary/40 focus:outline-none font-body text-sm resize-none transition-all"
+				class="w-full bg-surface-container-high rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm resize-none transition-all"
 			></textarea>
 		</div>
 
@@ -245,9 +244,8 @@
 		width: 24px;
 		border-radius: 8px;
 		background: theme('colors.surface-container-lowest');
-		border: 4px solid theme('colors.primary');
 		cursor: pointer;
-		box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+		box-shadow: inset 0 0 0 4px theme('colors.primary'), 0 4px 10px rgba(0,0,0,0.1);
 	}
 	
 	/* Immersive date/time fixes */

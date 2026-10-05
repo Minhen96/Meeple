@@ -171,7 +171,7 @@
 
 		<!-- Floating Die (D6) -->
 		<div
-			class="absolute bottom-[15%] left-[10%] w-20 h-20 bg-secondary/10 backdrop-blur-2xl rounded-2xl border border-secondary/20 shadow-xl transform rotate-12 animate-float hidden md:flex items-center justify-center"
+			class="absolute bottom-[15%] left-[10%] w-20 h-20 bg-secondary/10 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-xl transform rotate-12 animate-float hidden md:flex items-center justify-center"
 		>
 			<div class="grid grid-cols-2 gap-2 p-4 opacity-40">
 				<div class="w-2 h-2 rounded-full bg-secondary"></div>
@@ -209,7 +209,7 @@
 					class="flex items-center justify-center lg:justify-start gap-4 mb-2"
 				>
 					<div
-						class="w-14 h-14 bg-white/90 dark:bg-surface-container-high/90 backdrop-blur-2xl rounded-2xl shadow-2xl flex items-center justify-center p-2.5 transform rotate-12 transition-all duration-500 border border-white/40 shadow-secondary/10"
+						class="w-14 h-14 bg-white/90 dark:bg-surface-container-high/90 backdrop-blur-2xl rounded-2xl shadow-2xl flex items-center justify-center p-2.5 transform rotate-12 transition-all duration-500 border border-white/10 shadow-secondary/10"
 					>
 						<img
 							src="/favicon.svg"
@@ -259,13 +259,13 @@
 		<div class="space-y-4 relative">
 			<!-- Glass backdrop for the form area -->
 			<div
-				class="absolute -inset-8 bg-white/[0.02] dark:bg-black/[0.02] backdrop-blur-sm -z-10 rounded-[3rem] border border-white/5 xl:block hidden"
+				class="absolute -inset-8 bg-white/[0.02] dark:bg-black/[0.02] backdrop-blur-sm -z-10 rounded-[3rem] border border-white/10 xl:block hidden"
 			></div>
 
 			<form onsubmit={handleSubmit} class="space-y-3.5">
 				{#if error}
 					<div
-						class="text-sm text-error bg-error-container/40 backdrop-blur-md rounded-2xl px-5 py-4 border border-error/5 flex items-center gap-3"
+						class="text-sm text-error bg-error-container/40 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/10 flex items-center gap-3"
 					>
 						<span class="material-symbols-outlined text-[20px]"
 							>error</span
@@ -288,7 +288,7 @@
 							bind:value={email}
 							required
 							autocomplete="email"
-							class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
+							class="w-full bg-surface-container-highest/60 backdrop-blur-md rounded-2xl px-5 py-3.5 text-on-surface focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 						/>
 					</div>
 
@@ -313,7 +313,7 @@
 								}}
 								required
 								autocomplete="username"
-								class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 pr-12 text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
+								class="w-full bg-surface-container-highest/60 backdrop-blur-md rounded-2xl px-5 py-3.5 pr-12 text-on-surface focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 							/>
 							{#if usernameStatus === "available"}
 								<span
@@ -352,7 +352,7 @@
 							oninput={() => (touched.password = true)}
 							required
 							autocomplete="new-password"
-							class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
+							class="w-full bg-surface-container-highest/60 backdrop-blur-md rounded-2xl px-5 py-3.5 text-on-surface focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 						/>
 						{#if password.length > 0}
 							<div
@@ -388,7 +388,7 @@
 							oninput={() => (touched.confirmPassword = true)}
 							required
 							autocomplete="new-password"
-							class="w-full bg-surface-container-highest/60 backdrop-blur-md border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:outline-none font-body text-sm transition-all"
+							class="w-full bg-surface-container-highest/60 backdrop-blur-md rounded-2xl px-5 py-3.5 text-on-surface focus:ring-2 focus:ring-primary/40 focus:outline-none font-body text-sm transition-all"
 						/>
 						{#if touched.confirmPassword && confirmPasswordError}
 							<p

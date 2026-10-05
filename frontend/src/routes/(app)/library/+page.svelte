@@ -233,11 +233,11 @@
 
 <!-- Sticky Unified Header -->
 <div
-	class="sticky top-14 z-40 bg-background/95 backdrop-blur -mx-4 px-4 pb-3 border-b border-outline-variant/10 shadow-sm"
+	class="sticky top-14 z-40 bg-background/95 backdrop-blur -mx-4 px-4 pb-3 shadow-sm"
 >
 	<!-- Tab Bar -->
 	<div
-		class="flex items-center gap-6 overflow-x-auto hide-scrollbar border-b border-outline-variant/5 mb-3"
+		class="flex items-center gap-6 overflow-x-auto hide-scrollbar mb-3"
 	>
 		{#each tabs as tab}
 			<button
@@ -266,7 +266,7 @@
 	<div class="flex items-center gap-3">
 		<!-- Search (Expands) -->
 		<div
-			class="flex-1 flex items-center gap-2 bg-surface-container-low rounded-2xl px-4 py-2 border border-outline-variant/5 focus-within:border-primary/20 transition-all shadow-inner"
+			class="flex-1 flex items-center gap-2 bg-surface-container-low rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all shadow-inner"
 		>
 			<span
 				class="material-symbols-outlined text-[20px] text-on-surface-variant"
@@ -284,12 +284,12 @@
 		<!-- Filter Button -->
 		<button
 			onclick={() => (showFilters = !showFilters)}
-			class="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high border border-outline-variant/5 text-primary hover:bg-surface-variant transition-colors"
+			class="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary hover:bg-surface-variant transition-colors"
 		>
 			<span class="material-symbols-outlined">tune</span>
 			{#if activeFilterCount > 0}
 				<span
-					class="absolute -top-1 -right-1 w-5 h-5 bg-primary text-on-primary text-[10px] font-black rounded-full flex items-center justify-center border-2 border-background animate-in zoom-in"
+					class="absolute -top-1 -right-1 w-5 h-5 bg-primary text-on-primary text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-background animate-in zoom-in"
 				>
 					{activeFilterCount}
 				</span>
@@ -317,7 +317,7 @@
 				<option value="playTime,asc">Shortest</option>
 			</select>
 			<div
-				class="w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high border border-outline-variant/5 text-primary"
+				class="w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary"
 			>
 				<span class="material-symbols-outlined">sort</span>
 			</div>
@@ -371,7 +371,7 @@
 							<button
 								onclick={saveSpotlight}
 								disabled={spotlightSaving}
-								class="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-50"
+								class="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-50"
 							>
 								<span
 									class="material-symbols-outlined text-[20px]"
@@ -400,7 +400,7 @@
 
 		<!-- Modal Content -->
 		<div
-			class="relative w-full max-w-lg bg-surface-container-lowest rounded-[2.5rem] shadow-2xl border border-outline-variant/10 overflow-hidden animate-in slide-in-from-bottom-10 duration-500"
+			class="relative w-full max-w-lg bg-surface-container-lowest rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-500"
 		>
 			<div class="p-8">
 				<div class="flex items-center justify-between mb-8">
@@ -506,7 +506,7 @@
 									};
 									fetchCatalogPage(0);
 								}}
-								class="bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
+								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
 							/>
 							<input
 								type="number"
@@ -523,7 +523,7 @@
 									};
 									fetchCatalogPage(0);
 								}}
-								class="bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
+								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
 							/>
 						</div>
 					</div>
@@ -551,7 +551,7 @@
 									};
 									fetchCatalogPage(0);
 								}}
-								class="bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
+								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
 							/>
 							<input
 								type="number"
@@ -567,7 +567,7 @@
 									};
 									fetchCatalogPage(0);
 								}}
-								class="bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
+								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
 							/>
 						</div>
 					</div>
@@ -594,7 +594,7 @@
 								};
 								fetchCatalogPage(0);
 							}}
-							class="w-full bg-surface-container-low rounded-2xl p-4 text-sm focus:outline-none text-on-surface border border-transparent focus:border-primary/20 transition-all"
+							class="w-full bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
 						/>
 					</div>
 				</div>
@@ -649,7 +649,7 @@
 		</div>
 	{:else if searchResults.length === 0}
 		<div
-			class="text-center py-20 bg-surface-container-lowest rounded-[2rem] border border-outline-variant/10 mt-6"
+			class="text-center py-20 bg-surface-container-lowest rounded-[2rem] mt-6"
 		>
 			<span
 				class="material-symbols-outlined text-6xl text-primary/20 mb-4 block"
@@ -679,7 +679,7 @@
 			{#each searchResults as result (result.bggId)}
 				<a
 					href={result.id ? `/library/${result.id}` : "#"}
-					class="flex items-center gap-4 bg-surface-container-lowest rounded-2xl p-3 shadow-sm border border-outline-variant/5 hover:border-primary/20 transition-all spring-bounce group"
+					class="flex items-center gap-4 bg-surface-container-lowest rounded-2xl p-3 shadow-sm hover:bg-surface-container-low transition-all spring-bounce group"
 				>
 					{#if result.thumbnailUrl}
 						<img
@@ -747,7 +747,7 @@
 		</div>
 	{:else if (gamesPage?.content?.length ?? 0) === 0}
 		<div
-			class="text-center py-20 bg-surface-container-lowest rounded-[2rem] border border-outline-variant/10"
+			class="text-center py-20 bg-surface-container-lowest rounded-[2rem]"
 		>
 			<span
 				class="material-symbols-outlined text-6xl text-primary/20 mb-4 block"
@@ -895,7 +895,7 @@
 	<!-- Collection grid -->
 {:else if filtered.length === 0}
 	<div
-		class="text-center py-24 bg-surface-container-lowest rounded-[3rem] border border-outline-variant/10 mt-4"
+		class="text-center py-24 bg-surface-container-lowest rounded-[3rem] mt-4"
 	>
 		<span
 			class="material-symbols-outlined text-7xl mb-4 block text-primary/10"
