@@ -2,7 +2,6 @@ package com.meeplehearth.event;
 
 import com.meeplehearth.event.dto.EventLiveUpdate;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -20,12 +19,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -233,7 +226,7 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
         participant(eventId, guest, "ACCEPTED");
         participant(eventId, invitee, "INVITED");
         participant(eventId, decliner, "DECLINED");
-        clearInvocations(messagingTemplate);
+        clearLiveUpdates();
 
         mvc.perform(post("/api/v1/events/{id}/cancel", eventId).with(as(host))).andExpect(status().isNoContent());
 
@@ -362,7 +355,7 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
         UUID eventId = event(host, "PUBLIC", tomorrow(), 2);
         jdbc.update("UPDATE events SET location = 'Secret address', location_display = 'Downtown' WHERE id = ?", eventId);
         applicationEvents.clear();
-        clearInvocations(messagingTemplate);
+        clearLiveUpdates();
 
         mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(a)).param("status", "ACCEPTED"))
                 .andExpect(status().isOk())
@@ -534,7 +527,7 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
 
         mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(guest)).param("status", "ACCEPTED"))
                 .andExpect(jsonPath("$.data.status").value("FULL"));
-        clearInvocations(messagingTemplate);
+        clearLiveUpdates();
         mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(guest))).andExpect(status().isNoContent());
 
         assertThat(eventStatus(eventId)).isEqualTo("OPEN");
@@ -567,7 +560,7 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
         UUID eventId = event(host, "PUBLIC", tomorrow(), 2);
         participant(eventId, guest, "ACCEPTED");
         jdbc.update("UPDATE events SET status = 'FULL' WHERE id = ?", eventId);
-        clearInvocations(messagingTemplate);
+        clearLiveUpdates();
 
         mvc.perform(delete("/api/v1/events/{id}/participants/{uid}", eventId, guest).with(as(host)))
                 .andExpect(status().isOk())
@@ -601,13 +594,13 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
         mvc.perform(delete("/api/v1/events/{id}/participants/{uid}", eventId, outsider).with(as(host)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_PARTICIPANT"));
-        clearInvocations(messagingTemplate);
+        clearLiveUpdates();
         // Removing someone who declined blocks a later open join but sends nothing
         mvc.perform(delete("/api/v1/events/{id}/participants/{uid}", eventId, declined).with(as(host)))
                 .andExpect(status().isOk());
         assertThat(participantStatus(eventId, declined)).isEqualTo("KICKED");
         assertThat(notifications(declined, "EVENT_KICKED", eventId)).isZero();
-        verify(messagingTemplate, never()).convertAndSend(eq(EventLiveUpdate.destination(eventId)), any(Object.class));
+        assertThat(liveUpdates(eventId)).isEmpty();
 
         jdbc.update("UPDATE events SET status = 'COMPLETED' WHERE id = ?", eventId);
         mvc.perform(delete("/api/v1/events/{id}/participants/{uid}", eventId, declined).with(as(host)))
@@ -619,9 +612,8 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
     // -------------------------------------------------------------------------
 
     private EventLiveUpdate lastLiveUpdate(UUID eventId) {
-        ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
-        verify(messagingTemplate, atLeastOnce()).convertAndSend(eq(EventLiveUpdate.destination(eventId)), payload.capture());
-        List<Object> all = payload.getAllValues();
-        return (EventLiveUpdate) all.get(all.size() - 1);
+        List<EventLiveUpdate> all = liveUpdates(eventId);
+        assertThat(all).as("live updates for %s", eventId).isNotEmpty();
+        return all.get(all.size() - 1);
     }
 }

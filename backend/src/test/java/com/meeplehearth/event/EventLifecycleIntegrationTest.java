@@ -1,7 +1,6 @@
 package com.meeplehearth.event;
 
 import com.meeplehearth.common.event.UserSoftDeletedEvent;
-import com.meeplehearth.event.dto.EventLiveUpdate;
 import com.meeplehearth.event.service.EventJobs;
 import com.meeplehearth.event.service.EventLifecycleService;
 import org.junit.jupiter.api.AfterEach;
@@ -19,9 +18,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,7 +60,8 @@ class EventLifecycleIntegrationTest extends EventIntegrationTestBase {
         assertThat(eventStatus(cancelled)).isEqualTo("CANCELLED");
         assertThat(notifications(host, "EVENT_COMPLETED", due)).isEqualTo(1);
         assertThat(notifications(host, "EVENT_COMPLETED", tooRecent)).isZero();
-        verify(messagingTemplate).convertAndSend(eq(EventLiveUpdate.destination(due)), any(Object.class));
+        assertThat(liveUpdates(due)).singleElement()
+                .satisfies(update -> assertThat(update.status()).isEqualTo("COMPLETED"));
 
         // Running again does nothing for already completed events
         lifecycleService.completeDueEvents(now);

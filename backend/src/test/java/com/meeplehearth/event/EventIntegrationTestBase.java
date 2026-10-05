@@ -3,9 +3,16 @@ package com.meeplehearth.event;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.meeplehearth.common.event.ActivityRecordedEvent;
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
+import com.meeplehearth.event.dto.EventLiveUpdate;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.support.AbstractSubscribableChannel;
+import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 
@@ -15,17 +22,59 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Shared seeding and reading helpers for the events integration tests. Application events
- * published on the test thread (MockMvc runs there) are recorded, and the STOMP template is a
- * spy so live updates on {@code /topic/events/{id}} can be verified.
+ * published on the test thread (MockMvc runs there) are recorded, and messages sent to the STOMP
+ * broker channel are captured so live updates on {@code /topic/events/{id}} can be verified.
+ * Neither changes the Spring context, so these tests share the cached one with the other API tests.
  */
 @RecordApplicationEvents
 abstract class EventIntegrationTestBase extends ApiIntegrationTestBase {
 
     @Autowired protected ApplicationEvents applicationEvents;
-    @MockitoSpyBean protected SimpMessagingTemplate messagingTemplate;
+    @Autowired @Qualifier("brokerChannel") private AbstractSubscribableChannel brokerChannel;
+
+    private final List<Message<?>> brokerMessages = new CopyOnWriteArrayList<>();
+    private final ChannelInterceptor capture = new ChannelInterceptor() {
+        @Override
+        public Message<?> preSend(Message<?> message, MessageChannel channel) {
+            brokerMessages.add(message);
+            return message;
+        }
+    };
+
+    @BeforeEach
+    void captureBrokerMessages() {
+        brokerChannel.addInterceptor(capture);
+    }
+
+    @AfterEach
+    void stopCapturingBrokerMessages() {
+        brokerChannel.removeInterceptor(capture);
+        brokerMessages.clear();
+    }
+
+    protected void clearLiveUpdates() {
+        brokerMessages.clear();
+    }
+
+    /** Live updates broadcast on {@code /topic/events/{eventId}} since the last clear, in order. */
+    protected List<EventLiveUpdate> liveUpdates(UUID eventId) {
+        String destination = EventLiveUpdate.destination(eventId);
+        List<EventLiveUpdate> out = new ArrayList<>();
+        for (Message<?> message : brokerMessages) {
+            if (destination.equals(SimpMessageHeaderAccessor.getDestination(message.getHeaders()))) {
+                try {
+                    out.add(objectMapper.readValue((byte[]) message.getPayload(), EventLiveUpdate.class));
+                } catch (java.io.IOException e) {
+                    throw new AssertionError("unreadable live update", e);
+                }
+            }
+        }
+        return out;
+    }
 
     protected static Map<String, Object> eventBody(String title, Instant scheduledAt, String visibility,
                                                    UUID gameId, Integer maxParticipants) {
