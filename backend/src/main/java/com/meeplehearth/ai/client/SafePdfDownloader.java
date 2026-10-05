@@ -1,10 +1,14 @@
 package com.meeplehearth.ai.client;
 
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
@@ -32,7 +36,10 @@ import java.util.concurrent.TimeoutException;
  *   - Content-Type must be a PDF type (or a generic binary type) and the body must
  *     start with the %PDF magic bytes
  *
- * Guarded by the "rulebookDownload" circuit breaker.
+ * Guarded by the "rulebookDownload" circuit breaker. Only transient failures
+ * ({@link TransientDownloadException}: I/O errors, timeouts, HTTP 429 / 5xx) count towards
+ * opening it; rejected URLs, 4xx, wrong content and oversize bodies are a property of the
+ * individual URL and are ignored, so one bad candidate list cannot block valid downloads.
  */
 @Component
 public class SafePdfDownloader {
@@ -47,12 +54,21 @@ public class SafePdfDownloader {
     /** Upper bound for one hop, body included. */
     private static final Duration HOP_TIMEOUT = Duration.ofSeconds(180);
 
+    static final String CIRCUIT_BREAKER = "rulebookDownload";
+
     private final RulebookUrlValidator urlValidator;
+    private final CircuitBreaker circuitBreaker;
     private final LoopResources loopResources;
     private final HttpClient httpClient;
 
-    public SafePdfDownloader(RulebookUrlValidator urlValidator) {
+    SafePdfDownloader(RulebookUrlValidator urlValidator) {
+        this(urlValidator, CircuitBreakerRegistry.ofDefaults());
+    }
+
+    @Autowired
+    public SafePdfDownloader(RulebookUrlValidator urlValidator, CircuitBreakerRegistry circuitBreakerRegistry) {
         this.urlValidator = urlValidator;
+        this.circuitBreaker = registerCircuitBreaker(circuitBreakerRegistry);
         // Own event loop: the pinned resolver blocks on DNS and must not stall shared loops
         this.loopResources = LoopResources.create("rulebook-download", 2, true);
         this.httpClient = HttpClient.create(ConnectionProvider.newConnection())
@@ -72,13 +88,37 @@ public class SafePdfDownloader {
     }
 
     /**
+     * Registered programmatically (it has no entry in application.yml, and property customizers
+     * only apply to configured instances): ignores every exception except transient ones.
+     */
+    static CircuitBreaker registerCircuitBreaker(CircuitBreakerRegistry registry) {
+        CircuitBreakerConfig config = CircuitBreakerConfig.from(registry.getDefaultConfig())
+                .ignoreException(t -> !(t instanceof TransientDownloadException))
+                .build();
+        CircuitBreaker breaker = CircuitBreaker.of(CIRCUIT_BREAKER, config);
+        if (registry.find(CIRCUIT_BREAKER).isPresent()) {
+            registry.replace(CIRCUIT_BREAKER, breaker);
+            return breaker;
+        }
+        return registry.circuitBreaker(CIRCUIT_BREAKER, config);
+    }
+
+    /**
      * Downloads a PDF and returns its bytes.
      *
      * @throws RulebookUrlValidator.UnsafeUrlException if any hop fails validation
      * @throws PdfDownloadException on HTTP / size / content errors
+     *         ({@link TransientDownloadException} for retryable ones, or when the breaker is open)
      */
-    @CircuitBreaker(name = "rulebookDownload", fallbackMethod = "downloadFallback")
     public byte[] download(String url) {
+        try {
+            return circuitBreaker.executeSupplier(() -> downloadUnprotected(url));
+        } catch (CallNotPermittedException e) {
+            throw new TransientDownloadException("Rulebook download temporarily unavailable", e);
+        }
+    }
+
+    private byte[] downloadUnprotected(String url) {
         URI current = urlValidator.validate(url);
 
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -102,13 +142,6 @@ public class SafePdfDownloader {
             return result.body();
         }
         throw new PdfDownloadException("Too many redirects");
-    }
-
-    @SuppressWarnings("unused")
-    private byte[] downloadFallback(String url, Throwable t) {
-        if (t instanceof RulebookUrlValidator.UnsafeUrlException unsafe) throw unsafe;
-        if (t instanceof PdfDownloadException pde) throw pde;
-        throw new PdfDownloadException("Rulebook download unavailable: " + t.getMessage(), t);
     }
 
     // -------------------------------------------------------------------------
@@ -145,6 +178,9 @@ public class SafePdfDownloader {
         // Unconsumed bodies are released when the (unpooled) connection closes
         if (status >= 300 && status < 400) {
             return Mono.just(new Hop(status, headers.get(HttpHeaderNames.LOCATION), null));
+        }
+        if (status == 429 || status >= 500) {
+            return Mono.error(new TransientDownloadException("Unexpected HTTP status " + status));
         }
         if (status < 200 || status >= 300) {
             return Mono.error(new PdfDownloadException("Unexpected HTTP status " + status));
@@ -194,10 +230,11 @@ public class SafePdfDownloader {
             if (t instanceof PdfDownloadException pde) return pde;
             if (t.getCause() == t) break;
         }
+        // Connection / TLS / read failures and timeouts: transient, counted by the breaker
         if (unwrapped instanceof TimeoutException) {
-            return new PdfDownloadException("Download timed out", unwrapped);
+            return new TransientDownloadException("Download timed out", unwrapped);
         }
-        return new PdfDownloadException("Download failed: " + unwrapped.getMessage(), unwrapped);
+        return new TransientDownloadException("Download failed: " + unwrapped.getMessage(), unwrapped);
     }
 
     static boolean hasPdfMagic(byte[] bytes) {
@@ -215,6 +252,17 @@ public class SafePdfDownloader {
         }
 
         public PdfDownloadException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /** A download failure that may succeed later (I/O, timeout, HTTP 429/5xx, breaker open). */
+    public static class TransientDownloadException extends PdfDownloadException {
+        public TransientDownloadException(String message) {
+            super(message);
+        }
+
+        public TransientDownloadException(String message, Throwable cause) {
             super(message, cause);
         }
     }

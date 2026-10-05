@@ -1,5 +1,7 @@
 package com.meeplehearth.ai.client;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.netty.resolver.AddressResolver;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.ImmediateEventExecutor;
@@ -91,6 +93,37 @@ class SafePdfDownloaderTest {
     }
 
     @Test
+    void circuitBreakerCountsOnlyTransientFailures() {
+        CircuitBreakerRegistry registry = CircuitBreakerRegistry.ofDefaults();
+        // A pre-existing default-config instance (e.g. created by an earlier lookup) is replaced
+        registry.circuitBreaker(SafePdfDownloader.CIRCUIT_BREAKER);
+        CircuitBreaker breaker = SafePdfDownloader.registerCircuitBreaker(registry);
+
+        assertThat(registry.circuitBreaker(SafePdfDownloader.CIRCUIT_BREAKER)).isSameAs(breaker);
+        var ignored = breaker.getCircuitBreakerConfig().getIgnoreExceptionPredicate();
+        assertThat(ignored.test(new RulebookUrlValidator.UnsafeUrlException("x"))).isTrue();
+        assertThat(ignored.test(new SafePdfDownloader.PdfDownloadException("Unexpected HTTP status 404"))).isTrue();
+        assertThat(ignored.test(new SafePdfDownloader.TransientDownloadException("HTTP 503"))).isFalse();
+    }
+
+    @Test
+    void rejectedUrlsNeverOpenTheBreaker() {
+        CircuitBreakerRegistry registry = CircuitBreakerRegistry.ofDefaults();
+        SafePdfDownloader downloader = new SafePdfDownloader(new RulebookUrlValidator(resolvingTo("10.0.0.1")), registry);
+        try {
+            for (int i = 0; i < 150; i++) {
+                assertThatThrownBy(() -> downloader.download("https://cdn.1j1ju.com/x.pdf"))
+                        .isInstanceOf(RulebookUrlValidator.UnsafeUrlException.class);
+            }
+            CircuitBreaker breaker = registry.circuitBreaker(SafePdfDownloader.CIRCUIT_BREAKER);
+            assertThat(breaker.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+            assertThat(breaker.getMetrics().getNumberOfFailedCalls()).isZero();
+        } finally {
+            downloader.shutdown();
+        }
+    }
+
+    @Test
     void contentTypeAndMagicChecks() {
         assertThat(SafePdfDownloader.isAcceptableContentType("application/pdf; charset=binary")).isTrue();
         assertThat(SafePdfDownloader.isAcceptableContentType("")).isTrue();
@@ -107,7 +140,7 @@ class SafePdfDownloaderTest {
         RulebookUrlValidator.UnsafeUrlException unsafe = new RulebookUrlValidator.UnsafeUrlException("x");
         assertThat(SafePdfDownloader.translate(new RuntimeException("wrapped", unsafe))).isSameAs(unsafe);
         assertThat(SafePdfDownloader.translate(reactor.core.Exceptions.propagate(new TimeoutException())))
-                .isInstanceOf(SafePdfDownloader.PdfDownloadException.class)
+                .isInstanceOf(SafePdfDownloader.TransientDownloadException.class)
                 .hasMessage("Download timed out");
     }
 }
