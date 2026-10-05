@@ -2,6 +2,7 @@
 	import type { PageData } from "./$types";
 	import type { UserGame } from "$lib/types";
 	import { gamesApi } from "$lib/api/games";
+	import { untrack } from "svelte";
 	import { libraryStore, defaultState } from "$lib/stores/library";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
 	import StarRating from "$lib/components/game/StarRating.svelte";
@@ -43,22 +44,42 @@
 
 	const filtered = $derived(activeTab === "all" ? [] : filterCollection(collection, activeTab, query));
 
-	// Deep links: /library?tab=wishlist, /library?filter=collection (profile "See all")
+	// Deep links: /library?tab=wishlist, /library?filter=collection (profile "See all").
+	// Applied only when the URL's value changes (never because the tab state changed), so a tab
+	// picked by hand is not snapped back to the deep-linked one.
+	const URL_TABS: Record<string, LibraryTab> = {
+		collection: "owned",
+		owned: "owned",
+		wishlist: "wishlist",
+		wishlisted: "wishlist",
+		favorites: "favorites",
+		favorited: "favorites",
+	};
+	let appliedUrlTab: string | null = null;
 	$effect(() => {
 		const requested = $page.url.searchParams.get("tab") ?? $page.url.searchParams.get("filter");
-		const map: Record<string, LibraryTab> = {
-			collection: "owned",
-			owned: "owned",
-			wishlist: "wishlist",
-			wishlisted: "wishlist",
-			favorites: "favorites",
-			favorited: "favorites",
-		};
-		const tab = requested ? map[requested] : undefined;
-		if (tab && tab !== store.activeTab) {
-			store = { ...store, activeTab: tab };
-		}
+		if (requested === appliedUrlTab) return;
+		appliedUrlTab = requested;
+		const tab = requested ? URL_TABS[requested] : undefined;
+		untrack(() => {
+			if (tab && tab !== store.activeTab) store = { ...store, activeTab: tab };
+		});
 	});
+
+	/** Keep the address bar on the visible tab (`?tab=` for a shelf, no param for "all"). */
+	function syncTabParam(tab: LibraryTab) {
+		const url = new URL($page.url);
+		url.searchParams.delete("filter");
+		if (tab === "all") url.searchParams.delete("tab");
+		else url.searchParams.set("tab", tab);
+		if (url.search === $page.url.search) return;
+		appliedUrlTab = tab === "all" ? null : tab;
+		void goto(`${url.pathname}${url.search}${url.hash}`, {
+			replaceState: true,
+			keepFocus: true,
+			noScroll: true,
+		});
+	}
 
 	let ratingSaving = $state<string | null>(null);
 	async function rate(ug: UserGame, rating: number) {
@@ -76,6 +97,7 @@
 	function selectTab(tab: LibraryTab) {
 		store = { ...store, activeTab: tab };
 		query = "";
+		syncTabParam(tab);
 		if (tab === "all") fetchCatalogPage(0);
 	}
 
@@ -271,6 +293,7 @@
 		{#each tabs as tab (tab.id)}
 			<button
 				onclick={() => selectTab(tab.id)}
+				aria-pressed={activeTab === tab.id}
 				class="relative py-4 whitespace-nowrap font-headline font-bold text-sm transition-colors {activeTab ===
 				tab.id
 					? 'text-primary'
