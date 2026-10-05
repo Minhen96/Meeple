@@ -6,11 +6,10 @@ import com.meeplehearth.config.AppProperties;
 import com.meeplehearth.game.job.DataSeedRunner;
 import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.game.service.GameHydrationService;
+import com.meeplehearth.game.service.SeedCsvProbeService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,13 +35,16 @@ public class AdminSetupController {
     private final DataSeedRunner dataSeedRunner;
     private final RulebookAutoFetchJob rulebookAutoFetchJob;
     private final AppProperties appProperties;
+    private final SeedCsvProbeService seedCsvProbeService;
 
     public AdminSetupController(StringRedisTemplate redis,
                                 GameRepository gameRepository,
                                 GameRulebookRepository rulebookRepository,
                                 DataSeedRunner dataSeedRunner,
                                 RulebookAutoFetchJob rulebookAutoFetchJob,
-                                AppProperties appProperties) {
+                                AppProperties appProperties,
+                                SeedCsvProbeService seedCsvProbeService) {
+        this.seedCsvProbeService = seedCsvProbeService;
         this.redis = redis;
         this.gameRepository = gameRepository;
         this.rulebookRepository = rulebookRepository;
@@ -181,19 +183,12 @@ public class AdminSetupController {
         }
 
         try {
-            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-            factory.setConnectTimeout(8_000);
-            factory.setReadTimeout(8_000);
-
-            RestClient client = RestClient.builder().requestFactory(factory).build();
-            var response = client.head().uri(csvUrl).retrieve().toBodilessEntity();
-
-            long bytes = response.getHeaders().getContentLength();
-            String contentType = response.getHeaders().getFirst("Content-Type");
+            SeedCsvProbeService.CsvProbe probe = seedCsvProbeService.probe(csvUrl);
+            long bytes = probe.contentLength();
 
             result.put("accessible", true);
-            result.put("httpStatus", response.getStatusCode().value());
-            result.put("contentType", contentType);
+            result.put("httpStatus", probe.httpStatus());
+            result.put("contentType", probe.contentType());
             result.put("sizeBytes", bytes);
             result.put("sizeMb", bytes > 0 ? String.format("%.1f MB", bytes / 1_048_576.0) : "unknown");
             result.put("pass", bytes > 1_000_000);

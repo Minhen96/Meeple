@@ -1,17 +1,15 @@
 package com.meeplehearth.ai.controller;
 
 import com.meeplehearth.ai.client.BggRulebookClient;
+import com.meeplehearth.ai.client.SafePdfDownloader;
+import com.meeplehearth.ai.service.AiCompletionService;
+import com.meeplehearth.ai.service.EmbeddingService;
 import com.meeplehearth.config.AppProperties;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
-import org.springframework.http.HttpHeaders;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,6 +17,10 @@ import java.util.Map;
  *
  * Secured via SecurityConfig: /api/v1/admin/** requires ROLE_ADMIN
  * (open in local dev when app.security.open-admin-endpoints=true).
+ *
+ * All outbound calls go through circuit-breaker-protected beans
+ * (EmbeddingService / AiCompletionService → "openai", SafePdfDownloader →
+ * "rulebookDownload", BggRulebookClient → "bgg").
  */
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -29,28 +31,20 @@ public class AiAdminController {
 
     private final BggRulebookClient bggRulebookClient;
     private final AppProperties appProperties;
-    private final RestClient completionClient;  // base URL = AI_COMPLETION_BASE_URL
-    private final RestClient cdnClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final EmbeddingService embeddingService;
+    private final AiCompletionService completionService;
+    private final SafePdfDownloader pdfDownloader;
 
-    public AiAdminController(BggRulebookClient bggRulebookClient, AppProperties appProperties) {
+    public AiAdminController(BggRulebookClient bggRulebookClient,
+                             AppProperties appProperties,
+                             EmbeddingService embeddingService,
+                             AiCompletionService completionService,
+                             SafePdfDownloader pdfDownloader) {
         this.bggRulebookClient = bggRulebookClient;
         this.appProperties = appProperties;
-
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(20_000);
-
-        this.completionClient = RestClient.builder()
-                .baseUrl(appProperties.getAi().getCompletion().getBaseUrl())
-                .requestFactory(factory)
-                .build();
-
-        this.cdnClient = RestClient.builder()
-                .requestFactory(factory)
-                .defaultHeader("User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Meeple/1.0")
-                .build();
+        this.embeddingService = embeddingService;
+        this.completionService = completionService;
+        this.pdfDownloader = pdfDownloader;
     }
 
     // -------------------------------------------------------------------------
@@ -74,7 +68,6 @@ public class AiAdminController {
     public ResponseEntity<Map<String, Object>> probeAiProvider() {
         Map<String, Object> result = new LinkedHashMap<>();
         String completionKey = appProperties.getAi().getCompletion().getApiKey();
-        String embeddingKey = appProperties.getAi().getEmbedding().getApiKey();
 
         result.put("completionBaseUrl", appProperties.getAi().getCompletion().getBaseUrl());
         result.put("embeddingBaseUrl", appProperties.getAi().getEmbedding().getBaseUrl());
@@ -88,29 +81,9 @@ public class AiAdminController {
         // --- Embedding probe ---
         long t0 = System.currentTimeMillis();
         try {
-            String embeddingBaseUrl = appProperties.getAi().getEmbedding().getBaseUrl();
-            String embeddingModel = appProperties.getAi().getEmbedding().getModel();
-            String effectiveEmbeddingKey = (embeddingKey != null && !embeddingKey.isBlank()) ? embeddingKey : completionKey;
-
-            RestClient embeddingClient = RestClient.builder()
-                    .baseUrl(embeddingBaseUrl)
-                    .build();
-
-            String embeddingBody = """
-                    {"model":"%s","input":"test"}
-                    """.formatted(embeddingModel);
-
-            String embeddingResponse = embeddingClient.post()
-                    .uri("/v1/embeddings")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + effectiveEmbeddingKey)
-                    .header(HttpHeaders.CONTENT_TYPE, "application/json")
-                    .body(embeddingBody)
-                    .retrieve()
-                    .body(String.class);
-
-            JsonNode root = objectMapper.readTree(embeddingResponse);
-            int dims = root.path("data").get(0).path("embedding").size();
-            result.put("embeddingModel", embeddingModel);
+            float[] embedding = embeddingService.embed("test");
+            int dims = embedding.length;
+            result.put("embeddingModel", appProperties.getAi().getEmbedding().getModel());
             result.put("embeddingDims", dims);
             result.put("embeddingPass", dims == 1536);
             result.put("embeddingLatencyMs", System.currentTimeMillis() - t0);
@@ -123,28 +96,9 @@ public class AiAdminController {
         // --- Completion probe ---
         t0 = System.currentTimeMillis();
         try {
-            String completionModel = appProperties.getAi().getCompletion().getModel();
-
-            String completionBody = """
-                    {
-                      "model": "%s",
-                      "messages": [{"role":"user","content":"Reply with exactly one word: hello"}],
-                      "max_tokens": 10,
-                      "temperature": 0
-                    }
-                    """.formatted(completionModel);
-
-            String completionResponse = completionClient.post()
-                    .uri("/v1/chat/completions")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + completionKey)
-                    .header(HttpHeaders.CONTENT_TYPE, "application/json")
-                    .body(completionBody)
-                    .retrieve()
-                    .body(String.class);
-
-            JsonNode root = objectMapper.readTree(completionResponse);
-            String reply = root.path("choices").get(0).path("message").path("content").asText();
-            result.put("completionModel", completionModel);
+            String reply = completionService.complete(
+                    List.of(Map.of("role", "user", "content", "Reply with exactly one word: hello")), 10, 0.0);
+            result.put("completionModel", appProperties.getAi().getCompletion().getModel());
             result.put("completionResponse", reply);
             result.put("completionPass", reply != null && !reply.isBlank());
             result.put("completionLatencyMs", System.currentTimeMillis() - t0);
@@ -172,16 +126,15 @@ public class AiAdminController {
      * GET /api/v1/admin/test/pdf-download
      *
      * Downloads the Catan rulebook from cdn.1j1ju.com (the CDN used by both
-     * rule-book.org and en.1jour-1jeu.com) and checks whether server-side
-     * downloads work without authentication.
+     * rule-book.org and en.1jour-1jeu.com) through the same SSRF-guarded,
+     * size-capped downloader the ingestion pipeline uses.
      *
      * Pass conditions:
      *   downloadable = true
-     *   contentType contains "pdf"
+     *   isPdfMagicBytes = true (the downloader enforces PDF content)
      *   sizeBytes > 100_000   (a real PDF is at least ~100 KB)
      *
      * If this fails: the background job cannot auto-download rulebooks.
-     * We would need a different strategy (proxy, user agent rotation, etc.)
      */
     @GetMapping("/test/pdf-download")
     public ResponseEntity<Map<String, Object>> probePdfDownload() {
@@ -190,37 +143,19 @@ public class AiAdminController {
 
         long t0 = System.currentTimeMillis();
         try {
-            RestClient.ResponseSpec spec = cdnClient.get()
-                    .uri(CDN_CATAN_PDF)
-                    .retrieve();
-
-            // Fetch as byte array to check real content
-            byte[] bytes = spec.body(byte[].class);
+            byte[] bytes = pdfDownloader.download(CDN_CATAN_PDF);
             long latency = System.currentTimeMillis() - t0;
-
-            if (bytes == null || bytes.length == 0) {
-                result.put("downloadable", false);
-                result.put("error", "Empty response body");
-                return ResponseEntity.ok(result);
-            }
-
-            // Check PDF magic bytes: %PDF
-            boolean isPdf = bytes.length >= 4
-                    && bytes[0] == 0x25  // %
-                    && bytes[1] == 0x50  // P
-                    && bytes[2] == 0x44  // D
-                    && bytes[3] == 0x46; // F
 
             result.put("downloadable", true);
             result.put("sizeBytes", bytes.length);
-            result.put("isPdfMagicBytes", isPdf);
+            result.put("isPdfMagicBytes", true);
             result.put("latencyMs", latency);
-            result.put("pass", isPdf && bytes.length > 100_000);
-            result.put("verdict", (isPdf && bytes.length > 100_000)
+            result.put("pass", bytes.length > 100_000);
+            result.put("verdict", bytes.length > 100_000
                     ? "CDN PDF download works. Background job can proceed."
-                    : "Downloaded but content looks wrong — check sizeBytes and isPdfMagicBytes.");
+                    : "Downloaded but content looks too small — check sizeBytes.");
 
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             result.put("downloadable", false);
             result.put("pass", false);
             result.put("error", e.getMessage());

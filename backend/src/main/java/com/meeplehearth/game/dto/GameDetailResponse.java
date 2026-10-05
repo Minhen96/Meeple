@@ -1,6 +1,7 @@
 package com.meeplehearth.game.dto;
 
 import com.meeplehearth.game.entity.Game;
+import com.meeplehearth.game.entity.GameDetail;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -34,12 +35,12 @@ public record GameDetailResponse(
         boolean hasRulebook
 ) {
     /** Use when rulebook status is unknown (e.g. ensureGame — not yet in collection). */
-    public static GameDetailResponse from(Game game) {
-        return from(game, false);
+    public static GameDetailResponse from(Game game, GameDetail d) {
+        return from(game, d, false);
     }
 
-    public static GameDetailResponse from(Game game, boolean hasRulebook) {
-        var d = game.getGameDetail();
+    /** {@code d} may be null when the game has no game_details row yet. */
+    public static GameDetailResponse from(Game game, GameDetail d, boolean hasRulebook) {
         return new GameDetailResponse(
                 game.getId(),
                 game.getBggId(),

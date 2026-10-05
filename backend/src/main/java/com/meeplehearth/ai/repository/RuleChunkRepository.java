@@ -20,6 +20,9 @@ public interface RuleChunkRepository extends JpaRepository<RuleChunk, UUID> {
 
     /**
      * pgvector HNSW cosine similarity search.
+     * Uses the cosine distance operator {@code <=>} so the V26 HNSW index
+     * ({@code vector_cosine_ops}) can serve the ORDER BY. Smaller distance = more similar
+     * (cosine distance = 1 - cosine similarity). No distance threshold is applied.
      *
      * @param gameId         filter to a single game
      * @param queryEmbedding vector literal in "[v1,v2,...]" format (use EmbeddingService.toVectorString)
@@ -28,7 +31,7 @@ public interface RuleChunkRepository extends JpaRepository<RuleChunk, UUID> {
     @Query(value = """
             SELECT * FROM game_rules
             WHERE game_id = :gameId
-            ORDER BY embedding <-> CAST(:queryEmbedding AS vector)
+            ORDER BY embedding <=> CAST(:queryEmbedding AS vector)
             LIMIT :limit
             """, nativeQuery = true)
     List<RuleChunk> findSimilarChunks(UUID gameId, String queryEmbedding, int limit);

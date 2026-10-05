@@ -8,9 +8,11 @@ import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.user.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -18,10 +20,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,10 +28,16 @@ import java.util.UUID;
  * Manages the user-upload queue and admin review flow for rulebook PDFs.
  *
  * Queue rules:
- *   - User upload → pending_review, queue_position = count of existing pending_review for same game
- *   - Admin approve → set target to ingesting, cancel all other pending_review for same game
+ *   - User upload   → LLM pre-check (fail closed) → pending_review,
+ *                     queue_position = count of existing pending_review for same game.
+ *                     NOT ingested until an admin approves it.
+ *   - Admin approve → set target to ingesting, reject all other pending_review for same game,
+ *                     ingestion starts after the transaction commits
  *   - Admin reject  → set target to rejected, decrement queue_position of remaining items
- *   - Admin upload  → auto-approved: set ingesting, trigger ingestion immediately
+ *   - Admin upload  → auto-approved: set ingesting, ingestion starts after commit
+ *
+ * Slow external work (LLM validation, R2 upload) always happens BEFORE the short
+ * persist transaction is opened.
  */
 @Service
 public class RulebookQueueService {
@@ -44,24 +49,27 @@ public class RulebookQueueService {
     private static final byte[] PDF_MAGIC = new byte[]{0x25, 0x50, 0x44, 0x46}; // %PDF
 
     private final GameRulebookRepository rulebookRepository;
-    private final RulebookIngestionService ingestionService;
     private final PdfValidationService pdfValidationService;
     private final S3Client s3Client;
     private final AppProperties appProperties;
-    private final StringRedisTemplate redisTemplate;
+    private final AiRateLimiter rateLimiter;
+    private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
 
     public RulebookQueueService(GameRulebookRepository rulebookRepository,
-                                RulebookIngestionService ingestionService,
                                 PdfValidationService pdfValidationService,
                                 S3Client s3Client,
                                 AppProperties appProperties,
-                                StringRedisTemplate redisTemplate) {
+                                AiRateLimiter rateLimiter,
+                                ApplicationEventPublisher eventPublisher,
+                                PlatformTransactionManager transactionManager) {
         this.rulebookRepository = rulebookRepository;
-        this.ingestionService = ingestionService;
         this.pdfValidationService = pdfValidationService;
         this.s3Client = s3Client;
         this.appProperties = appProperties;
-        this.redisTemplate = redisTemplate;
+        this.rateLimiter = rateLimiter;
+        this.eventPublisher = eventPublisher;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     // -------------------------------------------------------------------------
@@ -70,43 +78,52 @@ public class RulebookQueueService {
 
     /**
      * Handles a user PDF upload for a game.
-     * Validates the file, rate-limits, runs LLM rulebook check, then starts
-     * ingestion directly — no admin review queue needed.
+     * Validates the file, rate-limits, runs the LLM rulebook pre-check, stores the PDF in R2,
+     * and queues it for admin review. Nothing is ingested until an admin approves it.
      *
-     * @return the saved GameRulebook (status = ingesting)
-     * @throws ApiException with INVALID_RULEBOOK if the LLM rejects the PDF
+     * Not @Transactional: the LLM call and R2 upload run without a DB transaction;
+     * only the final insert is transactional.
+     *
+     * @return the saved GameRulebook (status = pending_review)
+     * @throws ApiException 400 INVALID_RULEBOOK if the LLM pre-check rejects the PDF,
+     *                      429 RATE_LIMIT_EXCEEDED over the daily upload limit
      */
-    @Transactional
     public GameRulebook handleUserUpload(Game game, User uploader, MultipartFile file) {
         byte[] bytes = validatePdf(file);
-        checkUserRateLimit(uploader.getId());
+        rateLimiter.checkDaily("rl:rulebook-upload:", uploader.getId(), USER_DAILY_UPLOAD_LIMIT,
+                "RATE_LIMIT_EXCEEDED", "You can upload at most " + USER_DAILY_UPLOAD_LIMIT + " rulebooks per day");
 
-        // LLM check: is this actually a rulebook for the game?
+        // LLM check: is this actually a rulebook for the game? (fails closed)
         if (!pdfValidationService.isRulebook(bytes, game.getNameEn())) {
             throw ApiException.badRequest("INVALID_RULEBOOK",
-                    "This PDF does not appear to be a rulebook for \"" + game.getNameEn() + "\". Please upload the correct file.");
+                    "This PDF could not be verified as a rulebook for \"" + game.getNameEn() + "\". Please upload the correct file.");
         }
 
         String key = "rulebooks/" + game.getId() + "/" + UUID.randomUUID() + ".pdf";
         String publicUrl = uploadToR2(key, bytes);
 
-        // Cancel any existing pending_review — this upload supersedes them
-        cancelAllPendingForGame(game.getId(), "Superseded by newer user upload");
+        try {
+            GameRulebook saved = transactionTemplate.execute(status -> {
+                int position = rulebookRepository.countByGame_IdAndStatus(game.getId(), "pending_review");
 
-        GameRulebook rulebook = new GameRulebook();
-        rulebook.setGame(game);
-        rulebook.setSource("user");
-        rulebook.setStatus("ingesting");
-        rulebook.setStorageKey(key);
-        rulebook.setPublicUrl(publicUrl);
-        rulebook.setUploadedBy(uploader);
-        rulebookRepository.save(rulebook);
+                GameRulebook rulebook = new GameRulebook();
+                rulebook.setGame(game);
+                rulebook.setSource("user");
+                rulebook.setStatus("pending_review");
+                rulebook.setQueuePosition(position);
+                rulebook.setStorageKey(key);
+                rulebook.setPublicUrl(publicUrl);
+                rulebook.setUploadedBy(uploader);
+                return rulebookRepository.save(rulebook);
+            });
 
-        ingestionService.ingestAsync(rulebook.getId());
-
-        log.info("User '{}' uploaded validated rulebook for '{}' — ingestion started",
-                uploader.getUsername(), game.getNameEn());
-        return rulebook;
+            log.info("User '{}' submitted rulebook for '{}' — queued for admin review",
+                    uploader.getUsername(), game.getNameEn());
+            return saved;
+        } catch (RuntimeException e) {
+            deleteFromR2(key);
+            throw e;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -114,34 +131,44 @@ public class RulebookQueueService {
     // -------------------------------------------------------------------------
 
     /**
-     * Admin uploads a PDF — bypasses review queue, ingestion starts immediately.
+     * Admin uploads a PDF — bypasses review queue, ingestion starts right after commit.
      *
      * @return the saved GameRulebook (status will become approved after ingestion)
      */
-    @Transactional
     public GameRulebook handleAdminUpload(Game game, User admin, MultipartFile file) {
         byte[] bytes = validatePdf(file);
 
         String key = "rulebooks/" + game.getId() + "/" + UUID.randomUUID() + ".pdf";
         String publicUrl = uploadToR2(key, bytes);
 
-        // Cancel any existing pending_review submissions — admin upload supersedes them
-        cancelAllPendingForGame(game.getId(), "Admin upload superseded user submissions");
+        try {
+            GameRulebook saved = transactionTemplate.execute(status -> {
+                // Cancel any existing pending_review submissions — admin upload supersedes them
+                cancelAllPendingForGame(game.getId(), admin, "Admin upload superseded user submissions");
 
-        GameRulebook rulebook = new GameRulebook();
-        rulebook.setGame(game);
-        rulebook.setSource("admin");
-        rulebook.setStatus("ingesting");
-        rulebook.setStorageKey(key);
-        rulebook.setPublicUrl(publicUrl);
-        rulebook.setUploadedBy(admin);
-        rulebookRepository.save(rulebook);
+                GameRulebook rulebook = new GameRulebook();
+                rulebook.setGame(game);
+                rulebook.setSource("admin");
+                rulebook.setStatus("ingesting");
+                rulebook.setStorageKey(key);
+                rulebook.setPublicUrl(publicUrl);
+                rulebook.setUploadedBy(admin);
+                rulebook.setReviewedBy(admin);
+                rulebook.setReviewedAt(Instant.now());
+                GameRulebook persisted = rulebookRepository.save(rulebook);
 
-        ingestionService.ingestAsync(rulebook.getId());
+                // Delivered to the ingestion listener only after this transaction commits
+                eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(persisted.getId()));
+                return persisted;
+            });
 
-        log.info("Admin '{}' uploaded rulebook for '{}' — ingestion started",
-                admin.getUsername(), game.getNameEn());
-        return rulebook;
+            log.info("Admin '{}' uploaded rulebook for '{}' — ingestion queued",
+                    admin.getUsername(), game.getNameEn());
+            return saved;
+        } catch (RuntimeException e) {
+            deleteFromR2(key);
+            throw e;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -150,10 +177,13 @@ public class RulebookQueueService {
 
     /**
      * Admin approves a pending_review rulebook.
-     * Triggers ingestion and cancels all other pending submissions for the same game.
+     * Rejects all other pending submissions for the same game and triggers ingestion
+     * once this transaction commits.
      */
     @Transactional
-    public void approve(GameRulebook rulebook, User admin) {
+    public void approve(UUID rulebookId, User admin) {
+        GameRulebook rulebook = rulebookRepository.findByIdWithGame(rulebookId)
+                .orElseThrow(() -> ApiException.notFound("RULEBOOK_NOT_FOUND", "Rulebook not found"));
         if (!"pending_review".equals(rulebook.getStatus())) {
             throw ApiException.badRequest("INVALID_STATUS", "Rulebook is not pending review");
         }
@@ -171,13 +201,13 @@ public class RulebookQueueService {
             }
         }
 
-        // Set to ingesting and trigger pipeline
+        // Set to ingesting; pipeline starts after commit
         rulebook.setStatus("ingesting");
         rulebook.setReviewedBy(admin);
         rulebook.setReviewedAt(Instant.now());
         rulebookRepository.save(rulebook);
 
-        ingestionService.ingestAsync(rulebook.getId());
+        eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(rulebook.getId()));
         log.info("Admin '{}' approved rulebook {} for game '{}'",
                 admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn());
     }
@@ -190,7 +220,9 @@ public class RulebookQueueService {
      * Admin rejects a pending_review rulebook and compacts the queue.
      */
     @Transactional
-    public void reject(GameRulebook rulebook, User admin, String reason) {
+    public void reject(UUID rulebookId, User admin, String reason) {
+        GameRulebook rulebook = rulebookRepository.findByIdWithGame(rulebookId)
+                .orElseThrow(() -> ApiException.notFound("RULEBOOK_NOT_FOUND", "Rulebook not found"));
         if (!"pending_review".equals(rulebook.getStatus())) {
             throw ApiException.badRequest("INVALID_STATUS", "Rulebook is not pending review");
         }
@@ -213,8 +245,8 @@ public class RulebookQueueService {
             }
         }
 
-        log.info("Admin '{}' rejected rulebook {} for game '{}': {}",
-                admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn(), reason);
+        log.info("Admin '{}' rejected rulebook {} for game '{}'",
+                admin.getUsername(), rulebook.getId(), rulebook.getGame().getNameEn());
     }
 
     // -------------------------------------------------------------------------
@@ -245,20 +277,6 @@ public class RulebookQueueService {
         return bytes;
     }
 
-    private void checkUserRateLimit(UUID userId) {
-        String date = LocalDate.now(ZoneOffset.UTC).toString();
-        String key = "rl:rulebook-upload:" + userId + ":" + date;
-        Long count = redisTemplate.opsForValue().increment(key);
-        if (count == 1) {
-            // Set TTL to end of day
-            redisTemplate.expire(key, Duration.ofDays(1));
-        }
-        if (count != null && count > USER_DAILY_UPLOAD_LIMIT) {
-            throw ApiException.badRequest("RATE_LIMIT_EXCEEDED",
-                    "You can upload at most " + USER_DAILY_UPLOAD_LIMIT + " rulebooks per day");
-        }
-    }
-
     private String uploadToR2(String key, byte[] bytes) {
         AppProperties.R2 r2 = appProperties.getR2();
         s3Client.putObject(
@@ -272,12 +290,14 @@ public class RulebookQueueService {
         return r2.getPublicUrl() + "/" + key;
     }
 
-    private void cancelAllPendingForGame(UUID gameId, String reason) {
+    private void cancelAllPendingForGame(UUID gameId, User reviewer, String reason) {
         List<GameRulebook> pending = rulebookRepository
                 .findByGame_IdAndStatusOrderByQueuePositionAsc(gameId, "pending_review");
         for (GameRulebook item : pending) {
             item.setStatus("rejected");
             item.setRejectReason(reason);
+            item.setReviewedBy(reviewer);
+            item.setReviewedAt(Instant.now());
             rulebookRepository.save(item);
         }
     }

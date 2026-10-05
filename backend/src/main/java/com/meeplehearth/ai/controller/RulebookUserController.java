@@ -5,6 +5,7 @@ import com.meeplehearth.ai.entity.GameRulebook;
 import com.meeplehearth.ai.job.RulebookAutoFetchJob;
 import com.meeplehearth.ai.repository.GameHowToPlayRepository;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
+import com.meeplehearth.ai.service.AiRateLimiter;
 import com.meeplehearth.ai.service.RulebookQueueService;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.entity.Game;
@@ -18,7 +19,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -29,19 +29,24 @@ import java.util.UUID;
 @RequestMapping("/api/v1/games")
 public class RulebookUserController {
 
+    static final int GENERATE_DAILY_LIMIT = 10;
+
     private final GameRepository gameRepository;
     private final GameRulebookRepository rulebookRepository;
     private final RulebookAutoFetchJob autoFetchJob;
     private final RulebookQueueService queueService;
     private final UserRepository userRepository;
     private final GameHowToPlayRepository howToPlayRepository;
+    private final AiRateLimiter rateLimiter;
 
     public RulebookUserController(GameRepository gameRepository,
             GameRulebookRepository rulebookRepository,
             RulebookAutoFetchJob autoFetchJob,
             RulebookQueueService queueService,
             UserRepository userRepository,
-            GameHowToPlayRepository howToPlayRepository) {
+            GameHowToPlayRepository howToPlayRepository,
+            AiRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.gameRepository = gameRepository;
         this.rulebookRepository = rulebookRepository;
         this.autoFetchJob = autoFetchJob;
@@ -76,8 +81,9 @@ public class RulebookUserController {
         GameRulebook rulebook = queueService.handleUserUpload(game, uploader, file);
 
         return ResponseEntity.ok(Map.of(
-                "status", "ingesting",
-                "rulebookId", rulebook.getId()));
+                "status", "pending_review",
+                "rulebookId", rulebook.getId(),
+                "queuePosition", rulebook.getQueuePosition()));
     }
 
     // -------------------------------------------------------------------------
@@ -88,18 +94,37 @@ public class RulebookUserController {
      * Triggers an auto-fetch from rule-book.org / 1jour1jeu for games that
      * don't yet have a rulebook. Returns status immediately; poll /status for
      * result.
+     *
+     * Limits: {@value #GENERATE_DAILY_LIMIT} requests per user per day (429 RULEBOOK_GENERATE_RATE_LIMIT),
+     * and a per-game lock so concurrent requests for one game run only once.
+     * Requests that hit an in-progress fetch return "generating" without using quota.
      */
     @PostMapping("/{gameId}/rulebook/generate")
-    public ResponseEntity<Map<String, String>> generate(@PathVariable UUID gameId) {
+    public ResponseEntity<Map<String, String>> generate(
+            @PathVariable UUID gameId,
+            @AuthenticationPrincipal UserDetails userDetails) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
 
         if (rulebookRepository.existsByGame_IdAndStatus(gameId, "approved")) {
             return ResponseEntity.ok(Map.of("status", "already_done"));
         }
+        if (rateLimiter.isLocked(RulebookAutoFetchJob.GAME_LOCK_PREFIX + gameId)
+                || rulebookRepository.existsActiveIngestion(gameId,
+                        Instant.now().minus(RulebookAutoFetchJob.STALE_INGESTING_AFTER))) {
+            return ResponseEntity.ok(Map.of("status", "generating"));
+        }
 
-        boolean found = autoFetchJob.fetchForGame(game);
-        return ResponseEntity.ok(Map.of("status", found ? "generating" : "not_found"));
+        UUID userId = userDetails != null ? UUID.fromString(userDetails.getUsername()) : null;
+        rateLimiter.checkDaily("ai:ratelimit:rulebook-generate:", userId, GENERATE_DAILY_LIMIT,
+                "RULEBOOK_GENERATE_RATE_LIMIT", "Daily rulebook generation limit reached. Try again tomorrow.");
+
+        String status = switch (autoFetchJob.fetchForGame(game)) {
+            case QUEUED, IN_PROGRESS -> "generating";
+            case ALREADY_APPROVED -> "already_done";
+            case NOT_FOUND, ERROR -> "not_found";
+        };
+        return ResponseEntity.ok(Map.of("status", status));
     }
 
     // -------------------------------------------------------------------------
@@ -116,9 +141,9 @@ public class RulebookUserController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         boolean hasRulebook = rulebookRepository.existsByGame_IdAndStatus(gameId, "approved");
-        Instant ingestingCutoff = Instant.now().minus(Duration.ofMinutes(5));
+        Instant ingestingCutoff = Instant.now().minus(RulebookAutoFetchJob.STALE_INGESTING_AFTER);
         boolean isIngesting = !hasRulebook
-                && rulebookRepository.existsByGame_IdAndStatusAndCreatedAtAfter(gameId, "ingesting", ingestingCutoff);
+                && rulebookRepository.existsActiveIngestion(gameId, ingestingCutoff);
         boolean hasHowToPlay = howToPlayRepository.existsByGame_Id(gameId);
 
         if (userDetails == null) {

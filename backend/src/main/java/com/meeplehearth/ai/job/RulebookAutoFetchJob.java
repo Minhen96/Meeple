@@ -2,14 +2,16 @@ package com.meeplehearth.ai.job;
 
 import com.meeplehearth.ai.client.OnjRulebookClient;
 import com.meeplehearth.ai.client.RuleBookOrgClient;
+import com.meeplehearth.ai.client.RulebookUrlValidator;
 import com.meeplehearth.ai.entity.GameRulebook;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
-import com.meeplehearth.ai.service.RulebookIngestionService;
+import com.meeplehearth.ai.service.RulebookIngestionRequestedEvent;
 import com.meeplehearth.game.entity.Game;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -40,22 +42,35 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
     public static final String INIT_FLAG_KEY     = "init:rulebook-fetch";
     public static final String STOP_FLAG_KEY    = "stop:rulebook-fetch";
 
+    /** Per-game lock so concurrent generate requests / batch runs never fetch the same game twice. */
+    public static final String GAME_LOCK_PREFIX = "lock:rulebook-fetch:";
+    public static final Duration GAME_LOCK_TTL = Duration.ofMinutes(15);
+    private static final String BATCH_LOCK_KEY = "lock:rulebook-fetch-batch";
+    private static final Duration BATCH_LOCK_TTL = Duration.ofHours(6);
+    /** 'ingesting' rows older than this are treated as crashed and may be retried. */
+    public static final Duration STALE_INGESTING_AFTER = Duration.ofHours(1);
+
+    /** Outcome of a single-game fetch attempt. */
+    public enum FetchResult { QUEUED, ALREADY_APPROVED, IN_PROGRESS, NOT_FOUND, ERROR }
 
     private final GameRulebookRepository rulebookRepository;
-    private final RulebookIngestionService ingestionService;
     private final RuleBookOrgClient ruleBookOrgClient;
     private final OnjRulebookClient onjClient;
+    private final RulebookUrlValidator urlValidator;
+    private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
 
     public RulebookAutoFetchJob(GameRulebookRepository rulebookRepository,
-            RulebookIngestionService ingestionService,
             RuleBookOrgClient ruleBookOrgClient,
             OnjRulebookClient onjClient,
+            RulebookUrlValidator urlValidator,
+            ApplicationEventPublisher eventPublisher,
             StringRedisTemplate redisTemplate) {
         this.rulebookRepository = rulebookRepository;
-        this.ingestionService = ingestionService;
         this.ruleBookOrgClient = ruleBookOrgClient;
         this.onjClient = onjClient;
+        this.urlValidator = urlValidator;
+        this.eventPublisher = eventPublisher;
         this.redisTemplate = redisTemplate;
     }
 
@@ -77,32 +92,40 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
      * Sets {@code completionFlagKey} in Redis when done (pass null to skip).
      */
     public void runBatch(int limit, String completionFlagKey) {
-        log.info("Rulebook auto-fetch starting (limit={})", limit);
-
-        Instant ingestingCutoff = Instant.now().minus(Duration.ofHours(1));
-        List<Game> games = rulebookRepository.findGamesWithoutApprovedRulebook(
-                ingestingCutoff, PageRequest.of(0, limit));
-        log.info("Found {} games without an approved rulebook", games.size());
-
-        if (games.isEmpty()) {
-            log.info("No games found — catalog may not be imported yet. Skipping flag set.");
+        if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(BATCH_LOCK_KEY, "1", BATCH_LOCK_TTL))) {
+            log.info("Rulebook auto-fetch already running — skipping.");
             return;
         }
+        try {
+            log.info("Rulebook auto-fetch starting (limit={})", limit);
 
-        int fetched = 0;
-        for (Game game : games) {
-            if (Boolean.TRUE.equals(redisTemplate.hasKey(STOP_FLAG_KEY))) {
-                log.info("Rulebook fetch stop requested — stopping at {}/{}", fetched, games.size());
-                break;
+            Instant ingestingCutoff = Instant.now().minus(STALE_INGESTING_AFTER);
+            List<Game> games = rulebookRepository.findGamesWithoutApprovedRulebook(
+                    ingestingCutoff, PageRequest.of(0, limit));
+            log.info("Found {} games without an approved rulebook", games.size());
+
+            if (games.isEmpty()) {
+                log.info("No games found — catalog may not be imported yet. Skipping flag set.");
+                return;
             }
-            if (fetchForGame(game))
-                fetched++;
-        }
 
-        log.info("Rulebook auto-fetch complete — fetched {}/{}", fetched, games.size());
+            int fetched = 0;
+            for (Game game : games) {
+                if (Boolean.TRUE.equals(redisTemplate.hasKey(STOP_FLAG_KEY))) {
+                    log.info("Rulebook fetch stop requested — stopping at {}/{}", fetched, games.size());
+                    break;
+                }
+                if (fetchForGame(game) == FetchResult.QUEUED)
+                    fetched++;
+            }
 
-        if (completionFlagKey != null) {
-            redisTemplate.opsForValue().set(completionFlagKey, "1");
+            log.info("Rulebook auto-fetch complete — fetched {}/{}", fetched, games.size());
+
+            if (completionFlagKey != null) {
+                redisTemplate.opsForValue().set(completionFlagKey, "1");
+            }
+        } finally {
+            redisTemplate.delete(BATCH_LOCK_KEY);
         }
     }
 
@@ -111,28 +134,43 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
     // -------------------------------------------------------------------------
 
     /**
-     * Try to find and ingest a PDF for a single game.
-     * Returns true if a rulebook was found and queued for ingestion.
+     * Try to find a PDF for a single game and queue it for ingestion.
+     * Guarded by a per-game Redis lock (SET NX, {@link #GAME_LOCK_TTL}).
      */
-    public boolean fetchForGame(Game game) {
-        // Skip if already approved or currently ingesting
-        if (rulebookRepository.existsByGame_IdAndStatus(game.getId(), "approved")
-                || rulebookRepository.existsByGame_IdAndStatus(game.getId(), "ingesting")) {
-            return false;
+    public FetchResult fetchForGame(Game game) {
+        String lockKey = GAME_LOCK_PREFIX + game.getId();
+        if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(lockKey, "1", GAME_LOCK_TTL))) {
+            return FetchResult.IN_PROGRESS;
+        }
+        try {
+            return doFetchForGame(game);
+        } finally {
+            // Safe to release: once queued, the fresh 'ingesting' row blocks duplicates
+            redisTemplate.delete(lockKey);
+        }
+    }
+
+    private FetchResult doFetchForGame(Game game) {
+        // Skip if already approved or currently ingesting (stale 'ingesting' rows are retryable)
+        if (rulebookRepository.existsByGame_IdAndStatus(game.getId(), "approved")) {
+            return FetchResult.ALREADY_APPROVED;
+        }
+        if (rulebookRepository.existsActiveIngestion(game.getId(), Instant.now().minus(STALE_INGESTING_AFTER))) {
+            return FetchResult.IN_PROGRESS;
         }
 
         String name = game.getNameEn();
-        Optional<String> pdfUrl = ruleBookOrgClient.findPdfUrl(name);
+        Optional<String> pdfUrl = ruleBookOrgClient.findPdfUrl(name).filter(urlValidator::isAllowedSyntax);
         String source = "rule_book_org";
 
         if (pdfUrl.isEmpty()) {
-            pdfUrl = onjClient.findPdfUrl(name);
+            pdfUrl = onjClient.findPdfUrl(name).filter(urlValidator::isAllowedSyntax);
             source = "onj";
         }
 
         if (pdfUrl.isEmpty()) {
             log.debug("No rulebook found for '{}'", name);
-            return false;
+            return FetchResult.NOT_FOUND;
         }
 
         try {
@@ -143,14 +181,15 @@ public class RulebookAutoFetchJob implements ApplicationRunner {
             rulebook.setPdfUrl(pdfUrl.get());
             rulebookRepository.save(rulebook);
 
-            ingestionService.ingestAsync(rulebook.getId());
+            // No surrounding transaction here: the listener runs immediately (async) after the save committed
+            eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(rulebook.getId()));
 
-            log.info("Queued ingestion for '{}' via {} — {}", name, source, pdfUrl.get());
-            return true;
+            log.info("Queued ingestion for '{}' via {}", name, source);
+            return FetchResult.QUEUED;
 
         } catch (Exception e) {
             log.error("Failed to fetch/save rulebook for '{}': {}", name, e.getMessage());
-            return false;
+            return FetchResult.ERROR;
         }
     }
 }

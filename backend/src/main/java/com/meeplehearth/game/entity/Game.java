@@ -67,8 +67,13 @@ public class Game {
     @Column(name = "game_type", length = 30)
     private String gameType = "boardgame";
 
-    @OneToOne(mappedBy = "game", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private GameDetail gameDetail;
+    // GameDetail is intentionally NOT mapped here: an inverse @OneToOne(mappedBy) cannot be
+    // lazy without bytecode enhancement and caused an extra query per Game. Load it explicitly
+    // via GameDetailRepository.findById(gameId) / findAllById(gameIds).
+
+    /** Last time bulk BGG hydration tried this game; used to avoid re-requesting it forever. */
+    @Column(name = "hydration_attempted_at")
+    private Instant hydrationAttemptedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
