@@ -3,9 +3,10 @@
 	import { Toaster } from 'svelte-sonner';
 	import { setUser } from '$lib/stores/auth';
 	import { connectWS, disconnectWS } from '$lib/stores/websocket';
+	import type { User } from '$lib/types';
 
 	interface Props {
-		data: { user: import('$lib/types').User | null };
+		data: { user: User | null };
 		children?: import('svelte').Snippet;
 	}
 
@@ -13,12 +14,17 @@
 
 	$effect(() => {
 		setUser(data.user);
-		if (data.user) {
-			// Cookie is sent automatically with the WS upgrade request
-			// Pass userId so we can subscribe to the right topic
-			connectWS(data.user.id, '');
-		} else {
-			disconnectWS();
+	});
+
+	// Depend on the user id only, so profile edits / layout re-runs that
+	// produce a new user object don't tear down and rebuild the socket.
+	const userId = $derived(data.user?.id ?? null);
+
+	$effect(() => {
+		if (userId) {
+			// Auth via the access_token cookie sent with the WebSocket upgrade.
+			connectWS();
+			return () => disconnectWS();
 		}
 	});
 </script>

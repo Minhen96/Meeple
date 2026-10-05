@@ -16,7 +16,8 @@ export interface Rulebook {
 }
 
 export interface UploadRulebookResult {
-	status: 'ingesting' | 'already_done';
+	/** 'pending_review': user uploads wait for admin approval before ingestion. */
+	status: 'ingesting' | 'already_done' | 'pending_review';
 	rulebookId?: string;
 }
 

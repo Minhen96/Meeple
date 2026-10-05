@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import ProgressBar from "$lib/components/ui/ProgressBar.svelte";
 	import { rulebookApi } from "$lib/api/rulebook";
 	import { adminApi } from "$lib/api/admin";
 	import { howToPlayApi } from "$lib/api/howtoplay";
@@ -7,7 +8,13 @@
 	import { currentUser } from "$lib/stores/auth";
 	import { subscribeToHowToPlayProgress } from "$lib/stores/websocket";
 	import { toast } from "svelte-sonner";
-	import type { HowToPlayContent, RuleNote, MyRuleNote } from "$lib/types";
+	import { ApiRequestError } from "$lib/api/client";
+	import type {
+		HowToPlayApiResponse,
+		HowToPlayContent,
+		RuleNote,
+		MyRuleNote
+	} from "$lib/types";
 
 	interface Props {
 		gameId: string;
@@ -54,17 +61,36 @@
 	let submittingNote = $state(false);
 	let deletingNote = $state(false);
 
+	const HTP_POLL_MS = 5000;
+	/** Consecutive "not_generated" polls before we treat generation as failed. */
+	const HTP_MAX_NOT_GENERATED = 3;
+
+	let destroyed = false;
+	let htpPollInterval: ReturnType<typeof setInterval> | null = null;
+	// Bumped on every start/stop so late async callbacks from an older run are ignored.
+	let htpGeneration = 0;
+
 	onMount(() => {
 		initRulebookStatus();
 		return () => {
-			if (rulebookPollInterval !== null) clearInterval(rulebookPollInterval);
-			unsubscribeHtp?.();
+			destroyed = true;
+			stopRulebookPolling();
+			stopHtpTracking();
 		};
 	});
+
+	function friendlyError(err: unknown, fallback: string): string {
+		if (err instanceof ApiRequestError) {
+			if (err.status === 429) return "Too many requests, try later.";
+			if (err.status === 0) return err.message;
+		}
+		return fallback;
+	}
 
 	async function initRulebookStatus() {
 		try {
 			const status = await rulebookApi.getStatus(gameId);
+			if (destroyed) return;
 			if (status.hasRulebook) {
 				rulebookState = "ready";
 				fetchHowToPlay();
@@ -80,7 +106,7 @@
 				fetchHowToPlay();
 			}
 		} catch {
-			rulebookState = "error";
+			if (!destroyed) rulebookState = "error";
 		}
 	}
 
@@ -88,22 +114,23 @@
 		howToPlayState = "loading";
 		try {
 			const res = await howToPlayApi.get(gameId);
+			if (destroyed) return;
 			if (res.status === "ready" && res.data) {
 				applyHowToPlayReady(res);
 			} else if (res.status === "generating") {
 				howToPlayState = "generating";
 				howToPlayProgress = res.progress ?? 0;
-				startHtpWsSubscription();
+				startHtpTracking();
 			} else {
 				// not_generated
 				howToPlayState = "idle";
 			}
 		} catch {
-			howToPlayState = "error";
+			if (!destroyed) howToPlayState = "error";
 		}
 	}
 
-	function applyHowToPlayReady(res: import("$lib/types").HowToPlayApiResponse) {
+	function applyHowToPlayReady(res: HowToPlayApiResponse) {
 		howToPlayState = "ready";
 		howToPlayData = res.data;
 		howToPlaySourceMode = res.sourceMode;
@@ -113,54 +140,118 @@
 		fetchMyNote();
 	}
 
-	function startHtpWsSubscription() {
+	function stopHtpTracking() {
+		htpGeneration++;
 		unsubscribeHtp?.();
-		unsubscribeHtp = subscribeToHowToPlayProgress(gameId, async (msg) => {
+		unsubscribeHtp = null;
+		if (htpPollInterval !== null) clearInterval(htpPollInterval);
+		htpPollInterval = null;
+	}
+
+	function failHtp() {
+		stopHtpTracking();
+		howToPlayState = "error";
+	}
+
+	async function loadReadyHtp(generation: number) {
+		try {
+			const res = await howToPlayApi.get(gameId);
+			if (destroyed || generation !== htpGeneration) return;
+			if (res.status === "ready" && res.data) {
+				stopHtpTracking();
+				applyHowToPlayReady(res);
+			}
+		} catch {
+			if (!destroyed && generation === htpGeneration) failHtp();
+		}
+	}
+
+	/**
+	 * Track generation progress over WebSocket, with a REST polling fallback
+	 * for when the socket is down or a message is missed. Call BEFORE
+	 * triggering generation so no progress/ready message can be lost.
+	 */
+	function startHtpTracking() {
+		stopHtpTracking();
+		if (destroyed) return;
+		const generation = htpGeneration;
+
+		unsubscribeHtp = subscribeToHowToPlayProgress(gameId, (msg) => {
+			if (generation !== htpGeneration) return;
 			if (msg.status === "generating") {
-				howToPlayProgress = msg.progress;
+				howToPlayProgress = Math.max(howToPlayProgress, msg.progress);
 			} else if (msg.status === "ready") {
-				unsubscribeHtp?.();
-				unsubscribeHtp = null;
-				try {
-					const res = await howToPlayApi.get(gameId);
-					if (res.status === "ready" && res.data) applyHowToPlayReady(res);
-				} catch {
-					howToPlayState = "error";
-				}
+				void loadReadyHtp(generation);
 			} else if (msg.status === "error") {
-				unsubscribeHtp?.();
-				unsubscribeHtp = null;
-				howToPlayState = "error";
+				failHtp();
 			}
 		});
+
+		let notGeneratedStreak = 0;
+		htpPollInterval = setInterval(async () => {
+			try {
+				const res = await howToPlayApi.get(gameId);
+				if (destroyed || generation !== htpGeneration) return;
+				if (res.status === "ready" && res.data) {
+					stopHtpTracking();
+					applyHowToPlayReady(res);
+				} else if (res.status === "generating") {
+					notGeneratedStreak = 0;
+					if (res.progress !== null) {
+						howToPlayProgress = Math.max(howToPlayProgress, res.progress);
+					}
+				} else if (++notGeneratedStreak >= HTP_MAX_NOT_GENERATED) {
+					failHtp();
+				}
+			} catch {
+				// transient (network / rate limit) — keep polling
+			}
+		}, HTP_POLL_MS);
 	}
 
 	async function handleGenerateHowToPlay() {
 		howToPlayState = "generating";
 		howToPlayProgress = 0;
+		// Subscribe first so a fast "ready" message can't be missed.
+		startHtpTracking();
 		try {
-			await howToPlayApi.generate(gameId);
-			startHtpWsSubscription();
-		} catch {
-			howToPlayState = "error";
-			toast.error("Could not start generation.");
+			const res = await howToPlayApi.generate(gameId);
+			if (destroyed) return;
+			if (res?.status === "ready" && res.data) {
+				stopHtpTracking();
+				applyHowToPlayReady(res);
+			}
+		} catch (err) {
+			stopHtpTracking();
+			if (destroyed) return;
+			if (err instanceof ApiRequestError && err.status === 429) {
+				howToPlayState = "idle";
+			} else {
+				howToPlayState = "error";
+			}
+			toast.error(friendlyError(err, "Could not start generation."));
 		}
 	}
 
+	function stopRulebookPolling() {
+		if (rulebookPollInterval !== null) clearInterval(rulebookPollInterval);
+		rulebookPollInterval = null;
+	}
+
 	function startRulebookPolling() {
-		if (rulebookPollInterval !== null) return;
+		if (rulebookPollInterval !== null || destroyed) return;
 		rulebookPollInterval = setInterval(async () => {
 			try {
 				const status = await rulebookApi.getStatus(gameId);
+				if (destroyed || rulebookPollInterval === null) return;
 				if (status.hasRulebook) {
-					clearInterval(rulebookPollInterval!);
-					rulebookPollInterval = null;
+					stopRulebookPolling();
 					rulebookState = "ready";
 					fetchHowToPlay();
 				}
 			} catch {
-				clearInterval(rulebookPollInterval!);
-				rulebookPollInterval = null;
+				if (destroyed) return;
+				stopRulebookPolling();
 				rulebookState = "error";
 			}
 		}, 3000);
@@ -172,7 +263,12 @@
 		uploading = true;
 		try {
 			const result = await rulebookApi.upload(gameId, file);
-			if (result.status === "ingesting") {
+			if (result.status === "pending_review") {
+				// User uploads must be approved by an admin before they go live.
+				rulebookState = "pending_review";
+				myQueuePosition = null;
+				toast.success("Submitted for review. Rules will appear once an admin approves it.");
+			} else if (result.status === "ingesting") {
 				rulebookState = "generating";
 				toast.success("PDF validated! Processing rulebook…");
 				startRulebookPolling();
@@ -180,8 +276,8 @@
 				rulebookState = "ready";
 				fetchHowToPlay();
 			}
-		} catch {
-			toast.error("Upload failed. File must be a PDF under 25 MB.");
+		} catch (err) {
+			toast.error(friendlyError(err, "Upload failed. File must be a PDF under 25 MB."));
 		} finally {
 			uploading = false;
 			fileInput.value = "";
@@ -197,8 +293,12 @@
 			rulebookState = "generating";
 			toast.success("Uploading and ingesting…");
 			startRulebookPolling();
-		} catch {
-			toast.error("Admin upload failed.");
+		} catch (err) {
+			const detail =
+				err instanceof ApiRequestError && err.status !== 429 && err.message
+					? ` ${err.message}`
+					: "";
+			toast.error(friendlyError(err, `Admin upload failed.${detail}`));
 		} finally {
 			uploading = false;
 			adminFileInput.value = "";
@@ -482,12 +582,7 @@
 					</p>
 				</div>
 				<div class="w-full max-w-[240px] space-y-1.5">
-					<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
-						<div
-							class="bg-tertiary h-2 rounded-full transition-all duration-500"
-							style="width: {howToPlayProgress}%"
-						></div>
-					</div>
+					<ProgressBar value={howToPlayProgress} tone="tertiary" label="Guide generation progress" />
 					<p class="text-[11px] font-bold text-tertiary text-right">{howToPlayProgress}%</p>
 				</div>
 			</div>
