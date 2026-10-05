@@ -35,6 +35,7 @@ app:
     access-key: ${R2_ACCESS_KEY}
     secret-key: ${R2_SECRET_KEY}
     bucket: ${R2_BUCKET}
+    private-bucket: ${R2_PRIVATE_BUCKET:}
     public-url: ${R2_PUBLIC_URL}
   google:
     client-id: ${GOOGLE_CLIENT_ID}

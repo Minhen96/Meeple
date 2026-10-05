@@ -126,6 +126,11 @@ public class AppProperties {
         private String accessKey;
         private String secretKey;
         private String bucket;
+        /**
+         * Private bucket for data exports (R2_PRIVATE_BUCKET); never exposed on a public domain.
+         * When blank, exports fall back to the media bucket under {@code private/}.
+         */
+        private String privateBucket;
         private String publicUrl;
 
         public String getEndpoint() {
@@ -158,6 +163,14 @@ public class AppProperties {
 
         public void setBucket(String bucket) {
             this.bucket = bucket;
+        }
+
+        public String getPrivateBucket() {
+            return privateBucket;
+        }
+
+        public void setPrivateBucket(String privateBucket) {
+            this.privateBucket = privateBucket;
         }
 
         public String getPublicUrl() {

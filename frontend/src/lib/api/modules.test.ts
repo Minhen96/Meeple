@@ -175,7 +175,7 @@ const cases: Case[] = [
 	['users.updateMe', () => usersApi.updateMe({ bio: 'x' }), 'PUT', '/api/v1/users/me', { bio: 'x' }],
 	['users.deleteMe sends body', () => usersApi.deleteMe({ confirm: 'DELETE' }), 'DELETE', '/api/v1/users/me', { confirm: 'DELETE' }],
 	['users.changeEmail', () => usersApi.changeEmail('pw', 'n@e.w'), 'POST', '/api/v1/users/me/change-email', { currentPassword: 'pw', newEmail: 'n@e.w' }],
-	['users.requestExport', () => usersApi.requestExport(), 'GET', '/api/v1/users/me/export'],
+	['users.requestExport', () => usersApi.requestExport(), 'POST', '/api/v1/users/me/export'],
 	['users.getStats', () => usersApi.getStats('u1'), 'GET', '/api/v1/users/u1/stats'],
 	['users.searchUsers encodes the query', () => usersApi.searchUsers('a&b c'), 'GET', '/api/v1/users/search?q=a%26b+c&page=0&size=20'],
 	['users.searchUsers paged', () => usersApi.searchUsers('ann', 2, 5), 'GET', '/api/v1/users/search?q=ann&page=2&size=5'],
