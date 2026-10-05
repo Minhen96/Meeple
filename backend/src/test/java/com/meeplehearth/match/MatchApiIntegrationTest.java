@@ -1,14 +1,18 @@
 package com.meeplehearth.match;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.meeplehearth.common.event.UserSoftDeletedEvent;
 import com.meeplehearth.match.service.MatchScheduler;
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -35,6 +39,8 @@ class MatchApiIntegrationTest extends ApiIntegrationTestBase {
 
     @Autowired private MatchScheduler matchScheduler;
     @Autowired private StringRedisTemplate redis;
+    @Autowired private ApplicationEventPublisher publisher;
+    @Autowired private PlatformTransactionManager transactionManager;
 
     @AfterEach
     void releaseLock() {
@@ -67,6 +73,11 @@ class MatchApiIntegrationTest extends ApiIntegrationTestBase {
         assertThat(count("SELECT COUNT(*) FROM match_requests WHERE user_id = ?", me)).isEqualTo(1);
 
         mvc.perform(get("/api/v1/matches/requests/me").with(as(me)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(requestId.toString()));
+        // FEATURES 6.1 path is an alias
+        mvc.perform(get("/api/v1/matches/requests/mine").with(as(me)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].id").value(requestId.toString()));
@@ -177,8 +188,14 @@ class MatchApiIntegrationTest extends ApiIntegrationTestBase {
         assertThat(Instant.parse(event.get("scheduledAt").asText())).isEqualTo(base.plus(1, ChronoUnit.HOURS));
 
         assertThat(string("SELECT status FROM match_groups WHERE id = ?", groupId)).isEqualTo("ACCEPTED");
-        assertThat(count("SELECT COUNT(*) FROM notifications WHERE type = 'EVENT_INVITE' AND recipient_id = ?"
+        // Alice is invited and told about the event with MATCH_ACCEPTED (not a second EVENT_INVITE)
+        assertThat(string("SELECT status FROM event_participants WHERE event_id = ? AND user_id = ?", eventId, alice))
+                .isEqualTo("INVITED");
+        assertThat(count("SELECT COUNT(*) FROM notifications WHERE type = 'MATCH_ACCEPTED' AND recipient_id = ?"
                 + " AND actor_id = ? AND reference_id = ?", alice, bob, eventId)).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM notifications WHERE type = 'EVENT_INVITE' AND recipient_id = ?",
+                alice)).isZero();
+        assertThat(event.get("participants")).hasSize(2);
         // Alice (a friend of the host) can see the FRIENDS event
         mvc.perform(get("/api/v1/events/{id}", eventId).with(as(alice))).andExpect(status().isOk());
 
@@ -333,6 +350,94 @@ class MatchApiIntegrationTest extends ApiIntegrationTestBase {
         mvc.perform(post("/api/v1/matches/{id}/dismiss", groupId).with(as(b)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("GROUP_NOT_PENDING"));
+    }
+
+    @Test
+    void acceptInvitesChainedMembersButSkipsMembersBlockedWithTheHost() throws Exception {
+        UUID host = user();
+        UUID friend = user();
+        UUID friendOfFriend = user();
+        UUID blockedByHost = user();
+        friends(host, friend);
+        friends(friend, friendOfFriend);
+        friends(friend, blockedByHost);
+        block(host, blockedByHost);
+        UUID gameId = game(2, 60);
+        UUID groupId = group(gameId, "PENDING", Instant.now(), host, friend, friendOfFriend, blockedByHost);
+        jdbc.update("UPDATE match_groups SET overlap_start = ? WHERE id = ?",
+                ts(Instant.now().minus(1, ChronoUnit.HOURS)), groupId);
+
+        JsonNode event = json(mvc.perform(post("/api/v1/matches/{id}/accept", groupId).with(as(host)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        UUID eventId = UUID.fromString(event.get("id").asText());
+
+        // Capacity is clamped to the 50-player event limit; a window that already opened moves forward
+        assertThat(event.get("maxParticipants").asInt()).isEqualTo(50);
+        assertThat(Instant.parse(event.get("scheduledAt").asText())).isAfter(Instant.now());
+        assertThat(string("SELECT status FROM event_participants WHERE event_id = ? AND user_id = ?", eventId,
+                friendOfFriend)).isEqualTo("INVITED");
+        assertThat(count("SELECT COUNT(*) FROM event_participants WHERE event_id = ? AND user_id = ?", eventId,
+                blockedByHost)).isZero();
+        assertThat(count("SELECT COUNT(*) FROM notifications WHERE type = 'MATCH_ACCEPTED' AND reference_id = ?",
+                eventId)).isEqualTo(2);
+        assertThat(count("SELECT COUNT(*) FROM notifications WHERE type = 'MATCH_ACCEPTED' AND recipient_id = ?",
+                blockedByHost)).isZero();
+        // The friend-of-friend can see and join the FRIENDS event through the invite
+        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(friendOfFriend)).param("status", "ACCEPTED"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void expireJobExpiresRequestsWhoseWindowEndedOrThatAreOpenEndedAndStale() {
+        UUID a = user();
+        UUID gameA = game();
+        UUID gameB = game();
+        UUID gameC = game();
+        UUID gameD = game();
+        Instant now = Instant.now();
+        UUID ended = activeRequest(a, gameA, now.minus(5, ChronoUnit.HOURS), now.minus(1, ChronoUnit.HOURS));
+        UUID current = activeRequest(a, gameB, now.minus(1, ChronoUnit.HOURS), now.plus(1, ChronoUnit.HOURS));
+        UUID staleOpen = activeRequest(a, gameC, null, null);
+        jdbc.update("UPDATE match_requests SET created_at = ? WHERE id = ?", ts(now.minus(8, ChronoUnit.DAYS)), staleOpen);
+        UUID freshOpen = activeRequest(a, gameD, null, null);
+        UUID matched = request(a, gameA, "MATCHED");
+        jdbc.update("UPDATE match_requests SET available_to = ? WHERE id = ?", ts(now.minus(1, ChronoUnit.DAYS)), matched);
+
+        matchScheduler.expireStaleRequests();
+
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", ended)).isEqualTo("EXPIRED");
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", staleOpen)).isEqualTo("EXPIRED");
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", current)).isEqualTo("ACTIVE");
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", freshOpen)).isEqualTo("ACTIVE");
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", matched)).isEqualTo("MATCHED");
+        assertThat(redis.hasKey("lock:match_request_expire")).isFalse();
+    }
+
+    @Test
+    void expireJobSkipsWhileAnotherInstanceHoldsTheLock() {
+        UUID a = user();
+        UUID ended = activeRequest(a, game(), Instant.now().minus(5, ChronoUnit.HOURS),
+                Instant.now().minus(1, ChronoUnit.HOURS));
+        redis.opsForValue().set("lock:match_request_expire", "other-instance", Duration.ofMinutes(1));
+        try {
+            matchScheduler.expireStaleRequests();
+            assertThat(string("SELECT status FROM match_requests WHERE id = ?", ended)).isEqualTo("ACTIVE");
+        } finally {
+            redis.delete("lock:match_request_expire");
+        }
+    }
+
+    @Test
+    void softDeletedUsersActiveRequestsAreCancelledAfterCommit() {
+        UUID a = user();
+        UUID active = activeRequest(a, game(), null, null);
+        UUID matched = request(a, game(), "MATCHED");
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                publisher.publishEvent(new UserSoftDeletedEvent(a)));
+
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", active)).isEqualTo("CANCELLED");
+        assertThat(string("SELECT status FROM match_requests WHERE id = ?", matched)).isEqualTo("MATCHED");
     }
 
     // -------------------------------------------------------------------------

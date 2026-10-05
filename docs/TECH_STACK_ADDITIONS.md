@@ -489,7 +489,7 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 
-FIREBASE_SERVICE_ACCOUNT_JSON=<base64-encoded-json>
+FIREBASE_SERVICE_ACCOUNT_JSON=<raw-or-base64-json>   # optional; push is a no-op when unset
 
 BGG_API_URL=https://boardgamegeek.com/xmlapi2
 BGG_API_TOKEN=...                           # optional: registered BGG app token (collection import); unset = 503 BGG_API_UNAVAILABLE
@@ -516,6 +516,13 @@ VITE_SENTRY_ENVIRONMENT=production           # optional: defaults to the Vite mo
 VITE_POSTHOG_KEY=phc_...                     # optional: unset disables PostHog
 VITE_POSTHOG_HOST=https://us.i.posthog.com   # optional
 COOKIE_DOMAIN=meeple-hearth.com   # optional, server-only; must match the backend's COOKIE_DOMAIN
+# Web push (optional; push disabled when unset)
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_VAPID_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...   # optional
 ```
 
 ### Local Development (.env.local)
