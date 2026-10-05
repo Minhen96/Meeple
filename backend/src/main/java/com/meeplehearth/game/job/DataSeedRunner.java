@@ -77,6 +77,32 @@ public class DataSeedRunner implements ApplicationRunner {
         Thread.ofVirtual().name("data-seed-manual").start(this::seed);
     }
 
+    /**
+     * {@code POST /api/v1/games/import}: re-imports the CSV catalog from {@code app.seed.csv-url}
+     * in the background (inserts new games, refreshes rankings of existing ones). Unlike
+     * {@link #triggerImport} it does not start BGG hydration.
+     *
+     * @return false if no CSV URL is configured (nothing started)
+     */
+    public boolean triggerCatalogImport() {
+        String csvUrl = appProperties.getSeed().getCsvUrl();
+        if (csvUrl == null || csvUrl.isBlank()) {
+            return false;
+        }
+        Thread.ofVirtual().name("catalog-import").start(() -> {
+            if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(SEED_LOCK_KEY, "1", SEED_LOCK_TTL))) {
+                log.info("[seed] Catalog import already running — skipping");
+                return;
+            }
+            try {
+                doImport(csvUrl);
+            } finally {
+                redis.delete(SEED_LOCK_KEY);
+            }
+        });
+        return true;
+    }
+
     /** Called from admin panel — re-runs hydration even if flag is set. */
     public void triggerHydration() {
         redis.delete(HYDRATION_STARTED_FLAG);

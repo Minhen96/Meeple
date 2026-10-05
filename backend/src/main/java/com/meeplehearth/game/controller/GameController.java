@@ -1,6 +1,8 @@
 package com.meeplehearth.game.controller;
 
+import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.dto.*;
+import com.meeplehearth.game.job.DataSeedRunner;
 import com.meeplehearth.game.service.GameHydrationService;
 import com.meeplehearth.game.service.GameService;
 import com.meeplehearth.game.service.GameSocialService;
@@ -33,17 +35,33 @@ public class GameController {
     private final GameSocialService gameSocialService;
     private final PlayLogService playLogService;
     private final LibraryAccessGuard accessGuard;
+    private final DataSeedRunner dataSeedRunner;
 
     public GameController(GameService gameService,
                           GameHydrationService gameHydrationService,
                           GameSocialService gameSocialService,
                           PlayLogService playLogService,
-                          LibraryAccessGuard accessGuard) {
+                          LibraryAccessGuard accessGuard,
+                          DataSeedRunner dataSeedRunner) {
         this.gameService = gameService;
         this.gameHydrationService = gameHydrationService;
         this.gameSocialService = gameSocialService;
         this.playLogService = playLogService;
         this.accessGuard = accessGuard;
+        this.dataSeedRunner = dataSeedRunner;
+    }
+
+    /**
+     * POST /api/v1/games/import — admin: re-import the CSV catalog from app.seed.csv-url (SEED_CSV_URL)
+     * in the background. 202 when started; 503 SEED_CSV_URL_NOT_CONFIGURED without a URL.
+     */
+    @PostMapping("/games/import")
+    public ResponseEntity<Void> runImport() {
+        if (!dataSeedRunner.triggerCatalogImport()) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SEED_CSV_URL_NOT_CONFIGURED",
+                    "SEED_CSV_URL is not configured");
+        }
+        return ResponseEntity.accepted().build();
     }
 
     /** POST /api/v1/games/hydrate-images — bulk-fill thumbnail_url for all games missing images */

@@ -69,9 +69,10 @@ class GameCollectionIntegrationTest extends AiGameIntegrationTestBase {
         collection(user, "owned").andExpect(jsonPath("$.data[*].game.title", contains("Owned Only")));
         collection(user, "favorited").andExpect(jsonPath("$.data[*].game.title", contains("Favourite Only")));
         collection(user, "all").andExpect(jsonPath("$.data", hasSize(3)));
-        collection(user, "wishlisted").andExpect(jsonPath("$.data", hasSize(3)));
+        // Wishlist is a real flag again (V50): nothing is wishlisted here
+        collection(user, "wishlisted").andExpect(jsonPath("$.data", hasSize(0)));
 
-        // Another user's collection (friends-only is enforced by the frontend)
+        // Another user's collection: visible unless blocked either way
         UUID viewer = createUser();
         mvc.perform(get("/api/v1/users/{id}/games", user).param("filter", "owned").cookie(auth(viewer)))
                 .andExpect(jsonPath("$.data[*].game.title", contains("Owned Only")));
@@ -164,7 +165,8 @@ class GameCollectionIntegrationTest extends AiGameIntegrationTestBase {
                 .andExpect(jsonPath("$.data[1].game.title").value("Timeline Game"))
                 .andExpect(jsonPath("$.data[2].game.title").value("Timeline Game"));
 
+        // Another viewer sees plays and posts, but not the (invite-only) event
         mvc.perform(get("/api/v1/users/{id}/plays", user).cookie(auth(host)))
-                .andExpect(jsonPath("$.data", hasSize(3)));
+                .andExpect(jsonPath("$.data[*].type", contains("post", "play")));
     }
 }

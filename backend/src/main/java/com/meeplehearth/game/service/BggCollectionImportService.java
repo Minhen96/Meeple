@@ -181,11 +181,12 @@ public class BggCollectionImportService {
                 progressStore.save(userId, counts.toStatus(BggImportStatusResponse.RUNNING, null));
             }
 
+            // Notify before publishing "done", so a client that sees "done" also finds the notification
+            notifyCompleted(userId, importId);
             finish(userId, importId, counts, BggImport.Status.DONE, null);
             if (!newGames.isEmpty()) {
                 hydrationService.hydrateImagesQuietly(newGames);
             }
-            notifyCompleted(userId, importId);
         } catch (BggCollectionClient.BggUserNotFoundException e) {
             finish(userId, importId, counts, BggImport.Status.FAILED, BGG_USER_NOT_FOUND);
         } catch (BggApiClient.BggUnavailableException e) {
