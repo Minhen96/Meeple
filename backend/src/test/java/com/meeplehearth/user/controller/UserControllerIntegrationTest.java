@@ -44,8 +44,9 @@ class UserControllerIntegrationTest extends AuthWebIntegrationTest {
                 .andExpect(jsonPath("$.data.displayName").value(me.getDisplayName()))
                 .andExpect(jsonPath("$.data.isAdmin").value(false))
                 .andExpect(jsonPath("$.data.onboardingCompleted").value(false))
-                // Private fields never leave the server
-                .andExpect(jsonPath("$.data.email").doesNotExist())
+                // The caller sees their own account settings; credentials never leave the server
+                .andExpect(jsonPath("$.data.email").value(me.getEmail()))
+                .andExpect(jsonPath("$.data.hasPassword").value(true))
                 .andExpect(jsonPath("$.data.passwordHash").doesNotExist());
     }
 
@@ -92,8 +93,8 @@ class UserControllerIntegrationTest extends AuthWebIntegrationTest {
     void updateMeValidatesFieldLengths() throws Exception {
         User me = persistUser(true);
         Map<String, Object> body = new HashMap<>();
-        body.put("displayName", "x");
-        body.put("bio", "b".repeat(301));
+        body.put("displayName", "");
+        body.put("bio", "b".repeat(201));
 
         MvcResult result = mockMvc.perform(put("/api/v1/users/me").cookie(accessCookie(me))
                         .contentType(MediaType.APPLICATION_JSON).content(json(body)))
@@ -111,7 +112,8 @@ class UserControllerIntegrationTest extends AuthWebIntegrationTest {
         jdbc.update("INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (?, ?, now() + interval '1 day')",
                 me.getId(), sha256("refresh-" + me.getId()));
 
-        mockMvc.perform(delete("/api/v1/users/me").cookie(accessCookie(me)))
+        mockMvc.perform(delete("/api/v1/users/me").cookie(accessCookie(me))
+                        .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("password", PASSWORD))))
                 .andExpect(status().isNoContent());
 
         User deleted = reload(me.getId());

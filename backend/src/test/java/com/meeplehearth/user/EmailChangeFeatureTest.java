@@ -1,9 +1,7 @@
 package com.meeplehearth.user;
 
-import com.meeplehearth.user.service.AccountMailer;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +20,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Change email: password-confirmed request, link to the new address, confirmation. */
 class EmailChangeFeatureTest extends AccountFeatureTestBase {
 
-    @MockitoBean AccountMailer mailer;
 
     private String requestChange(UUID userId, String newEmail) throws Exception {
         mvc.perform(post("/api/v1/users/me/change-email").with(as(userId)).contentType("application/json")

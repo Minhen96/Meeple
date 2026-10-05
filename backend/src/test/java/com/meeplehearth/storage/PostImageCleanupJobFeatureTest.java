@@ -2,11 +2,9 @@ package com.meeplehearth.storage;
 
 import com.meeplehearth.config.AppProperties;
 import com.meeplehearth.storage.job.PostImageCleanupJob;
-import com.meeplehearth.support.social.ApiIntegrationTestBase;
+import com.meeplehearth.user.AccountFeatureTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 
 import java.time.Duration;
@@ -20,11 +18,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** post_image_cleanup: R2 objects of posts deleted over 30 days ago are removed, live posts untouched. */
-class PostImageCleanupJobFeatureTest extends ApiIntegrationTestBase {
+class PostImageCleanupJobFeatureTest extends AccountFeatureTestBase {
 
     @Autowired PostImageCleanupJob job;
     @Autowired AppProperties appProperties;
-    @MockitoBean S3Client s3Client;
 
     private UUID post(UUID author, Instant deletedAt) {
         UUID id = UUID.randomUUID();

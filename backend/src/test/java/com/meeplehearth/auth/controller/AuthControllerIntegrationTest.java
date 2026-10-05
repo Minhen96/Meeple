@@ -239,8 +239,13 @@ class AuthControllerIntegrationTest extends AuthWebIntegrationTest {
 
         MvcResult result = login(user.getUsername(), PASSWORD);
 
-        assertThat(result.getResponse().getStatus()).isEqualTo(401);
-        assertThat(body(result).get("error").asText()).isEqualTo("Account has been deactivated");
+        // Inside the 30-day grace period the client is told it can reactivate
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+        assertThat(body(result).get("code").asText()).isEqualTo("ACCOUNT_DELETED");
+
+        user.setDeletedAt(Instant.now().minus(java.time.Duration.ofDays(31)));
+        userRepository.saveAndFlush(user);
+        assertThat(login(user.getUsername(), PASSWORD).getResponse().getStatus()).isEqualTo(401);
     }
 
     @Test

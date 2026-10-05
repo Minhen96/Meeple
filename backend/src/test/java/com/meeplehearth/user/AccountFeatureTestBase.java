@@ -1,6 +1,9 @@
 package com.meeplehearth.user;
 
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
+import com.meeplehearth.user.service.AccountMailer;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import software.amazon.awssdk.services.s3.S3Client;
 import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,8 +17,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Helpers for the account (WP5) API tests: users with real passwords and cookie handling. */
+/**
+ * Helpers for the account (WP5) API tests: users with real passwords and cookie handling.
+ * R2 and outgoing mail are mocked here, once, so every WP5 integration test shares a single
+ * application context (each distinct set of mocks would start another one with its own pool).
+ */
 public abstract class AccountFeatureTestBase extends ApiIntegrationTestBase {
+
+    @MockitoBean protected S3Client s3Client;
+    @MockitoBean protected AccountMailer mailer;
 
     protected static final String PASSWORD = "correct-horse-42";
     private static final AtomicInteger IP_SEQ = new AtomicInteger();

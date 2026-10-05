@@ -4,10 +4,8 @@ import com.meeplehearth.common.event.UserHardDeletedEvent;
 import com.meeplehearth.user.job.AccountHardDeleteJob;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
@@ -31,7 +29,6 @@ class AccountHardDeleteJobFeatureTest extends AccountFeatureTestBase {
 
     @Autowired AccountHardDeleteJob job;
     @Autowired ApplicationEvents events;
-    @MockitoBean S3Client s3Client;
 
     @Test
     void removesOnlyAccountsPastTheGracePeriod() {

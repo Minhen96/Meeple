@@ -1,12 +1,9 @@
 package com.meeplehearth.user;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.meeplehearth.user.service.AccountMailer;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.ByteArrayInputStream;
@@ -30,8 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** GET /users/me/export: 202, async zip to R2, emailed presigned link, one export per day. */
 class DataExportFeatureTest extends AccountFeatureTestBase {
 
-    @MockitoBean S3Client s3Client;
-    @MockitoBean AccountMailer mailer;
 
     private String waitForStatus(UUID exportId, String expected) throws InterruptedException {
         String status = null;
