@@ -79,7 +79,7 @@ class MatchServiceDismissRaceTest {
         matched.setGame(game);
         matched.setStatus(MatchRequest.Status.MATCHED);
 
-        when(matchGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(matchGroupRepository.findByIdForUpdate(groupId)).thenReturn(Optional.of(group));
     }
 
     private static DataIntegrityViolationException activeIndexViolation() {

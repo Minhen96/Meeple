@@ -488,8 +488,13 @@ public class MatchService {
     // Helpers
     // -------------------------------------------------------------------------
 
+    /**
+     * Loads and row-locks the group before member states are read: with two members dismissing
+     * at once, the second waits for the first to commit and then sees its DISMISSED status, so
+     * the group is dismissed (and its requests reactivated) instead of staying PENDING.
+     */
     private MatchGroup findPendingGroup(UUID groupId) {
-        MatchGroup group = matchGroupRepository.findById(groupId)
+        MatchGroup group = matchGroupRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> ApiException.notFound("GROUP_NOT_FOUND", "Match group not found"));
         if (group.getStatus() != MatchGroup.Status.PENDING) {
             throw ApiException.badRequest("GROUP_NOT_PENDING", "Match group is no longer pending");
