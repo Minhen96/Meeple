@@ -11,6 +11,7 @@ import com.meeplehearth.auth.repository.PasswordResetTokenRepository;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
 import com.meeplehearth.auth.dto.LoginRequest;
 import com.meeplehearth.auth.dto.RegisterRequest;
+import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import com.meeplehearth.auth.util.JwtUtil;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.common.ratelimit.RedisRateLimiter;
@@ -21,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -72,6 +74,7 @@ public class AuthService {
     private final Environment environment;
     private final GoogleAuthService googleAuthService;
     private final RedisRateLimiter rateLimiter;
+    private final ApplicationEventPublisher eventPublisher;
     private final SecureRandom secureRandom = new SecureRandom();
     private final String dummyPasswordHash;
 
@@ -86,8 +89,10 @@ public class AuthService {
             AppProperties appProperties,
             Environment environment,
             GoogleAuthService googleAuthService,
-            RedisRateLimiter rateLimiter) {
+            RedisRateLimiter rateLimiter,
+            ApplicationEventPublisher eventPublisher) {
         this.rateLimiter = rateLimiter;
+        this.eventPublisher = eventPublisher;
         this.dummyPasswordHash = passwordEncoder.encode(generateSecureHexToken(16));
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -250,6 +255,7 @@ public class AuthService {
         userRepository.findById(stored.getUserId()).ifPresent(user -> {
             user.setTokenVersion(user.getTokenVersion() + 1);
             userRepository.save(user);
+            eventPublisher.publishEvent(new UserSessionsRevokedEvent(user.getId()));
         });
         clearAuthCookies(response);
     }
@@ -388,6 +394,8 @@ public class AuthService {
         // Invalidate every access token issued before the reset
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
+        // Open WebSocket sessions were authenticated with the old version: close them after commit
+        eventPublisher.publishEvent(new UserSessionsRevokedEvent(user.getId()));
 
         resetToken.setUsedAt(Instant.now());
         passwordResetTokenRepository.save(resetToken);
@@ -460,6 +468,7 @@ public class AuthService {
             existing.setTokenVersion(existing.getTokenVersion() + 1);
             emailVerificationTokenRepository.deleteByUserId(existing.getId());
             refreshTokenRepository.deleteByUserId(existing.getId());
+            eventPublisher.publishEvent(new UserSessionsRevokedEvent(existing.getId()));
         }
         return userRepository.save(existing);
     }

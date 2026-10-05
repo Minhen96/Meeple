@@ -15,29 +15,47 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.security.Principal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class WebSocketAndOriginSecurityTest {
 
     private final JwtUtil jwtUtil = mock(JwtUtil.class);
     private final UserDetailsServiceImpl userDetailsService = mock(UserDetailsServiceImpl.class);
+    private static final Instant NOW = Instant.parse("2026-10-05T12:00:00Z");
+    private final WebSocketSessionRevoker revoker = new WebSocketSessionRevoker(Clock.fixed(NOW, ZoneOffset.UTC));
     private final WebSocketConfig.StompAuthorizationInterceptor interceptor =
-            new WebSocketConfig.StompAuthorizationInterceptor(jwtUtil, userDetailsService);
+            new WebSocketConfig.StompAuthorizationInterceptor(jwtUtil, userDetailsService, revoker);
     private final MessageChannel channel = mock(MessageChannel.class);
 
     private static Message<byte[]> frame(StompCommand command, String destination, String bearer, Principal user) {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR, NOW.plusSeconds(600).toEpochMilli());
+        return frame(command, destination, bearer, user, "session-1", attributes);
+    }
+
+    private static Message<byte[]> frame(StompCommand command, String destination, String bearer, Principal user,
+                                         String sessionId, Map<String, Object> sessionAttributes) {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(command);
-        accessor.setSessionAttributes(new HashMap<>());
+        accessor.setSessionId(sessionId);
+        accessor.setSessionAttributes(sessionAttributes);
         if (destination != null) {
             accessor.setDestination(destination);
         }
@@ -129,6 +147,48 @@ class WebSocketAndOriginSecurityTest {
                 frame(StompCommand.SEND, "/topic/how-to-play/" + UUID.randomUUID(), null, principal), channel))
                 .isInstanceOf(MessageDeliveryException.class);
         interceptor.preSend(frame(StompCommand.SEND, "/app/ping", null, principal), channel);
+    }
+
+    @Test
+    void connectRecordsTokenExpiryAndAuthenticationTime() {
+        UUID id = UUID.randomUUID();
+        Instant exp = NOW.plusSeconds(900);
+        Claims claims = Jwts.claims().subject(id.toString()).add(JwtUtil.TOKEN_VERSION_CLAIM, 0)
+                .expiration(Date.from(exp)).build();
+        when(jwtUtil.validateAccessToken("good")).thenReturn(claims);
+        when(userDetailsService.loadUserForAccessToken(id, 0)).thenReturn(
+                User.withUsername(id.toString()).password("").authorities("ROLE_USER").build());
+        Map<String, Object> attributes = new HashMap<>();
+
+        interceptor.preSend(frame(StompCommand.CONNECT, null, "good", null, "s", attributes), channel);
+
+        assertThat(attributes.get(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR)).isEqualTo(exp.toEpochMilli());
+        assertThat(attributes.get(WebSocketSessionRevoker.AUTHENTICATED_AT_ATTR)).isEqualTo(NOW.toEpochMilli());
+    }
+
+    @Test
+    void subscribeOrSendAfterTokenExpiryIsRejectedAndSocketClosed() throws Exception {
+        Principal principal = user(UUID.randomUUID());
+        WebSocketSession session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn("expired-session");
+        when(session.isOpen()).thenReturn(true);
+        revoker.decorate(mock(WebSocketHandler.class)).afterConnectionEstablished(session);
+
+        Map<String, Object> expired = new HashMap<>();
+        expired.put(WebSocketSessionRevoker.TOKEN_EXPIRES_AT_ATTR, NOW.toEpochMilli());
+
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.SUBSCRIBE, "/user/queue/notifications",
+                null, principal, "expired-session", expired), channel))
+                .isInstanceOf(MessageDeliveryException.class);
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.SEND, "/app/ping",
+                null, principal, "expired-session", expired), channel))
+                .isInstanceOf(MessageDeliveryException.class);
+        // No recorded expiry counts as expired
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.SUBSCRIBE, "/user/queue/notifications",
+                null, principal, "expired-session", new HashMap<>()), channel))
+                .isInstanceOf(MessageDeliveryException.class);
+
+        verify(session, org.mockito.Mockito.atLeastOnce()).close(WebSocketSessionRevoker.TOKEN_EXPIRED);
     }
 
     @Test

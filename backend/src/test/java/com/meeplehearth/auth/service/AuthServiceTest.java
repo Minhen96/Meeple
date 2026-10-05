@@ -3,6 +3,7 @@ package com.meeplehearth.auth.service;
 import com.meeplehearth.auth.dto.LoginRequest;
 import com.meeplehearth.auth.dto.MessageResponse;
 import com.meeplehearth.auth.entity.RefreshToken;
+import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import com.meeplehearth.auth.repository.EmailVerificationTokenRepository;
 import com.meeplehearth.auth.repository.PasswordResetTokenRepository;
 import com.meeplehearth.auth.repository.RefreshTokenRepository;
@@ -15,6 +16,7 @@ import com.meeplehearth.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -51,6 +53,7 @@ class AuthServiceTest {
     private JavaMailSender mailSender;
     private GoogleAuthService googleAuthService;
     private RedisRateLimiter rateLimiter;
+    private ApplicationEventPublisher eventPublisher;
     private AuthService authService;
 
     private final UUID userId = UUID.randomUUID();
@@ -66,6 +69,7 @@ class AuthServiceTest {
         mailSender = mock(JavaMailSender.class);
         googleAuthService = mock(GoogleAuthService.class);
         rateLimiter = mock(RedisRateLimiter.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         JwtUtil jwtUtil = mock(JwtUtil.class);
         when(jwtUtil.generateAccessToken(any(), anyInt())).thenReturn("access-jwt");
         when(jwtUtil.generateRefreshToken()).thenReturn("new-refresh-token");
@@ -78,7 +82,8 @@ class AuthServiceTest {
 
         authService = new AuthService(userRepository, refreshTokenRepository, emailVerificationTokenRepository,
                 mock(PasswordResetTokenRepository.class), jwtUtil, passwordEncoder, redisTemplate, mailSender,
-                props, mock(Environment.class), googleAuthService, rateLimiter);
+                props, mock(Environment.class), googleAuthService, rateLimiter,
+                eventPublisher);
 
         user = new User();
         user.setId(userId);
@@ -135,6 +140,7 @@ class AuthServiceTest {
 
         verify(refreshTokenRepository).deleteByUserId(userId);
         assertThat(user.getTokenVersion()).isEqualTo(1);
+        verify(eventPublisher).publishEvent(new UserSessionsRevokedEvent(userId));
         verify(refreshTokenRepository, never()).markUsed(anyString(), any());
         verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
     }
@@ -148,6 +154,7 @@ class AuthServiceTest {
 
         verify(refreshTokenRepository, never()).deleteByUserId(any());
         assertThat(user.getTokenVersion()).isZero();
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test
@@ -233,6 +240,7 @@ class AuthServiceTest {
         assertThat(user.getTokenVersion()).isEqualTo(1);
         verify(emailVerificationTokenRepository).deleteByUserId(userId);
         verify(refreshTokenRepository).deleteByUserId(userId);
+        verify(eventPublisher).publishEvent(new UserSessionsRevokedEvent(userId));
     }
 
     @Test
@@ -246,5 +254,6 @@ class AuthServiceTest {
 
         assertThat(user.getPasswordHash()).isEqualTo("hash");
         verify(refreshTokenRepository, never()).deleteByUserId(any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 }
