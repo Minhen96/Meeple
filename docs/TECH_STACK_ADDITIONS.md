@@ -492,12 +492,15 @@ OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 FIREBASE_SERVICE_ACCOUNT_JSON=<base64-encoded-json>
 
 BGG_API_URL=https://boardgamegeek.com/xmlapi2
+BGG_API_TOKEN=...                           # optional: registered BGG app token (collection import); unset = 503 BGG_API_UNAVAILABLE
 
 RESEND_API_KEY=re_...
 EMAIL_FROM=noreply@meeple-hearth.com
 APP_BASE_URL=https://meeple-hearth.com
 
-SENTRY_DSN=https://xxx@sentry.io/xxx
+SENTRY_DSN=https://xxx@sentry.io/xxx         # optional: unset disables Sentry
+SENTRY_ENVIRONMENT=production               # optional: defaults to the active Spring profile
+SENTRY_TRACES_SAMPLE_RATE=0.0               # optional
 SPRING_PROFILES_ACTIVE=prod                 # required: local | staging | prod (no default)
 SERVER_PORT=8080
 ```
@@ -508,8 +511,10 @@ SERVER_PORT=8080
 VITE_API_URL=https://api.meeple-hearth.com
 VITE_WS_URL=wss://api.meeple-hearth.com/ws
 VITE_R2_PUBLIC_URL=https://cdn.meeple-hearth.com
-VITE_SENTRY_DSN=https://xxx@sentry.io/xxx
-VITE_POSTHOG_KEY=phc_...
+VITE_SENTRY_DSN=https://xxx@sentry.io/xxx    # optional: unset disables Sentry
+VITE_SENTRY_ENVIRONMENT=production           # optional: defaults to the Vite mode
+VITE_POSTHOG_KEY=phc_...                     # optional: unset disables PostHog
+VITE_POSTHOG_HOST=https://us.i.posthog.com   # optional
 COOKIE_DOMAIN=meeple-hearth.com   # optional, server-only; must match the backend's COOKIE_DOMAIN
 ```
 
