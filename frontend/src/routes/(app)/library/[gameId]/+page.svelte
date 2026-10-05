@@ -1,10 +1,14 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
-	import type { PlayLog, UserGame } from "$lib/types";
-	import { gamesApi } from "$lib/api/games";
+	import type { GameFriend, GameReview, PlayLog, Post, UserGame } from "$lib/types";
+	import { gamesApi, type UpdateCollectionPayload } from "$lib/api/games";
 	import { toast } from "svelte-sonner";
 	import HowToPlayTab from "$lib/components/game/HowToPlayTab.svelte";
 	import AiAssistantDrawer from "$lib/components/game/AiAssistantDrawer.svelte";
+	import StarRating from "$lib/components/game/StarRating.svelte";
+	import Avatar from "$lib/components/ui/Avatar.svelte";
+	import Skeleton from "$lib/components/ui/Skeleton.svelte";
+	import { m, type MessageKey } from "$lib/i18n";
 
 	interface Props {
 		data: PageData;
@@ -13,13 +17,14 @@
 
 	const game = $derived(data.game);
 	let myEntry = $state<UserGame | null>(null);
-	type DetailTab = "overview" | "details" | "mystats" | "howtoplay";
+	type DetailTab = "overview" | "howtoplay" | "reviews" | "sessions" | "friends";
 	let activeTab = $state<DetailTab>("overview");
-	const detailTabs: { id: DetailTab; label: string }[] = [
-		{ id: "overview", label: "Overview" },
-		{ id: "howtoplay", label: "How to Play" },
-		{ id: "details", label: "Details" },
-		{ id: "mystats", label: "My Stats" }
+	const detailTabs: { id: DetailTab; label: MessageKey }[] = [
+		{ id: "overview", label: "library.detail.tab.overview" },
+		{ id: "howtoplay", label: "library.detail.tab.howToPlay" },
+		{ id: "reviews", label: "library.detail.tab.reviews" },
+		{ id: "sessions", label: "library.detail.tab.sessions" },
+		{ id: "friends", label: "library.detail.tab.friends" },
 	];
 	let showAssistant = $state(false);
 	let descExpanded = $state(false);
@@ -29,25 +34,79 @@
 	let playLogs = $state<PlayLog[]>([]);
 	let loadingLogs = $state(false);
 
+	// Friend tabs load on first open
+	let reviews = $state<GameReview[] | null>(null);
+	let friends = $state<GameFriend[] | null>(null);
+	let sessions = $state<Post[] | null>(null);
+	let sessionsCursor = $state<string | null>(null);
+	let sessionsHasMore = $state(false);
+	let tabLoading = $state(false);
+	let tabError = $state(false);
+
 	$effect(() => {
 		myEntry = data.myEntry;
 		notesValue = data.myEntry?.notes ?? "";
+		reviews = null;
+		friends = null;
+		sessions = null;
+		sessionsCursor = null;
 	});
 
 	$effect(() => {
-		if (activeTab === "mystats") {
-			loadingLogs = true;
-			gamesApi
-				.getPlays(game.id)
-				.then((logs) => {
-					playLogs = logs;
-				})
-				.catch(() => {})
-				.finally(() => {
-					loadingLogs = false;
-				});
-		}
+		const gameId = game.id;
+		loadingLogs = true;
+		gamesApi
+			.getPlays(gameId)
+			.then((logs) => (playLogs = logs))
+			.catch(() => (playLogs = []))
+			.finally(() => (loadingLogs = false));
 	});
+
+	$effect(() => {
+		const tab = activeTab;
+		if (tab === "reviews" && reviews === null) void loadTab(async () => (reviews = await gamesApi.getGameReviews(game.id)));
+		if (tab === "friends" && friends === null) void loadTab(async () => (friends = await gamesApi.getGameFriends(game.id)));
+		if (tab === "sessions" && sessions === null) void loadTab(() => loadSessions(true));
+	});
+
+	async function loadTab(load: () => Promise<unknown>) {
+		tabLoading = true;
+		tabError = false;
+		try {
+			await load();
+		} catch {
+			tabError = true;
+		} finally {
+			tabLoading = false;
+		}
+	}
+
+	function retryTab() {
+		if (activeTab === "reviews") reviews = null;
+		if (activeTab === "friends") friends = null;
+		if (activeTab === "sessions") sessions = null;
+		tabError = false;
+	}
+
+	async function loadSessions(reset: boolean) {
+		const result = await gamesApi.getGameSessions(game.id, reset ? null : sessionsCursor);
+		const seen = new Set((reset ? [] : (sessions ?? [])).map((p) => p.id));
+		sessions = [...(reset ? [] : (sessions ?? [])), ...result.items.filter((p) => !seen.has(p.id))];
+		sessionsCursor = result.nextCursor;
+		sessionsHasMore = result.hasMore;
+	}
+
+	let loadingMoreSessions = $state(false);
+	async function moreSessions() {
+		loadingMoreSessions = true;
+		try {
+			await loadSessions(false);
+		} catch {
+			toast.error(m("library.detail.loadFailed"));
+		} finally {
+			loadingMoreSessions = false;
+		}
+	}
 
 	function formatPlayDate(iso: string) {
 		return new Date(iso).toLocaleDateString(undefined, {
@@ -57,52 +116,64 @@
 		});
 	}
 
-	async function toggle(flag: "isOwned" | "isFavorited") {
+	async function update(payload: UpdateCollectionPayload, failKey: MessageKey) {
 		saving = true;
 		try {
-			const current = myEntry ?? {
-				isOwned: false,
-				isFavorited: false,
-			};
-			myEntry = await gamesApi.updateCollection(game.id, {
-				[flag]: !current[flag],
-			});
+			const updated = await gamesApi.updateCollection(game.id, payload);
+			myEntry = updated.id === null ? null : updated;
 		} catch {
-			toast.error("Could not update collection");
+			toast.error(m(failKey));
 		} finally {
 			saving = false;
 		}
 	}
 
+	function toggle(flag: "isOwned" | "isWishlisted" | "isFavorited") {
+		void update({ [flag]: !(myEntry?.[flag] ?? false) }, "library.collection.saveFailed");
+	}
 
-
-	async function setRating(rating: number) {
-		try {
-			myEntry = await gamesApi.updateCollection(game.id, {
-				personalRating: rating,
-			});
-		} catch {
-			toast.error("Could not save rating");
-		}
+	function setRating(rating: number) {
+		void update({ personalRating: rating }, "library.rating.saveFailed");
 	}
 
 	async function saveNotes() {
+		if ((myEntry?.notes ?? "") === notesValue.trim()) return;
 		savingNotes = true;
 		try {
-			myEntry = await gamesApi.updateCollection(game.id, {
-				notes: notesValue,
-			});
+			const updated = await gamesApi.updateCollection(game.id, { notes: notesValue });
+			myEntry = updated.id === null ? null : updated;
 		} catch {
-			toast.error("Could not save notes");
+			toast.error(m("library.mine.notesFailed"));
 		} finally {
 			savingNotes = false;
 		}
 	}
 
-	const flagLabel = {
-		isOwned: { icon: "check_box", label: "Own" },
-		isFavorited: { icon: "favorite", label: "Favorite" },
-	} as const;
+	async function deletePlay(play: PlayLog) {
+		try {
+			await gamesApi.deletePlay(play.id);
+			playLogs = playLogs.filter((p) => p.id !== play.id);
+			if (myEntry) myEntry = { ...myEntry, playCount: Math.max(0, myEntry.playCount - 1) };
+			toast.success(m("library.mine.playDeleted"));
+		} catch {
+			toast.error(m("library.mine.deleteFailed"));
+		}
+	}
+
+	const actions: {
+		flag: "isOwned" | "isWishlisted" | "isFavorited";
+		icon: string;
+		off: MessageKey;
+		on: MessageKey;
+	}[] = [
+		{ flag: "isOwned", icon: "check_box", off: "library.action.own", on: "library.action.inCollection" },
+		{ flag: "isWishlisted", icon: "bookmark", off: "library.action.wishlist", on: "library.action.onWishlist" },
+		{ flag: "isFavorited", icon: "favorite", off: "library.action.favorite", on: "library.action.favorited" },
+	];
+
+	function playsLabel(count: number) {
+		return count === 1 ? m("library.plays.one") : m("library.plays.count", { count });
+	}
 
 	function hasChips(arr: string[] | null | undefined) {
 		return arr && arr.length > 0;
@@ -153,6 +224,7 @@
 					by {game.designers.slice(0, 2).join(", ")}
 				</p>
 			{/if}
+			{@render ownedByFriends()}
 		</div>
 	</div>
 {:else}
@@ -163,8 +235,35 @@
 				by {game.designers.slice(0, 2).join(", ")}
 			</p>
 		{/if}
+		{@render ownedByFriends()}
 	</div>
 {/if}
+
+{#snippet ownedByFriends()}
+	{#if game.ownedByFriends.length > 0}
+		<button
+			type="button"
+			onclick={() => (activeTab = "friends")}
+			class="mt-2 flex items-center gap-2"
+		>
+			<span class="flex -space-x-2">
+				{#each game.ownedByFriends as friend (friend.id)}
+					<Avatar
+						src={friend.avatarUrl}
+						name={friend.displayName ?? friend.username}
+						size="xs"
+						className="ring-2 ring-background"
+					/>
+				{/each}
+			</span>
+			<span class="text-xs font-bold text-on-surface">
+				{game.ownedByFriends.length === 1
+					? m("library.detail.ownedByOneFriend")
+					: m("library.detail.ownedByFriends", { count: game.ownedByFriends.length })}
+			</span>
+		</button>
+	{/if}
+{/snippet}
 
 <!-- Stats bar -->
 <div class="grid grid-cols-3 gap-2 mb-5">
@@ -201,6 +300,19 @@
 			{/if}
 		</div>
 	{/if}
+	{#if game.friendAvgRating !== null && game.friendRatingCount > 0}
+		<div class="flex items-center gap-1">
+			<span class="icon-filled material-symbols-outlined text-tertiary text-[16px]">group</span>
+			<span class="text-xs font-bold text-on-surface">
+				{game.friendRatingCount === 1
+					? m("library.detail.friendAvgOne", { rating: game.friendAvgRating.toFixed(1) })
+					: m("library.detail.friendAvg", {
+							rating: game.friendAvgRating.toFixed(1),
+							count: game.friendRatingCount,
+						})}
+			</span>
+		</div>
+	{/if}
 	{#if game.rank}
 		<div class="flex items-center gap-1">
 			<span class="material-symbols-outlined text-primary text-[14px]"
@@ -219,46 +331,48 @@
 </div>
 
 <!-- Collection action buttons + AI -->
-<div class="flex gap-2 mb-2">
-	{#each ["isFavorited", "isOwned"] as const as flag (flag)}
+<div class="grid grid-cols-4 gap-2 mb-2">
+	{#each actions as action (action.flag)}
+		{@const active = myEntry?.[action.flag] ?? false}
 		<button
-			onclick={() => toggle(flag)}
+			onclick={() => toggle(action.flag)}
 			disabled={saving}
-			class="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl transition-colors
-				{myEntry?.[flag]
-				? 'bg-primary text-on-primary'
-				: 'bg-surface-container-high text-on-surface-variant'}
+			aria-pressed={active}
+			class="flex flex-col items-center gap-1 py-3 rounded-xl transition-colors
+				{active ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}
 				disabled:opacity-50"
 		>
-			<span
-				class="material-symbols-outlined text-[20px]"
-				class:icon-filled={myEntry?.[flag]}
-			>
-				{flagLabel[flag].icon}
-			</span>
-			<span class="text-xs font-bold">{flagLabel[flag].label}</span>
+			<span class="material-symbols-outlined text-[20px]" class:icon-filled={active}>{action.icon}</span>
+			<span class="text-[11px] font-bold text-center leading-tight">{m(active ? action.on : action.off)}</span>
 		</button>
 	{/each}
 	<button
 		onclick={() => (showAssistant = true)}
-		class="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl transition-colors bg-tertiary-container text-on-tertiary-container"
+		class="flex flex-col items-center gap-1 py-3 rounded-xl transition-colors bg-tertiary-container text-on-tertiary-container"
 	>
 		<span class="material-symbols-outlined text-[20px]">smart_toy</span>
-		<span class="text-xs font-bold">Ask AI</span>
+		<span class="text-[11px] font-bold">{m("library.action.askAi")}</span>
 	</button>
 </div>
+<a
+	href="/log-play?gameId={game.id}"
+	class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold"
+>
+	<span class="icon-filled material-symbols-outlined text-[18px]">sports_esports</span>
+	{m("library.action.logPlay")}
+</a>
 
 <!-- Tabs -->
-<div class="mt-6 flex gap-6 mb-4">
+<div class="mt-6 flex gap-6 mb-4 overflow-x-auto hide-scrollbar">
 	{#each detailTabs as tab (tab.id)}
 		<button
 			onclick={() => (activeTab = tab.id)}
-			class="relative pb-3 text-sm font-bold transition-colors {activeTab ===
+			class="relative pb-3 text-sm font-bold whitespace-nowrap transition-colors {activeTab ===
 			tab.id
 				? 'text-primary'
 				: 'text-on-surface-variant'}"
 		>
-			{tab.label}
+			{m(tab.label)}
 			{#if activeTab === tab.id}
 				<div
 					class="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"
@@ -354,118 +468,7 @@
 		</div>
 	{/if}
 
-	<!-- My Stats tab -->
-{:else if activeTab === "mystats"}
-	<!-- Play history timeline -->
-	<div class="my-5">
-		<p
-			class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3"
-		>
-			Play History ({myEntry?.playCount ?? 0})
-		</p>
-		{#if loadingLogs}
-			<p class="text-sm text-on-surface-variant text-center py-4">
-				Loading…
-			</p>
-		{:else if playLogs.length === 0}
-			<p class="text-sm text-on-surface-variant text-center py-4">
-				No plays logged yet.<br />Use the + button to log one.
-			</p>
-		{:else}
-			<div class="relative pl-5">
-				<div
-					class="absolute left-1.5 top-0 bottom-0 w-px bg-outline-variant/30"
-				></div>
-				{#each playLogs as log, i (log.id)}
-					<div class="relative mb-3 last:mb-0">
-						<div
-							class="absolute -left-[14px] top-1 w-2.5 h-2.5 rounded-full bg-primary {i ===
-							0
-								? 'ring-2 ring-primary/30'
-								: ''}"
-						></div>
-						<p class="text-sm font-medium text-on-surface">
-							{formatPlayDate(log.playedAt)}
-						</p>
-						{#if i === 0}
-							<p
-								class="text-[10px] text-primary font-bold uppercase tracking-widest"
-							>
-								Latest
-							</p>
-						{/if}
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-
-	<!-- Personal rating -->
-	<div class="mb-4 mt-2">
-		<p
-			class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3"
-		>
-			My Rating
-		</p>
-		<div class="flex gap-1.5">
-			{#each Array.from({ length: 10 }, (_, i) => i + 1) as n (n)}
-				<button
-					onclick={() =>
-						setRating(myEntry?.personalRating === n ? 0 : n)}
-					class="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg transition-colors
-						{(myEntry?.personalRating ?? 0) >= n
-						? 'bg-amber-400/20 text-amber-400'
-						: 'bg-surface-container-high text-on-surface-variant'}"
-				>
-					<span
-						class="material-symbols-outlined text-[16px]"
-						class:icon-filled={(myEntry?.personalRating ?? 0) >= n}>star</span
-					>
-					<span class="text-[9px] font-bold">{n}</span>
-				</button>
-			{/each}
-		</div>
-		{#if myEntry?.personalRating}
-			<p class="text-xs text-center text-on-surface-variant mt-2">
-				Your rating: <span class="font-bold text-amber-400"
-					>{myEntry.personalRating}/10</span
-				>
-			</p>
-		{/if}
-	</div>
-
-	<!-- Notes -->
-	<div class="mb-4 mt-2">
-		<p
-			class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
-		>
-			Notes
-		</p>
-		<textarea
-			bind:value={notesValue}
-			onblur={saveNotes}
-			placeholder="Any thoughts, house rules, play tips…"
-			rows="4"
-			class="w-full bg-surface-container-low rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-		></textarea>
-		{#if savingNotes}
-			<p class="text-xs text-on-surface-variant mt-1">Saving…</p>
-		{/if}
-	</div>
-
-	<!-- Community stat -->
-	{#if game.ownedCount}
-		<div class="flex items-center gap-2 text-xs text-on-surface-variant">
-			<span class="material-symbols-outlined text-[14px]">group</span>
-			<span>{game.ownedCount.toLocaleString()} BGG users own this</span>
-		</div>
-	{/if}
-
-	<!-- Details tab -->
-{:else if activeTab === "howtoplay"}
-	<HowToPlayTab gameId={game.id} />
-{:else}
-	<!-- Details tab -->
+	<!-- Details (designers, publishers, genre, BGG link) -->
 	<!-- Designers & Publishers -->
 	{#if hasChips(game.designers)}
 		<div class="mb-4">
@@ -551,6 +554,209 @@
 			>
 			View on BoardGameGeek
 		</a>
+	{/if}
+
+	<!-- My plays, rating and notes -->
+	<div class="mt-6 bg-surface-container-low rounded-2xl p-4 space-y-5">
+		<div>
+			<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+				{m("library.rating.label")}
+			</p>
+			<StarRating rating={myEntry?.personalRating ?? null} onrate={setRating} disabled={saving} size="md" />
+		</div>
+
+		<div>
+			<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">
+				{m("library.mine.playHistory", { count: myEntry?.playCount ?? 0 })}
+			</p>
+			{#if loadingLogs}
+				<Skeleton class="h-10 w-full rounded-xl" />
+			{:else if playLogs.length === 0}
+				<p class="text-sm text-on-surface-variant">{m("library.mine.noPlays")}</p>
+			{:else}
+				<ul class="space-y-2">
+					{#each playLogs as log, i (log.id)}
+						<li class="flex items-start gap-3 bg-surface-container-lowest rounded-xl px-3 py-2">
+							<span class="icon-filled material-symbols-outlined text-primary text-[18px] mt-0.5">sports_esports</span>
+							<div class="flex-1 min-w-0">
+								<p class="text-sm font-bold text-on-surface">
+									{formatPlayDate(log.playedAt)}
+									{#if i === 0}
+										<span class="ml-1 text-[10px] text-primary font-bold uppercase tracking-widest">
+											{m("library.mine.latest")}
+										</span>
+									{/if}
+								</p>
+								<p class="text-xs text-on-surface-variant">
+									{[
+										log.durationMinutes ? m("library.mine.minutes", { count: log.durationMinutes }) : null,
+										log.playerCount ? m("library.mine.players", { count: log.playerCount }) : null,
+										log.postId ? m("library.mine.fromPost") : null,
+									]
+										.filter(Boolean)
+										.join(" · ")}
+								</p>
+								{#if log.notes}
+									<p class="text-xs text-on-surface mt-1 whitespace-pre-line">{log.notes}</p>
+								{/if}
+							</div>
+							<button
+								type="button"
+								onclick={() => deletePlay(log)}
+								class="text-on-surface-variant hover:text-error p-1"
+								aria-label={m("library.mine.deletePlay")}
+							>
+								<span class="material-symbols-outlined text-[18px]">delete</span>
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+
+		<div>
+			<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+				{m("library.mine.notes")}
+			</p>
+			<textarea
+				bind:value={notesValue}
+				onblur={saveNotes}
+				maxlength="1000"
+				placeholder={m("library.mine.notesPlaceholder")}
+				rows="3"
+				class="w-full bg-surface-container-lowest rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+			></textarea>
+			{#if savingNotes}
+				<p class="text-xs text-on-surface-variant mt-1">{m("library.mine.saving")}</p>
+			{/if}
+		</div>
+	</div>
+{:else if activeTab === "howtoplay"}
+	<HowToPlayTab gameId={game.id} />
+{:else if tabLoading}
+	<div class="space-y-3">
+		{#each { length: 3 } as _, i (i)}
+			<div class="flex items-center gap-3">
+				<Skeleton class="w-10 h-10" rounded />
+				<div class="flex-1 space-y-2">
+					<Skeleton class="h-3 w-1/2 rounded-md" />
+					<Skeleton class="h-3 w-1/3 rounded-md" />
+				</div>
+			</div>
+		{/each}
+	</div>
+{:else if tabError}
+	<div class="text-center py-10 space-y-3">
+		<p class="text-sm text-on-surface-variant">{m("library.detail.loadFailed")}</p>
+		<button onclick={retryTab} class="text-sm font-bold text-primary">{m("common.retry")}</button>
+	</div>
+{:else if activeTab === "reviews"}
+	{#if !reviews || reviews.length === 0}
+		<p class="text-sm text-on-surface-variant text-center py-10">{m("library.reviews.empty")}</p>
+	{:else}
+		<ul class="space-y-3">
+			{#each reviews as review (review.user.id)}
+				<li class="bg-surface-container-low rounded-2xl p-4">
+					<a href="/profile/{review.user.id}" class="flex items-center gap-3">
+						<Avatar src={review.user.avatarUrl} name={review.user.displayName ?? review.user.username} />
+						<div class="flex-1 min-w-0">
+							<p class="text-sm font-bold text-on-surface truncate">
+								{review.user.displayName ?? review.user.username}
+							</p>
+							<p class="text-xs text-on-surface-variant">{playsLabel(review.playCount)}</p>
+						</div>
+						<StarRating rating={review.personalRating} />
+					</a>
+					{#if review.notes}
+						<p class="text-sm text-on-surface mt-3 whitespace-pre-line">{review.notes}</p>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+	{/if}
+{:else if activeTab === "friends"}
+	{#if !friends || friends.length === 0}
+		<p class="text-sm text-on-surface-variant text-center py-10">{m("library.friends.empty")}</p>
+	{:else}
+		<ul class="space-y-2">
+			{#each friends as friend (friend.user.id)}
+				<li>
+					<a
+						href="/profile/{friend.user.id}"
+						class="flex items-center gap-3 bg-surface-container-low rounded-2xl px-4 py-3"
+					>
+						<Avatar src={friend.user.avatarUrl} name={friend.user.displayName ?? friend.user.username} />
+						<div class="flex-1 min-w-0">
+							<p class="text-sm font-bold text-on-surface truncate">
+								{friend.user.displayName ?? friend.user.username}
+							</p>
+							<p class="text-xs text-on-surface-variant">{playsLabel(friend.playCount)}</p>
+						</div>
+						<StarRating rating={friend.personalRating} />
+					</a>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+{:else if activeTab === "sessions"}
+	{#if !sessions || sessions.length === 0}
+		<p class="text-sm text-on-surface-variant text-center py-10">{m("library.sessions.empty")}</p>
+	{:else}
+		<ul class="space-y-3">
+			{#each sessions as post (post.id)}
+				<li>
+					<a href="/posts/{post.id}" class="flex gap-3 bg-surface-container-low rounded-2xl p-3">
+						{#if post.imageUrls.length > 0}
+							<img
+								src={post.imageUrls[0]}
+								alt=""
+								class="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+								loading="lazy"
+							/>
+						{/if}
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-2">
+								<Avatar
+									src={post.author.avatarUrl}
+									name={post.author.displayName ?? post.author.username}
+									size="xs"
+								/>
+								<p class="text-sm font-bold text-on-surface truncate">
+									{post.author.displayName ?? post.author.username}
+								</p>
+							</div>
+							<p class="text-[11px] text-on-surface-variant mt-0.5">
+								{formatPlayDate(post.playedAt ?? post.createdAt)}
+							</p>
+							{#if post.caption}
+								<p class="text-sm text-on-surface mt-1 line-clamp-2">{post.caption}</p>
+							{/if}
+							{#if post.taggedUsers.length > 0}
+								<div class="flex -space-x-1.5 mt-2">
+									{#each post.taggedUsers.slice(0, 6) as tagged (tagged.id)}
+										<Avatar
+											src={tagged.avatarUrl}
+											name={tagged.username}
+											size="xs"
+											className="ring-2 ring-surface-container-low"
+										/>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</a>
+				</li>
+			{/each}
+		</ul>
+		{#if sessionsHasMore}
+			<button
+				onclick={moreSessions}
+				disabled={loadingMoreSessions}
+				class="w-full mt-4 py-3 rounded-xl bg-surface-container-high text-sm font-bold text-on-surface disabled:opacity-50"
+			>
+				{loadingMoreSessions ? m("common.loading") : m("common.loadMore")}
+			</button>
+		{/if}
 	{/if}
 {/if}
 

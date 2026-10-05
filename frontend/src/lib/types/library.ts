@@ -1,5 +1,8 @@
 // Owned by WP4 (library, collection, AI). Re-exported from ./index.ts; import from '$lib/types'.
 
+import type { CursorPage, UserSummary } from './common';
+import type { Post } from './social';
+
 // ─── Game ──────────────────────────────────────────────────────────────────
 // GameSummary maps to GameSummaryResponse
 
@@ -34,6 +37,11 @@ export interface GameDetail extends GameSummary {
 	honors: string[] | null;
 	expansions: string[] | null;
 	hasRulebook: boolean;
+	/** Average of the viewer's friends' ratings (1 decimal), null when no friend rated it. */
+	friendAvgRating: number | null;
+	friendRatingCount: number;
+	/** Up to 5 friends who own the game. */
+	ownedByFriends: UserSummary[];
 }
 
 // GameSearchResult maps to GameSearchResult
@@ -49,7 +57,21 @@ export interface GameSearchResult {
 // PlayLog maps to PlayLogResponse
 export interface PlayLog {
 	id: string;
+	gameId: string;
 	playedAt: string;
+	notes: string | null;
+	durationMinutes: number | null;
+	playerCount: number | null;
+	/** Set when a post that tagged the user recorded this play. */
+	postId: string | null;
+}
+
+/** Body of POST /users/me/games/{gameId}/plays; every field is optional. */
+export interface LogPlayPayload {
+	playedAt?: string;
+	notes?: string;
+	durationMinutes?: number;
+	playerCount?: number;
 }
 
 // ActivityLog maps to ActivityLogResponse — play log or event participation
@@ -66,15 +88,70 @@ export interface ActivityLog {
 	scheduledAt?: string;
 }
 
-// UserGame maps to UserGameResponse
+// UserGame maps to UserGameResponse. `id` is null when an update removed the entry
+// (every flag cleared and nothing else left on it).
 export interface UserGame {
-	id: string;
+	id: string | null;
 	game: GameSummary;
 	isOwned: boolean;
+	isWishlisted: boolean;
 	isFavorited: boolean;
 	playCount: number;
 	personalRating: number | null;
 	notes: string | null;
+	addedAt: string | null;
+}
+
+export type CollectionFilter = 'all' | 'owned' | 'wishlisted' | 'favorited';
+
+// ─── Stats & friends ───────────────────────────────────────────────────────
+
+/** GET /users/{id}/stats */
+export interface UserStats {
+	gamesOwned: number;
+	sessions: number;
+	friends: number;
+	mostPlayedGame: { gameId: string; title: string; playCount: number } | null;
+	favoriteCategory: string | null;
+	mostPlayedWith: { userId: string; displayName: string; sharedSessions: number } | null;
+	totalPlayMinutes: number;
+}
+
+/** GET /games/{id}/friends */
+export interface GameFriend {
+	user: UserSummary;
+	playCount: number;
+	personalRating: number | null;
+	isOwned: boolean;
+}
+
+/** GET /games/{id}/reviews */
+export interface GameReview {
+	user: UserSummary;
+	personalRating: number | null;
+	notes: string | null;
+	playCount: number;
+}
+
+/** GET /games/{id}/sessions */
+export type GameSessionsPage = CursorPage<Post>;
+
+// ─── BGG import ────────────────────────────────────────────────────────────
+
+export type BggImportState = 'idle' | 'running' | 'done' | 'failed';
+export type BggImportErrorCode = 'BGG_USER_NOT_FOUND' | 'BGG_API_UNAVAILABLE';
+
+/** GET /users/me/bgg-import/status */
+export interface BggImportStatus {
+	status: BggImportState;
+	total: number;
+	processed: number;
+	imported: number;
+	skipped: number;
+	failed: number;
+	errorCode: BggImportErrorCode | null;
+	/** Up to 5 imported games for the success screen. */
+	preview: { gameId: string; title: string; thumbnailUrl: string | null }[];
 }
 
 // ─── Rulebook ──────────────────────────────────────────────────────────────
