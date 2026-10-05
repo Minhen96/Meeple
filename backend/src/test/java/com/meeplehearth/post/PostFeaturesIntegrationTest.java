@@ -347,6 +347,38 @@ class PostFeaturesIntegrationTest extends ApiIntegrationTestBase {
     }
 
     @Test
+    void taggedPostsListThePostsAUserIsTaggedInAndRespectBlocks() throws Exception {
+        UUID author = user();
+        UUID tagged = user();
+        UUID viewer = user();
+        UUID blockedAuthor = user();
+        friends(author, tagged);
+        friends(blockedAuthor, tagged);
+        UUID older = postId(createPost(author, Map.of("caption", "one", "taggedUserIds", List.of(tagged))));
+        UUID newer = postId(createPost(blockedAuthor, Map.of("caption", "two", "taggedUserIds", List.of(tagged))));
+        postId(createPost(author, Map.of("caption", "untagged")));
+        jdbc.update("UPDATE posts SET created_at = created_at - interval '1 minute' WHERE id = ?", older);
+
+        JsonNode page1 = json(mvc.perform(get("/api/v1/users/{id}/tagged-posts", tagged).param("limit", "1")
+                        .with(as(viewer)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(ids(page1)).containsExactly(newer);
+        JsonNode page2 = json(mvc.perform(get("/api/v1/users/{id}/tagged-posts", tagged)
+                        .param("cursor", page1.get("nextCursor").asText()).with(as(viewer)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(ids(page2)).containsExactly(older);
+
+        block(viewer, blockedAuthor);
+        JsonNode filtered = json(mvc.perform(get("/api/v1/users/{id}/tagged-posts", tagged).with(as(viewer)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(ids(filtered)).containsExactly(older);
+
+        block(tagged, viewer);
+        mvc.perform(get("/api/v1/users/{id}/tagged-posts", tagged).with(as(viewer)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void softDeletingAnAccountRemovesItsBookmarks() throws Exception {
         UUID me = user();
         UUID postId = seedPost(user());

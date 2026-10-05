@@ -4,7 +4,7 @@ import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.social.dto.FriendRequestResponse;
 import com.meeplehearth.social.dto.FriendStatusResponse;
 import com.meeplehearth.social.dto.SuggestedUser;
-import com.meeplehearth.social.dto.UserSummary;
+import com.meeplehearth.user.dto.UserSummary;
 import com.meeplehearth.social.service.FriendService;
 import com.meeplehearth.social.service.SocialQueryService;
 import com.meeplehearth.user.dto.UserProfileResponse;

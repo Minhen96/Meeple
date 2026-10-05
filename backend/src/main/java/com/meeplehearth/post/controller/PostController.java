@@ -34,6 +34,17 @@ public class PostController {
         return ResponseEntity.ok(postService.getEventPosts(userId, eventId, cursor, limit));
     }
 
+    /** GET /api/v1/users/{userId}/tagged-posts?cursor=&limit=20 — posts the user is tagged in */
+    @GetMapping("/users/{userId}/tagged-posts")
+    public ResponseEntity<CursorPage<PostResponse>> getTaggedPosts(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit) {
+        UUID viewerId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(postService.getTaggedPosts(viewerId, userId, cursor, limit));
+    }
+
     /** GET /api/v1/users/me/bookmarks?cursor=&limit=20 — my saved posts, most recently saved first */
     @GetMapping("/users/me/bookmarks")
     public ResponseEntity<CursorPage<PostResponse>> getBookmarks(

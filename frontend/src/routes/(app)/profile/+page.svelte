@@ -74,7 +74,7 @@
 
 	<ProfileContent
 		posts={data.posts}
-		taggedPosts={null}
+		taggedPosts={data.taggedPosts}
 		collection={data.collection}
 		own
 		collectionVisible

@@ -51,7 +51,7 @@
 	async function loadSuggestions() {
 		suggestionsLoading = true;
 		try {
-			suggestions = await friendsApi.getSuggestions(10);
+			suggestions = await friendsApi.suggestFriends(10);
 		} catch {
 			suggestions = [];
 		} finally {
@@ -85,7 +85,7 @@
 		searchTimeout = setTimeout(async () => {
 			const seq = ++searchSeq;
 			try {
-				const results = await friendsApi.searchUsers(q, 20);
+				const results = await friendsApi.searchPeople(q, 20);
 				if (seq === searchSeq) {
 					searchResults = results;
 					searchError = false;

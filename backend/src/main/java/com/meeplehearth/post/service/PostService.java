@@ -152,6 +152,21 @@ public class PostService {
                 safeLimit, viewerId);
     }
 
+    /**
+     * Posts a user is tagged in ({@code GET /users/{id}/tagged-posts}, the profile "Tagged" tab).
+     * 404 when the viewer and that user have blocked each other, like the profile itself.
+     */
+    @Transactional(readOnly = true)
+    public CursorPage<PostResponse> getTaggedPosts(UUID viewerId, UUID userId, String cursor, int limit) {
+        FeedCursor parsed = FeedCursor.parse(cursor);
+        if (blockRepository.existsBlockBetween(viewerId, userId)) {
+            throw ApiException.notFound("USER_NOT_FOUND", "User not found");
+        }
+        int safeLimit = clampSize(limit);
+        return toCursorPage(postQueryRepository.findTaggedPostRefs(userId, viewerId, parsed, safeLimit + 1),
+                safeLimit, viewerId);
+    }
+
     /** The viewer's saved posts, most recently saved first ({@code GET /users/me/bookmarks}). */
     @Transactional(readOnly = true)
     public CursorPage<PostResponse> getBookmarks(UUID viewerId, String cursor, int limit) {

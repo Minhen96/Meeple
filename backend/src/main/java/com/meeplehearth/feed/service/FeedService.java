@@ -13,7 +13,7 @@ import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.post.dto.PostResponse;
 import com.meeplehearth.post.service.PostService;
-import com.meeplehearth.social.dto.UserSummary;
+import com.meeplehearth.user.dto.UserSummary;
 import com.meeplehearth.social.repository.BlockRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

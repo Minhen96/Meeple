@@ -1,6 +1,6 @@
 package com.meeplehearth.feed.dto;
 
-import com.meeplehearth.social.dto.UserSummary;
+import com.meeplehearth.user.dto.UserSummary;
 
 import java.util.Map;
 import java.util.UUID;

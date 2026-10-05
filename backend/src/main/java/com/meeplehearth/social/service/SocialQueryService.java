@@ -3,7 +3,7 @@ package com.meeplehearth.social.service;
 import com.meeplehearth.common.dto.PageMeta;
 import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.social.dto.SuggestedUser;
-import com.meeplehearth.social.dto.UserSummary;
+import com.meeplehearth.user.dto.UserSummary;
 import com.meeplehearth.social.dto.UserSummaryWithStatus;
 import com.meeplehearth.social.entity.FriendRequest;
 import com.meeplehearth.social.repository.FriendRequestRepository;

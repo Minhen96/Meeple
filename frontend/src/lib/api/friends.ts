@@ -58,7 +58,7 @@ export const friendsApi = {
 		api.get<UserSummary[]>('/api/v1/users/me/blocked', opts),
 
 	/** People search with friendship status; blocked users are never returned. */
-	searchUsers: async (
+	searchPeople: async (
 		q: string,
 		limit = 20,
 		opts?: ApiOptions
@@ -68,8 +68,24 @@ export const friendsApi = {
 	},
 
 	/** People you may know, ranked by games in common (max 10). */
-	getSuggestions: (limit = 10, opts?: ApiOptions): Promise<SuggestedUser[]> =>
-		api.get<SuggestedUser[]>(`/api/v1/friends/suggestions?limit=${limit}`, opts)
+	suggestFriends: (limit = 10, opts?: ApiOptions): Promise<SuggestedUser[]> =>
+		api.get<SuggestedUser[]>(`/api/v1/friends/suggestions?limit=${limit}`, opts),
+
+	/** Legacy profile-shaped user search (`GET /users/search`), used by onboarding. */
+	searchUsers: (
+		q: string,
+		page = 0,
+		size = 20,
+		opts?: ApiOptions
+	): Promise<PaginatedResponse<User>> =>
+		api.get<PaginatedResponse<User>>(
+			`/api/v1/users/search?q=${encodeURIComponent(q)}&page=${page}&size=${size}`,
+			opts
+		),
+
+	/** Legacy profile-shaped suggestions (`GET /users/suggestions`), used by onboarding. */
+	getSuggestions: (page = 0, size = 10, opts?: ApiOptions): Promise<PaginatedResponse<User>> =>
+		api.get<PaginatedResponse<User>>(`/api/v1/users/suggestions?page=${page}&size=${size}`, opts)
 };
 
 export const searchApi = {

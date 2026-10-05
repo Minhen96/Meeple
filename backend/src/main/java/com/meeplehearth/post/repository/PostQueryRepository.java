@@ -50,6 +50,19 @@ public class PostQueryRepository {
                 new Ref(rs.getObject("id", UUID.class), rs.getObject("at", OffsetDateTime.class).toInstant()));
     }
 
+    /** Active posts in which {@code taggedUserId} is tagged that the viewer may see, newest first. */
+    public List<Ref> findTaggedPostRefs(UUID taggedUserId, UUID viewerId, FeedCursor cursor, int limit) {
+        String sql = """
+                SELECT p.id, p.created_at AS at FROM posts p JOIN users u ON u.id = p.author_id
+                WHERE p.deleted_at IS NULL AND u.deleted_at IS NULL
+                  AND EXISTS (SELECT 1 FROM post_tags t WHERE t.post_id = p.id AND t.tagged_user_id = :taggedUserId)
+                """ + NOT_BLOCKED
+                + (cursor == null ? "" : " AND (p.created_at, p.id) < (:cursorAt, :cursorId)")
+                + " ORDER BY p.created_at DESC, p.id DESC LIMIT :limit";
+        return jdbc.query(sql, params(viewerId, cursor, limit).addValue("taggedUserId", taggedUserId), (rs, i) ->
+                new Ref(rs.getObject("id", UUID.class), rs.getObject("at", OffsetDateTime.class).toInstant()));
+    }
+
     /** The viewer's saved posts that are still visible, most recently saved first. */
     public List<Ref> findBookmarkRefs(UUID viewerId, FeedCursor cursor, int limit) {
         String sql = """

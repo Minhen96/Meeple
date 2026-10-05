@@ -57,6 +57,18 @@ export const postsApi = {
 	): Promise<CursorPage<Post>> =>
 		api.get<CursorPage<Post>>(`/api/v1/posts?${cursorQuery(cursor, limit, { eventId })}`, opts),
 
+	/** Posts the user is tagged in (profile "Tagged" tab). */
+	getTaggedPosts: (
+		userId: string,
+		cursor?: string | null,
+		limit = 30,
+		opts?: ApiOptions
+	): Promise<CursorPage<Post>> =>
+		api.get<CursorPage<Post>>(
+			`/api/v1/users/${userId}/tagged-posts?${cursorQuery(cursor, limit)}`,
+			opts
+		),
+
 	getBookmarks: (
 		cursor?: string | null,
 		limit = 20,
