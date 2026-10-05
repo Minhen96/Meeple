@@ -18,10 +18,10 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, UU
     @EntityGraph(attributePaths = {"sender", "receiver"})
     Optional<FriendRequest> findBySenderIdAndReceiverId(UUID senderId, UUID receiverId);
 
-    @EntityGraph(attributePaths = {"sender"})
+    @EntityGraph(attributePaths = {"sender", "receiver"})
     Page<FriendRequest> findByReceiverIdAndStatus(UUID receiverId, FriendRequest.Status status, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"receiver"})
+    @EntityGraph(attributePaths = {"sender", "receiver"})
     Page<FriendRequest> findBySenderIdAndStatus(UUID senderId, FriendRequest.Status status, Pageable pageable);
 
     @Query("""

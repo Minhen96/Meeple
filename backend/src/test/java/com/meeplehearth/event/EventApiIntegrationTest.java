@@ -2,7 +2,6 @@ package com.meeplehearth.event;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -385,8 +384,6 @@ class EventApiIntegrationTest extends ApiIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: invalid ?status= on POST /events/{id}/rsvp fails @Pattern with a ConstraintViolationException"
-            + " that GlobalExceptionHandler does not map, so the client gets 500 INTERNAL_ERROR instead of 400")
     void invalidRsvpStatusIsRejectedAsBadRequest() throws Exception {
         UUID host = user();
         UUID guest = user();
@@ -398,8 +395,6 @@ class EventApiIntegrationTest extends ApiIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: CreateEventRequest.visibility is an unvalidated String; Event.Visibility.valueOf(\"SECRET\")"
-            + " throws IllegalArgumentException in EventService.createEvent/updateEvent, returned as 500 instead of 400")
     void unknownVisibilityIsRejectedAsBadRequest() throws Exception {
         UUID host = user();
         mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)

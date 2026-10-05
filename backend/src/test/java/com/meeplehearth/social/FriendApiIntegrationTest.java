@@ -3,7 +3,6 @@ package com.meeplehearth.social;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.meeplehearth.social.service.FriendService;
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
@@ -204,10 +203,6 @@ class FriendApiIntegrationTest extends ApiIntegrationTestBase {
     // -------------------------------------------------------------------------
 
     @Test
-    @Disabled("BUG: GET /friend-requests/received returns 500 whenever the list is non-empty."
-            + " findByReceiverIdAndStatus only fetches 'sender'; FriendService.getReceivedRequests is not"
-            + " @Transactional and open-in-view is off, so FriendRequestResponse.from(fr) hits"
-            + " LazyInitializationException on the receiver proxy")
     void receivedRequestsListsPendingRequestsWithSenderAndReceiver() throws Exception {
         UUID alice = user();
         UUID bob = user();
@@ -225,10 +220,6 @@ class FriendApiIntegrationTest extends ApiIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: GET /friend-requests/sent returns 500 whenever the list is non-empty."
-            + " findBySenderIdAndStatus only fetches 'receiver'; FriendService.getSentRequests is not"
-            + " @Transactional and open-in-view is off, so FriendRequestResponse.from(fr) hits"
-            + " LazyInitializationException on the sender proxy")
     void sentRequestsListsPendingRequestsWithSenderAndReceiver() throws Exception {
         UUID alice = user();
         UUID bob = user();

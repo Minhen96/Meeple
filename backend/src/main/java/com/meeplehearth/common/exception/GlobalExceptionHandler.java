@@ -6,7 +6,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -32,6 +36,25 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(message, "VALIDATION_ERROR"));
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> leafName(v.getPropertyPath().toString()) + ": " + v.getMessage())
+                .collect(Collectors.joining(", "));
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(message, "VALIDATION_ERROR"));
+    }
+
+    @ExceptionHandler({
+            MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class,
+            HttpMessageNotReadableException.class
+    })
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse("Malformed request", "BAD_REQUEST"));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -43,5 +66,10 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception", ex);
         return ResponseEntity.internalServerError()
                 .body(new ErrorResponse("An unexpected error occurred", "INTERNAL_ERROR"));
+    }
+
+    private static String leafName(String propertyPath) {
+        int dot = propertyPath.lastIndexOf('.');
+        return dot >= 0 ? propertyPath.substring(dot + 1) : propertyPath;
     }
 }

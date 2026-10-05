@@ -3,6 +3,7 @@ package com.meeplehearth.event.dto;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
@@ -15,6 +16,6 @@ public record CreateEventRequest(
         @NotNull @Future Instant scheduledAt,
         UUID gameId,
         Integer maxParticipants,
-        @NotNull String visibility   // "INVITE_ONLY" | "FRIENDS" | "PUBLIC"
+        @NotNull @Pattern(regexp = "INVITE_ONLY|FRIENDS|PUBLIC") String visibility
 ) {
 }
