@@ -34,6 +34,7 @@ class PostApiIntegrationTest extends ApiIntegrationTestBase {
     void createPostPersistsImagesInOrderGameAndExistingTaggedUsers() throws Exception {
         UUID author = user();
         UUID tagged = user();
+        friends(author, tagged);
         UUID gameId = game(2, 4);
         String key1 = "uploads/" + author + "/first.jpg";
         String key2 = "uploads/" + author + "/second.webp";
@@ -45,7 +46,7 @@ class PostApiIntegrationTest extends ApiIntegrationTestBase {
         body.put("playedAt", playedAt.toString());
         body.put("gameId", gameId);
         body.put("imageKeys", List.of(key1, key2));
-        body.put("taggedUserIds", List.of(tagged, UUID.randomUUID())); // unknown user is ignored
+        body.put("taggedUserIds", List.of(tagged, tagged)); // duplicates collapse to one tag
 
         JsonNode data = json(mvc.perform(post("/api/v1/posts").with(as(author))
                         .contentType(MediaType.APPLICATION_JSON).content(toJson(body)))
@@ -181,13 +182,14 @@ class PostApiIntegrationTest extends ApiIntegrationTestBase {
 
         mvc.perform(get("/api/v1/feed").cookie(new Cookie("access_token", token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].id").value(friendPost.toString()));
+                .andExpect(jsonPath("$.data.items[0].kind").value("post"))
+                .andExpect(jsonPath("$.data.items[0].post.id").value(friendPost.toString()));
 
         block(friend, me);
         mvc.perform(get("/api/v1/feed").cookie(new Cookie("access_token", token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(0))
-                .andExpect(jsonPath("$.meta.total").value(0));
+                .andExpect(jsonPath("$.data.items.length()").value(0))
+                .andExpect(jsonPath("$.data.hasMore").value(false));
     }
 
     @Test
