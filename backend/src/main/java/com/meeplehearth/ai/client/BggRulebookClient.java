@@ -2,15 +2,18 @@ package com.meeplehearth.ai.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Probes the BGG (api.geekdo.com) files endpoint to find rulebook PDFs.
@@ -23,6 +26,9 @@ import java.util.List;
  * Notable: BGG has no "filetype" field — we infer from filename (.pdf) + title.
  * BGG has no direct download URL — href is a file-page path (/filepage/{id}/slug).
  * We try to resolve the actual file URL via a HEAD/GET on that filepage.
+ *
+ * All outbound calls are guarded by the "bgg" circuit breaker. Redirects are not
+ * followed, and resolved URLs must pass the {@link RulebookUrlValidator} allowlist.
  */
 @Component
 public class BggRulebookClient {
@@ -36,9 +42,18 @@ public class BggRulebookClient {
     private final RestClient bggApiClient;
     private final RestClient bggWebClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final RulebookUrlValidator urlValidator;
 
-    public BggRulebookClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+    public BggRulebookClient(RulebookUrlValidator urlValidator) {
+        this.urlValidator = urlValidator;
+
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory() {
+            @Override
+            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+                super.prepareConnection(connection, httpMethod);
+                connection.setInstanceFollowRedirects(false);
+            }
+        };
         factory.setConnectTimeout(TIMEOUT_MS);
         factory.setReadTimeout(TIMEOUT_MS);
 
@@ -61,16 +76,30 @@ public class BggRulebookClient {
     // -------------------------------------------------------------------------
     // Probe — returns full picture for verification
 
+    @CircuitBreaker(name = "bgg", fallbackMethod = "probeFallback")
     public BggFilesProbeResult probe(long bggId) {
         return fetchPage(bggId, 1, null);
+    }
+
+    @SuppressWarnings("unused")
+    private BggFilesProbeResult probeFallback(long bggId, Throwable t) {
+        log.warn("BGG files API unavailable for bggId={}: {}", bggId, t.getMessage());
+        return BggFilesProbeResult.error(bggId, "BGG unavailable: " + t.getMessage());
     }
 
     /**
      * Probe with language filter.
      * languageId: "2184"=English, "2181"=Chinese, null=all languages
      */
+    @CircuitBreaker(name = "bgg", fallbackMethod = "probeFallback")
     public BggFilesProbeResult probe(long bggId, String languageId) {
         return fetchPage(bggId, 1, languageId);
+    }
+
+    @SuppressWarnings("unused")
+    private BggFilesProbeResult probeFallback(long bggId, String languageId, Throwable t) {
+        log.warn("BGG files API unavailable for bggId={}: {}", bggId, t.getMessage());
+        return BggFilesProbeResult.error(bggId, "BGG unavailable: " + t.getMessage());
     }
 
     // -------------------------------------------------------------------------
@@ -82,39 +111,40 @@ public class BggRulebookClient {
      *
      * Used by the background ingestion job once the probe verifies the API works.
      */
-    public java.util.Optional<String> resolveRulebookUrl(long bggId, int maxPages) {
+    @CircuitBreaker(name = "bgg", fallbackMethod = "resolveRulebookUrlFallback")
+    public Optional<String> resolveRulebookUrl(long bggId, int maxPages) {
         for (int page = 1; page <= maxPages; page++) {
             BggFilesProbeResult result = fetchPage(bggId, page, ENGLISH_LANGUAGE_ID);
             if (!result.reachable()) break;
 
             for (BggFileEntry entry : result.rulebookCandidates()) {
-                String url = tryResolveDownloadUrl(entry);
-                if (url != null) return java.util.Optional.of(url);
+                String url = resolveDownloadUrlInternal(entry);
+                if (url != null) return Optional.of(url);
             }
 
             // No more pages
             if (result.totalPages() > 0 && page >= result.totalPages()) break;
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
+    }
+
+    @SuppressWarnings("unused")
+    private Optional<String> resolveRulebookUrlFallback(long bggId, int maxPages, Throwable t) {
+        log.warn("BGG rulebook resolution unavailable for bggId={}: {}", bggId, t.getMessage());
+        return Optional.empty();
     }
 
     // -------------------------------------------------------------------------
 
+    /** HTTP failures propagate so the calling public method's circuit breaker records them. */
     private BggFilesProbeResult fetchPage(long bggId, int page, String languageId) {
-        String rawJson = null;
-        try {
-            String uri = languageId != null
-                    ? "/api/files?objecttype=thing&objectid={id}&sort=recent&start=0&pageid={page}&languageid={lang}"
-                    : "/api/files?objecttype=thing&objectid={id}&sort=recent&start=0&pageid={page}";
+        String uri = languageId != null
+                ? "/api/files?objecttype=thing&objectid={id}&sort=recent&start=0&pageid={page}&languageid={lang}"
+                : "/api/files?objecttype=thing&objectid={id}&sort=recent&start=0&pageid={page}";
 
-            rawJson = languageId != null
-                    ? bggApiClient.get().uri(uri, bggId, page, languageId).retrieve().body(String.class)
-                    : bggApiClient.get().uri(uri, bggId, page).retrieve().body(String.class);
-
-        } catch (RestClientException e) {
-            log.warn("BGG files API failed for bggId={}: {}", bggId, e.getMessage());
-            return BggFilesProbeResult.error(bggId, "HTTP error: " + e.getMessage());
-        }
+        String rawJson = languageId != null
+                ? bggApiClient.get().uri(uri, bggId, page, languageId).retrieve().body(String.class)
+                : bggApiClient.get().uri(uri, bggId, page).retrieve().body(String.class);
 
         if (rawJson == null || rawJson.isBlank()) {
             return BggFilesProbeResult.error(bggId, "Empty response from BGG");
@@ -150,40 +180,47 @@ public class BggRulebookClient {
      * BGG doesn't expose a direct file URL in the API response.
      * href is a relative path like /filepage/317826/catan-rules-summary-...
      *
-     * Strategy: GET boardgamegeek.com{href} — BGG may redirect to the actual
-     * file at cf.geekdo-images.com or serve HTML. We check Content-Type or
-     * follow Location header.
+     * Strategy: GET boardgamegeek.com{href} (redirects are not followed) and, if
+     * BGG serves the filepage HTML, extract the download link from it.
      *
-     * Returns the resolved URL if it looks like a direct PDF link, else null.
+     * Returns the resolved URL if it looks like a direct PDF link on an
+     * allowlisted host, else null.
      */
+    @CircuitBreaker(name = "bgg", fallbackMethod = "tryResolveDownloadUrlFallback")
     public String tryResolveDownloadUrl(BggFileEntry entry) {
-        if (entry.href() == null) return null;
+        return resolveDownloadUrlInternal(entry);
+    }
+
+    @SuppressWarnings("unused")
+    private String tryResolveDownloadUrlFallback(BggFileEntry entry, Throwable t) {
+        log.debug("Could not resolve download URL for fileid={}: {}", entry.fileid(), t.getMessage());
+        return null;
+    }
+
+    /** HTTP failures propagate so the calling public method's circuit breaker records them. */
+    private String resolveDownloadUrlInternal(BggFileEntry entry) {
+        String href = entry.href();
+        // Only relative BGG paths — never let API data point this client at another host
+        if (href == null || !href.startsWith("/") || href.startsWith("//")) return null;
         // Only attempt PDFs — skip images, docs, etc.
         if (!isPdfFilename(entry.filename())) return null;
 
-        try {
-            // BGG filepage redirect sometimes goes directly to the CDN PDF.
-            // We fetch the response and inspect the final URL / Content-Type.
-            String response = bggWebClient.get()
-                    .uri(entry.href())
-                    .retrieve()
-                    .body(String.class);
+        String response = bggWebClient.get()
+                .uri(href)
+                .retrieve()
+                .body(String.class);
 
-            if (response == null) return null;
+        if (response == null) return null;
 
-            // If BGG returned HTML (the filepage), look for the download link
-            if (response.contains("<html") || response.contains("<!DOCTYPE")) {
-                return extractDownloadLinkFromHtml(response, entry.href());
-            }
-
-            // If it's not HTML, assume it streamed the file — but we can't get URL this way
-            // Return the href as-is for now; the ingestion job will stream it
-            return "https://boardgamegeek.com" + entry.href();
-
-        } catch (RestClientException e) {
-            log.debug("Could not resolve download URL for fileid={}: {}", entry.fileid(), e.getMessage());
-            return null;
+        String resolved;
+        if (response.contains("<html") || response.contains("<!DOCTYPE")) {
+            // BGG returned the filepage HTML — look for the download link
+            resolved = extractDownloadLinkFromHtml(response, href);
+        } else {
+            // Not HTML — BGG streamed the file itself, so the filepage URL is the download URL
+            resolved = "https://boardgamegeek.com" + href;
         }
+        return urlValidator.isAllowedSyntax(resolved) ? resolved : null;
     }
 
     /**

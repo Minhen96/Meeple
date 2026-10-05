@@ -10,32 +10,42 @@ import com.meeplehearth.game.entity.GameDetail;
 import com.meeplehearth.game.entity.PlayLog;
 import com.meeplehearth.game.entity.UserGame;
 import com.meeplehearth.event.repository.EventParticipantRepository;
+import com.meeplehearth.game.repository.GameDetailRepository;
 import com.meeplehearth.game.repository.GameRepository;
 import com.meeplehearth.game.repository.PlayLogRepository;
 import com.meeplehearth.game.repository.UserGameRepository;
 import com.meeplehearth.post.repository.PostRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 public class GameService {
 
     private final GameRepository gameRepository;
+    private final GameDetailRepository gameDetailRepository;
     private final UserGameRepository userGameRepository;
     private final PlayLogRepository playLogRepository;
     private final UserRepository userRepository;
@@ -46,8 +56,10 @@ public class GameService {
     private final GameRulebookRepository rulebookRepository;
     private final EventParticipantRepository eventParticipantRepository;
     private final PostRepository postRepository;
+    private final TransactionTemplate transactionTemplate;
 
     public GameService(GameRepository gameRepository,
+            GameDetailRepository gameDetailRepository,
             UserGameRepository userGameRepository,
             PlayLogRepository playLogRepository,
             UserRepository userRepository,
@@ -57,8 +69,11 @@ public class GameService {
             RecommendationService recommendationService,
             GameRulebookRepository rulebookRepository,
             EventParticipantRepository eventParticipantRepository,
-            PostRepository postRepository) {
+            PostRepository postRepository,
+            PlatformTransactionManager transactionManager) {
         this.gameRepository = gameRepository;
+        this.gameDetailRepository = gameDetailRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.userGameRepository = userGameRepository;
         this.playLogRepository = playLogRepository;
         this.userRepository = userRepository;
@@ -131,25 +146,27 @@ public class GameService {
                         cb.ge(root.get("maxPlayers"), 2)));
             } else {
                 spec = spec.and((root, cq, cb) -> {
-                    Join<Game, GameDetail> join = root.join("gameDetail");
+                    String rankField;
+                    String familyPattern;
                     if ("Strategy".equalsIgnoreCase(genre)) {
-                        return cb.or(cb.isNotNull(join.get("rankStrategy")),
-                                cb.like(cb.function("array_to_string", String.class, join.get("families"),
-                                        cb.literal(",")), "%Strategy Games%"));
+                        rankField = "rankStrategy";
+                        familyPattern = "%Strategy Games%";
                     } else if ("Party".equalsIgnoreCase(genre)) {
-                        return cb.or(cb.isNotNull(join.get("rankParty")),
-                                cb.like(cb.function("array_to_string", String.class, join.get("families"),
-                                        cb.literal(",")), "%Party Games%"));
+                        rankField = "rankParty";
+                        familyPattern = "%Party Games%";
                     } else if ("Family".equalsIgnoreCase(genre)) {
-                        return cb.or(cb.isNotNull(join.get("rankFamily")),
-                                cb.like(cb.function("array_to_string", String.class, join.get("families"),
-                                        cb.literal(",")), "%Family Games%"));
+                        rankField = "rankFamily";
+                        familyPattern = "%Family Games%";
                     } else if ("Abstract".equalsIgnoreCase(genre)) {
-                        return cb.or(cb.isNotNull(join.get("rankAbstract")),
-                                cb.like(cb.function("array_to_string", String.class, join.get("families"),
-                                        cb.literal(",")), "%Abstract Games%"));
+                        rankField = "rankAbstract";
+                        familyPattern = "%Abstract Games%";
+                    } else {
+                        // Unknown genre: previous behaviour still required a game_details row
+                        return detailExists(root, cq, cb, d -> cb.conjunction());
                     }
-                    return cb.conjunction();
+                    return detailExists(root, cq, cb, d -> cb.or(cb.isNotNull(d.get(rankField)),
+                            cb.like(cb.function("array_to_string", String.class, d.get("families"),
+                                    cb.literal(",")), familyPattern)));
                 });
             }
         }
@@ -176,16 +193,15 @@ public class GameService {
             spec = spec.and((root, cq, cb) -> cb.ge(root.get("bggRating"), minRating));
         }
         if (minComplexity != null || maxComplexity != null) {
-            spec = spec.and((root, cq, cb) -> {
-                Join<Game, com.meeplehearth.game.entity.GameDetail> join = root.join("gameDetail");
+            spec = spec.and((root, cq, cb) -> detailExists(root, cq, cb, d -> {
                 if (minComplexity != null && maxComplexity != null) {
-                    return cb.between(join.get("complexity"), minComplexity, maxComplexity);
+                    return cb.between(d.get("complexity"), minComplexity, maxComplexity);
                 } else if (minComplexity != null) {
-                    return cb.ge(join.get("complexity"), minComplexity);
+                    return cb.ge(d.get("complexity"), minComplexity);
                 } else {
-                    return cb.le(join.get("complexity"), maxComplexity);
+                    return cb.le(d.get("complexity"), maxComplexity);
                 }
-            });
+            }));
         }
         Page<Game> gamePage = gameRepository.findAll(spec, pageable);
 
@@ -266,27 +282,59 @@ public class GameService {
     // Game detail — fetch from BGG and cache if not found locally
     // -------------------------------------------------------------------------
 
-    @Transactional
+    /**
+     * Not @Transactional on purpose: the optional synchronous BGG hydration must not run
+     * inside a DB transaction. Hydration persists in its own short transaction, after
+     * which the game is re-read.
+     */
     public GameDetailResponse getGame(UUID gameId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
-        if (game.getMinPlayers() == null) {
-            gameHydrationService.hydrateImageSync(game);
+        if (game.getMinPlayers() == null && gameHydrationService.hydrateImageSync(game)) {
+            game = gameRepository.findById(gameId).orElse(game);
         }
+        GameDetail detail = gameDetailRepository.findById(gameId).orElse(null);
         boolean hasRulebook = rulebookRepository.existsByGame_IdAndStatus(gameId, "approved");
-        return GameDetailResponse.from(game, hasRulebook);
+        return GameDetailResponse.from(game, detail, hasRulebook);
     }
 
-    @Transactional
+    /** The BGG lookup runs outside any transaction; only the insert is transactional. */
     public GameDetailResponse ensureGame(Long bggId) {
-        return gameRepository.findByBggId(bggId)
-                .map(GameDetailResponse::from)
-                .orElseGet(() -> {
-                    BggApiClient.BggGameDetail detail = bggApiClient.getDetail(bggId)
-                            .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found on BGG"));
-                    Game game = mapToEntity(detail);
-                    return GameDetailResponse.from(gameRepository.save(game));
-                });
+        var existing = gameRepository.findByBggId(bggId);
+        if (existing.isPresent()) {
+            Game game = existing.get();
+            return GameDetailResponse.from(game, gameDetailRepository.findById(game.getId()).orElse(null));
+        }
+
+        BggApiClient.BggGameDetail detail;
+        try {
+            detail = bggApiClient.getDetail(bggId)
+                    .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found on BGG"));
+        } catch (BggApiClient.BggUnavailableException e) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "BGG_UNAVAILABLE",
+                    "Board game data source is temporarily unavailable. Try again later.");
+        }
+
+        try {
+            return transactionTemplate.execute(status -> {
+                Game game = gameRepository.save(mapToEntity(detail));
+                GameDetail gDetail = gameDetailRepository.save(mapToDetail(detail, game));
+                return GameDetailResponse.from(game, gDetail);
+            });
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent request inserted the same bgg_id first — return that row
+            Game game = gameRepository.findByBggId(bggId).orElseThrow(() -> e);
+            return GameDetailResponse.from(game, gameDetailRepository.findById(game.getId()).orElse(null));
+        }
+    }
+
+    /** EXISTS (SELECT d.id FROM GameDetail d WHERE d.id = game.id AND condition(d)). */
+    private static Predicate detailExists(Root<Game> root, CriteriaQuery<?> cq, CriteriaBuilder cb,
+            Function<Root<GameDetail>, Predicate> condition) {
+        Subquery<UUID> sq = cq.subquery(UUID.class);
+        Root<GameDetail> d = sq.from(GameDetail.class);
+        sq.select(d.get("id")).where(cb.equal(d.get("id"), root.get("id")), condition.apply(d));
+        return cb.exists(sq);
     }
 
     // -------------------------------------------------------------------------
@@ -411,13 +459,14 @@ public class GameService {
         game.setMaxPlayers(detail.maxPlayers());
         game.setPlayTime(detail.maxPlaytime());
         game.setBggRating(detail.bggRating());
+        return game;
+    }
 
+    private GameDetail mapToDetail(BggApiClient.BggGameDetail detail, Game game) {
         GameDetail gDetail = new GameDetail();
         gDetail.setGame(game);
         gDetail.setDescription(detail.description());
         gDetail.setComplexity(detail.complexityWeight());
-        game.setGameDetail(gDetail);
-
-        return game;
+        return gDetail;
     }
 }

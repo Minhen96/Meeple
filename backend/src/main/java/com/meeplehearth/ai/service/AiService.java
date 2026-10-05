@@ -8,6 +8,8 @@ import com.meeplehearth.ai.repository.AiRuleQueryRepository;
 import com.meeplehearth.ai.repository.RuleChunkRepository;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.entity.Game;
+import com.meeplehearth.game.entity.GameDetail;
+import com.meeplehearth.game.repository.GameDetailRepository;
 import com.meeplehearth.game.repository.GameRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +19,6 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,19 +44,25 @@ public class AiService {
     private static final long CACHE_TTL_SECONDS = 7 * 24 * 3600; // 7 days
 
     private final GameRepository gameRepository;
+    private final GameDetailRepository gameDetailRepository;
     private final RuleChunkRepository ruleChunkRepository;
     private final EmbeddingService embeddingService;
     private final AiCompletionService completionService;
     private final AiRuleQueryRepository queryLogRepository;
     private final StringRedisTemplate redisTemplate;
+    private final AiRateLimiter rateLimiter;
 
     public AiService(GameRepository gameRepository,
+                     GameDetailRepository gameDetailRepository,
                      RuleChunkRepository ruleChunkRepository,
                      EmbeddingService embeddingService,
                      AiCompletionService completionService,
                      AiRuleQueryRepository queryLogRepository,
-                     StringRedisTemplate redisTemplate) {
+                     StringRedisTemplate redisTemplate,
+                     AiRateLimiter rateLimiter) {
         this.gameRepository = gameRepository;
+        this.gameDetailRepository = gameDetailRepository;
+        this.rateLimiter = rateLimiter;
         this.ruleChunkRepository = ruleChunkRepository;
         this.embeddingService = embeddingService;
         this.completionService = completionService;
@@ -112,9 +118,9 @@ public class AiService {
                     .collect(Collectors.joining("\n\n---\n\n"));
         } else {
             // Fallback: BGG description
-            context = game.getGameDetail() != null && game.getGameDetail().getDescription() != null
-                    ? game.getGameDetail().getDescription()
-                    : "No rulebook available for this game.";
+            context = gameDetailRepository.findById(game.getId())
+                    .map(GameDetail::getDescription)
+                    .orElse("No rulebook available for this game.");
         }
 
         // 6. Build messages
@@ -220,16 +226,9 @@ public class AiService {
     // -------------------------------------------------------------------------
 
     private void checkRateLimit(UUID userId) {
-        if (userId == null) return; // anonymous users not rate-limited by user key
-        String date = LocalDate.now(ZoneOffset.UTC).toString();
-        String key = "ai:ratelimit:" + userId + ":" + date;
-        Long count = redisTemplate.opsForValue().increment(key);
-        if (count == 1) {
-            redisTemplate.expire(key, Duration.ofDays(1));
-        }
-        if (count != null && count > DAILY_QUESTION_LIMIT) {
-            throw ApiException.tooManyRequests("AI_RATE_LIMIT", "Daily question limit reached. Try again tomorrow.");
-        }
+        // anonymous users not rate-limited by user key
+        rateLimiter.checkDaily("ai:ratelimit:", userId, DAILY_QUESTION_LIMIT,
+                "AI_RATE_LIMIT", "Daily question limit reached. Try again tomorrow.");
     }
 
     // -------------------------------------------------------------------------

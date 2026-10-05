@@ -5,11 +5,14 @@ import com.meeplehearth.ai.dto.RuleNoteResponse;
 import com.meeplehearth.ai.repository.GameHowToPlayRepository;
 import com.meeplehearth.ai.repository.GameRuleNoteRepository;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
+import com.meeplehearth.ai.service.AiRateLimiter;
 import com.meeplehearth.ai.service.HowToPlayExtractionService;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.repository.GameRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,17 +31,22 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/games")
 public class HowToPlayController {
 
+    static final int GENERATE_DAILY_LIMIT = 10;
+
     private final GameHowToPlayRepository howToPlayRepository;
     private final HowToPlayExtractionService extractionService;
     private final GameRepository gameRepository;
     private final GameRulebookRepository rulebookRepository;
     private final GameRuleNoteRepository gameRuleNoteRepository;
+    private final AiRateLimiter rateLimiter;
 
     public HowToPlayController(GameHowToPlayRepository howToPlayRepository,
                                 HowToPlayExtractionService extractionService,
                                 GameRepository gameRepository,
                                 GameRulebookRepository rulebookRepository,
-                                GameRuleNoteRepository gameRuleNoteRepository) {
+                                GameRuleNoteRepository gameRuleNoteRepository,
+                                AiRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.howToPlayRepository = howToPlayRepository;
         this.extractionService = extractionService;
         this.gameRepository = gameRepository;
@@ -76,8 +84,15 @@ public class HowToPlayController {
     // POST — explicit generate trigger
     // -------------------------------------------------------------------------
 
+    /**
+     * Limits: {@value #GENERATE_DAILY_LIMIT} generations per user per day (429 HOW_TO_PLAY_RATE_LIMIT),
+     * and a per-game Redis lock so concurrent requests for one game start one extraction only.
+     * Requests that hit a running extraction return "generating" without using quota.
+     */
     @PostMapping("/{gameId}/how-to-play/generate")
-    public ResponseEntity<HowToPlayResponse> generate(@PathVariable UUID gameId) {
+    public ResponseEntity<HowToPlayResponse> generate(
+            @PathVariable UUID gameId,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         // Already done
         var existing = howToPlayRepository.findByGame_Id(gameId);
@@ -97,7 +112,19 @@ public class HowToPlayController {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
 
-        extractionService.extractAsync(gameId, game);
+        // Per-game lock first, so duplicate clicks / concurrent users don't consume quota
+        if (!extractionService.tryAcquireLock(gameId)) {
+            return ResponseEntity.ok(HowToPlayResponse.generating(extractionService.getProgress(gameId)));
+        }
+        try {
+            UUID userId = userDetails != null ? UUID.fromString(userDetails.getUsername()) : null;
+            rateLimiter.checkDaily("ai:ratelimit:how-to-play:", userId, GENERATE_DAILY_LIMIT,
+                    "HOW_TO_PLAY_RATE_LIMIT", "Daily How-to-Play generation limit reached. Try again tomorrow.");
+            extractionService.extractAsyncWithLockHeld(gameId, game);
+        } catch (RuntimeException e) {
+            extractionService.releaseLock(gameId);
+            throw e;
+        }
         return ResponseEntity.ok(HowToPlayResponse.generating(0));
     }
 

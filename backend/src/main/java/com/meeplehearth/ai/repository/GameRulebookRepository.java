@@ -37,13 +37,22 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
     long countByStatus(String status);
 
     /**
-     * Games that have no approved rulebook yet, ordered by BGG rank (highest-ranked first).
-     * Used by RulebookAutoFetchJob to prioritize popular games.
+     * True if the game has an 'ingesting' rulebook that started after {@code cutoff}.
+     * Ingestion start = reviewedAt (admin approval / admin upload) or createdAt (auto-fetch).
+     * Older 'ingesting' rows are considered crashed (stale) and may be retried.
      */
+    @Query("""
+            SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM GameRulebook r
+            WHERE r.game.id = :gameId
+              AND r.status = 'ingesting'
+              AND COALESCE(r.reviewedAt, r.createdAt) > :cutoff
+            """)
+    boolean existsActiveIngestion(@Param("gameId") UUID gameId, @Param("cutoff") Instant cutoff);
+
     /**
-     * Games that need a rulebook fetch attempt:
+     * Games that need a rulebook fetch attempt, ordered by BGG rank (highest-ranked first):
      *  - No approved rulebook AND no currently-ingesting rulebook.
-     *  - 'ingesting' entries older than 1 hour are considered crashed and retried.
+     *  - 'ingesting' entries older than the cutoff are considered crashed and retried.
      */
     @Query("""
             SELECT g FROM Game g
@@ -56,7 +65,7 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
               AND NOT EXISTS (
                 SELECT 1 FROM GameRulebook r
                 WHERE r.game = g AND r.status = 'ingesting'
-                  AND r.createdAt > :ingestingCutoff
+                  AND COALESCE(r.reviewedAt, r.createdAt) > :ingestingCutoff
               )
             ORDER BY g.rank ASC NULLS LAST
             """)

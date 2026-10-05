@@ -7,6 +7,8 @@ import com.meeplehearth.ai.entity.RuleChunk;
 import com.meeplehearth.ai.repository.GameHowToPlayRepository;
 import com.meeplehearth.ai.repository.RuleChunkRepository;
 import com.meeplehearth.game.entity.Game;
+import com.meeplehearth.game.entity.GameDetail;
+import com.meeplehearth.game.repository.GameDetailRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -37,7 +39,7 @@ public class HowToPlayExtractionService {
     private static final int TOP_CHUNKS = 10;
     private static final String LOCK_PREFIX = "lock:how-to-play:";
     private static final String PROGRESS_PREFIX = "progress:how-to-play:";
-    private static final Duration LOCK_TTL = Duration.ofMinutes(10);
+    private static final Duration LOCK_TTL = Duration.ofMinutes(15);
 
     private final GameHowToPlayRepository howToPlayRepository;
     private final RuleChunkRepository ruleChunkRepository;
@@ -45,13 +47,16 @@ public class HowToPlayExtractionService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final GameDetailRepository gameDetailRepository;
 
     public HowToPlayExtractionService(GameHowToPlayRepository howToPlayRepository,
                                       RuleChunkRepository ruleChunkRepository,
                                       AiCompletionService completionService,
                                       StringRedisTemplate redisTemplate,
                                       ObjectMapper objectMapper,
-                                      SimpMessagingTemplate messagingTemplate) {
+                                      SimpMessagingTemplate messagingTemplate,
+                                      GameDetailRepository gameDetailRepository) {
+        this.gameDetailRepository = gameDetailRepository;
         this.howToPlayRepository = howToPlayRepository;
         this.ruleChunkRepository = ruleChunkRepository;
         this.completionService = completionService;
@@ -70,13 +75,34 @@ public class HowToPlayExtractionService {
     }
 
     public void extract(UUID gameId, Game game) {
-        String lockKey = LOCK_PREFIX + gameId;
-        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", LOCK_TTL);
-        if (!Boolean.TRUE.equals(acquired)) {
+        if (!tryAcquireLock(gameId)) {
             log.debug("How-to-play extraction already in progress for game {}", gameId);
             return;
         }
+        runLocked(gameId, game);
+    }
 
+    /**
+     * Per-game lock (SET NX, 15 min TTL). The generate endpoint acquires it synchronously
+     * so concurrent requests for the same game start at most one extraction, then hands
+     * it to {@link #extractAsyncWithLockHeld}, which releases it when done.
+     */
+    public boolean tryAcquireLock(UUID gameId) {
+        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(LOCK_PREFIX + gameId, "1", LOCK_TTL));
+    }
+
+    public void releaseLock(UUID gameId) {
+        redisTemplate.delete(LOCK_PREFIX + gameId);
+    }
+
+    /** Runs extraction for a game whose lock the caller already holds; always releases it. */
+    @Async
+    public void extractAsyncWithLockHeld(UUID gameId, Game game) {
+        runLocked(gameId, game);
+    }
+
+    private void runLocked(UUID gameId, Game game) {
+        String lockKey = LOCK_PREFIX + gameId;
         try {
             pushProgress(gameId, 5);
 
@@ -162,8 +188,9 @@ public class HowToPlayExtractionService {
                     .collect(Collectors.joining("\n\n---\n\n"));
         }
         // General knowledge fallback: use BGG description
-        String desc = game.getGameDetail() != null ? game.getGameDetail().getDescription() : null;
-        return desc != null ? desc : "No rulebook or description available.";
+        return gameDetailRepository.findById(gameId)
+                .map(GameDetail::getDescription)
+                .orElse("No rulebook or description available.");
     }
 
     // -------------------------------------------------------------------------

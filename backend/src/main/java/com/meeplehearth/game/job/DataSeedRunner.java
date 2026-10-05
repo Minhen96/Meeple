@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -43,6 +44,8 @@ public class DataSeedRunner implements ApplicationRunner {
 
     public static final String GAMES_IMPORTED_FLAG   = "init:games-imported";
     public static final String HYDRATION_STARTED_FLAG = "init:games-hydration-started";
+    private static final String SEED_LOCK_KEY = "lock:games-seed";
+    private static final Duration SEED_LOCK_TTL = Duration.ofHours(2);
 
     private final AppProperties appProperties;
     private final GameDataImportService importService;
@@ -83,6 +86,19 @@ public class DataSeedRunner implements ApplicationRunner {
     }
 
     private void seed() {
+        // Distributed lock: two concurrent imports would race on the same bgg_ids
+        if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(SEED_LOCK_KEY, "1", SEED_LOCK_TTL))) {
+            log.info("[seed] Seed already running on another thread/instance — skipping");
+            return;
+        }
+        try {
+            runSeedSteps();
+        } finally {
+            redis.delete(SEED_LOCK_KEY);
+        }
+    }
+
+    private void runSeedSteps() {
         // ------------------------------------------------------------------ //
         // Step 1: CSV catalog import
         // ------------------------------------------------------------------ //

@@ -69,14 +69,17 @@ public class RulebookAdminController {
     // POST /api/v1/admin/rulebooks/{id}/approve
     // -------------------------------------------------------------------------
 
+    /**
+     * Approves a pending user submission. This is the ONLY path by which a user-uploaded
+     * rulebook gets ingested; ingestion starts after the approval commits.
+     */
     @PostMapping("/rulebooks/{id}/approve")
     public ResponseEntity<Map<String, String>> approve(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        GameRulebook rulebook = findRulebook(id);
         User admin = resolveUser(userDetails);
-        queueService.approve(rulebook, admin);
+        queueService.approve(id, admin);
         return ResponseEntity.ok(Map.of("status", "ingesting"));
     }
 
@@ -90,10 +93,9 @@ public class RulebookAdminController {
             @RequestBody(required = false) RejectRequest body,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        GameRulebook rulebook = findRulebook(id);
         User admin = resolveUser(userDetails);
         String reason = body != null ? body.reason() : null;
-        queueService.reject(rulebook, admin, reason);
+        queueService.reject(id, admin, reason);
         return ResponseEntity.ok(Map.of("status", "rejected"));
     }
 
@@ -122,11 +124,6 @@ public class RulebookAdminController {
     }
 
     // -------------------------------------------------------------------------
-
-    private GameRulebook findRulebook(UUID id) {
-        return rulebookRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("RULEBOOK_NOT_FOUND", "Rulebook not found"));
-    }
 
     private User resolveUser(UserDetails userDetails) {
         UUID userId = UUID.fromString(userDetails.getUsername());

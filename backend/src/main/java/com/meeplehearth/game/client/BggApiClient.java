@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -66,13 +67,21 @@ public class BggApiClient {
      * Fetch details (primarily image URLs) for a list of BGG IDs.
      * Makes one HTTP call per ID to api.geekdo.com/api/geekitems with a short
      * inter-call delay. Per-game failures are swallowed so one bad ID does not
-     * abort the whole batch.
+     * abort the whole batch — but if EVERY request in the batch fails (network
+     * error, 5xx, 429, ...) this throws, so the "bgg" circuit breaker records the
+     * failure and the fallback raises {@link BggUnavailableException}.
+     * A 404 for an id is not a failure: it just yields no detail for that id.
      */
     @CircuitBreaker(name = "bgg", fallbackMethod = "getDetailsFallback")
     public List<BggGameDetail> getDetails(List<Long> bggIds) {
         if (bggIds == null || bggIds.isEmpty()) return List.of();
         List<BggGameDetail> results = new ArrayList<>();
+        int failures = 0;
+        int attempted = 0;
+        Exception lastError = null;
         for (Long id : bggIds) {
+            if (id == null) continue;
+            attempted++;
             try {
                 String json = restClient.get()
                         .uri("/api/geekitems?nosession=1&objecttype=thing&objectid={id}", id)
@@ -85,9 +94,17 @@ public class BggApiClient {
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 break;
+            } catch (HttpClientErrorException.NotFound nf) {
+                log.debug("BGG: game id={} not found", id);
             } catch (Exception e) {
+                failures++;
+                lastError = e;
                 log.warn("BGG: failed to fetch game id={}: {}", id, e.getMessage());
             }
+        }
+        if (attempted > 0 && failures == attempted) {
+            throw new IllegalStateException("All " + failures + " BGG requests in batch failed: "
+                    + (lastError != null ? lastError.getMessage() : "unknown error"), lastError);
         }
         return results;
     }
