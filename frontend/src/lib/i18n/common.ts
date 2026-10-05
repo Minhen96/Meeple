@@ -44,5 +44,10 @@ export default {
 	'create.game': 'Add Game',
 	'create.gameHint': 'Add a game to your collection',
 	'create.match': 'Find Match',
-	'create.matchHint': 'Find friends to play with'
+	'create.matchHint': 'Find friends to play with',
+
+	// Error page (routes/+error.svelte)
+	'error.title': 'Something went wrong',
+	'error.notFoundTitle': 'Page not found',
+	'error.home': 'Go to Home'
 } as const satisfies Messages;

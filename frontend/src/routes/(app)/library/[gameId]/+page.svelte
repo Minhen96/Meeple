@@ -8,7 +8,8 @@
 	import StarRating from "$lib/components/game/StarRating.svelte";
 	import Avatar from "$lib/components/ui/Avatar.svelte";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
-	import { m, type MessageKey } from "$lib/i18n";
+	import { getLocale, m, type MessageKey } from "$lib/i18n";
+	import { formatNumber } from "$lib/i18n/format";
 
 	interface Props {
 		data: PageData;
@@ -114,7 +115,7 @@
 	}
 
 	function formatPlayDate(iso: string) {
-		return new Date(iso).toLocaleDateString(undefined, {
+		return new Date(iso).toLocaleDateString(getLocale(), {
 			year: "numeric",
 			month: "short",
 			day: "numeric",
@@ -176,6 +177,34 @@
 		{ flag: "isFavorited", icon: "favorite", off: "library.action.favorite", on: "library.action.favorited" },
 	];
 
+	const listFormat = (names: string[]) =>
+		new Intl.ListFormat(getLocale(), { type: "conjunction" }).format(names);
+
+	const stats = $derived<{ label: MessageKey; value: string; icon: string }[]>([
+		{
+			label: "library.detail.stat.players",
+			value:
+				game.minPlayers && game.maxPlayers
+					? `${game.minPlayers}–${game.maxPlayers}`
+					: game.minPlayers
+						? `${game.minPlayers}+`
+						: "—",
+			icon: "group",
+		},
+		{
+			label: "library.detail.stat.time",
+			value: game.playTime ? m("library.mine.minutes", { count: game.playTime }) : "—",
+			icon: "timer",
+		},
+		{
+			label: "library.detail.stat.complexity",
+			value: game.complexityWeight
+				? formatNumber(game.complexityWeight, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+				: "—",
+			icon: "psychology",
+		},
+	]);
+
 	function playsLabel(count: number) {
 		return count === 1 ? m("library.plays.one") : m("library.plays.count", { count });
 	}
@@ -226,7 +255,7 @@
 			</h2>
 			{#if game.designers && game.designers.length > 0}
 				<p class="text-xs text-on-surface-variant mt-0.5">
-					by {game.designers.slice(0, 2).join(", ")}
+					{m("library.detail.by", { names: listFormat(game.designers.slice(0, 2)) })}
 				</p>
 			{/if}
 			{@render ownedByFriends()}
@@ -237,7 +266,7 @@
 		<h2 class="text-2xl font-extrabold font-headline mb-1">{game.title}</h2>
 		{#if game.designers && game.designers.length > 0}
 			<p class="text-sm text-on-surface-variant">
-				by {game.designers.slice(0, 2).join(", ")}
+				{m("library.detail.by", { names: listFormat(game.designers.slice(0, 2)) })}
 			</p>
 		{/if}
 		{@render ownedByFriends()}
@@ -272,7 +301,7 @@
 
 <!-- Stats bar -->
 <div class="grid grid-cols-3 gap-2 mb-5">
-	{#each [{ label: "Players", value: game.minPlayers && game.maxPlayers ? `${game.minPlayers}–${game.maxPlayers}` : game.minPlayers ? `${game.minPlayers}+` : "—", icon: "group" }, { label: "Time", value: game.playTime ? `${game.playTime}m` : "—", icon: "timer" }, { label: "Complexity", value: game.complexityWeight ? game.complexityWeight.toFixed(1) : "—", icon: "psychology" }] as stat (stat.label)}
+	{#each stats as stat (stat.label)}
 		<div class="bg-surface-container-low rounded-xl p-3 text-center">
 			<span
 				class="material-symbols-outlined text-on-surface-variant text-[16px]"
@@ -284,7 +313,7 @@
 			<p
 				class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
 			>
-				{stat.label}
+				{m(stat.label)}
 			</p>
 		</div>
 	{/each}
@@ -297,10 +326,10 @@
 			<span
 				class="icon-filled material-symbols-outlined text-amber-400 text-[16px]">star</span
 			>
-			<span class="font-bold text-sm">{game.bggRating.toFixed(2)}</span>
+			<span class="font-bold text-sm">{formatNumber(game.bggRating, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
 			{#if game.usersRated}
 				<span class="text-xs text-on-surface-variant"
-					>({game.usersRated.toLocaleString()} ratings)</span
+					>{m("library.detail.ratings", { count: formatNumber(game.usersRated) })}</span
 				>
 			{/if}
 		</div>
@@ -324,7 +353,7 @@
 				>military_tech</span
 			>
 			<span class="text-xs font-bold text-on-surface-variant"
-				>BGG #{game.rank}</span
+				>{m("library.detail.bggRank", { rank: formatNumber(game.rank) })}</span
 			>
 		</div>
 	{/if}
@@ -395,7 +424,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				About
+				{m("library.detail.about")}
 			</p>
 			<p
 				class="text-sm text-on-surface leading-relaxed {descExpanded
@@ -408,7 +437,7 @@
 				onclick={() => (descExpanded = !descExpanded)}
 				class="text-xs text-primary font-bold mt-1"
 			>
-				{descExpanded ? "Show less" : "Read more"}
+				{descExpanded ? m("library.detail.showLess") : m("library.detail.readMore")}
 			</button>
 		</div>
 	{/if}
@@ -419,7 +448,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				Categories
+				{m("library.detail.categories")}
 			</p>
 			<div class="flex flex-wrap gap-2">
 				{#each game.categories! as cat, i (i)}
@@ -438,7 +467,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				Mechanics
+				{m("library.detail.mechanics")}
 			</p>
 			<div class="flex flex-wrap gap-2">
 				{#each game.mechanics! as mech, i (i)}
@@ -457,7 +486,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				Awards
+				{m("library.detail.awards")}
 			</p>
 			<div class="space-y-1">
 				{#each game.honors! as honor, i (i)}
@@ -480,7 +509,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				Designers
+				{m("library.detail.designers")}
 			</p>
 			<div class="flex flex-wrap gap-2">
 				{#each game.designers! as d, i (i)}
@@ -498,7 +527,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				Publishers
+				{m("library.detail.publishers")}
 			</p>
 			<div class="flex flex-wrap gap-2">
 				{#each game.publishers!.slice(0, 5) as p, i (i)}
@@ -517,7 +546,7 @@
 			<p
 				class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2"
 			>
-				Genre
+				{m("library.filters.genre")}
 			</p>
 			<div class="flex flex-wrap gap-2">
 				{#each game.families! as f, i (i)}
@@ -534,13 +563,13 @@
 	<div class="space-y-3 mb-4 mt-2">
 		{#if game.minAge}
 			<div class="flex justify-between text-sm">
-				<span class="text-on-surface-variant font-medium">Min Age</span>
-				<span class="font-bold">{game.minAge}+</span>
+				<span class="text-on-surface-variant font-medium">{m("library.detail.minAge")}</span>
+				<span class="font-bold">{m("library.detail.agePlus", { age: game.minAge })}</span>
 			</div>
 		{/if}
 		{#if game.gameType}
 			<div class="flex justify-between text-sm">
-				<span class="text-on-surface-variant font-medium">Type</span>
+				<span class="text-on-surface-variant font-medium">{m("library.detail.type")}</span>
 				<span class="font-bold capitalize">{game.gameType}</span>
 			</div>
 		{/if}
@@ -557,7 +586,7 @@
 			<span class="material-symbols-outlined text-[18px]"
 				>open_in_new</span
 			>
-			View on BoardGameGeek
+			{m("library.detail.viewOnBgg")}
 		</a>
 	{/if}
 

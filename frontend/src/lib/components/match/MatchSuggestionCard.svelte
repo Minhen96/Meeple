@@ -3,6 +3,7 @@
 	import { matchesApi } from '$lib/api/matches';
 	import { goto } from '$app/navigation';
 	import type { MatchGroup } from '$lib/types';
+	import { getLocale, m } from '$lib/i18n';
 
 	interface Props {
 		group: MatchGroup;
@@ -13,13 +14,14 @@
 	let loading = $state(false);
 
 	function formatWindow(): string {
-		if (!group.overlapStart) return 'Any time';
+		if (!group.overlapStart) return m('event.match.anyTime');
+		const locale = getLocale();
+		const time = (d: Date) => d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 		const start = new Date(group.overlapStart);
-		const end = group.overlapEnd ? new Date(group.overlapEnd) : null;
-		const dateStr = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-		const timeStr = start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-		const endStr = end ? ' – ' + end.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
-		return `${dateStr} · ${timeStr}${endStr}`;
+		const date = start.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+		return group.overlapEnd
+			? m('event.match.window', { date, start: time(start), end: time(new Date(group.overlapEnd)) })
+			: m('event.match.windowOpen', { date, start: time(start) });
 	}
 
 	async function handleAccept() {
@@ -46,7 +48,7 @@
 <div class="bg-gradient-to-br from-primary/10 to-primary-container/20 rounded-2xl p-4 space-y-3">
 	<div class="flex items-center gap-2">
 		<span class="material-symbols-outlined text-primary text-lg">star</span>
-		<p class="text-xs font-bold uppercase tracking-widest text-primary">Match Found!</p>
+		<p class="text-xs font-bold uppercase tracking-widest text-primary">{m('event.match.found')}</p>
 	</div>
 
 	<div class="flex items-center gap-3">
@@ -68,7 +70,9 @@
 			<Avatar src={member.avatarUrl} size="xs" />
 		{/each}
 		<span class="text-xs text-on-surface-variant ml-1">
-			{group.members.map(m => m.displayName ?? m.username).join(', ')}
+			{new Intl.ListFormat(getLocale(), { type: 'unit' }).format(
+				group.members.map((member) => member.displayName ?? member.username)
+			)}
 		</span>
 	</div>
 
@@ -78,14 +82,14 @@
 			disabled={loading}
 			class="flex-1 bg-primary text-on-primary text-sm font-semibold py-2.5 rounded-xl transition-opacity disabled:opacity-60"
 		>
-			Create Event
+			{m('event.action.create')}
 		</button>
 		<button
 			onclick={handleDismiss}
 			disabled={loading}
 			class="px-4 bg-surface-container text-on-surface-variant text-sm font-semibold py-2.5 rounded-xl transition-opacity disabled:opacity-60"
 		>
-			Dismiss
+			{m('event.match.dismiss')}
 		</button>
 	</div>
 </div>

@@ -43,5 +43,10 @@ export default {
 	'create.game': '添加游戏',
 	'create.gameHint': '把游戏加入你的收藏',
 	'create.match': '寻找匹配',
-	'create.matchHint': '寻找一起玩的好友'
+	'create.matchHint': '寻找一起玩的好友',
+
+	// Error page (routes/+error.svelte)
+	'error.title': '出错了',
+	'error.notFoundTitle': '页面不存在',
+	'error.home': '返回首页'
 } satisfies Translation<typeof en>;
