@@ -1,5 +1,6 @@
 package com.meeplehearth.post.service;
 
+import com.meeplehearth.common.dto.PageMeta;
 import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.config.AppProperties;
@@ -10,6 +11,7 @@ import com.meeplehearth.post.entity.*;
 import com.meeplehearth.post.repository.*;
 import com.meeplehearth.notification.entity.Notification;
 import com.meeplehearth.notification.service.NotificationService;
+import com.meeplehearth.social.repository.BlockRepository;
 import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
@@ -21,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +41,7 @@ public class PostService {
     private final AppProperties appProperties;
     private final FriendRequestRepository friendRequestRepository;
     private final NotificationService notificationService;
+    private final BlockRepository blockRepository;
 
     public PostService(PostRepository postRepository,
             PostLikeRepository postLikeRepository,
@@ -44,7 +50,8 @@ public class PostService {
             GameRepository gameRepository,
             AppProperties appProperties,
             FriendRequestRepository friendRequestRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            BlockRepository blockRepository) {
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
         this.postCommentRepository = postCommentRepository;
@@ -53,6 +60,7 @@ public class PostService {
         this.appProperties = appProperties;
         this.friendRequestRepository = friendRequestRepository;
         this.notificationService = notificationService;
+        this.blockRepository = blockRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -64,16 +72,17 @@ public class PostService {
         List<UUID> friendIds = friendRequestRepository.findFriendIds(currentUserId);
         List<UUID> feedIds = new ArrayList<>(friendIds);
         feedIds.add(currentUserId);
-        Page<Post> posts = postRepository.findFeedForUser(feedIds, PageRequest.of(page, size));
-        Set<UUID> likedPostIds = likedPostIds(currentUserId, posts);
-        return PageResponse.of(posts, p -> PostResponse.from(p, likedPostIds.contains(p.getId())));
+        Page<UUID> ids = postRepository.findFeedPostIds(feedIds, currentUserId, PageRequest.of(page, size));
+        return toPageResponse(ids, currentUserId);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<PostResponse> getUserPosts(UUID authorId, UUID currentUserId, int page, int size) {
-        Page<Post> posts = postRepository.findByAuthorId(authorId, PageRequest.of(page, size));
-        Set<UUID> likedPostIds = likedPostIds(currentUserId, posts);
-        return PageResponse.of(posts, p -> PostResponse.from(p, likedPostIds.contains(p.getId())));
+        if (blockRepository.existsBlockBetween(currentUserId, authorId)) {
+            throw ApiException.notFound("USER_NOT_FOUND", "User not found");
+        }
+        Page<UUID> ids = postRepository.findPostIdsByAuthorId(authorId, PageRequest.of(page, size));
+        return toPageResponse(ids, currentUserId);
     }
 
     // -------------------------------------------------------------------------
@@ -82,7 +91,7 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PostResponse getPost(UUID postId, UUID currentUserId) {
-        Post post = findActivePost(postId);
+        Post post = findVisiblePost(postId, currentUserId);
         boolean liked = postLikeRepository.existsById(new PostLikeId(postId, currentUserId));
         return PostResponse.from(post, liked);
     }
@@ -113,6 +122,7 @@ public class PostService {
             String publicBase = appProperties.getR2().getPublicUrl();
             for (int i = 0; i < req.imageKeys().size(); i++) {
                 String key = req.imageKeys().get(i);
+                validateImageKey(userId, key);
                 PostImage img = new PostImage();
                 img.setPost(post);
                 img.setUrl(publicBase + "/" + key);
@@ -157,15 +167,13 @@ public class PostService {
 
     @Transactional
     public void likePost(UUID userId, UUID postId) {
-        PostLikeId likeId = new PostLikeId(postId, userId);
-        if (postLikeRepository.existsById(likeId))
+        Post post = findVisiblePost(postId, userId);
+
+        // Idempotent: a duplicate like inserts nothing and changes nothing
+        if (postLikeRepository.insertIfAbsent(postId, userId) == 0)
             return;
 
-        postLikeRepository.save(new PostLike(likeId));
-
-        Post post = findActivePost(postId);
-        post.setLikeCount(post.getLikeCount() + 1);
-        postRepository.save(post);
+        postRepository.incrementLikeCount(postId);
 
         // Notify author (not if liking own post)
         UUID authorId = post.getAuthor().getId();
@@ -176,15 +184,9 @@ public class PostService {
 
     @Transactional
     public void unlikePost(UUID userId, UUID postId) {
-        PostLikeId likeId = new PostLikeId(postId, userId);
-        if (!postLikeRepository.existsById(likeId))
-            return;
-
-        postLikeRepository.deleteById(likeId);
-
-        Post post = findActivePost(postId);
-        post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
-        postRepository.save(post);
+        if (postLikeRepository.deleteByPostIdAndUserId(postId, userId) > 0) {
+            postRepository.decrementLikeCount(postId);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -195,7 +197,7 @@ public class PostService {
     public PostCommentResponse addComment(UUID userId, UUID postId, CreateCommentRequest req) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("User not found"));
-        Post post = findActivePost(postId);
+        Post post = findVisiblePost(postId, userId);
 
         PostComment comment = new PostComment();
         comment.setPost(post);
@@ -203,8 +205,7 @@ public class PostService {
         comment.setBody(req.body());
         PostComment saved = postCommentRepository.save(comment);
 
-        post.setCommentCount(post.getCommentCount() + 1);
-        postRepository.save(post);
+        postRepository.incrementCommentCount(postId);
 
         // Notify post author (not if commenting on own post)
         UUID authorId = post.getAuthor().getId();
@@ -216,8 +217,10 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<PostCommentResponse> getComments(UUID postId, int page, int size) {
-        Page<PostComment> comments = postCommentRepository.findByPostId(postId, PageRequest.of(page, size));
+    public PageResponse<PostCommentResponse> getComments(UUID postId, UUID currentUserId, int page, int size) {
+        findVisiblePost(postId, currentUserId);
+        Page<PostComment> comments = postCommentRepository.findVisibleByPostId(
+                postId, currentUserId, PageRequest.of(page, size));
         return PageResponse.of(comments, PostCommentResponse::from);
     }
 
@@ -226,18 +229,63 @@ public class PostService {
     // -------------------------------------------------------------------------
 
     private Post findActivePost(UUID postId) {
-        Post post = postRepository.findById(postId)
+        return postRepository.findActiveById(postId)
                 .orElseThrow(() -> ApiException.notFound("POST_NOT_FOUND", "Post not found"));
-        if (post.getDeletedAt() != null) {
+    }
+
+    /** Active post whose author has not blocked / been blocked by the viewer; otherwise 404. */
+    private Post findVisiblePost(UUID postId, UUID viewerId) {
+        Post post = findActivePost(postId);
+        if (blockRepository.existsBlockBetween(viewerId, post.getAuthor().getId())) {
             throw ApiException.notFound("POST_NOT_FOUND", "Post not found");
         }
         return post;
     }
 
-    private Set<UUID> likedPostIds(UUID userId, Page<Post> posts) {
-        if (userId == null)
+    /**
+     * Only keys issued by the upload endpoints for this user are accepted
+     * ("uploads/{userId}/{file}"), so a post cannot reference another user's object.
+     */
+    static void validateImageKey(UUID userId, String key) {
+        String prefix = "uploads/" + userId + "/";
+        if (key == null
+                || !key.startsWith(prefix)
+                || key.length() == prefix.length()
+                || key.contains("..")
+                || key.indexOf('/', prefix.length()) >= 0
+                || key.indexOf('\\') >= 0) {
+            throw ApiException.badRequest("INVALID_IMAGE_KEY", "Invalid image key");
+        }
+    }
+
+    /** Loads the page's posts with all associations in two queries, preserving the page order. */
+    private PageResponse<PostResponse> toPageResponse(Page<UUID> idPage, UUID currentUserId) {
+        PageMeta meta = new PageMeta(
+                idPage.getNumber() + 1,
+                idPage.getSize(),
+                idPage.getTotalElements(),
+                idPage.hasNext()
+        );
+        List<UUID> ids = idPage.getContent();
+        if (ids.isEmpty()) {
+            return new PageResponse<>(List.of(), meta);
+        }
+        Map<UUID, Post> byId = postRepository.findWithDetailsByIdIn(ids).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity(), (a, b) -> a));
+        postRepository.fetchTagsByIdIn(ids);
+        Set<UUID> likedPostIds = likedPostIds(currentUserId, byId.keySet());
+
+        List<PostResponse> data = ids.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .map(p -> PostResponse.from(p, likedPostIds.contains(p.getId())))
+                .toList();
+        return new PageResponse<>(data, meta);
+    }
+
+    private Set<UUID> likedPostIds(UUID userId, Set<UUID> postIds) {
+        if (userId == null || postIds.isEmpty())
             return Set.of();
-        Set<UUID> postIds = posts.stream().map(Post::getId).collect(Collectors.toSet());
         return postLikeRepository.findLikedPostIds(postIds, userId)
                 .stream().map(PostLikeId::getPostId).collect(Collectors.toSet());
     }

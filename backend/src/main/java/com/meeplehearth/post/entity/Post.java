@@ -6,6 +6,7 @@ import com.meeplehearth.event.entity.Event;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
@@ -45,7 +46,7 @@ public class Post {
     @Column(name = "played_at")
     private Instant playedAt;
 
-    // Denormalized counters — incremented/decremented in service to avoid COUNT queries
+    // Denormalized counters — updated atomically via PostRepository (never read-modify-write)
     @Column(name = "like_count", nullable = false)
     private int likeCount = 0;
 
@@ -54,9 +55,11 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
+    @BatchSize(size = 50)
     private List<PostImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private List<PostTag> tags = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)

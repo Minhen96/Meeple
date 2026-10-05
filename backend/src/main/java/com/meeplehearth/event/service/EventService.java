@@ -13,16 +13,21 @@ import com.meeplehearth.notification.entity.Notification;
 import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class EventService {
+
+    public static final int MAX_LIST_LIMIT = 100;
 
     private final EventRepository eventRepository;
     private final EventParticipantRepository participantRepository;
@@ -47,17 +52,19 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public List<EventResponse> getUpcomingEvents(UUID currentUserId) {
-        return eventRepository.findUpcomingEvents(Instant.now()).stream()
-                .map(e -> toResponse(e, currentUserId))
-                .toList();
+    public List<EventResponse> getUpcomingEvents(UUID currentUserId, int limit) {
+        int capped = Math.max(1, Math.min(limit, MAX_LIST_LIMIT));
+        List<Event> events = eventRepository.findUpcomingVisibleEvents(
+                Instant.now(), currentUserId, PageRequest.of(0, capped));
+        return toResponses(events, currentUserId);
     }
 
     @Transactional(readOnly = true)
     public List<EventResponse> getMyEvents(UUID userId) {
-        return participantRepository.findAcceptedByUserId(userId).stream()
-                .map(ep -> toResponse(ep.getEvent(), userId))
+        List<Event> events = participantRepository.findAcceptedByUserId(userId).stream()
+                .map(EventParticipant::getEvent)
                 .toList();
+        return toResponses(events, userId);
     }
 
     // -------------------------------------------------------------------------
@@ -66,7 +73,9 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public EventResponse getEvent(UUID eventId, UUID currentUserId) {
-        return toResponse(findActiveEvent(eventId), currentUserId);
+        Event event = eventRepository.findVisibleById(eventId, currentUserId)
+                .orElseThrow(() -> ApiException.notFound("EVENT_NOT_FOUND", "Event not found"));
+        return toResponse(event, currentUserId);
     }
 
     // -------------------------------------------------------------------------
@@ -142,7 +151,13 @@ public class EventService {
 
     @Transactional
     public EventResponse rsvp(UUID userId, UUID eventId, String statusStr) {
-        Event event = findActiveEvent(eventId);
+        // Lock the event row first so concurrent RSVPs are serialised for the capacity check
+        Event event = eventRepository.findActiveByIdForUpdate(eventId)
+                .orElseThrow(() -> ApiException.notFound("EVENT_NOT_FOUND", "Event not found"));
+        // Not visible (incl. blocked by/blocking the host) → 404 so existence is not leaked
+        if (!eventRepository.isVisibleTo(eventId, userId)) {
+            throw ApiException.notFound("EVENT_NOT_FOUND", "Event not found");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("User not found"));
 
@@ -150,17 +165,20 @@ public class EventService {
 
         Optional<EventParticipant> existing = participantRepository.findByEventIdAndUserId(eventId, userId);
 
+        boolean alreadyAccepted = existing
+                .map(ep -> ep.getStatus() == EventParticipant.RsvpStatus.ACCEPTED)
+                .orElse(false);
+        if (newStatus == EventParticipant.RsvpStatus.ACCEPTED && !alreadyAccepted) {
+            int acceptedCount = participantRepository.countAcceptedByEventId(eventId);
+            if (acceptedCount >= event.getMaxParticipants()) {
+                throw ApiException.conflict("EVENT_FULL", "This event is already full");
+            }
+        }
+
         if (existing.isPresent()) {
             existing.get().setStatus(newStatus);
             participantRepository.save(existing.get());
         } else {
-            // Capacity check (only for ACCEPTED)
-            if (newStatus == EventParticipant.RsvpStatus.ACCEPTED) {
-                int acceptedCount = participantRepository.countAcceptedByEventId(eventId);
-                if (acceptedCount >= event.getMaxParticipants()) {
-                    throw ApiException.conflict("EVENT_FULL", "This event is already full");
-                }
-            }
             participantRepository.save(new EventParticipant(event, user, newStatus));
         }
 
@@ -221,5 +239,31 @@ public class EventService {
                         .map(ep -> ep.getStatus().name())
                         .orElse(null);
         return EventResponse.from(event, count, myRsvp);
+    }
+
+    /** Batch variant: one GROUP BY query for counts and one query for the caller's RSVPs. */
+    private List<EventResponse> toResponses(List<Event> events, UUID currentUserId) {
+        if (events.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> ids = events.stream().map(Event::getId).toList();
+
+        Map<UUID, Long> counts = new HashMap<>();
+        for (Object[] row : participantRepository.countAcceptedByEventIds(ids)) {
+            counts.put((UUID) row[0], ((Number) row[1]).longValue());
+        }
+
+        Map<UUID, String> myRsvps = new HashMap<>();
+        if (currentUserId != null) {
+            for (EventParticipant ep : participantRepository.findByUserIdAndEventIds(currentUserId, ids)) {
+                myRsvps.put(ep.getId().getEventId(), ep.getStatus().name());
+            }
+        }
+
+        return events.stream()
+                .map(e -> EventResponse.from(e,
+                        counts.getOrDefault(e.getId(), 0L).intValue(),
+                        myRsvps.get(e.getId())))
+                .toList();
     }
 }

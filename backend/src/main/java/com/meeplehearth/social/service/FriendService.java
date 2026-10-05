@@ -53,22 +53,30 @@ public class FriendService {
         User receiver = findActiveUser(receiverId);
 
         // Block check — both directions
-        if (blockRepository.existsByIdBlockerIdAndIdBlockedId(senderId, receiverId) ||
-            blockRepository.existsByIdBlockerIdAndIdBlockedId(receiverId, senderId)) {
+        if (blockRepository.existsBlockBetween(senderId, receiverId)) {
             throw ApiException.forbidden("BLOCKED", "Cannot send friend request");
         }
 
         // Check for existing request in either direction
         List<FriendRequest> existing = friendRequestRepository.findBetween(senderId, receiverId);
         if (!existing.isEmpty()) {
-            FriendRequest fr = existing.get(0);
-            if (fr.getStatus() == FriendRequest.Status.ACCEPTED) {
+            if (existing.stream().anyMatch(r -> r.getStatus() == FriendRequest.Status.ACCEPTED)) {
                 throw ApiException.conflict("ALREADY_FRIENDS", "Already friends");
             }
-            if (fr.getStatus() == FriendRequest.Status.PENDING) {
+            if (existing.stream().anyMatch(r -> r.getStatus() == FriendRequest.Status.PENDING)) {
                 throw ApiException.conflict("REQUEST_PENDING", "Friend request already pending");
             }
-            // DECLINED — allow re-send by updating existing record
+            // DECLINED — allow re-send by reusing an existing record. Prefer a row already
+            // sent by the current user; otherwise flip the declined row so the current user
+            // becomes the sender (the unique key is (sender_id, receiver_id)).
+            FriendRequest fr = existing.stream()
+                    .filter(r -> r.getSender().getId().equals(senderId))
+                    .findFirst()
+                    .orElse(existing.get(0));
+            if (!fr.getSender().getId().equals(senderId)) {
+                fr.setSender(findActiveUser(senderId));
+                fr.setReceiver(receiver);
+            }
             fr.setStatus(FriendRequest.Status.PENDING);
             FriendRequest saved = friendRequestRepository.save(fr);
             notificationService.send(receiverId, Notification.NotificationType.FRIEND_REQUEST, senderId, saved.getId(), "FRIEND_REQUEST");

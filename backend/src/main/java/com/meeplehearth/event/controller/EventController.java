@@ -26,12 +26,13 @@ public class EventController {
         this.eventService = eventService;
     }
 
-    /** GET /api/v1/events — upcoming public events */
+    /** GET /api/v1/events?limit=50 — upcoming events visible to the caller (soonest first, capped at 100) */
     @GetMapping
     public ResponseEntity<List<EventResponse>> getEvents(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "50") int limit) {
         UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(eventService.getUpcomingEvents(userId));
+        return ResponseEntity.ok(eventService.getUpcomingEvents(userId, limit));
     }
 
     /** GET /api/v1/events/me — events the current user has accepted */

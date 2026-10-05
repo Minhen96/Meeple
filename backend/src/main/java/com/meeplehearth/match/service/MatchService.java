@@ -13,10 +13,7 @@ import com.meeplehearth.match.repository.MatchGroupRepository;
 import com.meeplehearth.match.repository.MatchRequestRepository;
 import com.meeplehearth.notification.entity.Notification;
 import com.meeplehearth.notification.service.NotificationService;
-import com.meeplehearth.social.repository.BlockRepository;
-import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.entity.User;
-import com.meeplehearth.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,27 +32,18 @@ public class MatchService {
 
     private final MatchRequestRepository matchRequestRepository;
     private final MatchGroupRepository matchGroupRepository;
-    private final UserRepository userRepository;
     private final GameRepository gameRepository;
-    private final FriendRequestRepository friendRequestRepository;
-    private final BlockRepository blockRepository;
     private final NotificationService notificationService;
     private final EventService eventService;
 
     public MatchService(MatchRequestRepository matchRequestRepository,
                         MatchGroupRepository matchGroupRepository,
-                        UserRepository userRepository,
                         GameRepository gameRepository,
-                        FriendRequestRepository friendRequestRepository,
-                        BlockRepository blockRepository,
                         NotificationService notificationService,
                         EventService eventService) {
         this.matchRequestRepository = matchRequestRepository;
         this.matchGroupRepository = matchGroupRepository;
-        this.userRepository = userRepository;
         this.gameRepository = gameRepository;
-        this.friendRequestRepository = friendRequestRepository;
-        this.blockRepository = blockRepository;
         this.notificationService = notificationService;
         this.eventService = eventService;
     }
@@ -66,11 +54,6 @@ public class MatchService {
 
     @Transactional
     public MatchRequestResponse createRequest(UUID userId, CreateMatchRequestDto dto) {
-        // Max active requests
-        if (matchRequestRepository.countByUserIdAndStatus(userId, MatchRequest.Status.ACTIVE) >= MAX_ACTIVE_REQUESTS) {
-            throw ApiException.badRequest("TOO_MANY_REQUESTS", "Maximum " + MAX_ACTIVE_REQUESTS + " active match requests allowed");
-        }
-
         // Validate time window
         if (dto.availableFrom() != null && dto.availableTo() != null) {
             if (!dto.availableFrom().isBefore(dto.availableTo())) {
@@ -84,7 +67,11 @@ public class MatchService {
         var game = gameRepository.findById(dto.gameId())
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
 
-        // Upsert: if an active request already exists for this game, update time window
+        // Serialise concurrent creates for this user (row lock held until commit)
+        User user = matchRequestRepository.lockUser(userId)
+                .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "User not found"));
+
+        // Idempotent upsert: if an active request already exists for this game, update time window
         Optional<MatchRequest> existing = matchRequestRepository
                 .findByUserIdAndGameIdAndStatus(userId, dto.gameId(), MatchRequest.Status.ACTIVE);
         if (existing.isPresent()) {
@@ -94,7 +81,11 @@ public class MatchService {
             return MatchRequestResponse.from(matchRequestRepository.save(mr));
         }
 
-        User user = userRepository.getReferenceById(userId);
+        // Max active requests (only applies when creating a new one)
+        if (matchRequestRepository.countByUserIdAndStatus(userId, MatchRequest.Status.ACTIVE) >= MAX_ACTIVE_REQUESTS) {
+            throw ApiException.badRequest("TOO_MANY_REQUESTS", "Maximum " + MAX_ACTIVE_REQUESTS + " active match requests allowed");
+        }
+
         MatchRequest mr = new MatchRequest();
         mr.setUser(user);
         mr.setGame(game);
@@ -196,14 +187,7 @@ public class MatchService {
             group.setStatus(MatchGroup.Status.DISMISSED);
             matchGroupRepository.save(group);
 
-            group.getMembers().forEach(m -> {
-                matchRequestRepository
-                        .findByUserIdAndGameIdAndStatus(m.getUser().getId(), group.getGame().getId(), MatchRequest.Status.MATCHED)
-                        .ifPresent(mr -> {
-                            mr.setStatus(MatchRequest.Status.ACTIVE);
-                            matchRequestRepository.save(mr);
-                        });
-            });
+            reactivateRequests(List.of(group.getId()));
         }
     }
 
@@ -330,19 +314,26 @@ public class MatchService {
     private void expireOldGroups() {
         Instant cutoff = Instant.now().minus(48, ChronoUnit.HOURS);
         List<MatchGroup> expired = matchGroupRepository.findExpiredGroups(cutoff);
-        for (MatchGroup g : expired) {
-            g.setStatus(MatchGroup.Status.EXPIRED);
-            matchGroupRepository.save(g);
-            // Reactivate requests
-            g.getMembers().forEach(m ->
-                    matchRequestRepository
-                            .findByUserIdAndGameIdAndStatus(m.getUser().getId(), g.getGame().getId(), MatchRequest.Status.MATCHED)
-                            .ifPresent(mr -> {
-                                mr.setStatus(MatchRequest.Status.ACTIVE);
-                                matchRequestRepository.save(mr);
-                            })
-            );
-        }
+        if (expired.isEmpty()) return;
+
+        expired.forEach(g -> g.setStatus(MatchGroup.Status.EXPIRED));
+        matchGroupRepository.saveAll(expired);
+
+        reactivateRequests(expired.stream().map(MatchGroup::getId).toList());
+    }
+
+    /**
+     * Puts the groups' members' MATCHED requests back to ACTIVE in one query (no per-member
+     * lookups). At most one request per (user, game) is reactivated — the newest — so the
+     * one-ACTIVE-per-game unique index can never be violated.
+     */
+    private void reactivateRequests(List<UUID> groupIds) {
+        Set<String> seen = new HashSet<>();
+        List<MatchRequest> toReactivate = matchRequestRepository.findReactivatableForGroups(groupIds).stream()
+                .filter(mr -> seen.add(mr.getUser().getId() + ":" + mr.getGame().getId()))
+                .toList();
+        toReactivate.forEach(mr -> mr.setStatus(MatchRequest.Status.ACTIVE));
+        matchRequestRepository.saveAll(toReactivate);
     }
 
     // -------------------------------------------------------------------------
@@ -366,16 +357,16 @@ public class MatchService {
     // Friend / block helpers
     // -------------------------------------------------------------------------
 
+    // Only pairs among users with an ACTIVE request are loaded, never the whole tables
     private Set<String> buildFriendPairSet() {
-        return friendRequestRepository.findAll().stream()
-                .filter(fr -> fr.getStatus() == com.meeplehearth.social.entity.FriendRequest.Status.ACCEPTED)
-                .map(fr -> pairKey(fr.getSender().getId(), fr.getReceiver().getId()))
+        return matchRequestRepository.findFriendPairsAmongActiveRequesters().stream()
+                .map(row -> pairKey((UUID) row[0], (UUID) row[1]))
                 .collect(Collectors.toSet());
     }
 
     private Set<String> buildBlockPairSet() {
-        return blockRepository.findAll().stream()
-                .map(b -> pairKey(b.getId().getBlockerId(), b.getId().getBlockedId()))
+        return matchRequestRepository.findBlockPairsAmongActiveRequesters().stream()
+                .map(row -> pairKey((UUID) row[0], (UUID) row[1]))
                 .collect(Collectors.toSet());
     }
 
