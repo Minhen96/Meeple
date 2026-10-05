@@ -503,6 +503,10 @@ SENTRY_ENVIRONMENT=production               # optional: defaults to the active S
 SENTRY_TRACES_SAMPLE_RATE=0.0               # optional
 SPRING_PROFILES_ACTIVE=prod                 # required: local | staging | prod (no default)
 SERVER_PORT=8080
+RATE_LIMIT_ENABLED=true                     # optional: global API rate limits (200/min user, 20/min IP, 10/min login)
+IOS_APP_ID=<TeamID>.<bundle id>             # optional: /.well-known/apple-app-site-association (empty = no apps)
+ANDROID_PACKAGE_NAME=com.meeplehearth.app   # optional: /.well-known/assetlinks.json
+ANDROID_SHA256_FINGERPRINTS=AA:BB:...       # optional, comma-separated signing cert fingerprints
 ```
 
 ### SvelteKit (set in Cloudflare Pages dashboard)
@@ -516,6 +520,9 @@ VITE_SENTRY_ENVIRONMENT=production           # optional: defaults to the Vite mo
 VITE_POSTHOG_KEY=phc_...                     # optional: unset disables PostHog
 VITE_POSTHOG_HOST=https://us.i.posthog.com   # optional
 COOKIE_DOMAIN=meeple-hearth.com   # optional, server-only; must match the backend's COOKIE_DOMAIN
+VITE_TERMS_URL=https://meeple-hearth.com/terms      # optional: Settings > About links (defaults shown)
+VITE_PRIVACY_URL=https://meeple-hearth.com/privacy  # optional
+VITE_FEEDBACK_EMAIL=feedback@meeple-hearth.com     # optional: Send Feedback mailto
 # Web push (optional; push disabled when unset)
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_PROJECT_ID=...

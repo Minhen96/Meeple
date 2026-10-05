@@ -1,5 +1,6 @@
 import { authApi } from '$lib/api/auth';
 import { identifyUser } from '$lib/observability';
+import { pushApi } from '$lib/push';
 import { setUser } from '$lib/stores/auth';
 import { disconnectWS } from '$lib/stores/websocket';
 
@@ -41,6 +42,12 @@ export function clearClientSession() {
  * the client state. Server failures never block logout: the local session is cleared anyway.
  */
 export async function logout(): Promise<void> {
+	// Drop this browser's push token while the session is still valid (never blocks logout)
+	try {
+		await pushApi.unregister();
+	} catch {
+		// best effort
+	}
 	try {
 		await authApi.logout();
 	} catch {
