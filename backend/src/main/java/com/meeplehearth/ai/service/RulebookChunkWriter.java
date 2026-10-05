@@ -6,6 +6,7 @@ import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.ai.repository.RuleChunkRepository;
 import com.meeplehearth.game.repository.GameRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -70,8 +71,12 @@ public class RulebookChunkWriter {
         return true;
     }
 
-    /** Marks an 'ingesting' rulebook as failed (no-op for any other status). */
-    @Transactional
+    /**
+     * Marks an 'ingesting' rulebook as failed (no-op for any other status). Always in its own
+     * transaction: it is also called from after-commit callbacks, where joining the finished
+     * transaction would silently never commit.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(UUID rulebookId) {
         rulebookRepository.findById(rulebookId).ifPresent(rulebook -> {
             if ("ingesting".equals(rulebook.getStatus())) {

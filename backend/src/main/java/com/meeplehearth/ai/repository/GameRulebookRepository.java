@@ -5,9 +5,11 @@ import com.meeplehearth.game.entity.Game;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -53,6 +55,9 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
      * Games that need a rulebook fetch attempt, ordered by BGG rank (highest-ranked first):
      *  - No approved rulebook AND no currently-ingesting rulebook.
      *  - 'ingesting' entries older than the cutoff are considered crashed and retried.
+     *  - Back-off after failures: no 'failed' rulebook attempted after {@code failedCutoff}
+     *    (attempt time = reviewedAt for admin retries, else createdAt), and fewer than
+     *    {@code maxFailedAttempts} failed rulebooks in total.
      */
     @Query("""
             SELECT g FROM Game g
@@ -67,7 +72,30 @@ public interface GameRulebookRepository extends JpaRepository<GameRulebook, UUID
                 WHERE r.game = g AND r.status = 'ingesting'
                   AND COALESCE(r.reviewedAt, r.createdAt) > :ingestingCutoff
               )
+              AND NOT EXISTS (
+                SELECT 1 FROM GameRulebook r
+                WHERE r.game = g AND r.status = 'failed'
+                  AND COALESCE(r.reviewedAt, r.createdAt) > :failedCutoff
+              )
+              AND (SELECT COUNT(r) FROM GameRulebook r
+                   WHERE r.game = g AND r.status = 'failed') < :maxFailedAttempts
             ORDER BY g.rank ASC NULLS LAST
             """)
-    List<Game> findGamesWithoutApprovedRulebook(@Param("ingestingCutoff") Instant ingestingCutoff, Pageable pageable);
+    List<Game> findGamesWithoutApprovedRulebook(@Param("ingestingCutoff") Instant ingestingCutoff,
+                                                @Param("failedCutoff") Instant failedCutoff,
+                                                @Param("maxFailedAttempts") long maxFailedAttempts,
+                                                Pageable pageable);
+
+    /**
+     * Marks 'ingesting' rulebooks whose ingestion started before {@code cutoff} as failed: their
+     * async ingestion task was lost (restart, executor rejection) or crashed without cleanup.
+     */
+    @Modifying
+    @Transactional
+    @Query("""
+            UPDATE GameRulebook r SET r.status = 'failed'
+            WHERE r.status = 'ingesting'
+              AND COALESCE(r.reviewedAt, r.createdAt) < :cutoff
+            """)
+    int markStaleIngestingFailed(@Param("cutoff") Instant cutoff);
 }
