@@ -26,21 +26,4 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Page<User> findByIdInAndDeletedAtIsNull(Collection<UUID> ids, Pageable pageable);
 
-    @Query("""
-            SELECT u FROM User u
-            WHERE u.deletedAt IS NULL
-              AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%'))
-                   OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :q, '%')))
-            ORDER BY u.username ASC
-            """)
-    Page<User> searchByUsernameOrDisplayName(String q, Pageable pageable);
-
-    @Query("""
-            SELECT u FROM User u
-            WHERE u.deletedAt IS NULL
-              AND u.id <> :excludeId
-              AND u.id NOT IN :excludeIds
-            ORDER BY u.createdAt DESC
-            """)
-    Page<User> findSuggestions(UUID excludeId, Collection<UUID> excludeIds, Pageable pageable);
 }

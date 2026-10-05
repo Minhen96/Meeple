@@ -301,7 +301,8 @@ class PostFeaturesIntegrationTest extends ApiIntegrationTestBase {
         assertThat(commentCount(postId)).isZero();
         mvc.perform(get("/api/v1/posts/{id}/comments", postId).with(as(author)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(0));
+                .andExpect(jsonPath("$.data.items.length()").value(0))
+                .andExpect(jsonPath("$.data.hasMore").value(false));
     }
 
     // -------------------------------------------------------------------------

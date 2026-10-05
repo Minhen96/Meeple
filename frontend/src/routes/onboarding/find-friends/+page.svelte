@@ -1,27 +1,25 @@
 <script lang="ts">
-	// Step 4 — Find friends (SCREENS_AND_STATES section 3.5): suggestions, username search and
-	// an inline "Add Friend" button that turns into "Pending" immediately (optimistic).
+	// Step 4 — Find friends (SCREENS_AND_STATES section 3.5): suggestions (games in common),
+	// username search, and the shared FriendButton: "Add Friend" → "Pending" → "Friends".
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { toast } from 'svelte-sonner';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import SkeletonPattern from '$lib/components/ui/SkeletonPattern.svelte';
-	import { ApiRequestError } from '$lib/api/client';
-	import { friendsApi } from '$lib/api/friends';
-	import { errorMessage, m } from '$lib/i18n';
-	import type { User } from '$lib/types';
+	import FriendButton from '$lib/components/social/FriendButton.svelte';
+	import { usersApi } from '$lib/api/users';
+	import { m } from '$lib/i18n';
+	import type { FriendshipStatus, UserSummaryWithStatus } from '$lib/types';
 	import { nextStepPath } from '../onboarding';
 
 	const SEARCH_DEBOUNCE_MS = 400;
 	const next = nextStepPath('/onboarding/find-friends') ?? '/';
 
-	let suggestions = $state<User[]>([]);
-	let results = $state<User[]>([]);
+	let suggestions = $state<UserSummaryWithStatus[]>([]);
+	let results = $state<UserSummaryWithStatus[]>([]);
 	let loading = $state(true);
 	let searching = $state(false);
 	let query = $state('');
-	let requested = $state<Record<string, boolean>>({});
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 	let searchSeq = 0;
 
@@ -30,7 +28,7 @@
 
 	async function loadSuggestions() {
 		try {
-			const page = await friendsApi.getSuggestions(0, 10);
+			const page = await usersApi.getSuggestions(10);
 			suggestions = page.data ?? [];
 		} catch {
 			suggestions = [];
@@ -56,7 +54,7 @@
 		const seq = ++searchSeq;
 		searchTimer = setTimeout(async () => {
 			try {
-				const page = await friendsApi.searchUsers(q, 0, 20);
+				const page = await usersApi.searchUsers(q, 0, 20);
 				if (seq === searchSeq) results = page.data ?? [];
 			} catch {
 				if (seq === searchSeq) results = [];
@@ -66,20 +64,12 @@
 		}, SEARCH_DEBOUNCE_MS);
 	}
 
-	async function addFriend(user: User) {
-		requested = { ...requested, [user.id]: true };
-		try {
-			await friendsApi.sendRequest(user.id);
-		} catch (err) {
-			const code = err instanceof ApiRequestError ? err.code : 'NETWORK_ERROR';
-			// Already pending / already friends: keep the chip; anything else rolls back
-			if (code !== 'ALREADY_REQUESTED' && code !== 'ALREADY_FRIENDS' && code !== 'CONFLICT') {
-				const rest = { ...requested };
-				delete rest[user.id];
-				requested = rest;
-				toast.error(errorMessage(code));
-			}
-		}
+	/** Keeps both lists in step when a person appears in suggestions and search results. */
+	function setStatus(userId: string, status: FriendshipStatus) {
+		const update = (list: UserSummaryWithStatus[]) =>
+			list.map((p) => (p.id === userId ? { ...p, friendshipStatus: status } : p));
+		suggestions = update(suggestions);
+		results = update(results);
 	}
 </script>
 
@@ -122,14 +112,11 @@
 					<p class="text-sm font-bold text-on-surface truncate">{person.displayName || person.username}</p>
 					<p class="text-xs text-on-surface-variant truncate">@{person.username}</p>
 				</div>
-				{#if requested[person.id]}
-					<span class="text-xs font-bold px-3 py-2 rounded-full bg-secondary-container text-on-secondary-container flex items-center gap-1">
-						<span class="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span>
-						{m('account.findFriends.pending')}
-					</span>
-				{:else}
-					<Button size="sm" onclick={() => addFriend(person)}>{m('account.findFriends.add')}</Button>
-				{/if}
+				<FriendButton
+					userId={person.id}
+					status={person.friendshipStatus}
+					onChange={(status) => setStatus(person.id, status)}
+				/>
 			</li>
 		{/each}
 	</ul>

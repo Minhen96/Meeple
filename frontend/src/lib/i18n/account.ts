@@ -151,6 +151,7 @@ export default {
 	'profile.editTitle': 'Edit Profile',
 	'profile.edit': 'Edit Profile',
 	'profile.share': 'Share profile',
+	'profile.savedPosts': 'Saved posts',
 	'profile.displayName': 'Display Name',
 	'profile.displayNameRequired': 'Display name is required',
 	'profile.username': 'Username',
@@ -276,7 +277,5 @@ export default {
 	'findFriends.searchPlaceholder': 'Search by username or name',
 	'findFriends.suggested': 'Suggested for you',
 	'findFriends.empty': 'No suggestions yet. Search for friends by username.',
-	'findFriends.noResults': "No players found for '{query}'",
-	'findFriends.add': 'Add Friend',
-	'findFriends.pending': 'Pending'
+	'findFriends.noResults': "No players found for '{query}'"
 } as const satisfies Messages;

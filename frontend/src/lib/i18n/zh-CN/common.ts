@@ -43,5 +43,17 @@ export default {
 	'create.game': '添加游戏',
 	'create.gameHint': '把游戏加入你的收藏',
 	'create.match': '寻找匹配',
-	'create.matchHint': '寻找一起玩的好友'
+	'create.matchHint': '寻找一起玩的好友',
+
+	// Error page (routes/+error.svelte)
+	'error.title': '出错了',
+	'error.notFoundTitle': '页面不存在',
+	'error.home': '返回首页',
+
+	// Photo ordering (post create)
+	'photoOrder.handle': '拖动以调整第 {position} 张照片的顺序',
+	'photoOrder.moveLeft': '将第 {position} 张照片左移',
+	'photoOrder.moveRight': '将第 {position} 张照片右移',
+	'photoOrder.moved': '照片已移至第 {position} 位（共 {total} 张）',
+	'photoOrder.hint': '拖动照片或使用箭头调整顺序。'
 } satisfies Translation<typeof en>;

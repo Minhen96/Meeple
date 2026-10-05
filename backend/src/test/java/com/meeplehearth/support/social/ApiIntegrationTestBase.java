@@ -24,7 +24,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * real Postgres schema. Deliberately NOT {@code @Transactional}: every request commits like in
  * production (so lazy-loading outside a transaction fails exactly as it would live). Each test's
  * rows are tracked and removed in {@link #cleanUp()}; deleting the users and games cascades to
- * posts, events, friend requests, blocks, notifications, match requests and match groups.
+ * posts, friend requests, blocks, notifications, match requests and match groups. Hosted events
+ * and comments are deleted explicitly first: their user foreign keys are ON DELETE SET NULL (V60).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -41,13 +42,20 @@ public abstract class ApiIntegrationTestBase {
     @AfterEach
     void cleanUp() {
         for (UUID id : createdUsers) {
-            jdbc.update("DELETE FROM users WHERE id = ?", id);
+            deleteUserRows(jdbc, id);
         }
         for (UUID id : createdGames) {
             jdbc.update("DELETE FROM games WHERE id = ?", id);
         }
         createdUsers.clear();
         createdGames.clear();
+    }
+
+    /** Deletes a test user with the events they host and their comments (kept by V60 otherwise). */
+    public static void deleteUserRows(JdbcTemplate jdbc, UUID userId) {
+        jdbc.update("DELETE FROM events WHERE host_id = ?", userId);
+        jdbc.update("DELETE FROM post_comments WHERE author_id = ?", userId);
+        jdbc.update("DELETE FROM users WHERE id = ?", userId);
     }
 
     // -------------------------------------------------------------------------

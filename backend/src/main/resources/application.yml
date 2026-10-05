@@ -123,6 +123,20 @@ resilience4j:
         waitDurationInOpenState: 60s
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
+      # Cloudflare R2 server-side operations (post image key move, FEATURES_COMPLETE 5.2)
+      r2:
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  retry:
+    instances:
+      r2:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
   timelimiter:
     instances:
       bgg:

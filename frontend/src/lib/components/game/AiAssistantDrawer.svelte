@@ -6,6 +6,7 @@
 	import type { ConversationTurn } from "$lib/types";
 	import { currentUser } from "$lib/stores/auth";
 	import { aiChatStorageKey } from "$lib/session";
+	import { m } from "$lib/i18n";
 
 	interface Message {
 		role: "user" | "assistant";
@@ -29,7 +30,7 @@
 	function makeWelcome(): Message {
 		return {
 			role: "assistant",
-			content: `Hi! I'm ready to answer questions about **${gameTitle}**. Ask me about setup, turn order, rules, or tricky edge cases!`
+			content: m("library.ai.welcome", { title: gameTitle })
 		};
 	}
 
@@ -123,14 +124,14 @@
 			let content: string;
 			if (e instanceof ApiRequestError) {
 				if (e.status === 429) {
-					content = "You've reached the daily limit (20 questions). Come back tomorrow!";
+					content = m("library.ai.dailyLimit", { count: 20 });
 				} else if (e.status === 400) {
-					content = "Question too long — please keep it under 500 characters.";
+					content = m("library.ai.tooLong", { count: 500 });
 				} else {
-					content = "Something went wrong. Please try again.";
+					content = m("errors.unknown");
 				}
 			} else {
-				content = "Could not reach the server. Check your connection and try again.";
+				content = m("errors.network");
 			}
 			messages = [...messages, { role: "assistant" as const, content }];
 		} finally {
@@ -182,7 +183,7 @@
 					<span class="material-symbols-outlined">smart_toy</span>
 				</div>
 				<div>
-					<h3 class="font-bold text-on-surface leading-tight text-sm">Rules Assistant</h3>
+					<h3 class="font-bold text-on-surface leading-tight text-sm">{m("library.ai.title")}</h3>
 					<p class="text-[10px] uppercase font-black tracking-widest text-on-surface-variant opacity-70">
 						{gameTitle}
 					</p>
@@ -192,7 +193,8 @@
 				{#if messages.length > 1}
 					<button
 						onclick={clearChat}
-						title="Clear chat"
+						title={m("library.ai.clear")}
+						aria-label={m("library.ai.clear")}
 						class="w-9 h-9 rounded-full hover:bg-surface-container-high flex items-center justify-center transition-colors text-on-surface-variant"
 					>
 						<span class="material-symbols-outlined text-[18px]">delete_sweep</span>
@@ -200,6 +202,7 @@
 				{/if}
 				<button
 					onclick={close}
+					aria-label={m("common.close")}
 					class="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center transition-colors"
 				>
 					<span class="material-symbols-outlined text-on-surface-variant">close</span>
@@ -222,7 +225,7 @@
 								: 'bg-surface-container-low text-on-surface rounded-tl-none'}
 						">
 							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-							{@html renderMd(msg.content)}
+							{@html renderMd(i === 0 && msg.role === "assistant" ? makeWelcome().content : msg.content)}
 						</div>
 
 						<!-- Source mode badge — only on real assistant answers (not the welcome msg) -->
@@ -235,7 +238,7 @@
 									<span class="material-symbols-outlined text-[10px]">
 										{msg.sourceMode === 'rulebook' ? 'menu_book' : 'psychology'}
 									</span>
-									{msg.sourceMode === 'rulebook' ? 'Rulebook' : 'General AI'}
+									{msg.sourceMode === 'rulebook' ? m('library.ai.source.rulebook') : m('library.ai.source.general')}
 								</span>
 							</div>
 							{#if msg.disclaimer}
@@ -246,7 +249,7 @@
 						{/if}
 
 						<p class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant opacity-40 px-1">
-							{msg.role === 'user' ? 'You' : 'Assistant'}
+							{msg.role === 'user' ? m('library.ai.you') : m('library.ai.assistant')}
 						</p>
 					</div>
 				</div>
@@ -270,20 +273,21 @@
 					type="text"
 					bind:value={inputValue}
 					onkeydown={handleKeydown}
-					placeholder="Ask a rule question…"
+					placeholder={m("library.ai.placeholder")}
 					maxlength="500"
 					class="flex-1 bg-transparent text-sm py-2 focus:outline-none"
 				/>
 				<button
 					onclick={sendMessage}
 					disabled={!inputValue.trim() || isTyping}
+					aria-label={m("library.ai.send")}
 					class="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-lg shadow-primary/20 disabled:opacity-30 disabled:shadow-none transition-all active:scale-95"
 				>
 					<span class="material-symbols-outlined">send</span>
 				</button>
 			</div>
 			<p class="text-[9px] text-center text-on-surface-variant mt-3 opacity-50 font-medium">
-				AI can make mistakes. Verify critical rules with the official rulebook.
+				{m("library.ai.disclaimer")}
 			</p>
 		</div>
 	</div>

@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { m } from '$lib/i18n';
+
 	interface Props {
 		/** Tailwind size + color classes, e.g. "w-5 h-5 text-primary". Stroke uses currentColor. */
 		className?: string;
 		label?: string;
 	}
 
-	let { className = 'w-5 h-5', label = 'Loading' }: Props = $props();
+	let { className = 'w-5 h-5', label = m('common.loading') }: Props = $props();
 </script>
 
 <svg

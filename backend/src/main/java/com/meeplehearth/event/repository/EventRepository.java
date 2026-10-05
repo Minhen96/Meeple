@@ -214,6 +214,21 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
             + " AND e.reminderSent = false AND e.scheduledAt BETWEEN :from AND :to ORDER BY e.scheduledAt ASC")
     List<UUID> findIdsDueForReminder(Instant from, Instant to);
 
+    /** Live (OPEN/FULL, not deleted) events hosted by {@code hostId} that start after {@code now}. */
+    @Query("SELECT e.id FROM Event e WHERE e.host.id = :hostId AND e.deletedAt IS NULL"
+            + " AND e.status IN ('OPEN', 'FULL') AND e.scheduledAt > :now ORDER BY e.scheduledAt ASC")
+    List<UUID> findUpcomingLiveIdsHostedBy(UUID hostId, Instant now);
+
+    /**
+     * Cancels (status CANCELLED plus soft delete, like a host cancel) the given events if they are
+     * still live; returns how many changed. A bulk update, so it is written before any later JDBC
+     * statement in the same transaction (the account hard delete removes the user row next).
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Event e SET e.status = 'CANCELLED', e.deletedAt = :now, e.updatedAt = :now"
+            + " WHERE e.id IN :eventIds AND e.deletedAt IS NULL AND e.status IN ('OPEN', 'FULL')")
+    int cancelLive(Collection<UUID> eventIds, Instant now);
+
     /** Claims one event's reminder; returns 1 only for the call that flipped the flag. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE Event e SET e.reminderSent = true"

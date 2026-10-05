@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.meeplehearth.event.entity.Event;
 import com.meeplehearth.event.entity.EventParticipant;
 import com.meeplehearth.game.dto.GameSummaryResponse;
+import com.meeplehearth.user.dto.UserSummary;
 import com.meeplehearth.user.entity.User;
 
 import java.time.Instant;
@@ -21,11 +22,14 @@ import java.util.UUID;
  *       sees accepted participants only. Users the viewer blocked, or who blocked the viewer, are
  *       left out. {@code participantCount} is always the full accepted count.</li>
  *   <li>{@code myRsvp}: INVITED | ACCEPTED | DECLINED | LEFT | KICKED | null.</li>
+ *   <li>{@code host}: the shared {@link UserSummary}; {@code deleted=true} (no name or avatar)
+ *       when the host's account is deleted, including after the hard delete set it to NULL
+ *       ({@link UserSummary#deletedPlaceholder()}).</li>
  * </ul>
  */
 public record EventResponse(
         UUID id,
-        HostInfo host,
+        UserSummary host,
         GameSummaryResponse game,
         String title,
         String description,
@@ -42,8 +46,6 @@ public record EventResponse(
         List<ParticipantInfo> participants,
         Instant createdAt
 ) {
-    public record HostInfo(UUID id, String username, String displayName, String avatarUrl) {}
-
     public record ParticipantInfo(UUID id, String username, String displayName, String avatarUrl, String status) {
         public static ParticipantInfo from(EventParticipant ep) {
             User u = ep.getUser();
@@ -61,10 +63,9 @@ public record EventResponse(
     public static EventResponse from(Event event, int participantCount, String myRsvp, UUID viewerId,
                                      List<ParticipantInfo> participants) {
         User hostUser = event.getHost();
-        HostInfo host = new HostInfo(hostUser.getId(), hostUser.getUsername(), hostUser.getDisplayName(),
-                hostUser.getAvatarUrl());
+        UserSummary host = UserSummary.fromNullable(hostUser);
         GameSummaryResponse game = event.getGame() != null ? GameSummaryResponse.from(event.getGame()) : null;
-        boolean isHost = hostUser.getId().equals(viewerId);
+        boolean isHost = hostUser != null && hostUser.getId().equals(viewerId);
         return new EventResponse(
                 event.getId(),
                 host,

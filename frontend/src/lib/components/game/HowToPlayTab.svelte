@@ -10,6 +10,8 @@
 	import { subscribeToHowToPlayProgress } from "$lib/stores/websocket";
 	import { toast } from "svelte-sonner";
 	import { ApiRequestError } from "$lib/api/client";
+	import { errorMessage, m } from "$lib/i18n";
+	import { formatPercent } from "$lib/i18n/format";
 	import type {
 		HowToPlayApiResponse,
 		HowToPlayContent,
@@ -68,7 +70,7 @@
 	 * started tracking a generation, assume the job was lost and offer a retry.
 	 */
 	const HTP_NOT_GENERATED_TIMEOUT_MS = 2 * 60 * 1000;
-	const HTP_FAILED_FALLBACK = "Could not generate the guide. Please try again.";
+	const htpFailedFallback = () => m("library.htp.failedFallback");
 
 	let destroyed = false;
 	let htpPollInterval: ReturnType<typeof setInterval> | null = null;
@@ -89,8 +91,8 @@
 
 	function friendlyError(err: unknown, fallback: string): string {
 		if (err instanceof ApiRequestError) {
-			if (err.status === 429) return "Too many requests, try later.";
-			if (err.status === 0) return err.message;
+			if (err.status === 429) return errorMessage("RATE_LIMITED");
+			if (err.status === 0) return errorMessage(err.code);
 		}
 		return fallback;
 	}
@@ -159,7 +161,7 @@
 	}
 
 	function showHtpFailed(message: string | null | undefined) {
-		howToPlayErrorMessage = message?.trim() ? message : HTP_FAILED_FALLBACK;
+		howToPlayErrorMessage = message?.trim() ? message : htpFailedFallback();
 		howToPlayState = "failed";
 	}
 
@@ -257,7 +259,7 @@
 			} else {
 				howToPlayState = "error";
 			}
-			toast.error(friendlyError(err, "Could not start generation."));
+			toast.error(friendlyError(err, m("library.htp.generateFailed")));
 		}
 	}
 
@@ -295,17 +297,17 @@
 				// User uploads must be approved by an admin before they go live.
 				rulebookState = "pending_review";
 				myQueuePosition = result.queuePosition ?? null;
-				toast.success("Submitted for review. Rules will appear once an admin approves it.");
+				toast.success(m("library.htp.uploadSubmitted"));
 			} else if (result.status === "ingesting") {
 				rulebookState = "generating";
-				toast.success("PDF validated! Processing rulebook…");
+				toast.success(m("library.htp.uploadProcessing"));
 				startRulebookPolling();
 			} else if (result.status === "already_done") {
 				rulebookState = "ready";
 				fetchHowToPlay();
 			}
 		} catch (err) {
-			toast.error(friendlyError(err, "Upload failed. File must be a PDF under 25 MB."));
+			toast.error(friendlyError(err, m("library.htp.uploadFailed")));
 		} finally {
 			uploading = false;
 			fileInput.value = "";
@@ -319,14 +321,14 @@
 		try {
 			await adminApi.uploadRulebookForGame(gameId, file);
 			rulebookState = "generating";
-			toast.success("Uploading and ingesting…");
+			toast.success(m("admin.upload.started"));
 			startRulebookPolling();
 		} catch (err) {
 			const detail =
 				err instanceof ApiRequestError && err.status !== 429 && err.message
 					? ` ${err.message}`
 					: "";
-			toast.error(friendlyError(err, `Admin upload failed.${detail}`));
+			toast.error(friendlyError(err, `${m("admin.upload.failed")}${detail}`));
 		} finally {
 			uploading = false;
 			adminFileInput.value = "";
@@ -348,9 +350,9 @@
 			myNote = await ruleNotesApi.submit(gameId, noteText.trim());
 			showNoteEditor = false;
 			noteText = '';
-			toast.success('Note submitted — pending admin review.');
+			toast.success(m('library.htp.note.submitted'));
 		} catch {
-			toast.error('Failed to submit note.');
+			toast.error(m('library.htp.note.submitFailed'));
 		} finally {
 			submittingNote = false;
 		}
@@ -363,9 +365,9 @@
 			myNote = null;
 			noteText = '';
 			showNoteEditor = false;
-			toast.success('Note removed.');
+			toast.success(m('library.htp.note.removed'));
 		} catch {
-			toast.error('Failed to remove note.');
+			toast.error(m('library.htp.note.removeFailed'));
 		} finally {
 			deletingNote = false;
 		}
@@ -390,16 +392,15 @@
 					<span class="material-symbols-outlined text-[16px]"
 						>auto_awesome</span
 					>
-					AI Rule Extraction
+					{m("library.htp.eyebrow")}
 				</div>
 				<h2 class="text-xl font-extrabold text-on-surface">
-					How to Play
+					{m("library.detail.tab.howToPlay")}
 				</h2>
 				<p
 					class="text-xs text-on-surface-variant max-w-[240px] leading-relaxed"
 				>
-					Follow these essential rules to get the game started
-					quickly.
+					{m("library.htp.subtitle")}
 				</p>
 			</div>
 			<div
@@ -449,9 +450,9 @@
 				<span class="material-symbols-outlined text-[36px]">auto_awesome</span>
 			</div>
 			<div class="space-y-1">
-				<h3 class="font-bold text-on-surface">Generate a rules guide</h3>
+				<h3 class="font-bold text-on-surface">{m("library.htp.generateTitle")}</h3>
 				<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-					Get a quick-start summary for this game.
+					{m("library.htp.generateBody")}
 				</p>
 			</div>
 			<button
@@ -459,7 +460,7 @@
 				class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
 			>
 				<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-				Generate
+				{m("library.htp.generate")}
 			</button>
 			<div class="w-full">
 				<input
@@ -476,14 +477,14 @@
 				>
 					{#if uploading}
 						<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-						Uploading…
+						{m("library.htp.uploading")}
 					{:else}
 						<span class="material-symbols-outlined text-[18px]">upload_file</span>
-						Upload PDF instead
+						{m("library.htp.uploadPdf")}
 					{/if}
 				</button>
 				<p class="text-[10px] text-on-surface-variant text-center mt-1.5">
-					Have the official rulebook? Upload for better accuracy.
+					{m("library.htp.uploadHint")}
 				</p>
 			</div>
 		</div>
@@ -499,12 +500,11 @@
 				>
 			</div>
 			<div class="space-y-1">
-				<h3 class="font-bold text-on-surface">Processing rulebook…</h3>
+				<h3 class="font-bold text-on-surface">{m("library.htp.processingTitle")}</h3>
 				<p
 					class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
 				>
-					The PDF is being indexed. This usually takes under a minute.
-					Check back shortly.
+					{m("library.htp.processingBody")}
 				</p>
 			</div>
 		</div>
@@ -520,13 +520,13 @@
 				>
 			</div>
 			<div class="space-y-1">
-				<h3 class="font-bold text-on-surface">PDF under review</h3>
+				<h3 class="font-bold text-on-surface">{m("library.htp.reviewTitle")}</h3>
 				<p
 					class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
 				>
-					Your upload is in the queue{myQueuePosition !== null
-						? ` (#${myQueuePosition + 1})`
-						: ""}. Rules will appear once an admin approves it.
+					{myQueuePosition !== null
+						? m("library.htp.reviewBodyPosition", { position: myQueuePosition + 1 })
+						: m("library.htp.reviewBody")}
 				</p>
 			</div>
 		</div>
@@ -543,9 +543,9 @@
 					<span class="material-symbols-outlined text-[36px]">auto_awesome</span>
 				</div>
 				<div class="space-y-1">
-					<h3 class="font-bold text-on-surface">Generate a rules guide</h3>
+					<h3 class="font-bold text-on-surface">{m("library.htp.generateTitle")}</h3>
 					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-						Get a quick-start summary for this game.
+						{m("library.htp.generateBody")}
 					</p>
 				</div>
 				<button
@@ -553,7 +553,7 @@
 					class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
 				>
 					<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-					Generate
+					{m("library.htp.generate")}
 				</button>
 			</div>
 		{:else if howToPlayState === "loading"}
@@ -598,18 +598,19 @@
 				</div>
 				<div class="space-y-1">
 					<h3 class="font-bold text-on-surface">
-						Generating your guide…
+						{m("library.htp.generatingTitle")}
 					</h3>
 					<p
 						class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]"
 					>
-						AI is reading the rulebook and extracting key
-						information. This takes about 20–30 seconds.
+						{m("library.htp.generatingBody")}
 					</p>
 				</div>
 				<div class="w-full max-w-[240px] space-y-1.5">
-					<ProgressBar value={howToPlayProgress} tone="tertiary" label="Guide generation progress" />
-					<p class="text-[11px] font-bold text-tertiary text-right">{howToPlayProgress}%</p>
+					<ProgressBar value={howToPlayProgress} tone="tertiary" label={m("library.htp.progressLabel")} />
+					<p class="text-[11px] font-bold text-tertiary text-right">
+						{formatPercent(howToPlayProgress)}
+					</p>
 				</div>
 			</div>
 		{:else if howToPlayState === "ready" && howToPlayData}
@@ -621,7 +622,7 @@
 						<span class="material-symbols-outlined text-[12px]">
 							{howToPlaySourceMode === "rulebook" ? "menu_book" : "psychology"}
 						</span>
-						{howToPlaySourceMode === "rulebook" ? "From Official Rulebook" : "AI General Knowledge"}
+						{howToPlaySourceMode === "rulebook" ? m("library.htp.source.rulebook") : m("library.htp.source.ai")}
 					</span>
 					{#if howToPlayDisclaimer}
 						<span class="text-[10px] text-on-surface-variant opacity-60">{howToPlayDisclaimer}</span>
@@ -634,14 +635,14 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">📖</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Overview</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.overview")}</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12">
 						{howToPlayData.overview ?? howToPlayData.objective}
 					</p>
 					{#if howToPlayData.overview && howToPlayData.objective}
 						<p class="text-sm text-on-surface leading-relaxed pl-12 pt-1">
-							<strong>Goal:</strong> {howToPlayData.objective}
+							<strong>{m("library.htp.goal")}</strong> {howToPlayData.objective}
 						</p>
 					{/if}
 				</div>
@@ -652,7 +653,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">📦</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">What's in the Box</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.components")}</h3>
 					</div>
 					<div class="pl-12 flex flex-wrap gap-2">
 						{#each howToPlayData.components as comp, i (i)}
@@ -669,7 +670,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">⚙️</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Setup</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.setup")}</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.setup}</p>
 				</div>
@@ -680,17 +681,17 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">💰</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Resources</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.resources")}</h3>
 					</div>
 					<div class="pl-12 space-y-3">
 						{#each howToPlayData.resources as resource, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{resource.name}</p>
 								{#if resource.usedFor}
-									<p class="text-xs text-on-surface-variant leading-relaxed">Used for: {resource.usedFor}</p>
+									<p class="text-xs text-on-surface-variant leading-relaxed">{m("library.htp.usedFor", { text: resource.usedFor })}</p>
 								{/if}
 								{#if resource.gainedBy}
-									<p class="text-xs text-on-surface-variant leading-relaxed">Gained by: {resource.gainedBy}</p>
+									<p class="text-xs text-on-surface-variant leading-relaxed">{m("library.htp.gainedBy", { text: resource.gainedBy })}</p>
 								{/if}
 							</div>
 						{/each}
@@ -703,14 +704,14 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">🃏</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Cards</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.cards")}</h3>
 					</div>
 					<div class="pl-12 space-y-3">
 						{#if howToPlayData.cardSystem.deckRules}
-							<p class="text-xs text-on-surface-variant leading-relaxed"><strong>Deck:</strong> {howToPlayData.cardSystem.deckRules}</p>
+							<p class="text-xs text-on-surface-variant leading-relaxed"><strong>{m("library.htp.deck")}</strong> {howToPlayData.cardSystem.deckRules}</p>
 						{/if}
 						{#if howToPlayData.cardSystem.handRules}
-							<p class="text-xs text-on-surface-variant leading-relaxed"><strong>Hand:</strong> {howToPlayData.cardSystem.handRules}</p>
+							<p class="text-xs text-on-surface-variant leading-relaxed"><strong>{m("library.htp.hand")}</strong> {howToPlayData.cardSystem.handRules}</p>
 						{/if}
 						{#if howToPlayData.cardSystem.cardTypes?.length}
 							<div class="space-y-2">
@@ -731,7 +732,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">🗺️</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">The Board</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.board")}</h3>
 					</div>
 					<div class="pl-12 space-y-1">
 						{#if howToPlayData.board.type}
@@ -747,7 +748,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">👤</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Player Roles</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.roles")}</h3>
 					</div>
 					<div class="pl-12 space-y-3">
 						{#each howToPlayData.roles.list as role, i (i)}
@@ -755,7 +756,7 @@
 								<p class="text-sm font-bold text-on-surface">{role.name}</p>
 								<p class="text-xs text-on-surface-variant leading-relaxed">{role.abilities}</p>
 								{#if role.winCondition}
-									<p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">Win: {role.winCondition}</p>
+									<p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">{m("library.htp.win", { text: role.winCondition })}</p>
 								{/if}
 							</div>
 						{/each}
@@ -768,14 +769,14 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">⚡</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Actions</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.actions")}</h3>
 					</div>
 					<div class="pl-12 space-y-3">
 						{#each howToPlayData.actions as action, i (i)}
 							<div>
 								<p class="text-sm font-bold text-on-surface">{action.name}{#if action.type}<span class="text-xs font-normal text-on-surface-variant"> · {action.type}</span>{/if}</p>
 								{#if action.cost}
-									<p class="text-xs text-on-surface-variant leading-relaxed">Cost: {action.cost}</p>
+									<p class="text-xs text-on-surface-variant leading-relaxed">{m("library.htp.cost", { text: action.cost })}</p>
 								{/if}
 								{#if action.effect}
 									<p class="text-xs text-on-surface-variant leading-relaxed">{action.effect}</p>
@@ -791,7 +792,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">🔄</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Game Flow</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.flow")}</h3>
 					</div>
 					<div class="pl-12 space-y-4">
 						{#if howToPlayData.gameStructure.turnOrder}
@@ -827,7 +828,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">📏</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Core Rules</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.coreRules")}</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.rules.coreRules}</p>
 				</div>
@@ -838,7 +839,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">✨</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Special Rules</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.specialRules")}</h3>
 					</div>
 					<div class="pl-12 space-y-3">
 						{#each howToPlayData.rules.specialRules as rule, i (i)}
@@ -856,7 +857,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">⚠️</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Edge Cases</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.edgeCases")}</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.rules.edgeCases}</p>
 				</div>
@@ -867,7 +868,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg">🎲</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Variants</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.variants")}</h3>
 					</div>
 					<div class="pl-12 space-y-3">
 						{#each howToPlayData.variants as variant, i (i)}
@@ -885,7 +886,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">🏆</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Scoring</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.scoring")}</h3>
 					</div>
 					<div class="pl-12 space-y-1">
 						{#each howToPlayData.scoring.methods as method, i (i)}
@@ -903,7 +904,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-amber-400/10 flex items-center justify-center text-lg">🥇</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">How to Win</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.win")}</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12">
 						{howToPlayData.winCondition.details ?? howToPlayData.winCondition.type}
@@ -916,7 +917,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">🏁</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">End of Game</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.end")}</h3>
 					</div>
 					<div class="pl-12 space-y-1">
 						<p class="text-sm text-on-surface leading-relaxed">{howToPlayData.endCondition.trigger}</p>
@@ -932,7 +933,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">💡</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Tips for New Players</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.tips")}</h3>
 					</div>
 					<ul class="pl-12 space-y-2">
 						{#each howToPlayData.tips as tip, i (i)}
@@ -950,7 +951,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center text-lg">❓</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">FAQ</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.faq")}</h3>
 					</div>
 					<div class="space-y-2">
 						{#each howToPlayData.faq as item, i (i)}
@@ -980,7 +981,7 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center text-lg">📄</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Rules Summary</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.summary")}</h3>
 					</div>
 					<p class="text-sm text-on-surface leading-relaxed pl-12 whitespace-pre-line">{howToPlayData.raw}</p>
 				</div>
@@ -991,13 +992,13 @@
 				<div class="space-y-3">
 					<div class="flex items-center gap-2.5">
 						<div class="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center text-lg">📝</div>
-						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">Community Notes</h3>
+						<h3 class="font-extrabold text-sm text-on-surface uppercase tracking-wide">{m("library.htp.section.notes")}</h3>
 					</div>
 					<div class="space-y-3 pl-12">
 						{#each approvedNotes as note (note.id)}
 							<div class="rounded-xl bg-surface-container-low p-3 space-y-1.5">
 								<p class="text-sm text-on-surface leading-relaxed whitespace-pre-line">{note.content}</p>
-								<p class="text-[10px] text-on-surface-variant">by @{note.submittedByUsername}</p>
+								<p class="text-[10px] text-on-surface-variant">{m("library.htp.note.by", { username: note.submittedByUsername })}</p>
 							</div>
 						{/each}
 					</div>
@@ -1007,7 +1008,7 @@
 			<!-- Add Rule Note (logged-in users) -->
 			{#if $currentUser}
 				<div class="rounded-2xl bg-surface-container-low p-4 space-y-3">
-					<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Your Rule Note</p>
+					<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">{m("library.htp.note.mine")}</p>
 
 					{#if myNote && !showNoteEditor}
 						<div class="space-y-2">
@@ -1017,43 +1018,43 @@
 									{myNote.status === 'approved' ? 'bg-primary/10 text-primary' :
 									 myNote.status === 'rejected' ? 'bg-error/10 text-error' :
 									 'bg-surface-container-high text-on-surface-variant'}">
-									{myNote.status === 'pending' ? 'Pending Review' :
-									 myNote.status === 'approved' ? 'Approved' : 'Rejected'}
+									{myNote.status === 'pending' ? m('library.htp.note.pending') :
+									 myNote.status === 'approved' ? m('library.htp.note.approved') : m('library.htp.note.rejected')}
 								</span>
 								{#if myNote.status === 'pending' || myNote.status === 'rejected'}
 									<button
 										onclick={() => { showNoteEditor = true; noteText = myNote!.content; }}
 										class="text-xs text-primary font-bold"
-									>{myNote.status === 'rejected' ? 'Resubmit' : 'Edit'}</button>
+									>{myNote.status === 'rejected' ? m('library.htp.note.resubmit') : m('library.htp.note.edit')}</button>
 									<button
 										onclick={deleteNote}
 										disabled={deletingNote}
 										class="text-xs text-error font-bold disabled:opacity-50"
-									>{deletingNote ? 'Removing…' : 'Remove'}</button>
+									>{deletingNote ? m('library.htp.note.removing') : m('library.htp.note.remove')}</button>
 								{/if}
 							</div>
 							{#if myNote.status === 'rejected' && myNote.rejectReason}
-								<p class="text-xs text-error/80 italic">Reason: {myNote.rejectReason}</p>
+								<p class="text-xs text-error/80 italic">{m('library.htp.note.reason', { reason: myNote.rejectReason })}</p>
 							{/if}
 						</div>
 					{:else if showNoteEditor}
 						<textarea
 							bind:value={noteText}
-							placeholder="Share a rule clarification, correction, or important tip…"
+							placeholder={m('library.htp.note.placeholder')}
 							rows="5"
 							class="w-full bg-surface-container-low rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
 						></textarea>
-						<p class="text-[10px] text-on-surface-variant">Your note will be visible after admin review.</p>
+						<p class="text-[10px] text-on-surface-variant">{m('library.htp.note.reviewHint')}</p>
 						<div class="flex gap-2">
 							<button
 								onclick={() => { showNoteEditor = false; noteText = ''; }}
 								class="flex-1 py-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm font-bold"
-							>Cancel</button>
+							>{m('common.cancel')}</button>
 							<button
 								onclick={submitNote}
 								disabled={submittingNote || !noteText.trim()}
 								class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50"
-							>{submittingNote ? 'Submitting…' : 'Submit'}</button>
+							>{submittingNote ? m('library.htp.note.submitting') : m('library.htp.note.submit')}</button>
 						</div>
 					{:else}
 						<button
@@ -1061,7 +1062,7 @@
 							class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-container-high text-on-surface-variant text-sm font-medium hover:text-on-surface transition-colors"
 						>
 							<span class="material-symbols-outlined text-[16px]">add</span>
-							Add a rule note
+							{m('library.htp.note.add')}
 						</button>
 					{/if}
 				</div>
@@ -1077,7 +1078,7 @@
 						class="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold hover:bg-surface-container transition-colors"
 					>
 						<span class="material-symbols-outlined text-[18px] text-primary">picture_as_pdf</span>
-						View Official Rulebook PDF
+						{m('library.htp.viewPdf')}
 						<span class="material-symbols-outlined text-[14px] text-on-surface-variant">open_in_new</span>
 					</a>
 				</div>
@@ -1093,9 +1094,9 @@
 					<span class="material-symbols-outlined text-[36px]">error</span>
 				</div>
 				<div class="space-y-1">
-					<h3 class="font-bold text-on-surface">Guide generation failed</h3>
+					<h3 class="font-bold text-on-surface">{m('library.htp.failedTitle')}</h3>
 					<p class="text-xs text-on-surface-variant leading-relaxed max-w-[240px]">
-						{howToPlayErrorMessage ?? HTP_FAILED_FALLBACK}
+						{howToPlayErrorMessage ?? htpFailedFallback()}
 					</p>
 				</div>
 				<button
@@ -1103,7 +1104,7 @@
 					class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-bold"
 				>
 					<span class="material-symbols-outlined text-[18px]">refresh</span>
-					Retry
+					{m('common.retry')}
 				</button>
 			</div>
 		{:else if howToPlayState === "error"}
@@ -1112,7 +1113,7 @@
 				role="alert"
 			>
 				<p class="text-sm text-on-surface-variant">
-					Could not load guide. Check your connection and try again.
+					{m('library.htp.loadFailed')}
 				</p>
 				<!-- Reload the guide status: shows the guide, progress, or the Generate button. -->
 				<button
@@ -1120,14 +1121,14 @@
 					class="flex items-center justify-center gap-2 px-5 py-2 rounded-2xl bg-primary text-on-primary text-sm font-bold"
 				>
 					<span class="material-symbols-outlined text-[18px]">refresh</span>
-					Retry
+					{m('common.retry')}
 				</button>
 			</div>
 		{/if}
 	{/if}
 	{#if rulebookState === "error"}
 		<p class="text-center text-xs text-error py-8">
-			Failed to load rulebook status. Try refreshing.
+			{m('library.htp.statusFailed')}
 		</p>
 	{/if}
 
@@ -1139,7 +1140,7 @@
 			<p
 				class="text-[10px] font-bold uppercase tracking-widest text-primary mb-3"
 			>
-				Admin
+				{m('admin.label')}
 			</p>
 			<input
 				bind:this={adminFileInput}
@@ -1158,12 +1159,12 @@
 						class="material-symbols-outlined text-[18px] animate-spin"
 						>progress_activity</span
 					>
-					Uploading…
+					{m("library.htp.uploading")}
 				{:else}
 					<span class="material-symbols-outlined text-[18px]"
 						>admin_panel_settings</span
 					>
-					Override: Upload PDF (auto-approve)
+					{m('admin.upload.override')}
 				{/if}
 			</button>
 		</div>

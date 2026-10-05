@@ -2,6 +2,8 @@
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { setupApi, type SetupStatus, type CsvCheckResult } from '$lib/api/setup';
+	import { m } from '$lib/i18n';
+	import { formatNumber, formatPercent } from '$lib/i18n/format';
 
 	interface Props {
 		onClose: () => void;
@@ -74,11 +76,11 @@
 		}
 	}
 
-	function fmt(n: number) { return n.toLocaleString(); }
+	const fmt = (n: number) => formatNumber(n);
 </script>
 
 <!-- Backdrop -->
-<button class="fixed inset-0 bg-black/50 z-40" onclick={onClose} aria-label="Close"></button>
+<button class="fixed inset-0 bg-black/50 z-40" onclick={onClose} aria-label={m('common.close')}></button>
 
 <!-- Sheet -->
 <div class="fixed inset-x-0 bottom-0 z-50 bg-surface rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -90,17 +92,17 @@
 		<!-- Header -->
 		<div class="flex items-center justify-between">
 			<div>
-				<h2 class="text-xl font-extrabold font-headline">System Setup</h2>
-				<p class="text-xs text-on-surface-variant mt-0.5">Auto-refreshes every 5 s</p>
+				<h2 class="text-xl font-extrabold font-headline">{m('admin.setup.title')}</h2>
+				<p class="text-xs text-on-surface-variant mt-0.5">{m('admin.setup.autoRefresh', { seconds: 5 })}</p>
 			</div>
-			<button onclick={onClose} class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+			<button onclick={onClose} aria-label={m('common.close')} class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
 				<span class="material-symbols-outlined text-on-surface-variant">close</span>
 			</button>
 		</div>
 
 		{#if error}
 			<div class="bg-error-container text-on-error-container rounded-2xl p-4 text-sm">
-				Could not load setup status. Check backend connectivity.
+				{m('admin.setup.loadFailed')}
 			</div>
 		{:else if !status}
 			{#each [1, 2, 3] as n (n)}
@@ -119,22 +121,26 @@
 					{:else}
 						<span class="material-symbols-outlined text-[18px] text-on-surface-variant animate-spin">progress_activity</span>
 					{/if}
-					<span class="font-bold text-sm flex-1">Game Catalog</span>
+					<span class="font-bold text-sm flex-1">{m('admin.setup.catalog')}</span>
 					<button
 						onclick={() => start('import')}
 						disabled={busy['import']}
 						class="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
 					>
-						{busy['import'] ? 'Starting…' : status.catalog.imported ? 'Re-import' : 'Start'}
+						{busy['import'] ? m('admin.setup.starting') : status.catalog.imported ? m('admin.setup.reimport') : m('admin.setup.start')}
 					</button>
 				</div>
 				<ProgressBar
 					value={status.catalog.imported ? 100 : 0}
 					tone={status.catalog.imported ? 'primary' : 'muted'}
-					label="Catalog import progress"
+					label={m('admin.setup.catalogProgress')}
 				/>
 				<p class="text-xs text-on-surface-variant">
-					{status.catalog.imported ? `${fmt(status.catalog.totalGames)} games imported` : status.catalog.totalGames > 0 ? `${fmt(status.catalog.totalGames)} games found — importing…` : 'Waiting for SEED_CSV_URL…'}
+					{status.catalog.imported
+					? m('admin.setup.catalogImported', { count: fmt(status.catalog.totalGames) })
+					: status.catalog.totalGames > 0
+						? m('admin.setup.catalogImporting', { count: fmt(status.catalog.totalGames) })
+						: m('admin.setup.catalogWaiting')}
 				</p>
 				<!-- CSV probe -->
 				<div class="flex items-center gap-2 pt-1">
@@ -142,7 +148,7 @@
 						onclick={runCheckCsv}
 						disabled={csvChecking}
 						class="text-xs font-bold px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-40 transition-colors"
-					>{csvChecking ? 'Checking…' : 'Check CSV Access'}</button>
+					>{csvChecking ? m('admin.setup.checking') : m('admin.setup.checkCsv')}</button>
 					{#if csvCheck}
 						<span class="text-xs font-bold {csvCheck.pass ? 'text-primary' : 'text-error'}">
 							{csvCheck.pass ? `✓ ${csvCheck.sizeMb}` : `✗ ${csvCheck.error ?? csvCheck.verdict}`}
@@ -161,28 +167,28 @@
 					{:else}
 						<span class="material-symbols-outlined text-[18px] text-on-surface/30">radio_button_unchecked</span>
 					{/if}
-					<span class="font-bold text-sm flex-1">BGG Hydration</span>
+					<span class="font-bold text-sm flex-1">{m('admin.setup.hydration')}</span>
 					{#if status.hydration.percentDone < 100}
-						<span class="text-xs font-bold text-secondary mr-1">{status.hydration.percentDone}%</span>
+						<span class="text-xs font-bold text-secondary mr-1">{formatPercent(status.hydration.percentDone)}</span>
 					{/if}
 					{#if status.hydration.running && !status.hydration.stopRequested}
 						<button
 							onclick={() => stop('hydrate')}
 							disabled={busy['stop_hydrate']}
 							class="text-xs font-bold px-3 py-1 rounded-full bg-error/10 text-error hover:bg-error/20 disabled:opacity-40 transition-colors"
-						>{busy['stop_hydrate'] ? 'Stopping…' : 'Stop'}</button>
+						>{busy['stop_hydrate'] ? m('admin.setup.stopping') : m('admin.setup.stop')}</button>
 					{:else}
 						<button
 							onclick={() => start('hydrate')}
 							disabled={busy['hydrate']}
 							class="text-xs font-bold px-3 py-1 rounded-full bg-secondary/10 text-secondary hover:bg-secondary/20 disabled:opacity-40 transition-colors"
-						>{busy['hydrate'] ? 'Starting…' : 'Start'}</button>
+						>{busy['hydrate'] ? m('admin.setup.starting') : m('admin.setup.start')}</button>
 					{/if}
 				</div>
-				<ProgressBar value={status.hydration.percentDone} tone="secondary" label="Hydration progress" />
+				<ProgressBar value={status.hydration.percentDone} tone="secondary" label={m('admin.setup.hydrationProgress')} />
 				<p class="text-xs text-on-surface-variant">
-					{fmt(status.hydration.hydrated)} / {fmt(status.hydration.total)} hydrated
-					{#if status.hydration.stopRequested}&nbsp;· <span class="text-error">stop requested</span>{/if}
+					{m('admin.setup.hydrated', { done: fmt(status.hydration.hydrated), total: fmt(status.hydration.total) })}
+					{#if status.hydration.stopRequested}&nbsp;· <span class="text-error">{m('admin.setup.stopRequested')}</span>{/if}
 				</p>
 			</div>
 
@@ -196,46 +202,50 @@
 					{:else}
 						<span class="material-symbols-outlined text-[18px] text-on-surface/30">radio_button_unchecked</span>
 					{/if}
-					<span class="font-bold text-sm flex-1">Rulebook Pump</span>
+					<span class="font-bold text-sm flex-1">{m('admin.setup.rulebooks')}</span>
 					{#if status.rulebooks.percentDone < 100}
-						<span class="text-xs font-bold text-tertiary mr-1">{status.rulebooks.percentDone}%</span>
+						<span class="text-xs font-bold text-tertiary mr-1">{formatPercent(status.rulebooks.percentDone)}</span>
 					{/if}
 					{#if status.rulebooks.running && !status.rulebooks.stopRequested}
 						<button
 							onclick={() => stop('rulebooks')}
 							disabled={busy['stop_rulebooks']}
 							class="text-xs font-bold px-3 py-1 rounded-full bg-error/10 text-error hover:bg-error/20 disabled:opacity-40 transition-colors"
-						>{busy['stop_rulebooks'] ? 'Stopping…' : 'Stop'}</button>
+						>{busy['stop_rulebooks'] ? m('admin.setup.stopping') : m('admin.setup.stop')}</button>
 					{:else}
 						<button
 							onclick={() => start('rulebooks')}
 							disabled={busy['rulebooks']}
 							class="text-xs font-bold px-3 py-1 rounded-full bg-tertiary/10 text-tertiary hover:bg-tertiary/20 disabled:opacity-40 transition-colors"
-						>{busy['rulebooks'] ? 'Starting…' : 'Start'}</button>
+						>{busy['rulebooks'] ? m('admin.setup.starting') : m('admin.setup.start')}</button>
 					{/if}
 				</div>
-				<ProgressBar value={status.rulebooks.percentDone} tone="tertiary" label="Rulebook progress" />
+				<ProgressBar value={status.rulebooks.percentDone} tone="tertiary" label={m('admin.setup.rulebooksProgress')} />
 				<p class="text-xs text-on-surface-variant">
-					{fmt(status.rulebooks.approved)} approved · {fmt(status.rulebooks.ingesting)} ingesting · target {fmt(status.rulebooks.target)}
-					{#if status.rulebooks.stopRequested}&nbsp;· <span class="text-error">stop requested</span>{/if}
+					{m('admin.setup.rulebooksStats', {
+					approved: fmt(status.rulebooks.approved),
+					ingesting: fmt(status.rulebooks.ingesting),
+					target: fmt(status.rulebooks.target)
+				})}
+					{#if status.rulebooks.stopRequested}&nbsp;· <span class="text-error">{m('admin.setup.stopRequested')}</span>{/if}
 				</p>
 			</div>
 
 			<!-- Reset all -->
 			<div class="pt-1">
 				{#if confirmReset}
-					<p class="text-xs text-error text-center mb-3">Clears all flags. Use Start buttons to re-run each step.</p>
+					<p class="text-xs text-error text-center mb-3">{m('admin.setup.resetHint')}</p>
 					<div class="flex gap-3">
 						<button onclick={() => (confirmReset = false)}
-							class="flex-1 py-3 bg-surface-container-high text-on-surface font-bold text-sm rounded-2xl">Cancel</button>
+							class="flex-1 py-3 bg-surface-container-high text-on-surface font-bold text-sm rounded-2xl">{m('common.cancel')}</button>
 						<button onclick={handleReset} disabled={busy['reset']}
 							class="flex-1 py-3 bg-error text-on-error font-bold text-sm rounded-2xl disabled:opacity-50">
-							{busy['reset'] ? 'Resetting…' : 'Confirm Reset'}</button>
+							{busy['reset'] ? m('admin.setup.resetting') : m('admin.setup.confirmReset')}</button>
 					</div>
 				{:else}
 					<button onclick={handleReset}
 						class="w-full py-3 bg-surface-container-high text-on-surface-variant font-bold text-sm rounded-2xl hover:bg-error/10 hover:text-error transition-colors">
-						Reset All Flags
+						{m('admin.setup.reset')}
 					</button>
 				{/if}
 			</div>

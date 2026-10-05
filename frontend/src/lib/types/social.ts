@@ -41,6 +41,12 @@ export interface Post {
 // Maps to PostCommentResponse
 export interface Comment {
 	id: string;
+	/**
+	 * `deleted: true` (no name or avatar) when the author deleted their account; after the
+	 * permanent delete the id is the all-zero placeholder, so never link it.
+	 */
+	author: UserSummary;
+	/** Flat mirrors of `author`, kept for older clients. */
 	authorId: string;
 	authorUsername: string;
 	authorDisplayName: string | null;

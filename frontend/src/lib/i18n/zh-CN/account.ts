@@ -138,6 +138,7 @@ export default {
 	'profile.editTitle': '编辑资料',
 	'profile.edit': '编辑资料',
 	'profile.share': '分享主页',
+	'profile.savedPosts': '已收藏的帖子',
 	'profile.displayName': '显示名称',
 	'profile.displayNameRequired': '请填写显示名称',
 	'profile.username': '用户名',
@@ -253,7 +254,5 @@ export default {
 	'findFriends.searchPlaceholder': '按用户名或名称搜索',
 	'findFriends.suggested': '为你推荐',
 	'findFriends.empty': '暂无推荐，试试按用户名搜索好友。',
-	'findFriends.noResults': '没有找到“{query}”相关的玩家',
-	'findFriends.add': '添加好友',
-	'findFriends.pending': '待通过'
+	'findFriends.noResults': '没有找到“{query}”相关的玩家'
 } satisfies Translation<typeof en>;
