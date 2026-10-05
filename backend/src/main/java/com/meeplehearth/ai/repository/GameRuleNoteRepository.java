@@ -16,6 +16,7 @@ public interface GameRuleNoteRepository extends JpaRepository<GameRuleNote, UUID
 
     Optional<GameRuleNote> findByGame_IdAndUser_Id(UUID gameId, UUID userId);
 
+    @EntityGraph(attributePaths = {"user"})
     List<GameRuleNote> findByGame_IdAndStatusOrderByCreatedAtAsc(UUID gameId, String status);
 
     @EntityGraph(attributePaths = {"game", "user"})
