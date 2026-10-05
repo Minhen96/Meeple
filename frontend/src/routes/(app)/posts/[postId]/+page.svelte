@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
@@ -64,18 +65,25 @@
 			Date.now() - new Date(post.createdAt).getTime() < POST_EDIT_WINDOW_MS
 	);
 
-	// Opened from a card's "Edit post" (?edit=1); a writable derived, toggled locally
-	let editing = $derived(data.editRequested && canEditPost);
+	// Opened from a card's "Edit post" (?edit=1); a writable derived, toggled locally. It follows
+	// new load data only: a like or a new comment (a new `post`) must not reopen or reset it.
+	let editing = $derived(data.editRequested && untrack(() => canEditPost));
 
+	function seedDraft(source: Post) {
+		editCaption = source.caption ?? '';
+		editLocation = source.location ?? '';
+		editGame = source.game
+			? { id: source.game.id, title: source.game.title, thumbnailUrl: source.game.thumbnailUrl }
+			: null;
+		editFriends = source.taggedUsers.map((u) => ({ ...u }));
+	}
+
+	// Seed the draft only when entering edit mode, never on later updates of the post.
 	$effect(() => {
-		if (editing && post) {
-			editCaption = post.caption ?? '';
-			editLocation = post.location ?? '';
-			editGame = post.game
-				? { id: post.game.id, title: post.game.title, thumbnailUrl: post.game.thumbnailUrl }
-				: null;
-			editFriends = post.taggedUsers.map((u) => ({ ...u }));
-		}
+		if (!editing) return;
+		untrack(() => {
+			if (post) seedDraft(post);
+		});
 	});
 
 	function formatDate(iso: string) {
