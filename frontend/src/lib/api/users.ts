@@ -2,10 +2,12 @@ import { api, type ApiOptions } from './client';
 import type {
 	DataExport,
 	DeleteAccountRequest,
+	PaginatedResponse,
 	PreferredLanguage,
 	ProfileStats,
 	User,
-	UserSummary
+	UserSummary,
+	UserSummaryWithStatus
 } from '$lib/types';
 
 export interface UpdateProfilePayload {
@@ -70,6 +72,36 @@ export const usersApi = {
 
 	/** Starts (or returns the recent) data export; the download link is emailed. */
 	requestExport: (): Promise<DataExport> => api.get<DataExport>('/api/v1/users/me/export'),
+
+	/**
+	 * People search by username or display name, with my friendship status for each row. The
+	 * viewer, deleted accounts and blocked users (either way) are never returned.
+	 */
+	searchUsers: (
+		q: string,
+		page = 0,
+		size = 20,
+		opts?: ApiOptions
+	): Promise<PaginatedResponse<UserSummaryWithStatus>> => {
+		const params = new URLSearchParams({ q, page: String(page), size: String(size) });
+		return api.get<PaginatedResponse<UserSummaryWithStatus>>(
+			`/api/v1/users/search?${params.toString()}`,
+			opts
+		);
+	},
+
+	/**
+	 * People you may know (max 10), ranked by games in common with my collection. Friends and
+	 * pending requests are excluded, so every row's `friendshipStatus` is `none`.
+	 */
+	getSuggestions: (
+		limit = 10,
+		opts?: ApiOptions
+	): Promise<PaginatedResponse<UserSummaryWithStatus>> =>
+		api.get<PaginatedResponse<UserSummaryWithStatus>>(
+			`/api/v1/users/suggestions?limit=${limit}`,
+			opts
+		),
 
 	/** Profile stats bento (library package). */
 	getStats: (id: string, opts?: ApiOptions): Promise<ProfileStats> =>

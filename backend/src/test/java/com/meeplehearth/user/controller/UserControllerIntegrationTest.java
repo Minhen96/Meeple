@@ -173,7 +173,7 @@ class UserControllerIntegrationTest extends AuthWebIntegrationTest {
     }
 
     @Test
-    void suggestionsExcludeSelfFriendsAndDeletedUsers() throws Exception {
+    void suggestionsExcludeSelfFriendsPendingRequestsAndDeletedUsers() throws Exception {
         User me = persistUser(true);
         User friend = persistUser(true);
         User pendingRequest = persistUser(true);
@@ -192,8 +192,10 @@ class UserControllerIntegrationTest extends AuthWebIntegrationTest {
                 .andReturn());
 
         assertThat(ids(page))
-                .contains(stranger.getId().toString(), pendingRequest.getId().toString())
-                .doesNotContain(me.getId().toString(), friend.getId().toString(), deleted.getId().toString());
+                .contains(stranger.getId().toString())
+                .doesNotContain(me.getId().toString(), friend.getId().toString(), deleted.getId().toString(),
+                        pendingRequest.getId().toString());
+        assertThat(page.at("/data/0/friendshipStatus").asText()).isEqualTo("none");
     }
 
     // ------------------------------------------------------------------ admin

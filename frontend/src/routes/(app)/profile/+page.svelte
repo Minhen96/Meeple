@@ -88,6 +88,10 @@
 				<span class="material-symbols-outlined text-[18px]" aria-hidden="true">share</span>
 				{m('account.profile.share')}
 			</Button>
+			<Button variant="secondary" fullWidth onclick={() => { menuOpen = false; void goto('/posts/saved'); }}>
+				<span class="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark</span>
+				{m('account.profile.savedPosts')}
+			</Button>
 			<Button variant="secondary" fullWidth onclick={() => { menuOpen = false; void goto('/settings'); }}>
 				<span class="material-symbols-outlined text-[18px]" aria-hidden="true">settings</span>
 				{m('account.settings.title')}
