@@ -122,8 +122,8 @@ class EventCard extends StatelessWidget {
                           children: [
                             if (host != null) ...[
                               AppAvatar(
-                                imageUrl: host.avatarUrl,
-                                displayName: host.displayName,
+                                imageUrl: host.deleted ? null : host.avatarUrl,
+                                displayName: displayNameOf(context, host),
                                 size: AvatarSize.xs,
                               ),
                               AppSpacing.hGapXs,

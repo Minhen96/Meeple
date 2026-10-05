@@ -1857,7 +1857,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileTaggedBody =>
-      'Posts this player was tagged in will appear here once the server supports listing them.';
+      'Posts this player is tagged in will appear here.';
 
   @override
   String get profileTaggedTitle => 'Tagged posts';
@@ -1915,6 +1915,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reactivateTitle => 'Reactivate your account?';
+
+  @override
+  String get reactivateWithGoogle => 'Reactivate with Google';
 
   @override
   String get reportComment => 'Report comment';

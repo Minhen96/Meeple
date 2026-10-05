@@ -56,7 +56,8 @@ _$FeedActivityImpl _$$FeedActivityImplFromJson(Map<String, dynamic> json) =>
     _$FeedActivityImpl(
       id: json['id'] as String,
       type: json['type'] as String,
-      user: UserSummary.fromJson(json['user'] as Map<String, dynamic>),
+      user: UserSummary.fromJson(
+          readUserOrDeleted(json, 'user') as Map<String, dynamic>),
       data: json['data'] as Map<String, dynamic>? ?? const <String, dynamic>{},
     );
 

@@ -3275,7 +3275,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileTaggedBody.
   ///
   /// In en, this message translates to:
-  /// **'Posts this player was tagged in will appear here once the server supports listing them.'**
+  /// **'Posts this player is tagged in will appear here.'**
   String get profileTaggedBody;
 
   /// No description provided for @profileTaggedTitle.
@@ -3361,6 +3361,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reactivate your account?'**
   String get reactivateTitle;
+
+  /// No description provided for @reactivateWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate with Google'**
+  String get reactivateWithGoogle;
 
   /// No description provided for @reportComment.
   ///

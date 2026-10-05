@@ -70,7 +70,8 @@ class AuthNotifier extends _$AuthNotifier {
 
   /// Google sign-in: obtains an ID token and exchanges it at
   /// `POST /auth/google`. Returns false when the user cancelled. Throws
-  /// `GOOGLE_EMAIL_NOT_VERIFIED` (401) / `GOOGLE_ACCOUNT_CONFLICT` (409).
+  /// `GOOGLE_EMAIL_NOT_VERIFIED` (401) / `GOOGLE_ACCOUNT_CONFLICT` (409) /
+  /// `ACCOUNT_DELETED` (403, inside the deletion grace period).
   Future<bool> signInWithGoogle() async {
     final google = ref.read(googleAuthClientProvider);
     final idToken = await google.signIn();
@@ -97,6 +98,24 @@ class AuthNotifier extends _$AuthNotifier {
           password: password,
         );
     await _signedIn(user);
+  }
+
+  /// Restores a Google account inside its deletion grace period with a fresh
+  /// Google ID token. Returns false when the user cancelled the Google prompt.
+  Future<bool> reactivateWithGoogle() async {
+    final google = ref.read(googleAuthClientProvider);
+    final idToken = await google.signIn();
+    if (idToken == null) return false;
+    try {
+      final user = await ref
+          .read(authRepositoryProvider)
+          .reactivateWithGoogle(idToken: idToken);
+      await _signedIn(user);
+      return true;
+    } catch (_) {
+      await google.signOut();
+      rethrow;
+    }
   }
 
   /// Creates the account; the user must verify their email before signing in.

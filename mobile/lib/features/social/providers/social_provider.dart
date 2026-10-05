@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/connectivity_service.dart';
 import 'package:meeple_hearth/features/social/data/social_repository.dart';
 import 'package:meeple_hearth/features/social/domain/social_model.dart';
@@ -26,13 +27,19 @@ class FriendStatusNotifier extends _$FriendStatusNotifier {
     );
   }
 
+  /// Withdraws the pending request. When it is already gone (accepted or
+  /// declined meanwhile) the real status is fetched again instead of failing.
   Future<void> cancelRequest() async {
     ensureOnline(ref);
-    await _repo.cancelFriendRequest(
-      userId,
-      requestId: state.valueOrNull?.requestId,
-    );
+    try {
+      await _repo.cancelFriendRequest(userId);
+    } on NotFoundException {
+      state = AsyncValue.data(await _repo.getFriendStatus(userId));
+      ref.invalidate(sentRequestsProvider);
+      return;
+    }
     state = const AsyncValue.data(FriendStatus(FriendshipStatus.none));
+    ref.invalidate(sentRequestsProvider);
   }
 
   Future<void> accept() async {
@@ -150,9 +157,13 @@ class SentRequests extends _$SentRequests {
 
   Future<void> cancel(FriendRequest request) async {
     ensureOnline(ref);
-    await ref
-        .read(socialRepositoryProvider)
-        .cancelFriendRequest(request.receiver.id, requestId: request.id);
+    try {
+      await ref
+          .read(socialRepositoryProvider)
+          .cancelFriendRequest(request.receiver.id);
+    } on NotFoundException {
+      // Already accepted or declined: drop it from the pending list anyway.
+    }
     final current = state.valueOrNull;
     if (current != null) {
       state = AsyncValue.data(current.where((r) => r.id != request.id).toList());

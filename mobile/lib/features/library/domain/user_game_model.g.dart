@@ -53,7 +53,8 @@ Map<String, dynamic> _$$PlayLogImplToJson(_$PlayLogImpl instance) =>
 _$FriendGameEntryImpl _$$FriendGameEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$FriendGameEntryImpl(
-      user: UserSummary.fromJson(json['user'] as Map<String, dynamic>),
+      user: UserSummary.fromJson(
+          readUserOrDeleted(json, 'user') as Map<String, dynamic>),
       playCount: (json['playCount'] as num?)?.toInt() ?? 0,
       personalRating: (json['personalRating'] as num?)?.toDouble(),
       isOwned: json['isOwned'] as bool? ?? false,
@@ -70,7 +71,8 @@ Map<String, dynamic> _$$FriendGameEntryImplToJson(
 
 _$GameReviewImpl _$$GameReviewImplFromJson(Map<String, dynamic> json) =>
     _$GameReviewImpl(
-      user: UserSummary.fromJson(json['user'] as Map<String, dynamic>),
+      user: UserSummary.fromJson(
+          readUserOrDeleted(json, 'user') as Map<String, dynamic>),
       personalRating: (json['personalRating'] as num?)?.toDouble(),
       notes: json['notes'] as String?,
       playCount: (json['playCount'] as num?)?.toInt() ?? 0,

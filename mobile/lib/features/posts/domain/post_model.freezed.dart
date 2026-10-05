@@ -21,6 +21,7 @@ Post _$PostFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Post {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get author => throw _privateConstructorUsedError;
   @JsonKey(defaultValue: '')
   String get caption => throw _privateConstructorUsedError;
@@ -53,7 +54,7 @@ abstract class $PostCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      UserSummary author,
+      @JsonKey(readValue: readUserOrDeleted) UserSummary author,
       @JsonKey(defaultValue: '') String caption,
       String? location,
       DateTime? playedAt,
@@ -201,7 +202,7 @@ abstract class _$$PostImplCopyWith<$Res> implements $PostCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      UserSummary author,
+      @JsonKey(readValue: readUserOrDeleted) UserSummary author,
       @JsonKey(defaultValue: '') String caption,
       String? location,
       DateTime? playedAt,
@@ -320,7 +321,7 @@ class __$$PostImplCopyWithImpl<$Res>
 class _$PostImpl extends _Post {
   const _$PostImpl(
       {required this.id,
-      required this.author,
+      @JsonKey(readValue: readUserOrDeleted) required this.author,
       @JsonKey(defaultValue: '') required this.caption,
       this.location,
       this.playedAt,
@@ -344,6 +345,7 @@ class _$PostImpl extends _Post {
   @override
   final String id;
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   final UserSummary author;
   @override
   @JsonKey(defaultValue: '')
@@ -467,7 +469,7 @@ class _$PostImpl extends _Post {
 abstract class _Post extends Post {
   const factory _Post(
       {required final String id,
-      required final UserSummary author,
+      @JsonKey(readValue: readUserOrDeleted) required final UserSummary author,
       @JsonKey(defaultValue: '') required final String caption,
       final String? location,
       final DateTime? playedAt,
@@ -488,6 +490,7 @@ abstract class _Post extends Post {
   @override
   String get id;
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get author;
   @override
   @JsonKey(defaultValue: '')
@@ -532,9 +535,16 @@ Comment _$CommentFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Comment {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readAuthorId)
   String get authorId => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readAuthorUsername)
   String get authorUsername => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readAuthorDisplayName)
+  String get authorDisplayName => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readAuthorAvatar)
   String? get authorAvatarUrl => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readAuthorDeleted)
+  bool get authorDeleted => throw _privateConstructorUsedError;
   @JsonKey(name: 'body')
   String get content => throw _privateConstructorUsedError;
   DateTime? get editedAt => throw _privateConstructorUsedError;
@@ -556,9 +566,11 @@ abstract class $CommentCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String authorId,
-      String authorUsername,
-      String? authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorId) String authorId,
+      @JsonKey(readValue: _readAuthorUsername) String authorUsername,
+      @JsonKey(readValue: _readAuthorDisplayName) String authorDisplayName,
+      @JsonKey(readValue: _readAuthorAvatar) String? authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorDeleted) bool authorDeleted,
       @JsonKey(name: 'body') String content,
       DateTime? editedAt,
       DateTime createdAt});
@@ -582,7 +594,9 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
     Object? id = null,
     Object? authorId = null,
     Object? authorUsername = null,
+    Object? authorDisplayName = null,
     Object? authorAvatarUrl = freezed,
+    Object? authorDeleted = null,
     Object? content = null,
     Object? editedAt = freezed,
     Object? createdAt = null,
@@ -600,10 +614,18 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
           ? _value.authorUsername
           : authorUsername // ignore: cast_nullable_to_non_nullable
               as String,
+      authorDisplayName: null == authorDisplayName
+          ? _value.authorDisplayName
+          : authorDisplayName // ignore: cast_nullable_to_non_nullable
+              as String,
       authorAvatarUrl: freezed == authorAvatarUrl
           ? _value.authorAvatarUrl
           : authorAvatarUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      authorDeleted: null == authorDeleted
+          ? _value.authorDeleted
+          : authorDeleted // ignore: cast_nullable_to_non_nullable
+              as bool,
       content: null == content
           ? _value.content
           : content // ignore: cast_nullable_to_non_nullable
@@ -629,9 +651,11 @@ abstract class _$$CommentImplCopyWith<$Res> implements $CommentCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String authorId,
-      String authorUsername,
-      String? authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorId) String authorId,
+      @JsonKey(readValue: _readAuthorUsername) String authorUsername,
+      @JsonKey(readValue: _readAuthorDisplayName) String authorDisplayName,
+      @JsonKey(readValue: _readAuthorAvatar) String? authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorDeleted) bool authorDeleted,
       @JsonKey(name: 'body') String content,
       DateTime? editedAt,
       DateTime createdAt});
@@ -653,7 +677,9 @@ class __$$CommentImplCopyWithImpl<$Res>
     Object? id = null,
     Object? authorId = null,
     Object? authorUsername = null,
+    Object? authorDisplayName = null,
     Object? authorAvatarUrl = freezed,
+    Object? authorDeleted = null,
     Object? content = null,
     Object? editedAt = freezed,
     Object? createdAt = null,
@@ -671,10 +697,18 @@ class __$$CommentImplCopyWithImpl<$Res>
           ? _value.authorUsername
           : authorUsername // ignore: cast_nullable_to_non_nullable
               as String,
+      authorDisplayName: null == authorDisplayName
+          ? _value.authorDisplayName
+          : authorDisplayName // ignore: cast_nullable_to_non_nullable
+              as String,
       authorAvatarUrl: freezed == authorAvatarUrl
           ? _value.authorAvatarUrl
           : authorAvatarUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      authorDeleted: null == authorDeleted
+          ? _value.authorDeleted
+          : authorDeleted // ignore: cast_nullable_to_non_nullable
+              as bool,
       content: null == content
           ? _value.content
           : content // ignore: cast_nullable_to_non_nullable
@@ -696,9 +730,11 @@ class __$$CommentImplCopyWithImpl<$Res>
 class _$CommentImpl extends _Comment {
   const _$CommentImpl(
       {required this.id,
-      required this.authorId,
-      this.authorUsername = '',
-      this.authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorId) this.authorId = '',
+      @JsonKey(readValue: _readAuthorUsername) this.authorUsername = '',
+      @JsonKey(readValue: _readAuthorDisplayName) this.authorDisplayName = '',
+      @JsonKey(readValue: _readAuthorAvatar) this.authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorDeleted) this.authorDeleted = false,
       @JsonKey(name: 'body') required this.content,
       this.editedAt,
       required this.createdAt})
@@ -710,12 +746,20 @@ class _$CommentImpl extends _Comment {
   @override
   final String id;
   @override
+  @JsonKey(readValue: _readAuthorId)
   final String authorId;
   @override
-  @JsonKey()
+  @JsonKey(readValue: _readAuthorUsername)
   final String authorUsername;
   @override
+  @JsonKey(readValue: _readAuthorDisplayName)
+  final String authorDisplayName;
+  @override
+  @JsonKey(readValue: _readAuthorAvatar)
   final String? authorAvatarUrl;
+  @override
+  @JsonKey(readValue: _readAuthorDeleted)
+  final bool authorDeleted;
   @override
   @JsonKey(name: 'body')
   final String content;
@@ -726,7 +770,7 @@ class _$CommentImpl extends _Comment {
 
   @override
   String toString() {
-    return 'Comment(id: $id, authorId: $authorId, authorUsername: $authorUsername, authorAvatarUrl: $authorAvatarUrl, content: $content, editedAt: $editedAt, createdAt: $createdAt)';
+    return 'Comment(id: $id, authorId: $authorId, authorUsername: $authorUsername, authorDisplayName: $authorDisplayName, authorAvatarUrl: $authorAvatarUrl, authorDeleted: $authorDeleted, content: $content, editedAt: $editedAt, createdAt: $createdAt)';
   }
 
   @override
@@ -739,8 +783,12 @@ class _$CommentImpl extends _Comment {
                 other.authorId == authorId) &&
             (identical(other.authorUsername, authorUsername) ||
                 other.authorUsername == authorUsername) &&
+            (identical(other.authorDisplayName, authorDisplayName) ||
+                other.authorDisplayName == authorDisplayName) &&
             (identical(other.authorAvatarUrl, authorAvatarUrl) ||
                 other.authorAvatarUrl == authorAvatarUrl) &&
+            (identical(other.authorDeleted, authorDeleted) ||
+                other.authorDeleted == authorDeleted) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.editedAt, editedAt) ||
                 other.editedAt == editedAt) &&
@@ -750,8 +798,17 @@ class _$CommentImpl extends _Comment {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, authorId, authorUsername,
-      authorAvatarUrl, content, editedAt, createdAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      authorId,
+      authorUsername,
+      authorDisplayName,
+      authorAvatarUrl,
+      authorDeleted,
+      content,
+      editedAt,
+      createdAt);
 
   /// Create a copy of Comment
   /// with the given fields replaced by the non-null parameter values.
@@ -772,9 +829,12 @@ class _$CommentImpl extends _Comment {
 abstract class _Comment extends Comment {
   const factory _Comment(
       {required final String id,
-      required final String authorId,
-      final String authorUsername,
-      final String? authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorId) final String authorId,
+      @JsonKey(readValue: _readAuthorUsername) final String authorUsername,
+      @JsonKey(readValue: _readAuthorDisplayName)
+      final String authorDisplayName,
+      @JsonKey(readValue: _readAuthorAvatar) final String? authorAvatarUrl,
+      @JsonKey(readValue: _readAuthorDeleted) final bool authorDeleted,
       @JsonKey(name: 'body') required final String content,
       final DateTime? editedAt,
       required final DateTime createdAt}) = _$CommentImpl;
@@ -785,11 +845,20 @@ abstract class _Comment extends Comment {
   @override
   String get id;
   @override
+  @JsonKey(readValue: _readAuthorId)
   String get authorId;
   @override
+  @JsonKey(readValue: _readAuthorUsername)
   String get authorUsername;
   @override
+  @JsonKey(readValue: _readAuthorDisplayName)
+  String get authorDisplayName;
+  @override
+  @JsonKey(readValue: _readAuthorAvatar)
   String? get authorAvatarUrl;
+  @override
+  @JsonKey(readValue: _readAuthorDeleted)
+  bool get authorDeleted;
   @override
   @JsonKey(name: 'body')
   String get content;

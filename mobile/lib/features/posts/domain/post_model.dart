@@ -8,12 +8,13 @@ part 'post_model.freezed.dart';
 part 'post_model.g.dart';
 
 /// A post (`PostResponse`, incl. the GAP §6.1 [WP3] additions `editedAt`,
-/// `isBookmarked` and `author.deleted`).
+/// `isBookmarked` and `author.deleted`). A null `author` (hard-deleted
+/// account) parses as a deleted [UserSummary].
 @freezed
 class Post with _$Post {
   const factory Post({
     required String id,
-    required UserSummary author,
+    @JsonKey(readValue: readUserOrDeleted) required UserSummary author,
     @JsonKey(defaultValue: '') required String caption,
     String? location,
     DateTime? playedAt,
@@ -40,14 +41,23 @@ class Post with _$Post {
       (now ?? DateTime.now()).difference(createdAt) < editWindow;
 }
 
-/// A post comment (`PostCommentResponse`).
+/// A post comment (`PostCommentResponse`:
+/// `{id, authorId, authorUsername, authorDisplayName, authorAvatarUrl, body,
+/// createdAt, editedAt}`).
+///
+/// Also accepts a nested `author` [UserSummary] and is null-safe for deleted
+/// authors: a missing author id or `deleted: true` marks [authorDeleted].
 @freezed
 class Comment with _$Comment {
   const factory Comment({
     required String id,
-    required String authorId,
-    @Default('') String authorUsername,
-    String? authorAvatarUrl,
+    @JsonKey(readValue: _readAuthorId) @Default('') String authorId,
+    @JsonKey(readValue: _readAuthorUsername) @Default('') String authorUsername,
+    @JsonKey(readValue: _readAuthorDisplayName)
+    @Default('')
+    String authorDisplayName,
+    @JsonKey(readValue: _readAuthorAvatar) String? authorAvatarUrl,
+    @JsonKey(readValue: _readAuthorDeleted) @Default(false) bool authorDeleted,
     @JsonKey(name: 'body') required String content,
     DateTime? editedAt,
     required DateTime createdAt,
@@ -63,4 +73,37 @@ class Comment with _$Comment {
 
   bool canEdit({DateTime? now}) =>
       (now ?? DateTime.now()).difference(createdAt) < editWindow;
+
+  /// The author as a [UserSummary] (for avatars and profile links).
+  UserSummary get author => UserSummary(
+        id: authorId,
+        username: authorUsername,
+        displayName:
+            authorDisplayName.isNotEmpty ? authorDisplayName : authorUsername,
+        avatarUrl: authorAvatarUrl,
+        deleted: authorDeleted,
+      );
+}
+
+Map<dynamic, dynamic>? _nestedAuthor(Map<dynamic, dynamic> json) {
+  final author = json['author'];
+  return author is Map ? author : null;
+}
+
+Object? _readAuthorId(Map<dynamic, dynamic> json, String key) =>
+    json['authorId'] ?? _nestedAuthor(json)?['id'];
+
+Object? _readAuthorUsername(Map<dynamic, dynamic> json, String key) =>
+    json['authorUsername'] ?? _nestedAuthor(json)?['username'];
+
+Object? _readAuthorDisplayName(Map<dynamic, dynamic> json, String key) =>
+    json['authorDisplayName'] ?? _nestedAuthor(json)?['displayName'];
+
+Object? _readAuthorAvatar(Map<dynamic, dynamic> json, String key) =>
+    json['authorAvatarUrl'] ?? _nestedAuthor(json)?['avatarUrl'];
+
+Object? _readAuthorDeleted(Map<dynamic, dynamic> json, String key) {
+  final flag = json['authorDeleted'] ?? _nestedAuthor(json)?['deleted'];
+  if (flag is bool) return flag;
+  return _readAuthorId(json, key) == null;
 }

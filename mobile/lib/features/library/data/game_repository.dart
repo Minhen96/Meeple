@@ -54,22 +54,19 @@ final class GameRepository {
       });
 
   /// `GET /games/{id}/friends` — friends who own/played the game.
-  /// Empty until the endpoint ships.
-  Future<List<FriendGameEntry>> getFriends(String gameId) => guardApiOr(
+  Future<List<FriendGameEntry>> getFriends(String gameId) => guardApi(
         () async => _list(
           await _dio.get<Object?>('$_games/$gameId/friends'),
           FriendGameEntry.fromJson,
         ),
-        () async => const <FriendGameEntry>[],
       );
 
   /// `GET /games/{id}/reviews` — friends' ratings and notes.
-  Future<List<GameReview>> getReviews(String gameId) => guardApiOr(
+  Future<List<GameReview>> getReviews(String gameId) => guardApi(
         () async => _list(
           await _dio.get<Object?>('$_games/$gameId/reviews'),
           GameReview.fromJson,
         ),
-        () async => const <GameReview>[],
       );
 
   /// `GET /games/{id}/how-to-play`.

@@ -8,7 +8,8 @@ part of 'post_model.dart';
 
 _$PostImpl _$$PostImplFromJson(Map<String, dynamic> json) => _$PostImpl(
       id: json['id'] as String,
-      author: UserSummary.fromJson(json['author'] as Map<String, dynamic>),
+      author: UserSummary.fromJson(
+          readUserOrDeleted(json, 'author') as Map<String, dynamic>),
       caption: json['caption'] as String? ?? '',
       location: json['location'] as String?,
       playedAt: json['playedAt'] == null
@@ -58,9 +59,14 @@ Map<String, dynamic> _$$PostImplToJson(_$PostImpl instance) =>
 _$CommentImpl _$$CommentImplFromJson(Map<String, dynamic> json) =>
     _$CommentImpl(
       id: json['id'] as String,
-      authorId: json['authorId'] as String,
-      authorUsername: json['authorUsername'] as String? ?? '',
-      authorAvatarUrl: json['authorAvatarUrl'] as String?,
+      authorId: _readAuthorId(json, 'authorId') as String? ?? '',
+      authorUsername:
+          _readAuthorUsername(json, 'authorUsername') as String? ?? '',
+      authorDisplayName:
+          _readAuthorDisplayName(json, 'authorDisplayName') as String? ?? '',
+      authorAvatarUrl: _readAuthorAvatar(json, 'authorAvatarUrl') as String?,
+      authorDeleted:
+          _readAuthorDeleted(json, 'authorDeleted') as bool? ?? false,
       content: json['body'] as String,
       editedAt: json['editedAt'] == null
           ? null
@@ -73,7 +79,9 @@ Map<String, dynamic> _$$CommentImplToJson(_$CommentImpl instance) =>
       'id': instance.id,
       'authorId': instance.authorId,
       'authorUsername': instance.authorUsername,
+      'authorDisplayName': instance.authorDisplayName,
       'authorAvatarUrl': instance.authorAvatarUrl,
+      'authorDeleted': instance.authorDeleted,
       'body': instance.content,
       'editedAt': instance.editedAt?.toIso8601String(),
       'createdAt': instance.createdAt.toIso8601String(),

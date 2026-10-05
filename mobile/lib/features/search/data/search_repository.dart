@@ -14,7 +14,12 @@ part 'search_repository.g.dart';
 SearchRepository searchRepository(Ref ref) =>
     SearchRepository(ref.read(dioProvider));
 
-/// `GET /search` result: `{games, users, events}`.
+/// Categories of `GET /search?type=` (the enum names are the wire values).
+enum SearchType { all, games, users, events }
+
+/// `GET /search` result: `{games, users, events}` — `GameSummaryResponse`s,
+/// `UserSummaryWithStatus`es (with `friendshipStatus`) and `EventSummary`s
+/// (`{id, title, scheduledAt, status, visibility, game}`).
 final class SearchResults {
   const SearchResults({
     this.games = const [],
@@ -47,35 +52,19 @@ final class SearchRepository {
 
   final Dio _dio;
 
-  /// `GET /search?q=&limit=3`. While the unified endpoint is missing, games
-  /// and players are searched separately.
-  Future<SearchResults> search(String query, {int limit = 3}) => guardApiOr(
-        () async {
-          final res = await _dio.get<Map<String, dynamic>>(
-            ApiConstants.search,
-            queryParameters: {'q': query, 'limit': limit},
-          );
-          return SearchResults.fromJson(res.data ?? const {});
-        },
-        () async {
-          final games = await _dio.get<Map<String, dynamic>>(
-            ApiConstants.games,
-            queryParameters: {'q': query, 'size': limit},
-          );
-          final users = await _dio.get<Map<String, dynamic>>(
-            '${ApiConstants.users}/search',
-            queryParameters: {'q': query, 'size': limit},
-          );
-          return SearchResults(
-            games: (games.data?['content'] as List<dynamic>? ?? const [])
-                .whereType<Map<String, dynamic>>()
-                .map(Game.fromJson)
-                .toList(),
-            users: (users.data?['data'] as List<dynamic>? ?? const [])
-                .whereType<Map<String, dynamic>>()
-                .map(UserSummary.fromJson)
-                .toList(),
-          );
-        },
-      );
+  /// `GET /search?q=&limit=&type=` → `{games, users, events}`, up to [limit]
+  /// (max 20) of each. [type] narrows the search to one category; the other
+  /// lists then come back empty.
+  Future<SearchResults> search(
+    String query, {
+    int limit = 3,
+    SearchType type = SearchType.all,
+  }) =>
+      guardApi(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          ApiConstants.search,
+          queryParameters: {'q': query, 'limit': limit, 'type': type.name},
+        );
+        return SearchResults.fromJson(res.data ?? const {});
+      });
 }

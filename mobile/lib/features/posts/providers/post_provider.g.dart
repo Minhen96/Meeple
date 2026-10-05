@@ -677,6 +677,164 @@ class _UserPostsProviderElement
   String get userId => (origin as UserPostsProvider).userId;
 }
 
+String _$taggedPostsHash() => r'8fa1e0e4e1bd77619b1d185f827ba88083362b9c';
+
+abstract class _$TaggedPosts
+    extends BuildlessAutoDisposeAsyncNotifier<PagedState<Post>> {
+  late final String userId;
+
+  FutureOr<PagedState<Post>> build(
+    String userId,
+  );
+}
+
+/// Paged posts a user is tagged in (profile Tagged tab).
+///
+/// Copied from [TaggedPosts].
+@ProviderFor(TaggedPosts)
+const taggedPostsProvider = TaggedPostsFamily();
+
+/// Paged posts a user is tagged in (profile Tagged tab).
+///
+/// Copied from [TaggedPosts].
+class TaggedPostsFamily extends Family<AsyncValue<PagedState<Post>>> {
+  /// Paged posts a user is tagged in (profile Tagged tab).
+  ///
+  /// Copied from [TaggedPosts].
+  const TaggedPostsFamily();
+
+  /// Paged posts a user is tagged in (profile Tagged tab).
+  ///
+  /// Copied from [TaggedPosts].
+  TaggedPostsProvider call(
+    String userId,
+  ) {
+    return TaggedPostsProvider(
+      userId,
+    );
+  }
+
+  @override
+  TaggedPostsProvider getProviderOverride(
+    covariant TaggedPostsProvider provider,
+  ) {
+    return call(
+      provider.userId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'taggedPostsProvider';
+}
+
+/// Paged posts a user is tagged in (profile Tagged tab).
+///
+/// Copied from [TaggedPosts].
+class TaggedPostsProvider extends AutoDisposeAsyncNotifierProviderImpl<
+    TaggedPosts, PagedState<Post>> {
+  /// Paged posts a user is tagged in (profile Tagged tab).
+  ///
+  /// Copied from [TaggedPosts].
+  TaggedPostsProvider(
+    String userId,
+  ) : this._internal(
+          () => TaggedPosts()..userId = userId,
+          from: taggedPostsProvider,
+          name: r'taggedPostsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$taggedPostsHash,
+          dependencies: TaggedPostsFamily._dependencies,
+          allTransitiveDependencies:
+              TaggedPostsFamily._allTransitiveDependencies,
+          userId: userId,
+        );
+
+  TaggedPostsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.userId,
+  }) : super.internal();
+
+  final String userId;
+
+  @override
+  FutureOr<PagedState<Post>> runNotifierBuild(
+    covariant TaggedPosts notifier,
+  ) {
+    return notifier.build(
+      userId,
+    );
+  }
+
+  @override
+  Override overrideWith(TaggedPosts Function() create) {
+    return ProviderOverride(
+      origin: this,
+      override: TaggedPostsProvider._internal(
+        () => create()..userId = userId,
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        userId: userId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeAsyncNotifierProviderElement<TaggedPosts, PagedState<Post>>
+      createElement() {
+    return _TaggedPostsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is TaggedPostsProvider && other.userId == userId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, userId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin TaggedPostsRef on AutoDisposeAsyncNotifierProviderRef<PagedState<Post>> {
+  /// The parameter `userId` of this provider.
+  String get userId;
+}
+
+class _TaggedPostsProviderElement
+    extends AutoDisposeAsyncNotifierProviderElement<TaggedPosts,
+        PagedState<Post>> with TaggedPostsRef {
+  _TaggedPostsProviderElement(super.provider);
+
+  @override
+  String get userId => (origin as TaggedPostsProvider).userId;
+}
+
 String _$bookmarksHash() => r'cace511a5b087210c76387d7cc356f95d8b52f0d';
 
 /// The viewer's saved posts.

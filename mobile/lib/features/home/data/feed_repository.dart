@@ -21,10 +21,11 @@ final class FeedRepository {
 
   static const pageSize = 20;
 
-  /// `GET /feed?cursor=&limit=20` → `{items: FeedItem[], nextCursor, hasMore}`.
+  /// `GET /feed?cursor=&limit=20` → `{items: FeedItem[], nextCursor, hasMore}`
+  /// where each item is `{kind: post|activity, createdAt, post?, activity?}`.
   ///
-  /// Until the cursor feed ships the endpoint returns a `PageResponse` of
-  /// bare posts; those are wrapped as post items.
+  /// Bare `PostResponse` items (the legacy `?page=` feed) are wrapped as post
+  /// items.
   Future<CursorPage<FeedItem>> getFeed({String? cursor}) => guardApi(() async {
         final res = await _dio.get<Object?>(
           ApiConstants.feed,

@@ -13,6 +13,11 @@ void main() {
     stubDefaults(api);
     api
       ..get('/api/v1/users/me/posts', cursor([postJson(authorId: 'me')]))
+      ..get(
+        '/api/v1/users/me/tagged-posts',
+        cursor([postJson(id: 'p9', caption: 'Tagged night')], next: 'c2'),
+      )
+      ..get('/api/v1/users/f1/tagged-posts', cursor([]))
       ..get('/api/v1/users/f1', userJson(id: 'f1', username: 'fred', displayName: 'Fred'))
       ..get('/api/v1/users/f1/stats', {'gamesOwned': 5, 'sessions': 7, 'friends': 1})
       ..get('/api/v1/users/f1/posts', cursor([]))
@@ -40,7 +45,10 @@ void main() {
 
     await tester.tap(find.text('Tagged'));
     await settle(tester);
-    expect(find.text('Tagged posts'), findsOneWidget);
+    expect(find.byKey(const ValueKey('post-thumb-p9')), findsOneWidget);
+    final tagged = api.calls('GET', '/api/v1/users/me/tagged-posts');
+    expect(tagged.first.queryParameters['limit'], 20);
+    expect(tagged.first.queryParameters.containsKey('cursor'), isFalse);
 
     await tester.tap(find.text('Collection').last);
     await settle(tester);
@@ -149,20 +157,61 @@ void main() {
     expect(find.text('cat'), findsOneWidget);
   });
 
-  testWidgets('search falls back to games + users when /search is missing',
+  testWidgets('search sends q, limit and type=all to the unified endpoint',
       (tester) async {
-    api
-      ..get('/api/v1/games', springPage([gameJson()]))
-      ..get('/api/v1/users/search', {
-        'data': <Object>[],
-        'meta': {'page': 1, 'limit': 3, 'total': 0, 'hasMore': false},
-      });
+    api.get('/api/v1/search', {
+      'games': [gameJson()],
+      'users': <Object>[],
+      'events': <Object>[],
+    });
     await pumpApp(tester, api: api, location: '/search');
 
     await tester.enterText(find.byKey(const Key('search-input')), 'cat');
     await tester.pump(const Duration(milliseconds: 500));
     await settle(tester);
     expect(find.text('Catan'), findsOneWidget);
+    final query = api.calls('GET', '/api/v1/search').last.queryParameters;
+    expect(query, {'q': 'cat', 'limit': 3, 'type': 'all'});
+    expect(api.called('GET', '/api/v1/users/search'), isFalse);
+  });
+
+  testWidgets('tagged tab of another user shows its empty state',
+      (tester) async {
+    await pumpApp(tester, api: api, location: '/profile/f1');
+    await tester.tap(find.text('Tagged'));
+    await settle(tester);
+    expect(find.text('Tagged posts'), findsOneWidget);
+    expect(
+      find.text('Posts this player is tagged in will appear here.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('cancelling a request that is already gone refreshes the status',
+      (tester) async {
+    var statusCalls = 0;
+    api
+      ..get('/api/v1/users/f1/friend-status', (_) {
+        statusCalls++;
+        return FakeResponse({
+          'data': statusCalls == 1
+              ? {'status': 'PENDING_SENT', 'requestId': 'fr1'}
+              : {'status': 'FRIENDS', 'requestId': 'fr1'},
+        });
+      })
+      ..delete(
+        '/api/v1/users/f1/friend-request',
+        const FakeResponse.error(404, 'REQUEST_NOT_FOUND'),
+      );
+    await pumpApp(tester, api: api, location: '/profile/f1');
+
+    await tester.tap(find.byKey(const ValueKey('pending-f1')));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
+    await settle(tester);
+    expect(api.called('DELETE', '/api/v1/users/f1/friend-request'), isTrue);
+    expect(statusCalls, 2);
+    expect(find.text('Friends'), findsWidgets);
   });
 
   testWidgets('matching: create a request and accept flow', (tester) async {

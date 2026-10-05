@@ -14,6 +14,7 @@ import 'package:meeple_hearth/features/posts/domain/post_model.dart';
 import 'package:meeple_hearth/features/posts/providers/post_provider.dart';
 import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/models/paged_state.dart';
 import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
 import 'package:meeple_hearth/shared/widgets/empty_state.dart';
 import 'package:meeple_hearth/shared/widgets/error_state.dart';
@@ -67,11 +68,24 @@ class ProfileView extends ConsumerWidget {
         ],
         body: TabBarView(
           children: [
-            _PostsGrid(userId: user.id),
-            EmptyState(
-              icon: Icons.sell_outlined,
-              title: l10n.profileTaggedTitle,
-              subtitle: l10n.profileTaggedBody,
+            _PostsGrid(
+              key: const Key('profile-posts'),
+              state: ref.watch(userPostsProvider(user.id)),
+              onRetry: () => ref.invalidate(userPostsProvider(user.id)),
+              onLoadMore: () =>
+                  ref.read(userPostsProvider(user.id).notifier).loadMore(),
+              emptyIcon: Icons.photo_library_outlined,
+              emptyTitle: l10n.profileNoPosts,
+            ),
+            _PostsGrid(
+              key: const Key('profile-tagged'),
+              state: ref.watch(taggedPostsProvider(user.id)),
+              onRetry: () => ref.invalidate(taggedPostsProvider(user.id)),
+              onLoadMore: () =>
+                  ref.read(taggedPostsProvider(user.id).notifier).loadMore(),
+              emptyIcon: Icons.sell_outlined,
+              emptyTitle: l10n.profileTaggedTitle,
+              emptySubtitle: l10n.profileTaggedBody,
             ),
             _CollectionList(userId: user.id, isSelf: isSelf),
           ],
@@ -304,49 +318,56 @@ class _FavoriteGames extends ConsumerWidget {
   }
 }
 
-class _PostsGrid extends ConsumerWidget {
-  const _PostsGrid({required this.userId});
+/// A 3-column grid of post thumbnails over a paged post list.
+class _PostsGrid extends StatelessWidget {
+  const _PostsGrid({
+    super.key,
+    required this.state,
+    required this.onRetry,
+    required this.onLoadMore,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    this.emptySubtitle,
+  });
 
-  final String userId;
+  final AsyncValue<PagedState<Post>> state;
+  final VoidCallback onRetry;
+  final VoidCallback onLoadMore;
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String? emptySubtitle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    return ref.watch(userPostsProvider(userId)).when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ErrorState(
-            error: e,
-            onRetry: () => ref.invalidate(userPostsProvider(userId)),
-          ),
-          data: (s) => s.items.isEmpty
-              ? EmptyState(
-                  icon: Icons.photo_library_outlined,
-                  title: l10n.profileNoPosts,
-                )
-              : NotificationListener<ScrollNotification>(
-                  onNotification: (n) {
-                    if (n.metrics.pixels >= n.metrics.maxScrollExtent * 0.8) {
-                      ref.read(userPostsProvider(userId).notifier).loadMore();
-                    }
-                    return false;
-                  },
-                  child: GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      AppSpacing.md,
-                      AppSpacing.lg,
-                      96,
-                    ),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: AppSpacing.xs,
-                      mainAxisSpacing: AppSpacing.xs,
-                    ),
-                    itemCount: s.items.length,
-                    itemBuilder: (_, i) => _PostThumb(post: s.items[i]),
-                  ),
+  Widget build(BuildContext context) {
+    return state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => ErrorState(error: e, onRetry: onRetry),
+      data: (s) => s.items.isEmpty
+          ? EmptyState(icon: emptyIcon, title: emptyTitle, subtitle: emptySubtitle)
+          : NotificationListener<ScrollNotification>(
+              onNotification: (n) {
+                if (n.metrics.pixels >= n.metrics.maxScrollExtent * 0.8) {
+                  onLoadMore();
+                }
+                return false;
+              },
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  96,
                 ),
-        );
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: AppSpacing.xs,
+                  mainAxisSpacing: AppSpacing.xs,
+                ),
+                itemCount: s.items.length,
+                itemBuilder: (_, i) => _PostThumb(post: s.items[i]),
+              ),
+            ),
+    );
   }
 }
 

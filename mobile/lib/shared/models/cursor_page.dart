@@ -67,13 +67,19 @@ final class CursorPage<T> {
           : null;
 
   /// Query parameters for fetching the page after [cursor].
+  ///
+  /// A real cursor (or the first page) sends `cursor`/`limit` plus `size`
+  /// for offset-only endpoints. A legacy `page:` cursor sends only
+  /// `page`/`size`: endpoints that serve both shapes pick the offset one
+  /// when `limit` is absent, so the follow-up page keeps the shape of the
+  /// first.
   static Map<String, dynamic> query(String? cursor, int limit) {
     final legacyPage = legacyPageOf(cursor);
+    if (legacyPage != null) return {'page': legacyPage, 'size': limit};
     return {
       'limit': limit,
       'size': limit,
-      if (legacyPage != null) 'page': legacyPage,
-      if (cursor != null && legacyPage == null) 'cursor': cursor,
+      if (cursor != null) 'cursor': cursor,
     };
   }
 

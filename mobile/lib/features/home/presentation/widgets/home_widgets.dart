@@ -88,7 +88,7 @@ class ActivityCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppAvatar(
-              imageUrl: a.user.avatarUrl,
+              imageUrl: a.user.deleted ? null : a.user.avatarUrl,
               displayName: name,
               onTap: a.user.deleted
                   ? null

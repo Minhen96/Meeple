@@ -26,15 +26,20 @@ enum FriendshipStatus {
 }
 
 /// The shared `UserSummary` shape `{id, username, displayName, avatarUrl,
-/// deleted}`; also parses `UserProfileResponse`, `AuthorInfo`, `HostInfo`.
+/// deleted}`; also parses `UserProfileResponse`, `AuthorInfo`, `HostInfo`,
+/// `SuggestedUser` and `UserSummaryWithStatus`.
+///
+/// Null-safe for deleted accounts: a soft-deleted user arrives as
+/// `{id, deleted: true}` with null names, and a hard-deleted one may have no
+/// `id` at all — it then parses with an empty [id] and [deleted] set.
 @freezed
 class UserSummary with _$UserSummary {
   const factory UserSummary({
-    required String id,
+    @JsonKey(defaultValue: '') required String id,
     @Default('') String username,
     @JsonKey(readValue: _readDisplayName) @Default('') String displayName,
     String? avatarUrl,
-    @Default(false) bool deleted,
+    @JsonKey(readValue: _readDeleted) @Default(false) bool deleted,
     @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
     @Default(FriendshipStatus.none)
     FriendshipStatus friendshipStatus,
@@ -43,6 +48,14 @@ class UserSummary with _$UserSummary {
   factory UserSummary.fromJson(Map<String, dynamic> json) =>
       _$UserSummaryFromJson(json);
 }
+
+/// Reads a nested user object, substituting a deleted placeholder when the
+/// server sent `null` (the account was hard-deleted).
+Object? readUserOrDeleted(Map<dynamic, dynamic> json, String key) =>
+    json[key] ?? const <String, dynamic>{'deleted': true};
+
+Object? _readDeleted(Map<dynamic, dynamic> json, String key) =>
+    json['deleted'] ?? (json['id'] == null ? true : null);
 
 Object? _readDisplayName(Map<dynamic, dynamic> json, String key) {
   final name = json['displayName'];

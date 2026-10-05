@@ -40,7 +40,7 @@ class FeedActivity with _$FeedActivity {
   const factory FeedActivity({
     required String id,
     required String type,
-    required UserSummary user,
+    @JsonKey(readValue: readUserOrDeleted) required UserSummary user,
     @Default(<String, dynamic>{}) Map<String, dynamic> data,
   }) = _FeedActivity;
 

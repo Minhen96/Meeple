@@ -196,7 +196,11 @@ class _CommentTile extends ConsumerWidget {
   Future<void> _menu(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final me = ref.read(authNotifierProvider).valueOrNull;
-    final mine = me?.id == comment.authorId;
+    final mine = me != null && me.id == comment.authorId;
+    // The post's author may remove any comment on it.
+    final postAuthorId =
+        ref.read(postDetailProvider(postId)).valueOrNull?.author.id;
+    final canDelete = mine || (me != null && me.id == postAuthorId);
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -212,7 +216,7 @@ class _CommentTile extends ConsumerWidget {
                 title: Text(l10n.commonEdit),
                 onTap: () => Navigator.of(sheet).pop('edit'),
               ),
-            if (mine)
+            if (canDelete)
               ListTile(
                 key: const Key('comment-delete'),
                 leading: const Icon(Icons.delete_outline, color: AppColors.error),
@@ -286,10 +290,12 @@ class _CommentTile extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppAvatar(
-              imageUrl: c.authorAvatarUrl,
-              displayName: c.authorUsername,
+              imageUrl: c.authorDeleted ? null : c.authorAvatarUrl,
+              displayName: displayNameOf(context, c.author),
               size: AvatarSize.sm,
-              onTap: () => context.push(AppRoutes.userProfile(c.authorId)),
+              onTap: c.authorDeleted
+                  ? null
+                  : () => context.push(AppRoutes.userProfile(c.authorId)),
             ),
             AppSpacing.hGapMd,
             Expanded(
@@ -300,8 +306,8 @@ class _CommentTile extends ConsumerWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: c.authorUsername.isEmpty
-                              ? l10n.commonDeletedUser
+                          text: c.authorDeleted || c.authorUsername.isEmpty
+                              ? '${l10n.commonDeletedUser} '
                               : '@${c.authorUsername} ',
                           style: AppTypography.titleSmall,
                         ),

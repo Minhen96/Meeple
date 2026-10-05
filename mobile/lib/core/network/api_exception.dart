@@ -199,17 +199,3 @@ Future<T> guardApi<T>(Future<T> Function() body) async {
     throw ApiException.from(e);
   }
 }
-
-/// Like [guardApi] but falls back to [fallback] when the endpoint answers
-/// 404/405 — GAP §6.1 contracts ship incrementally, so a missing endpoint
-/// degrades to the legacy one instead of failing.
-Future<T> guardApiOr<T>(
-  Future<T> Function() body,
-  Future<T> Function() fallback,
-) async {
-  try {
-    return await guardApi(body);
-  } on NotFoundException {
-    return guardApi(fallback);
-  }
-}

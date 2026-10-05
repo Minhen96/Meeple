@@ -47,7 +47,7 @@ final class CollectionRepository {
       });
 
   /// `PUT /users/me/games/{gameId}` upsert; only non-null fields are
-  /// applied. [personalRating] must be between 1.0 and 10.0.
+  /// applied. [personalRating] must be between 0.0 and 10.0.
   Future<UserGame> upsertUserGame({
     required String gameId,
     bool? isOwned,
@@ -73,8 +73,8 @@ final class CollectionRepository {
   Future<void> removeFromCollection(String gameId) =>
       guardApi(() => _dio.delete<void>('$_mine/$gameId'));
 
-  /// `POST /users/me/games/{gameId}/plays` (GAP §6.1 [WP4]). Falls back to
-  /// the legacy `log-play` increment while the plays endpoint is missing.
+  /// `POST /users/me/games/{gameId}/plays {playedAt?, notes?,
+  /// durationMinutes? (1–1440), playerCount? (1–100)}` → `PlayLogResponse`.
   Future<void> logPlay(
     String gameId, {
     DateTime? playedAt,
@@ -82,7 +82,7 @@ final class CollectionRepository {
     int? durationMinutes,
     int? playerCount,
   }) =>
-      guardApiOr(
+      guardApi(
         () => _dio.post<void>(
           '$_mine/$gameId/plays',
           data: {
@@ -93,7 +93,6 @@ final class CollectionRepository {
             if (playerCount != null) 'playerCount': playerCount,
           },
         ),
-        () => _dio.post<void>('$_mine/$gameId/log-play'),
       );
 
   /// `GET /users/me/games/{gameId}/plays`.
@@ -111,7 +110,8 @@ final class CollectionRepository {
 
   // ── BGG import ────────────────────────────────────────────────────────────
 
-  /// `POST /users/me/bgg-import {bggUsername}` → 202 `{status:"running"}`.
+  /// `POST /users/me/bgg-import {bggUsername}` → 202 `{status:"running"}`;
+  /// 409 `BGG_IMPORT_IN_PROGRESS`, 503 `BGG_API_UNAVAILABLE`.
   Future<void> startBggImport(String bggUsername) => guardApi(
         () => _dio.post<void>(
           '${ApiConstants.me}/bgg-import',

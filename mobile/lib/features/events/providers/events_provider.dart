@@ -11,8 +11,7 @@ part 'events_provider.g.dart';
 @riverpod
 Future<CachedResult<List<Event>>> eventsList(Ref ref, EventScope scope) {
   final repo = ref.read(eventRepositoryProvider);
-  Future<List<Event>> fetch() =>
-      scope == EventScope.mine ? repo.getMyEvents() : repo.getEvents(scope);
+  Future<List<Event>> fetch() => repo.getEvents(scope);
   if (scope != EventScope.upcoming) {
     return fetch().then(CachedResult.new);
   }

@@ -689,6 +689,7 @@ FeedActivity _$FeedActivityFromJson(Map<String, dynamic> json) {
 mixin _$FeedActivity {
   String get id => throw _privateConstructorUsedError;
   String get type => throw _privateConstructorUsedError;
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get user => throw _privateConstructorUsedError;
   Map<String, dynamic> get data => throw _privateConstructorUsedError;
 
@@ -709,7 +710,10 @@ abstract class $FeedActivityCopyWith<$Res> {
       _$FeedActivityCopyWithImpl<$Res, FeedActivity>;
   @useResult
   $Res call(
-      {String id, String type, UserSummary user, Map<String, dynamic> data});
+      {String id,
+      String type,
+      @JsonKey(readValue: readUserOrDeleted) UserSummary user,
+      Map<String, dynamic> data});
 
   $UserSummaryCopyWith<$Res> get user;
 }
@@ -774,7 +778,10 @@ abstract class _$$FeedActivityImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {String id, String type, UserSummary user, Map<String, dynamic> data});
+      {String id,
+      String type,
+      @JsonKey(readValue: readUserOrDeleted) UserSummary user,
+      Map<String, dynamic> data});
 
   @override
   $UserSummaryCopyWith<$Res> get user;
@@ -825,7 +832,7 @@ class _$FeedActivityImpl extends _FeedActivity {
   const _$FeedActivityImpl(
       {required this.id,
       required this.type,
-      required this.user,
+      @JsonKey(readValue: readUserOrDeleted) required this.user,
       final Map<String, dynamic> data = const <String, dynamic>{}})
       : _data = data,
         super._();
@@ -838,6 +845,7 @@ class _$FeedActivityImpl extends _FeedActivity {
   @override
   final String type;
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   final UserSummary user;
   final Map<String, dynamic> _data;
   @override
@@ -889,7 +897,7 @@ abstract class _FeedActivity extends FeedActivity {
   const factory _FeedActivity(
       {required final String id,
       required final String type,
-      required final UserSummary user,
+      @JsonKey(readValue: readUserOrDeleted) required final UserSummary user,
       final Map<String, dynamic> data}) = _$FeedActivityImpl;
   const _FeedActivity._() : super._();
 
@@ -901,6 +909,7 @@ abstract class _FeedActivity extends FeedActivity {
   @override
   String get type;
   @override
+  @JsonKey(readValue: readUserOrDeleted)
   UserSummary get user;
   @override
   Map<String, dynamic> get data;

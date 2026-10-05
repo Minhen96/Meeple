@@ -20,11 +20,13 @@ UserSummary _$UserSummaryFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$UserSummary {
+  @JsonKey(defaultValue: '')
   String get id => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
   @JsonKey(readValue: _readDisplayName)
   String get displayName => throw _privateConstructorUsedError;
   String? get avatarUrl => throw _privateConstructorUsedError;
+  @JsonKey(readValue: _readDeleted)
   bool get deleted => throw _privateConstructorUsedError;
   @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
   FriendshipStatus get friendshipStatus => throw _privateConstructorUsedError;
@@ -46,11 +48,11 @@ abstract class $UserSummaryCopyWith<$Res> {
       _$UserSummaryCopyWithImpl<$Res, UserSummary>;
   @useResult
   $Res call(
-      {String id,
+      {@JsonKey(defaultValue: '') String id,
       String username,
       @JsonKey(readValue: _readDisplayName) String displayName,
       String? avatarUrl,
-      bool deleted,
+      @JsonKey(readValue: _readDeleted) bool deleted,
       @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
       FriendshipStatus friendshipStatus});
 }
@@ -115,11 +117,11 @@ abstract class _$$UserSummaryImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {String id,
+      {@JsonKey(defaultValue: '') String id,
       String username,
       @JsonKey(readValue: _readDisplayName) String displayName,
       String? avatarUrl,
-      bool deleted,
+      @JsonKey(readValue: _readDeleted) bool deleted,
       @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
       FriendshipStatus friendshipStatus});
 }
@@ -177,11 +179,11 @@ class __$$UserSummaryImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$UserSummaryImpl implements _UserSummary {
   const _$UserSummaryImpl(
-      {required this.id,
+      {@JsonKey(defaultValue: '') required this.id,
       this.username = '',
       @JsonKey(readValue: _readDisplayName) this.displayName = '',
       this.avatarUrl,
-      this.deleted = false,
+      @JsonKey(readValue: _readDeleted) this.deleted = false,
       @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
       this.friendshipStatus = FriendshipStatus.none});
 
@@ -189,6 +191,7 @@ class _$UserSummaryImpl implements _UserSummary {
       _$$UserSummaryImplFromJson(json);
 
   @override
+  @JsonKey(defaultValue: '')
   final String id;
   @override
   @JsonKey()
@@ -199,7 +202,7 @@ class _$UserSummaryImpl implements _UserSummary {
   @override
   final String? avatarUrl;
   @override
-  @JsonKey()
+  @JsonKey(readValue: _readDeleted)
   final bool deleted;
   @override
   @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
@@ -250,11 +253,11 @@ class _$UserSummaryImpl implements _UserSummary {
 
 abstract class _UserSummary implements UserSummary {
   const factory _UserSummary(
-      {required final String id,
+      {@JsonKey(defaultValue: '') required final String id,
       final String username,
       @JsonKey(readValue: _readDisplayName) final String displayName,
       final String? avatarUrl,
-      final bool deleted,
+      @JsonKey(readValue: _readDeleted) final bool deleted,
       @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)
       final FriendshipStatus friendshipStatus}) = _$UserSummaryImpl;
 
@@ -262,6 +265,7 @@ abstract class _UserSummary implements UserSummary {
       _$UserSummaryImpl.fromJson;
 
   @override
+  @JsonKey(defaultValue: '')
   String get id;
   @override
   String get username;
@@ -271,6 +275,7 @@ abstract class _UserSummary implements UserSummary {
   @override
   String? get avatarUrl;
   @override
+  @JsonKey(readValue: _readDeleted)
   bool get deleted;
   @override
   @JsonKey(fromJson: FriendshipStatus.parse, toJson: _statusToJson)

@@ -37,8 +37,15 @@ mixin _$User {
   String? get timezone => throw _privateConstructorUsedError;
   DateTime? get usernameChangeAvailableAt => throw _privateConstructorUsedError;
 
-  /// Self only.
+  /// Self only (null on other users' profiles).
   String? get bggUsername => throw _privateConstructorUsedError;
+
+  /// Self only: whether the account has a password (false for accounts
+  /// created with Google). Null when unknown.
+  bool? get hasPassword => throw _privateConstructorUsedError;
+
+  /// Self only: whether a Google account is linked. Null when unknown.
+  bool? get googleLinked => throw _privateConstructorUsedError;
   bool get deleted => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
 
@@ -71,6 +78,8 @@ abstract class $UserCopyWith<$Res> {
       String? timezone,
       DateTime? usernameChangeAvailableAt,
       String? bggUsername,
+      bool? hasPassword,
+      bool? googleLinked,
       bool deleted,
       DateTime? createdAt});
 }
@@ -104,6 +113,8 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? timezone = freezed,
     Object? usernameChangeAvailableAt = freezed,
     Object? bggUsername = freezed,
+    Object? hasPassword = freezed,
+    Object? googleLinked = freezed,
     Object? deleted = null,
     Object? createdAt = freezed,
   }) {
@@ -164,6 +175,14 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.bggUsername
           : bggUsername // ignore: cast_nullable_to_non_nullable
               as String?,
+      hasPassword: freezed == hasPassword
+          ? _value.hasPassword
+          : hasPassword // ignore: cast_nullable_to_non_nullable
+              as bool?,
+      googleLinked: freezed == googleLinked
+          ? _value.googleLinked
+          : googleLinked // ignore: cast_nullable_to_non_nullable
+              as bool?,
       deleted: null == deleted
           ? _value.deleted
           : deleted // ignore: cast_nullable_to_non_nullable
@@ -198,6 +217,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String? timezone,
       DateTime? usernameChangeAvailableAt,
       String? bggUsername,
+      bool? hasPassword,
+      bool? googleLinked,
       bool deleted,
       DateTime? createdAt});
 }
@@ -228,6 +249,8 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? timezone = freezed,
     Object? usernameChangeAvailableAt = freezed,
     Object? bggUsername = freezed,
+    Object? hasPassword = freezed,
+    Object? googleLinked = freezed,
     Object? deleted = null,
     Object? createdAt = freezed,
   }) {
@@ -288,6 +311,14 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.bggUsername
           : bggUsername // ignore: cast_nullable_to_non_nullable
               as String?,
+      hasPassword: freezed == hasPassword
+          ? _value.hasPassword
+          : hasPassword // ignore: cast_nullable_to_non_nullable
+              as bool?,
+      googleLinked: freezed == googleLinked
+          ? _value.googleLinked
+          : googleLinked // ignore: cast_nullable_to_non_nullable
+              as bool?,
       deleted: null == deleted
           ? _value.deleted
           : deleted // ignore: cast_nullable_to_non_nullable
@@ -318,6 +349,8 @@ class _$UserImpl extends _User {
       this.timezone,
       this.usernameChangeAvailableAt,
       this.bggUsername,
+      this.hasPassword,
+      this.googleLinked,
       this.deleted = false,
       this.createdAt})
       : super._();
@@ -358,9 +391,18 @@ class _$UserImpl extends _User {
   @override
   final DateTime? usernameChangeAvailableAt;
 
-  /// Self only.
+  /// Self only (null on other users' profiles).
   @override
   final String? bggUsername;
+
+  /// Self only: whether the account has a password (false for accounts
+  /// created with Google). Null when unknown.
+  @override
+  final bool? hasPassword;
+
+  /// Self only: whether a Google account is linked. Null when unknown.
+  @override
+  final bool? googleLinked;
   @override
   @JsonKey()
   final bool deleted;
@@ -369,7 +411,7 @@ class _$UserImpl extends _User {
 
   @override
   String toString() {
-    return 'User(id: $id, username: $username, email: $email, displayName: $displayName, avatarUrl: $avatarUrl, bio: $bio, location: $location, onboardingCompleted: $onboardingCompleted, isAdmin: $isAdmin, isVerified: $isVerified, preferredLanguage: $preferredLanguage, timezone: $timezone, usernameChangeAvailableAt: $usernameChangeAvailableAt, bggUsername: $bggUsername, deleted: $deleted, createdAt: $createdAt)';
+    return 'User(id: $id, username: $username, email: $email, displayName: $displayName, avatarUrl: $avatarUrl, bio: $bio, location: $location, onboardingCompleted: $onboardingCompleted, isAdmin: $isAdmin, isVerified: $isVerified, preferredLanguage: $preferredLanguage, timezone: $timezone, usernameChangeAvailableAt: $usernameChangeAvailableAt, bggUsername: $bggUsername, hasPassword: $hasPassword, googleLinked: $googleLinked, deleted: $deleted, createdAt: $createdAt)';
   }
 
   @override
@@ -402,6 +444,10 @@ class _$UserImpl extends _User {
                 other.usernameChangeAvailableAt == usernameChangeAvailableAt) &&
             (identical(other.bggUsername, bggUsername) ||
                 other.bggUsername == bggUsername) &&
+            (identical(other.hasPassword, hasPassword) ||
+                other.hasPassword == hasPassword) &&
+            (identical(other.googleLinked, googleLinked) ||
+                other.googleLinked == googleLinked) &&
             (identical(other.deleted, deleted) || other.deleted == deleted) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
@@ -425,6 +471,8 @@ class _$UserImpl extends _User {
       timezone,
       usernameChangeAvailableAt,
       bggUsername,
+      hasPassword,
+      googleLinked,
       deleted,
       createdAt);
 
@@ -460,6 +508,8 @@ abstract class _User extends User {
       final String? timezone,
       final DateTime? usernameChangeAvailableAt,
       final String? bggUsername,
+      final bool? hasPassword,
+      final bool? googleLinked,
       final bool deleted,
       final DateTime? createdAt}) = _$UserImpl;
   const _User._() : super._();
@@ -496,9 +546,18 @@ abstract class _User extends User {
   @override
   DateTime? get usernameChangeAvailableAt;
 
-  /// Self only.
+  /// Self only (null on other users' profiles).
   @override
   String? get bggUsername;
+
+  /// Self only: whether the account has a password (false for accounts
+  /// created with Google). Null when unknown.
+  @override
+  bool? get hasPassword;
+
+  /// Self only: whether a Google account is linked. Null when unknown.
+  @override
+  bool? get googleLinked;
   @override
   bool get deleted;
   @override

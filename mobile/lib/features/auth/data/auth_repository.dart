@@ -91,6 +91,12 @@ final class AuthRepository {
     return result.user;
   }
 
+  Future<User> reactivateWithGoogle({required String idToken}) async {
+    final result = await _remote.reactivateWithGoogle(idToken: idToken);
+    await _local.saveSession(tokens: result.tokens, userId: result.user.id);
+    return result.user;
+  }
+
   Future<void> resendVerification({required String email}) =>
       _remote.resendVerification(email: email);
 

@@ -74,7 +74,7 @@ class PlayLog with _$PlayLog {
 @freezed
 class FriendGameEntry with _$FriendGameEntry {
   const factory FriendGameEntry({
-    required UserSummary user,
+    @JsonKey(readValue: readUserOrDeleted) required UserSummary user,
     @Default(0) int playCount,
     double? personalRating,
     @Default(false) bool isOwned,
@@ -88,7 +88,7 @@ class FriendGameEntry with _$FriendGameEntry {
 @freezed
 class GameReview with _$GameReview {
   const factory GameReview({
-    required UserSummary user,
+    @JsonKey(readValue: readUserOrDeleted) required UserSummary user,
     double? personalRating,
     String? notes,
     @Default(0) int playCount,
