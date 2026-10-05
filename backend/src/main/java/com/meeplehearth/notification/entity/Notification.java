@@ -43,9 +43,18 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    /**
+     * Complete list shared by every package (docs/GAP_ANALYSIS.md section 6.4). Stored as the
+     * enum name in notifications.type (VARCHAR(40), no CHECK constraint).
+     */
     public enum NotificationType {
-        EVENT_INVITE, EVENT_RSVP, POST_LIKE, POST_COMMENT,
-        FRIEND_REQUEST, FRIEND_ACCEPTED, MATCH_FOUND,
-        RULE_NOTE_APPROVED, RULE_NOTE_REJECTED
+        EVENT_INVITE, EVENT_RSVP, EVENT_LEAVE, EVENT_KICKED, EVENT_CANCELLED,
+        EVENT_UPDATED, EVENT_REMINDER, EVENT_COMPLETED,
+        MATCH_FOUND, MATCH_ACCEPTED,
+        POST_LIKE, POST_COMMENT, COMMENT_MENTION, POST_TAG,
+        FRIEND_REQUEST, FRIEND_ACCEPTED,
+        RULE_NOTE_APPROVED, RULE_NOTE_REJECTED,
+        RULEBOOK_APPROVED, RULEBOOK_REJECTED, RULEBOOK_UNDER_REVIEW,
+        BGG_IMPORT_COMPLETED
     }
 }

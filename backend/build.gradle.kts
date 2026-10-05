@@ -36,6 +36,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 	implementation("org.springframework.boot:spring-boot-starter-mail")
+	implementation("org.springframework.boot:spring-boot-starter-cache")
 
 	// Database
 	runtimeOnly("org.postgresql:postgresql")
@@ -58,9 +59,10 @@ dependencies {
 	// Load .env file in local dev (safe no-op if file doesn't exist)
 	implementation("me.paulschwarz:spring-dotenv:4.0.0")
 
-	// Google OAuth (ID token verification)
-	implementation("com.google.api-client:google-api-client:1.32.1")
-	implementation("com.google.http-client:google-http-client-gson:1.45.3")
+	// Google OAuth (ID token verification). Versions aligned with firebase-admin's: the dependency
+	// management plugin pins a direct dependency's version for transitive users too.
+	implementation("com.google.api-client:google-api-client:2.7.2")
+	implementation("com.google.http-client:google-http-client-gson:2.2.0")
 
 	// API documentation
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
@@ -71,6 +73,13 @@ dependencies {
 	// AI — rulebook ingestion
 	implementation("org.apache.pdfbox:pdfbox:3.0.3")   // PDF text extraction
 	implementation("org.jsoup:jsoup:1.18.1")            // 1jour1jeu HTML scraping
+
+	// Push notifications (FCM). Inert until FIREBASE_SERVICE_ACCOUNT_JSON is set.
+	implementation("com.google.firebase:firebase-admin:9.11.0")
+
+	// Observability: Sentry error tracking (no-op without SENTRY_DSN), JSON logs in prod
+	implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.22.6")
+	implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 
 	// Lombok
 	compileOnly("org.projectlombok:lombok")

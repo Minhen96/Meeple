@@ -8,6 +8,11 @@ spring:
     redis:
       url: ${REDIS_URL}
 
+  # Work packages merge in any order, so a higher migration may land before a lower one.
+  # Production stays strict (in-order); see docs/GAP_ANALYSIS.md section 6.5.
+  flyway:
+    out-of-order: true
+
 app:
   jwt:
     secret: ${JWT_SECRET}
