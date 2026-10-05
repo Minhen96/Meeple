@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push (FCM via APNs). Xcode switches this to "production" for
+	     App Store / TestFlight builds. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Universal Links (FEATURES_COMPLETE §12.3). The domain must serve
+	     /.well-known/apple-app-site-association with
+	     "<TEAM_ID>.com.meeplehearth.meeple" (see docs/MOBILE_FLUTTER.md §14). -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:meeple-hearth.com</string>
+	</array>
+</dict>
+</plist>
