@@ -9,6 +9,7 @@ import com.meeplehearth.ai.repository.RuleChunkRepository;
 import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.entity.GameDetail;
 import com.meeplehearth.game.repository.GameDetailRepository;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -40,6 +41,13 @@ public class HowToPlayExtractionService {
     private static final String LOCK_PREFIX = "lock:how-to-play:";
     private static final String PROGRESS_PREFIX = "progress:how-to-play:";
     private static final Duration LOCK_TTL = Duration.ofMinutes(15);
+    /** Holds the user-safe message of the latest failed attempt; cleared when a new attempt starts. */
+    static final String FAILED_PREFIX = "howtoplay:failed:";
+    static final Duration FAILED_TTL = Duration.ofMinutes(30);
+    static final String GENERIC_FAILURE_MESSAGE =
+            "We couldn't generate the How to Play guide. Please try again.";
+    static final String AI_UNAVAILABLE_MESSAGE =
+            "The AI service is temporarily unavailable. Please try again in a few minutes.";
 
     private final GameHowToPlayRepository howToPlayRepository;
     private final RuleChunkRepository ruleChunkRepository;
@@ -104,6 +112,7 @@ public class HowToPlayExtractionService {
     private void runLocked(UUID gameId, Game game) {
         String lockKey = LOCK_PREFIX + gameId;
         try {
+            redisTemplate.delete(FAILED_PREFIX + gameId);
             pushProgress(gameId, 5);
 
             boolean hasChunks = ruleChunkRepository.existsByGame_Id(gameId);
@@ -137,19 +146,53 @@ public class HowToPlayExtractionService {
 
             // Signal completion over WebSocket
             redisTemplate.delete(PROGRESS_PREFIX + gameId);
+            redisTemplate.delete(FAILED_PREFIX + gameId);
             messagingTemplate.convertAndSend(
                     "/topic/how-to-play/" + gameId,
                     Map.of("status", "ready", "progress", 100));
 
         } catch (Exception e) {
             log.error("How-to-play extraction failed for game {}: {}", gameId, e.getMessage(), e);
-            messagingTemplate.convertAndSend(
-                    "/topic/how-to-play/" + gameId,
-                    Map.of("status", "error", "progress", 0));
+            recordFailure(gameId, failureMessage(e));
         } finally {
             redisTemplate.delete(lockKey);
             redisTemplate.delete(PROGRESS_PREFIX + gameId);
         }
+    }
+
+    /**
+     * Records the failure (read by the GET endpoint while no generation is running) before the
+     * lock is released, then publishes the terminal "failed" progress message.
+     */
+    private void recordFailure(UUID gameId, String errorMessage) {
+        try {
+            redisTemplate.opsForValue().set(FAILED_PREFIX + gameId, errorMessage, FAILED_TTL);
+        } catch (Exception e) {
+            log.warn("Could not record how-to-play failure for game {}: {}", gameId, e.getMessage());
+        }
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/how-to-play/" + gameId,
+                    Map.of("status", "failed", "progress", 0, "errorMessage", errorMessage));
+        } catch (Exception e) {
+            log.warn("Could not publish how-to-play failure for game {}: {}", gameId, e.getMessage());
+        }
+    }
+
+    /** User-safe failure reason: never exposes exception details. */
+    static String failureMessage(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (t instanceof CallNotPermittedException) {
+                return AI_UNAVAILABLE_MESSAGE;
+            }
+            if (t.getCause() == t) break;
+        }
+        return GENERIC_FAILURE_MESSAGE;
+    }
+
+    /** User-safe message of the latest failed attempt, if it failed recently. */
+    public Optional<String> getFailureMessage(UUID gameId) {
+        return Optional.ofNullable(redisTemplate.opsForValue().get(FAILED_PREFIX + gameId));
     }
 
     /** Returns true if an extraction is currently running for this game. */
