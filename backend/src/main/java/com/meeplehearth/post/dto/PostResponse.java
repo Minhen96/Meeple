@@ -28,6 +28,14 @@ public record PostResponse(
     public record AuthorInfo(UUID id, String username, String displayName, String avatarUrl, boolean deleted) {}
     public record TaggedUser(UUID id, String username, String displayName, String avatarUrl) {}
 
+    /**
+     * Without the viewer's bookmark state ({@code isBookmarked=false}). Kept for callers outside
+     * the posts package that only know the like state; prefer {@code PostService.loadVisible}.
+     */
+    public static PostResponse from(Post post, boolean likedByMe) {
+        return from(post, likedByMe, false);
+    }
+
     public static PostResponse from(Post post, boolean likedByMe, boolean bookmarked) {
         AuthorInfo author = new AuthorInfo(
                 post.getAuthor().getId(),
