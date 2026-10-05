@@ -60,21 +60,31 @@
 		data.friendCount > 0 ? 'quiet' : data.pendingSentCount > 0 ? 'pending' : 'noFriends'
 	);
 
-	// A fresh pager per load (navigation back to Home, invalidation)
+	// A fresh pager per load (navigation back to Home, invalidation). The previous pager is
+	// retired on teardown, and its late pages are ignored, so it never writes over the new list.
 	$effect(() => {
 		const initial = data.feed ?? undefined;
-		untrack(() => {
+		let alive = true;
+		const p = untrack(() => {
 			feed = { ...feed, items: [] };
-			const p = new CursorPager<FeedItem>(
+			const next = new CursorPager<FeedItem>(
 				(cursor) => postsApi.getFeedPage(cursor, 20),
 				itemKey,
 				// Keep the (possibly locally edited) items already on screen when a page is appended
-				(state) => (feed = { ...state, items: preferExisting(feed.items, state.items, itemKey) }),
+				(state) => {
+					if (!alive) return;
+					feed = { ...state, items: preferExisting(feed.items, state.items, itemKey) };
+				},
 				initial
 			);
-			pager = p;
-			if (!initial) void p.loadMore();
+			pager = next;
+			if (!initial) void next.loadMore();
+			return next;
 		});
+		return () => {
+			alive = false;
+			p.dispose();
+		};
 	});
 
 	onMount(() =>

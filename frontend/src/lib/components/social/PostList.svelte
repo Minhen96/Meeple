@@ -30,17 +30,25 @@
 	});
 	let pager: CursorPager<Post> | null = null;
 
+	// A fresh pager per source; the previous one is retired on teardown and its late pages are
+	// ignored, so it never writes over the new list.
 	$effect(() => {
 		const fetcher = fetchPage;
-		untrack(() => {
+		let alive = true;
+		const p = untrack(() => {
 			list = { ...list, items: [] };
-			pager = new CursorPager<Post>(
-				fetcher,
-				key,
-				(state) => (list = { ...state, items: preferExisting(list.items, state.items, key) })
-			);
-			void pager.loadMore();
+			const next = new CursorPager<Post>(fetcher, key, (state) => {
+				if (!alive) return;
+				list = { ...state, items: preferExisting(list.items, state.items, key) };
+			});
+			pager = next;
+			void next.loadMore();
+			return next;
 		});
+		return () => {
+			alive = false;
+			p.dispose();
+		};
 	});
 
 	onMount(() =>
