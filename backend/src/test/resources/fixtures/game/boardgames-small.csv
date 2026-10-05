@@ -1,0 +1,9 @@
+Rank,Game_Id,Title,Description,Year,GeekRating,AvgRating,Voters,Link,Thumbnail
+1,990000001,Alpha Import,"<p>Alpha <b>is</b> great,
+even across lines</p>",2001,7.512,7.9,1200,/boardgame/990000001/alpha-import,//cf.geekdo-images.com/alpha.jpg
+2,990000002,Beta Import,,2002.0,6.25,6.5,300.4,https://boardgamegeek.com/boardgame/990000002,
+3,990000001,Alpha Duplicate,dup,2003,5,5,5,,
+4,not-a-number,Bad Id,bad,2004,5,5,5,,
+5,990000003,  ,blank title,2005,5,5,5,,
+,990000005,Gamma Import,  ,abc,n/a,,,,https://example.test/gamma.jpg
+6,990000004,Existing Import Renamed,new desc,2010,8.0,8.1,5000,,https://example.test/new-thumb.jpg
