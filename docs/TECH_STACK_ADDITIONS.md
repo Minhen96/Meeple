@@ -81,7 +81,7 @@ implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.x")
 ```properties
 sentry.dsn=${SENTRY_DSN}
 sentry.traces-sample-rate=0.1
-sentry.environment=${SPRING_PROFILES_ACTIVE:production}
+sentry.environment=${SPRING_PROFILES_ACTIVE:prod}
 sentry.send-default-pii=false
 ```
 
@@ -473,7 +473,8 @@ DB_URL=jdbc:postgresql://ep-xxx.neon.tech/meeple?sslmode=require
 DB_USERNAME=meeple_user
 DB_PASSWORD=...
 
-JWT_SECRET=<256-bit-random-hex-string>
+JWT_SECRET=<256-bit-random-hex-string>   # required, >= 32 bytes or startup fails
+COOKIE_DOMAIN=meeple-hearth.com             # domain for auth cookies (prod)
 JWT_EXPIRY_MS=900000
 
 REDIS_URL=rediss://default:xxx@host.upstash.io:6379
@@ -497,7 +498,7 @@ EMAIL_FROM=noreply@meeple-hearth.com
 APP_BASE_URL=https://meeple-hearth.com
 
 SENTRY_DSN=https://xxx@sentry.io/xxx
-SPRING_PROFILES_ACTIVE=production
+SPRING_PROFILES_ACTIVE=prod                 # required: local | staging | prod (no default)
 SERVER_PORT=8080
 ```
 
@@ -509,6 +510,7 @@ VITE_WS_URL=wss://api.meeple-hearth.com/ws
 VITE_R2_PUBLIC_URL=https://cdn.meeple-hearth.com
 VITE_SENTRY_DSN=https://xxx@sentry.io/xxx
 VITE_POSTHOG_KEY=phc_...
+COOKIE_DOMAIN=meeple-hearth.com   # optional, server-only; must match the backend's COOKIE_DOMAIN
 ```
 
 ### Local Development (.env.local)
