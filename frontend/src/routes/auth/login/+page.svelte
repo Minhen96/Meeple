@@ -2,13 +2,16 @@
 	import Button from "$lib/components/ui/Button.svelte";
 	import GoogleButton from "$lib/components/ui/GoogleButton.svelte";
 	import { api, ApiRequestError } from "$lib/api/client";
+	import { page } from "$app/state";
+	import { safeRedirectPath } from "$lib/utils/redirect";
 
 	let emailOrUsername = $state("");
 	let password = $state("");
 	let showPassword = $state(false);
 	let loading = $state(false);
 	let error = $state("");
-
+	// Where to go after login (set by the auth guard); only same-origin paths.
+	const redirectTo = $derived(safeRedirectPath(page.url.searchParams.get("redirect")));
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -17,7 +20,7 @@
 
 		try {
 			await api.post("/api/v1/auth/login", { emailOrUsername, password });
-			window.location.href = "/";
+			window.location.href = redirectTo;
 		} catch (err) {
 			if (err instanceof ApiRequestError) {
 				error = err.message;
@@ -229,7 +232,7 @@
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
 				</div>
 
-				<GoogleButton onError={(msg) => (error = msg)} />
+				<GoogleButton {redirectTo} onError={(msg) => (error = msg)} />
 			</form>
 		</div>
 	</div>

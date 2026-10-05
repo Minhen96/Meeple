@@ -3,16 +3,20 @@
 	// GSI callback always uses the current component's props.
 	let gsiInitialized = false;
 	let currentOnError: ((msg: string) => void) | undefined;
+	let currentRedirectTo = '/';
 </script>
 
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api, ApiRequestError } from '$lib/api/client';
+	import { safeRedirectPath } from '$lib/utils/redirect';
 
 	interface Props {
 		onError?: (message: string) => void;
+		/** Same-origin path to open after sign-in; validated again here. */
+		redirectTo?: string;
 	}
-	let { onError }: Props = $props();
+	let { onError, redirectTo = '/' }: Props = $props();
 
 	const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 
@@ -34,6 +38,7 @@
 
 		// Keep module-level refs current for this mount
 		currentOnError = onError;
+		currentRedirectTo = safeRedirectPath(redirectTo);
 
 		function initGSI() {
 			if (typeof window.google === 'undefined' || !window.google.accounts) {
@@ -49,7 +54,7 @@
 					callback: async (response: { credential: string }) => {
 						try {
 							await api.post('/api/v1/auth/google', { idToken: response.credential });
-							window.location.href = '/';
+							window.location.href = currentRedirectTo;
 						} catch (err) {
 							currentOnError?.(googleErrorMessage(err));
 						}
