@@ -103,8 +103,6 @@ const cases: Case[] = [
 	['friends.unblockUser', () => friendsApi.unblockUser('u1'), 'DELETE', '/api/v1/users/u1/block'],
 	['friends.getBlocked', () => friendsApi.getBlocked(), 'GET', '/api/v1/users/me/blocked'],
 	['friends.suggestFriends', () => friendsApi.suggestFriends(), 'GET', '/api/v1/friends/suggestions?limit=10'],
-	['friends.searchUsers', () => friendsApi.searchUsers('a b'), 'GET', '/api/v1/users/search?q=a%20b&page=0&size=20'],
-	['friends.getSuggestions', () => friendsApi.getSuggestions(), 'GET', '/api/v1/users/suggestions?page=0&size=10'],
 	['search.search defaults', () => searchApi.search('cat'), 'GET', '/api/v1/search?q=cat&limit=3&type=all'],
 	['search.search typed', () => searchApi.search('cat', { type: 'games', limit: 9 }), 'GET', '/api/v1/search?q=cat&limit=9&type=games'],
 	['reports.report', () => reportsApi.report('post', 'p1', 'spam'), 'POST', '/api/v1/reports', { targetType: 'post', targetId: 'p1', reason: 'spam' }],

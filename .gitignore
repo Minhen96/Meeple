@@ -56,3 +56,6 @@ mobile/build/
 
 # Local Redis snapshots
 dump.rdb
+
+# Frontend coverage output
+frontend/coverage/
