@@ -20,7 +20,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,18 +67,60 @@ class GameHydrationServiceTest {
         return g;
     }
 
+    /** BGG answered "no data" for {@code notFound}, failed for {@code failed}. */
+    private static BggApiClient.BggBatchResult result(List<BggApiClient.BggGameDetail> details,
+                                                      List<Long> notFound, Set<Long> failed) {
+        Set<Long> nf = notFound.stream().filter(id -> !failed.contains(id)).collect(Collectors.toSet());
+        return new BggApiClient.BggBatchResult(details, Set.of(), nf, failed);
+    }
+
+    @Test
+    @Timeout(5)
+    @SuppressWarnings("unchecked")
+    void transientlyFailedGamesAreNotMarkedAttemptedUntilTheyKeepFailing() {
+        Game ok = game(1);
+        Game flaky = game(2);
+        List<Game> batch = List.of(ok, flaky);
+        when(gameRepository.findHydrationCandidates(any(Instant.class), any(Pageable.class))).thenReturn(batch);
+        // id 1 is a 404, id 2 fails every time (e.g. a challenge page served with 200)
+        when(bggApiClient.fetchDetails(anyList())).thenAnswer(inv -> result(List.of(), List.of(1L), Set.of(2L)));
+        org.mockito.ArgumentCaptor<java.util.Collection<UUID>> marked =
+                org.mockito.ArgumentCaptor.forClass(java.util.Collection.class);
+
+        service.runBulkHydration();
+
+        verify(gameRepository, org.mockito.Mockito.atLeastOnce())
+                .markHydrationAttempted(marked.capture(), any(Instant.class));
+        List<java.util.Collection<UUID>> calls = marked.getAllValues();
+        // First batches: only the 404'd game; the flaky one only once it failed MAX_FAILURES_PER_GAME times
+        assertThat(calls.get(0)).containsExactly(ok.getId());
+        assertThat(calls.get(GameHydrationService.MAX_FAILURES_PER_GAME - 1))
+                .containsExactlyInAnyOrder(ok.getId(), flaky.getId());
+        for (int i = 0; i < GameHydrationService.MAX_FAILURES_PER_GAME - 1; i++) {
+            assertThat(calls.get(i)).doesNotContain(flaky.getId());
+        }
+    }
+
+    @Test
+    void bulkRunningIsBasedOnTheRunLock() {
+        when(redis.hasKey(GameHydrationService.RUN_LOCK_KEY)).thenReturn(true);
+        assertThat(service.isBulkRunning()).isTrue();
+        when(redis.hasKey(GameHydrationService.RUN_LOCK_KEY)).thenReturn(false);
+        assertThat(service.isBulkRunning()).isFalse();
+    }
+
     @Test
     @Timeout(5)
     void bulkRunTerminatesWhenBggReturnsNothingEvenIfSameGamesKeepComingBack() {
         // Worst case: the repository keeps returning the same unhydrated batch forever
         List<Game> batch = List.of(game(1), game(2), game(3));
         when(gameRepository.findHydrationCandidates(any(Instant.class), any(Pageable.class))).thenReturn(batch);
-        when(bggApiClient.getDetails(anyList())).thenReturn(List.of());
+        when(bggApiClient.fetchDetails(anyList())).thenAnswer(inv -> result(List.of(), inv.getArgument(0), Set.of()));
 
         int hydrated = service.runBulkHydration();
 
         assertThat(hydrated).isZero();
-        verify(bggApiClient, times(GameHydrationService.MAX_CONSECUTIVE_EMPTY_BATCHES)).getDetails(anyList());
+        verify(bggApiClient, times(GameHydrationService.MAX_CONSECUTIVE_EMPTY_BATCHES)).fetchDetails(anyList());
         verify(gameRepository, times(GameHydrationService.MAX_CONSECUTIVE_EMPTY_BATCHES))
                 .markHydrationAttempted(anyCollection(), any(Instant.class));
         verify(redis).delete(GameHydrationService.RUN_LOCK_KEY);
@@ -87,13 +131,13 @@ class GameHydrationServiceTest {
     void bulkRunTerminatesAfterConsecutiveBggFailures() {
         when(gameRepository.findHydrationCandidates(any(Instant.class), any(Pageable.class)))
                 .thenReturn(List.of(game(1)));
-        when(bggApiClient.getDetails(anyList()))
+        when(bggApiClient.fetchDetails(anyList()))
                 .thenThrow(new BggApiClient.BggUnavailableException("circuit open"));
 
         int hydrated = service.runBulkHydration();
 
         assertThat(hydrated).isZero();
-        verify(bggApiClient, times(GameHydrationService.MAX_CONSECUTIVE_FAILURES)).getDetails(anyList());
+        verify(bggApiClient, times(GameHydrationService.MAX_CONSECUTIVE_FAILURES)).fetchDetails(anyList());
         // Failed batches are NOT marked attempted (they will be retried on the next run)
         verify(gameRepository, never()).markHydrationAttempted(anyCollection(), any(Instant.class));
     }
@@ -105,7 +149,7 @@ class GameHydrationServiceTest {
                 .thenReturn(List.of());
 
         assertThat(service.runBulkHydration()).isZero();
-        verify(bggApiClient, never()).getDetails(anyList());
+        verify(bggApiClient, never()).fetchDetails(anyList());
     }
 
     @Test
@@ -120,10 +164,10 @@ class GameHydrationServiceTest {
 
     @Test
     void syncHydrationSwallowsBggOutage() {
-        when(bggApiClient.getDetails(anyList()))
+        when(bggApiClient.fetchDetails(anyList()))
                 .thenThrow(new BggApiClient.BggUnavailableException("down"));
 
         assertThat(service.hydrateImageSync(game(42))).isFalse();
-        verify(bggApiClient, atMost(1)).getDetails(anyList());
+        verify(bggApiClient, atMost(1)).fetchDetails(anyList());
     }
 }

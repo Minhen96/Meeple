@@ -17,9 +17,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -39,10 +41,12 @@ public class GameHydrationService {
     static final int MAX_CONSECUTIVE_EMPTY_BATCHES = 3;
     /** Bulk run stops after this many consecutive BGG failures (with exponential backoff between). */
     static final int MAX_CONSECUTIVE_FAILURES = 5;
+    /** Within one bulk run, a game whose request failed this often (while others succeeded) is set aside. */
+    static final int MAX_FAILURES_PER_GAME = 3;
     private static final long MAX_BACKOFF_MS = Duration.ofMinutes(10).toMillis();
 
     public  static final String STOP_FLAG_KEY = "stop:hydration";
-    static final String RUN_LOCK_KEY = "lock:hydration-run";
+    public static final String RUN_LOCK_KEY = "lock:hydration-run";
     private static final Duration RUN_LOCK_TTL = Duration.ofMinutes(30);
 
     private final GameRepository gameRepository;
@@ -117,8 +121,11 @@ public class GameHydrationService {
 
     /**
      * Synchronous body of the bulk run. Terminates when:
-     *   - no unattempted games remain (each attempted game gets hydration_attempted_at,
-     *     so games BGG has no data for are not re-requested within {@code retryAfter})
+     *   - no unattempted games remain. A game gets hydration_attempted_at only when BGG
+     *     answered for it (data or 404), or after {@value #MAX_FAILURES_PER_GAME} failed
+     *     requests in this run while other games succeeded, so games BGG has no data for
+     *     are not re-requested within {@code retryAfter}, while games hit by a transient
+     *     failure (5xx, timeout, challenge page) are retried
      *   - {@value #MAX_CONSECUTIVE_EMPTY_BATCHES} consecutive batches save nothing
      *   - {@value #MAX_CONSECUTIVE_FAILURES} consecutive BGG failures (exponential backoff)
      *   - the Redis stop flag is set
@@ -135,6 +142,7 @@ public class GameHydrationService {
         int total = 0;
         int emptyBatches = 0;
         int failures = 0;
+        Map<Long, Integer> failuresPerGame = new HashMap<>();
         try {
             while (true) {
                 if (Boolean.TRUE.equals(redis.hasKey(STOP_FLAG_KEY))) {
@@ -146,12 +154,11 @@ public class GameHydrationService {
                 List<Game> batch = gameRepository.findHydrationCandidates(cutoff, PageRequest.of(0, BGG_BATCH_SIZE));
                 if (batch.isEmpty()) break;
 
-                List<UUID> gameIds = batch.stream().map(Game::getId).toList();
                 List<Long> bggIds = batch.stream().map(Game::getBggId).filter(Objects::nonNull).toList();
 
-                int saved;
+                BatchOutcome outcome;
                 try {
-                    saved = hydrateBatch(bggIds);
+                    outcome = hydrate(bggIds);
                 } catch (BggApiClient.BggUnavailableException e) {
                     failures++;
                     if (failures >= MAX_CONSECUTIVE_FAILURES) {
@@ -165,11 +172,25 @@ public class GameHydrationService {
                     continue;
                 }
                 failures = 0;
+                int saved = outcome.saved();
 
-                // Mark the whole batch as attempted so games BGG has no data for leave the candidate set
-                Instant now = Instant.now();
-                transactionTemplate.executeWithoutResult(status ->
-                        gameRepository.markHydrationAttempted(gameIds, now));
+                // Mark attempted only games BGG gave a definitive answer for (or that keep failing
+                // while others succeed); transiently failed games stay candidates and are retried
+                for (Long failedId : outcome.result().failed()) {
+                    failuresPerGame.merge(failedId, 1, Integer::sum);
+                }
+                Set<Long> resolved = outcome.result().resolved();
+                List<UUID> attemptedIds = batch.stream()
+                        .filter(g -> g.getBggId() == null
+                                || resolved.contains(g.getBggId())
+                                || failuresPerGame.getOrDefault(g.getBggId(), 0) >= MAX_FAILURES_PER_GAME)
+                        .map(Game::getId)
+                        .toList();
+                if (!attemptedIds.isEmpty()) {
+                    Instant now = Instant.now();
+                    transactionTemplate.executeWithoutResult(status ->
+                            gameRepository.markHydrationAttempted(attemptedIds, now));
+                }
 
                 total += saved;
                 if (saved == 0) {
@@ -209,13 +230,30 @@ public class GameHydrationService {
      * @throws BggApiClient.BggUnavailableException if BGG failed for the whole batch / breaker is open
      */
     public int hydrateBatch(List<Long> bggIds) {
-        if (bggIds == null || bggIds.isEmpty()) return 0;
+        return hydrate(bggIds).saved();
+    }
 
-        List<BggApiClient.BggGameDetail> details = bggApiClient.getDetails(bggIds);
-        if (details.isEmpty()) return 0;
+    /** Is a bulk hydration run in progress (on any instance)? Based on the run lock. */
+    public boolean isBulkRunning() {
+        return Boolean.TRUE.equals(redis.hasKey(RUN_LOCK_KEY));
+    }
+
+    private record BatchOutcome(int saved, BggApiClient.BggBatchResult result) {}
+
+    private BatchOutcome hydrate(List<Long> bggIds) {
+        if (bggIds == null || bggIds.isEmpty()) {
+            return new BatchOutcome(0, new BggApiClient.BggBatchResult(List.of(), Set.of(), Set.of(), Set.of()));
+        }
+
+        BggApiClient.BggBatchResult result = bggApiClient.fetchDetails(bggIds);
+        if (result == null) {
+            throw new BggApiClient.BggUnavailableException("BGG returned no batch result");
+        }
+        List<BggApiClient.BggGameDetail> details = result.details();
+        if (details.isEmpty()) return new BatchOutcome(0, result);
 
         Integer saved = transactionTemplate.execute(status -> persistDetails(details));
-        return saved != null ? saved : 0;
+        return new BatchOutcome(saved != null ? saved : 0, result);
     }
 
     private int persistDetails(List<BggApiClient.BggGameDetail> details) {
