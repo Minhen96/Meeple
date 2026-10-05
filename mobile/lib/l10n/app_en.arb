@@ -1,0 +1,1222 @@
+{
+  "@@locale": "en",
+  "appName": "Meeple",
+  "commonCancel": "Cancel",
+  "commonSave": "Save",
+  "commonRetry": "Try again",
+  "commonDelete": "Delete",
+  "commonEdit": "Edit",
+  "commonDone": "Done",
+  "commonContinue": "Continue",
+  "commonSkip": "Skip",
+  "commonClose": "Close",
+  "commonSend": "Send",
+  "commonShare": "Share",
+  "commonSeeAll": "See all",
+  "commonSearch": "Search",
+  "commonOops": "Oops!",
+  "commonLoading": "Loading…",
+  "commonOptional": "Optional",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "commonMore": "More",
+  "commonReadMore": "Read more",
+  "commonShowLess": "Show less",
+  "commonDeletedUser": "Deleted User",
+  "loadingMore": "Loading more…",
+  "allCaughtUp": "You're all caught up!",
+  "offlineBanner": "No internet connection",
+  "backOnline": "Back online",
+  "staleData": "Showing cached data from {age}",
+  "@staleData": {
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "timeJustNow": "just now",
+  "timeMinutesAgo": "{minutes}m ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{hours}h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "timeYesterday": "yesterday",
+  "timeDaysAgo": "{days}d ago",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorNetwork": "No internet connection. Please check your network.",
+  "errorTimeout": "Request timed out. Please try again.",
+  "errorOffline": "You're offline. Try again when you reconnect.",
+  "errorSessionExpired": "Your session has expired. Please log in again.",
+  "errorForbidden": "You do not have permission to do that.",
+  "errorNotFound": "This doesn't exist or was removed.",
+  "errorRateLimit": "Too many requests. Please slow down and try again.",
+  "errorServiceUnavailable": "This service is temporarily unavailable. Please try again later.",
+  "errorServer": "Something went wrong on our end. Please try again later.",
+  "errorEditWindowExpired": "This can no longer be edited.",
+  "errorEventCancelled": "This event has been cancelled.",
+  "errorEventCompleted": "This event has already ended.",
+  "errorEventFull": "This event is full.",
+  "errorNotHost": "Only the host can do that.",
+  "errorNotFriends": "You can only do that with friends.",
+  "errorRequestCooldown": "Please wait before sending another friend request.",
+  "errorPendingLimit": "You have too many pending friend requests.",
+  "errorReportLimit": "You've reached today's report limit.",
+  "errorBggUserNotFound": "BGG username not found. Check the spelling.",
+  "errorBggUnavailable": "BGG is currently slow. Skip for now and try again later.",
+  "errorUsernameTooSoon": "You can only change your username once every 30 days.",
+  "errorUsernameTaken": "Username already taken",
+  "errorEmailTaken": "Email already registered",
+  "errorAccountDeleted": "This account is scheduled for deletion.",
+  "errorGoogleEmailNotVerified": "Your Google email address is not verified.",
+  "errorGoogleAccountConflict": "This email is already registered with a password. Sign in with your password instead.",
+  "errorGoogleFailed": "Google sign-in failed. Please try again.",
+  "errorInvalidCredentials": "Incorrect email or password.",
+  "aiRateLimit": "You've reached the 20 questions/day limit. Resets at midnight UTC.",
+  "navHome": "Home",
+  "navLibrary": "Library",
+  "navEvents": "Events",
+  "navProfile": "Profile",
+  "createTitle": "Create",
+  "createPost": "Post a game night",
+  "createEvent": "Host an event",
+  "createAddGame": "Add a game",
+  "createFindMatch": "Find players",
+  "pushPromptTitle": "Stay in the loop about your game nights",
+  "pushPromptBody": "Get notified about invites, reminders, friend requests and new comments.",
+  "pushPromptAllow": "Allow Notifications",
+  "pushPromptNotNow": "Not now",
+  "pushChannelEvents": "Events & Game Nights",
+  "pushChannelEventsDescription": "Invites, reminders, and match notifications",
+  "pushChannelSocial": "Social Activity",
+  "pushChannelSocialDescription": "Likes, comments, and friend requests",
+  "appLockedTitle": "Meeple is locked",
+  "appLockedBody": "Unlock with biometrics or your device passcode.",
+  "appLockedUnlock": "Unlock",
+  "biometricReasonUnlock": "Unlock Meeple",
+  "biometricReasonEnable": "Verify your identity to enable the app lock",
+  "activityCollectionAdd": "{name} added {game} to their collection.",
+  "@activityCollectionAdd": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "activityEventCreated": "{name} is hosting {event}.",
+  "@activityEventCreated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "activityEventJoined": "{name} joined {event}.",
+  "@activityEventJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "activityGeneric": "{name} has new activity",
+  "@activityGeneric": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAskAnyway": "Ask anyway",
+  "aiDisclaimer": "AI-generated answers may not be 100% accurate.",
+  "aiError": "Something went wrong. Try again.",
+  "aiInputHint": "Ask a question...",
+  "aiNoRulebook": "No rulebook available for {game} yet.",
+  "@aiNoRulebook": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNoRulebookBody": "Answers will be based on general knowledge and may be less accurate.",
+  "aiNoRulebookTooltip": "No rulebook uploaded yet",
+  "aiPromptSetup": "Setup instructions",
+  "aiPromptTurn": "What happens on your turn?",
+  "aiPromptWin": "How do you win?",
+  "aiRulesAssistant": "AI Rules Assistant",
+  "aiSheetTitle": "{game} Rules Assistant",
+  "@aiSheetTitle": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "authBackToSignIn": "Back to Sign In",
+  "authCheckInbox": "Check your inbox",
+  "authConfirmNewPassword": "Confirm new password",
+  "authConfirmPassword": "Confirm password",
+  "authContinueWithGoogle": "Continue with Google",
+  "authCreateAccount": "Create Account",
+  "authCreateAccountTitle": "Create your account",
+  "authEmail": "Email",
+  "authEmailHint": "you@example.com",
+  "authEmailOrUsername": "Email or username",
+  "authEmailOrUsernameRequired": "Please enter your email or username",
+  "authEmailRequired": "Email is required",
+  "authForgotBody": "Enter the email you registered with and we'll send you a reset link.",
+  "authForgotPassword": "Forgot password?",
+  "authForgotTitle": "Reset your password",
+  "authHaveAccount": "Already have an account? ",
+  "authInvalidEmail": "Enter a valid email address",
+  "authIveVerified": "I've Verified My Email",
+  "authJoin": "Join the Meeple community",
+  "authNewPassword": "New password",
+  "authNewPasswordHint": "Your new password must be at least 8 characters.",
+  "authNewPasswordTitle": "New Password",
+  "authNoAccount": "Don't have an account? ",
+  "authOr": "or",
+  "authPassword": "Password",
+  "authPasswordLength": "Must be 8–128 characters",
+  "authPasswordMin": "Must be at least 8 characters",
+  "authPasswordRequired": "Please enter your password",
+  "authPasswordUpdated": "Password updated!",
+  "authPasswordUpdatedBody": "Your password has been reset. Sign in with your new password.",
+  "authPasswordsMismatch": "Passwords don't match",
+  "authResendEmail": "Resend Email",
+  "authResetLinkExpired": "This link has expired. Request a new one.",
+  "authResetPasswordTitle": "Reset Password",
+  "authResetSentTo": "If {email} is registered, you'll receive a reset link.",
+  "@authResetSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authSendResetLink": "Send Reset Link",
+  "authSetNewPassword": "Create a new password",
+  "authSignIn": "Log In",
+  "authSignInLink": "Log in",
+  "authSignInSubtitle": "Welcome back",
+  "authSignUp": "Create account",
+  "authTermsNote": "By creating an account you agree to our Terms of Service and Privacy Policy.",
+  "authUsernameLength": "3–20 lowercase letters, numbers or underscores",
+  "authUsernameRequired": "Username is required",
+  "authVerificationResent": "Email resent!",
+  "authVerifyBody": "Click the link in the email to activate your account.",
+  "authVerifyFirst": "Please verify your email first.",
+  "authVerifySentTo": "We sent a verification link to {email}",
+  "@authVerifySentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "avatarChange": "Change profile photo",
+  "avatarCropTitle": "Crop Photo",
+  "avatarUploadFailed": "Upload failed. Try again.",
+  "badgeFavorited": "Favorite",
+  "badgeOwned": "Owned",
+  "badgeWishlisted": "On wishlist",
+  "bggImportBody": "Enter your BoardGameGeek username to import your collection.",
+  "bggImportDone": "Imported {imported} games ({skipped} skipped, {failed} failed).",
+  "@bggImportDone": {
+    "placeholders": {
+      "imported": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "bggImportFailed": "The import failed. Please try again.",
+  "bggImportProgress": "Importing… {processed} of {total} games",
+  "@bggImportProgress": {
+    "placeholders": {
+      "processed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "bggImportStart": "Import Collection",
+  "bggImportStarting": "Starting import…",
+  "bggImportTitle": "Import your collection",
+  "bggPrivacyNote": "We only read your public collection.",
+  "bggUsername": "BGG username",
+  "blockedEmpty": "You haven't blocked anyone.",
+  "blockedTitle": "Blocked users",
+  "bookmarksEmptyBody": "Tap the bookmark on a post to save it here.",
+  "bookmarksEmptyTitle": "No saved posts yet",
+  "bookmarksTitle": "Saved posts",
+  "changeEmailBody": "We'll send a verification link to your new address. Your email changes once you confirm it.",
+  "changeEmailCurrentPassword": "Current password",
+  "changeEmailNew": "New email",
+  "changeEmailSentBody": "Open the link we sent to {email} to confirm the change.",
+  "@changeEmailSentBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "changeEmailSentTitle": "Check your new inbox",
+  "changeEmailSubmit": "Send verification link",
+  "changePasswordBody": "For your security, password changes go through email. We'll send a reset link to {email}.",
+  "@changePasswordBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "changePasswordNoEmail": "Request a reset link with the email you registered with.",
+  "changePasswordSend": "Send reset link",
+  "changePasswordSentBody": "Follow the link in the email to choose a new password.",
+  "changePasswordSentTitle": "Reset link sent",
+  "collectionNoPlays": "No plays logged yet.",
+  "collectionNotes": "Notes",
+  "collectionPlayHistory": "Play history",
+  "collectionRating": "Your rating: {rating}",
+  "@collectionRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionRemove": "Remove from collection",
+  "collectionRemoveMessage": "{game} will be removed from your collection, wishlist and favorites.",
+  "@collectionRemoveMessage": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionRemoveTitle": "Remove this game?",
+  "commentDeleteMessage": "This comment will be removed.",
+  "commentDeleteTitle": "Delete comment?",
+  "commentEditTitle": "Edit comment",
+  "deleteConfirmMessage": "This will delete your account. You have 30 days to reactivate it by logging in again.",
+  "deleteConfirmTitle": "Are you absolutely sure?",
+  "deleteDone": "Your account is scheduled for deletion.",
+  "deletePasswordless": "I signed up with Google (no password)",
+  "deleteSubmit": "Delete My Account",
+  "deleteTypeConfirm": "Type DELETE to confirm",
+  "deleteTypeConfirmError": "Please type DELETE",
+  "deleteWarning": "Your account will be deactivated immediately and permanently deleted after 30 days. Your collection, friendships, match requests and notifications are removed now; posts and comments show as \"Deleted User\". Log in within 30 days to reactivate.",
+  "eventAccept": "Accept",
+  "eventCancelConfirm": "Cancel event",
+  "eventCancelMessage": "Everyone who joined or was invited will be notified.",
+  "eventCancelTitle": "Cancel this event?",
+  "eventCancelledBanner": "This event has been cancelled.",
+  "eventChangeToGoing": "Change to Going",
+  "eventChooseFriends": "Choose friends",
+  "eventCreated": "Event created!",
+  "eventCreatedInvites": "Event created! Invites sent.",
+  "eventDateInPast": "Please choose a future date.",
+  "eventDateRequired": "Please pick a date and time.",
+  "eventDecline": "Decline",
+  "eventDefaultTitle": "{game} Night",
+  "@eventDefaultTitle": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "eventEdit": "Edit event",
+  "eventEndedBanner": "This event has ended.",
+  "eventFieldDateTime": "Date & time",
+  "eventFieldDescription": "Description (optional)",
+  "eventFieldGame": "Game",
+  "eventFieldLocation": "Location",
+  "eventFieldMaxPlayers": "Max players",
+  "eventFieldTitle": "Event title",
+  "eventFieldVisibility": "Who can see it",
+  "eventFull": "Event is Full",
+  "eventGoingCount": "{count, plural, =1{1 going} other{{count} going}}",
+  "@eventGoingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventHostedBy": "Hosted by {name}",
+  "@eventHostedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "eventInviteFriends": "Invite friends",
+  "eventInvitedCount": "{count} invited",
+  "@eventInvitedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventInvitesSent": "Invites sent.",
+  "eventJoin": "Join",
+  "eventJoined": "You're going!",
+  "eventKick": "Remove",
+  "eventKickMessage": "{name} will be removed from this event.",
+  "@eventKickMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "eventKickTitle": "Remove participant?",
+  "eventLeave": "Leave Event",
+  "eventLeaveMessage": "Your spot will open up for someone else.",
+  "eventLeaveTitle": "Leave this event?",
+  "eventLocationHint": "Address, venue name, or 'Online'",
+  "eventManage": "Manage Event",
+  "eventNoMemories": "No memories shared yet.",
+  "eventNotFound": "This event doesn't exist or was removed.",
+  "eventPickDate": "Pick date",
+  "eventPickGame": "Search for a game",
+  "eventPickTime": "Pick time",
+  "eventPlayersCount": "{count}/{max} players",
+  "@eventPlayersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "eventRemoveGame": "Remove game",
+  "eventStatusCancelled": "Cancelled",
+  "eventStatusCompleted": "Completed",
+  "eventStatusFull": "Full",
+  "eventStatusOpen": "Open",
+  "eventTitleTooShort": "Title must be at least 3 characters",
+  "eventUpdated": "Event updated.",
+  "eventViewMemories": "View Memories",
+  "eventYouWereRemoved": "The host removed you from this event.",
+  "eventsCalendarView": "Calendar view",
+  "eventsEmptyPastBody": "Your game night history will appear here.",
+  "eventsEmptyPastTitle": "No past events.",
+  "eventsEmptyUpcomingBody": "Host your next game night!",
+  "eventsEmptyUpcomingTitle": "No upcoming events.",
+  "eventsListView": "List view",
+  "eventsNoneThisMonth": "No events this month.",
+  "eventsTabMine": "Mine",
+  "eventsTabPast": "Past",
+  "eventsTabUpcoming": "Upcoming",
+  "eventsTitle": "Events",
+  "filter1to2h": "1–2h",
+  "filter30to60": "30–60m",
+  "filterHeavy": "Heavy",
+  "filterLight": "Light",
+  "filterMedium": "Medium",
+  "filterOver2h": "2h+",
+  "filterPlayers": "{count}+ players",
+  "@filterPlayers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterUnder30": "< 30m",
+  "friendAccept": "Accept",
+  "friendAdd": "Add Friend",
+  "friendCancelMessage": "Your friend request will be withdrawn.",
+  "friendCancelRequest": "Cancel request",
+  "friendCancelTitle": "Cancel friend request?",
+  "friendDecline": "Decline",
+  "friendFriends": "Friends",
+  "friendPending": "Pending",
+  "friendPickerDone": "{count, plural, =0{Done} other{Done ({count})}}",
+  "@friendPickerDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "friendPickerEmpty": "No friends to show.",
+  "friendPickerSearch": "Search friends",
+  "friendRequestSent": "Friend request sent.",
+  "friendUnblock": "Unblock",
+  "friendUnfriend": "Unfriend",
+  "friendUnfriendMessage": "You will no longer see each other's friends-only content.",
+  "friendUnfriendTitle": "Remove friend?",
+  "friendsEmptyBody": "Find people you play with and add them as friends.",
+  "friendsEmptyTitle": "No friends yet",
+  "friendsNoRequests": "No pending friend requests.",
+  "friendsNoSuggestions": "No suggestions yet. Search for friends by username.",
+  "friendsReceived": "Received",
+  "friendsSearchHint": "Search by name or username",
+  "friendsSent": "Sent",
+  "friendsSuggestions": "People you may know",
+  "friendsTabFind": "Find",
+  "friendsTabFriends": "Friends",
+  "friendsTabRequests": "Requests",
+  "friendsTitle": "Friends",
+  "gameAddToCollection": "Add to Collection",
+  "gameAddedToCollection": "Added to collection!",
+  "gameBackToLibrary": "Back to Library",
+  "gameBggRating": "BGG rating {rating}",
+  "@gameBggRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "gameCategories": "Categories",
+  "gameFavorite": "Add to favorites",
+  "gameFriendRating": "{rating} avg from {count, plural, =1{1 friend} other{{count} friends}}",
+  "@gameFriendRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gameInCollection": "In Collection",
+  "gameInfoComplexity": "Weight",
+  "gameInfoDuration": "Duration",
+  "gameInfoPlayers": "Players",
+  "gameLogPlay": "Log a play",
+  "gameMechanics": "Mechanics",
+  "gameMinutes": "{minutes} min",
+  "@gameMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "gameNoFriendsOwn": "None of your friends own this yet.",
+  "gameNoReviews": "No reviews from friends yet.",
+  "gameNoSessions": "No sessions logged yet.",
+  "gameNotFound": "This game doesn't exist or was removed.",
+  "gameOnWishlist": "On Wishlist",
+  "gameOwnedByFriends": "{count, plural, =1{Owned by 1 friend} other{Owned by {count} friends}}",
+  "@gameOwnedByFriends": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gamePlayers": "{range} players",
+  "@gamePlayers": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "gamePlays": "{count, plural, =1{1 play} other{{count} plays}}",
+  "@gamePlays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gameTabFriends": "Friends",
+  "gameTabOverview": "Overview",
+  "gameTabReviews": "Reviews",
+  "gameTabSessions": "Sessions",
+  "gameUnfavorite": "Remove from favorites",
+  "gameWishlist": "Wishlist",
+  "greetingAfternoon": "Good afternoon, {name}!",
+  "@greetingAfternoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "greetingEvening": "Good evening, {name}!",
+  "@greetingEvening": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "greetingMorning": "Good morning, {name}!",
+  "@greetingMorning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "greetingNextSession": "{days, plural, =0{Your next session is today.} =1{Your next session is tomorrow.} other{Your next session is in {days} days.}}",
+  "@greetingNextSession": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "greetingNoEvents": "No upcoming events.",
+  "homeCreatePost": "Create a Post",
+  "homeEmptyBody": "Your friends haven't posted recently.",
+  "homeEmptyNoFriendsBody": "Add friends to see what they're playing.",
+  "homeEmptyNoFriendsTitle": "Your feed is quiet.",
+  "homeEmptyTitle": "Nothing new yet.",
+  "homeFeedError": "Couldn't load your feed.",
+  "homeFeedTitle": "Activity",
+  "homeFindFriends": "Find Friends",
+  "homeMatchesTitle": "Match suggestions",
+  "homeMoreMatches": "+{count} more",
+  "@homeMoreMatches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeUpcomingTitle": "Upcoming",
+  "homeViewCalendar": "View Calendar",
+  "htpActions": "Actions",
+  "htpEnd": "End of game",
+  "htpFailed": "The guide could not be generated.",
+  "htpFaq": "FAQ",
+  "htpGenerate": "Generate guide",
+  "htpGenerating": "Generating… {progress}%",
+  "@htpGenerating": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "htpNotGenerated": "No How to Play guide yet.",
+  "htpObjective": "Objective",
+  "htpOverview": "Overview",
+  "htpResources": "Resources",
+  "htpRules": "Rules",
+  "htpScoring": "Scoring",
+  "htpSetup": "Setup",
+  "htpTips": "Tips",
+  "htpTitle": "How to Play",
+  "htpTurns": "Turns",
+  "htpUnavailable": "The guide is unavailable right now.",
+  "htpWinning": "Winning",
+  "libraryBrowseGames": "Browse Games",
+  "libraryDatabaseUnavailable": "Game database unavailable.",
+  "libraryEmptyCollectionBody": "Search for games to add to your collection.",
+  "libraryEmptyCollectionTitle": "Your shelf is empty.",
+  "libraryEmptyFavoritesBody": "Favorite a game you love.",
+  "libraryEmptyFavoritesTitle": "No favorites yet.",
+  "libraryEmptyWishlistBody": "Browse the library and add games you want.",
+  "libraryEmptyWishlistTitle": "No games on your wishlist yet.",
+  "libraryNoGames": "No games to show.",
+  "libraryNoResults": "No games found for '{query}'.",
+  "@libraryNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNoResultsHint": "Try a different spelling or fewer filters.",
+  "librarySearchHint": "Search games",
+  "libraryTabAll": "All Games",
+  "libraryTabCollection": "My Collection",
+  "libraryTabFavorites": "Favorites",
+  "libraryTabWishlist": "Wishlist",
+  "libraryTitle": "Library",
+  "matchActiveRequests": "Active requests",
+  "matchAvailableFrom": "Available from",
+  "matchAvailableRange": "Available {from} – {to}",
+  "@matchAvailableRange": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "matchAvailableUntil": "Available until",
+  "matchDismiss": "Dismiss",
+  "matchFormBody": "We'll match you with friends who want to play the same game at the same time.",
+  "matchFormTitle": "Find players",
+  "matchFriendsWantToPlay": "{count, plural, =1{1 friend wants to play {game}} other{{count} friends want to play {game}}}",
+  "@matchFriendsWantToPlay": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "matchFromValue": "From {time}",
+  "@matchFromValue": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "matchInvalidRange": "The end must be after the start.",
+  "matchNoRequests": "No active match requests.",
+  "matchNoSuggestions": "No match suggestions right now.",
+  "matchPickGameFirst": "Pick a game first.",
+  "matchRequestCreated": "Match request created.",
+  "matchSubmit": "Let's Play!",
+  "matchUntilValue": "Until {time}",
+  "@matchUntilValue": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "matchingTitle": "Matching",
+  "minutesSuffix": "min",
+  "notifBggImportCompleted": "Your BGG import finished: {count} games added.",
+  "@notifBggImportCompleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifCommentMention": "{name} mentioned you in a comment",
+  "@notifCommentMention": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventCancelled": "{event} was cancelled",
+  "@notifEventCancelled": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventCompleted": "{event} has ended. Share your memories!",
+  "@notifEventCompleted": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventInvite": "{name} invited you to {event}",
+  "@notifEventInvite": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventKicked": "You were removed from {event}",
+  "@notifEventKicked": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventLeave": "{name} left {event}",
+  "@notifEventLeave": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventReminder": "{event} starts soon",
+  "@notifEventReminder": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventRsvp": "{name} is going to {event}",
+  "@notifEventRsvp": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventUpdated": "{event} was updated",
+  "@notifEventUpdated": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "notifFriendAccepted": "{name} accepted your friend request",
+  "@notifFriendAccepted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifFriendRequest": "{name} sent you a friend request",
+  "@notifFriendRequest": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifMatchAccepted": "{name} accepted the match for {game}",
+  "@notifMatchAccepted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notifMatchFound": "New match found for {game}",
+  "@notifMatchFound": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPostComment": "{name} commented on your post",
+  "@notifPostComment": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPostLike": "{name} liked your post",
+  "@notifPostLike": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPostTag": "{name} tagged you in a post",
+  "@notifPostTag": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRuleNoteApproved": "Your rule note for {game} was approved",
+  "@notifRuleNoteApproved": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRuleNoteRejected": "Your rule note for {game} was rejected",
+  "@notifRuleNoteRejected": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRulebookApproved": "The rulebook for {game} was approved",
+  "@notifRulebookApproved": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRulebookRejected": "The rulebook for {game} was rejected",
+  "@notifRulebookRejected": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRulebookUnderReview": "The rulebook for {game} is under review",
+  "@notifRulebookUnderReview": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationAGame": "a game",
+  "notificationAnEvent": "an event",
+  "notificationPrefsTitle": "Notification preferences",
+  "notificationSomeone": "Someone",
+  "notificationsEarlier": "Earlier",
+  "notificationsEmptyBody": "Notifications will appear here.",
+  "notificationsMarkAllRead": "Mark all read",
+  "notificationsMarkRead": "Mark as read",
+  "notificationsThisWeek": "This Week",
+  "notificationsTitle": "Notifications",
+  "notificationsToday": "Today",
+  "onboardingAddGameBody": "Add a few games you own to get started.",
+  "onboardingAddGameConfirm": "Add {game} to your collection?",
+  "@onboardingAddGameConfirm": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingAddGameTitle": "What do you love to play?",
+  "onboardingBggBody": "Already on BoardGameGeek? Bring your collection over.",
+  "onboardingBggTitle": "Import from BoardGameGeek",
+  "onboardingFinish": "Finish",
+  "onboardingFriendsBody": "Send friend requests to people you play with.",
+  "onboardingFriendsTitle": "Find your friends",
+  "onboardingPopular": "Popular games",
+  "onboardingProfileBody": "Add a photo and a name so friends recognise you.",
+  "onboardingProfileTitle": "Set up your profile",
+  "playDate": "Date played",
+  "playDuration": "Duration",
+  "playFewerPlayers": "Fewer",
+  "playLogTitle": "Log a play of {game}",
+  "@playLogTitle": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "playLogged": "Play logged!",
+  "playMorePlayers": "More",
+  "playNotes": "Notes (optional)",
+  "playPlayers": "Players",
+  "postAddComment": "Add a comment…",
+  "postAddPhotos": "Add Photos",
+  "postCaptionHint": "What happened at the table?",
+  "postComment": "Comment",
+  "postCommentsTitle": "{count, plural, =0{Comments} =1{1 comment} other{{count} comments}}",
+  "@postCommentsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "postCompressing": "Compressing…",
+  "postDelete": "Delete post",
+  "postDeleteMessage": "This post will be removed for everyone.",
+  "postDeleteTitle": "Delete this post?",
+  "postDeleted": "Post deleted.",
+  "postDiscard": "Discard",
+  "postDiscardMessage": "Your photos and caption will be lost.",
+  "postDiscardTitle": "Discard this post?",
+  "postEditTitle": "Edit post",
+  "postEdited": "edited",
+  "postEmptyError": "Add a photo or a caption.",
+  "postFirstComment": "Be the first to comment!",
+  "postLike": "Like",
+  "postLikes": "{count, plural, =1{1 like} other{{count} likes}}",
+  "@postLikes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "postNewTitle": "New post",
+  "postPlayedOn": "Played on {date}",
+  "@postPlayedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "postPosted": "Posted!",
+  "postPublish": "Post",
+  "postRemovePhoto": "Remove photo",
+  "postRemoved": "This post has been removed.",
+  "postSave": "Save",
+  "postTagFriends": "Tag friends",
+  "postTagGame": "Tag a game",
+  "postTaggedCount": "{count, plural, =1{1 friend tagged} other{{count} friends tagged}}",
+  "@postTaggedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "postTakePhoto": "Take a photo",
+  "postTitle": "Post",
+  "postUnlike": "Unlike",
+  "postUnsave": "Remove from saved",
+  "postUpdated": "Post updated.",
+  "postUploading": "Uploading {current}/{total} images…",
+  "@postUploading": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "postViewComments": "{count, plural, =1{View 1 comment} other{View {count} comments}}",
+  "@postViewComments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "postWith": "With:",
+  "prefBggImportCompleted": "BGG import finished",
+  "prefCommentMention": "Comment mentions",
+  "prefEventCancelled": "Event cancelled",
+  "prefEventCompleted": "Event ended",
+  "prefEventInvite": "Event invites",
+  "prefEventKicked": "Removed from event",
+  "prefEventLeave": "Someone left your event",
+  "prefEventReminder": "Event reminders",
+  "prefEventRsvp": "Event RSVPs",
+  "prefEventUpdated": "Event updates",
+  "prefFriendAccepted": "Friend request accepted",
+  "prefFriendRequest": "Friend requests",
+  "prefInApp": "In-App",
+  "prefMatchAccepted": "Match accepted",
+  "prefMatchFound": "Match found",
+  "prefPostComment": "Post comments",
+  "prefPostLike": "Post liked",
+  "prefPostTag": "Tagged in a post",
+  "prefPush": "Push",
+  "prefRuleNoteApproved": "Rule note approved",
+  "prefRuleNoteRejected": "Rule note rejected",
+  "prefRulebookApproved": "Rulebook approved",
+  "prefRulebookRejected": "Rulebook rejected",
+  "prefRulebookUnderReview": "Rulebook under review",
+  "prefTypeHeader": "Notification",
+  "profileBio": "Bio",
+  "profileBlock": "Block",
+  "profileBlockMessage": "You'll no longer be friends and won't see each other's content.",
+  "profileBlockTitle": "Block this user?",
+  "profileBlocked": "User blocked.",
+  "profileDisplayName": "Display name",
+  "profileDisplayNameTooShort": "Must be at least 2 characters",
+  "profileEdit": "Edit Profile",
+  "profileEmailNote": "To change your email, go to Settings › Change Email.",
+  "profileFavoriteGames": "Favorite Games",
+  "profileLocationHint": "City, Country",
+  "profileNoFavorites": "No favorites yet. Star a game you love.",
+  "profileNoPosts": "No posts yet.",
+  "profileReport": "Report",
+  "profileSaved": "Profile saved.",
+  "profileShare": "Share profile",
+  "profileTabCollection": "Collection",
+  "profileTabPosts": "Posts",
+  "profileTabTagged": "Tagged",
+  "profileTaggedBody": "Posts this player was tagged in will appear here once the server supports listing them.",
+  "profileTaggedTitle": "Tagged posts",
+  "profileUnavailable": "This profile isn't available.",
+  "profileUsername": "Username",
+  "profileUsernameChangeIn": "{days, plural, =1{Can change in 1 day} other{Can change in {days} days}}",
+  "@profileUsernameChangeIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "profileUsernameInvalid": "3–20 lowercase letters, numbers or underscores",
+  "profileVerified": "Verified",
+  "quietHoursBody": "Push notifications are paused during quiet hours.",
+  "quietHoursFrom": "From {time}",
+  "@quietHoursFrom": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quietHoursTitle": "Do Not Disturb",
+  "quietHoursTo": "To {time}",
+  "@quietHoursTo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reactivateBody": "This account is scheduled for deletion. Log in again within 30 days of deleting it to restore everything.",
+  "reactivateDone": "Welcome back! Your account has been restored.",
+  "reactivateSubmit": "Reactivate my account",
+  "reactivateTitle": "Reactivate your account?",
+  "reportComment": "Report comment",
+  "reportPost": "Report post",
+  "reportReasonHarassment": "Harassment or bullying",
+  "reportReasonInappropriate": "Inappropriate content",
+  "reportReasonOther": "Something else",
+  "reportReasonSpam": "Spam",
+  "reportSent": "Thanks — we'll review your report.",
+  "reportTitle": "Why are you reporting this?",
+  "searchClear": "Clear",
+  "searchEmptyPrompt": "Search for games, players, or events",
+  "searchEvents": "Events",
+  "searchGames": "Games",
+  "searchHint": "Search Meeple",
+  "searchNoResults": "No results for '{query}'",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchPlayers": "Players",
+  "searchRecent": "Recent searches",
+  "sessionsLastActive": "Last active {time}",
+  "@sessionsLastActive": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionsRevokeOthers": "Sign Out All Other Devices",
+  "sessionsSignOut": "Sign Out",
+  "sessionsThisDevice": "This device",
+  "sessionsUnknownDevice": "Unknown device",
+  "settingsAbout": "About",
+  "settingsAccount": "Account",
+  "settingsAppearance": "Appearance",
+  "settingsBggImport": "BGG Import",
+  "settingsBiometric": "Biometric lock",
+  "settingsBiometricBody": "Require Face ID, fingerprint or your device PIN to open Meeple.",
+  "settingsBiometricUnavailable": "Biometric authentication isn't available on this device.",
+  "settingsCacheCleared": "Offline cache cleared.",
+  "settingsChangeEmail": "Change Email",
+  "settingsChangePassword": "Change Password",
+  "settingsClearCache": "Clear cache",
+  "settingsComingSoon": "Coming soon",
+  "settingsDeleteAccount": "Delete Account",
+  "settingsEditProfile": "Edit Profile",
+  "settingsExport": "Export my data",
+  "settingsExportRequested": "We'll email you a download link when your export is ready.",
+  "settingsFeedback": "Send Feedback",
+  "settingsLanguage": "Language",
+  "settingsNotifications": "Notifications",
+  "settingsPrivacy": "Privacy",
+  "settingsPrivacyPolicy": "Privacy Policy",
+  "settingsPrivacySettings": "Privacy Settings",
+  "settingsSecurity": "Security",
+  "settingsSessions": "Active Sessions",
+  "settingsSignOut": "Log out",
+  "settingsSignOutMessage": "You'll need to log in again on this device.",
+  "settingsSignOutTitle": "Log out?",
+  "settingsTerms": "Terms of Service",
+  "settingsTheme": "Theme",
+  "settingsThemeLight": "Light",
+  "settingsTitle": "Settings",
+  "settingsVersion": "App Version",
+  "statFriends": "Friends",
+  "statGamesOwned": "Games Owned",
+  "statMostPlayed": "Most played: {game} ({count})",
+  "@statMostPlayed": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statSessions": "Sessions",
+  "visibilityFriends": "Friends",
+  "visibilityFriendsHint": "All your friends can see and join.",
+  "visibilityInviteOnly": "Invite only",
+  "visibilityInviteOnlyHint": "Only people you invite can see it.",
+  "visibilityPublic": "Public",
+  "visibilityPublicHint": "Anyone in the community can find and join.",
+  "welcomeEvents": "Organize game nights with friends",
+  "welcomeLibrary": "Track the games you own and love",
+  "welcomeMatching": "Get matched with friends who want to play",
+  "welcomeStart": "Get Started",
+  "welcomeTagline": "Track your games. Organize game nights. Build memories.",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authYourEmail": "your email",
+  "errorFileTooLarge": "Images must be 10 MB or smaller.",
+  "errorUnsupportedImage": "Only JPEG, PNG, WebP and GIF images are allowed.",
+  "errorEmailNotVerified": "Please verify your email address before logging in."
+}

@@ -3,6 +3,7 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 
 /// Centred error state with message and retry button.
@@ -11,15 +12,14 @@ class ErrorState extends StatelessWidget {
     super.key,
     required this.error,
     this.onRetry,
+    this.title,
   });
 
   final Object error;
   final VoidCallback? onRetry;
 
-  String get _message {
-    if (error is ApiException) return (error as ApiException).message;
-    return 'Something went wrong. Please try again.';
-  }
+  /// Defaults to "Oops!".
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -38,21 +38,23 @@ class ErrorState extends StatelessWidget {
                 color: AppColors.errorContainer.withValues(alpha: 0.4),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.error_outline_rounded,
+              child: Icon(
+                error is NetworkException || error is OfflineException
+                    ? Icons.wifi_off_rounded
+                    : Icons.error_outline_rounded,
                 size: 40,
                 color: AppColors.error,
               ),
             ),
             AppSpacing.vGapXl,
             Text(
-              'Oops!',
+              title ?? context.l10n.commonOops,
               style: AppTypography.titleLarge,
               textAlign: TextAlign.center,
             ),
             AppSpacing.vGapSm,
             Text(
-              _message,
+              localizedError(context.l10n, error),
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.onSurfaceVariant,
               ),
@@ -61,7 +63,7 @@ class ErrorState extends StatelessWidget {
             if (onRetry != null) ...[
               AppSpacing.vGapXl,
               AppButton(
-                label: 'Try Again',
+                label: context.l10n.commonRetry,
                 onPressed: onRetry,
                 minWidth: 160,
               ),

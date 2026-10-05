@@ -7,9 +7,9 @@ part of 'connectivity_service.dart';
 // **************************************************************************
 
 String _$connectivityStreamHash() =>
-    r'dd8ca688a4ce5c142a91317d7fc1c242e7804ceb';
+    r'bde4d5d030c1ee6123cd7188aaec572f7f6fd0af';
 
-/// Emits `true` when any non-none connectivity result is present.
+/// Emits `true` while any network interface is up.
 ///
 /// Copied from [connectivityStream].
 @ProviderFor(connectivityStream)
@@ -26,23 +26,24 @@ final connectivityStreamProvider = StreamProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ConnectivityStreamRef = StreamProviderRef<bool>;
-String _$isConnectedHash() => r'445a21b088f5cc6117af76cf4a7f84c93e5a5a70';
+String _$isOfflineHash() => r'faf0ff666fa2c1f79a22814bed1477928d62ee2e';
 
-/// One-shot check for current connectivity.
+/// True only when the device is known to be offline (unknown counts as
+/// online).
 ///
-/// Copied from [isConnected].
-@ProviderFor(isConnected)
-final isConnectedProvider = AutoDisposeFutureProvider<bool>.internal(
-  isConnected,
-  name: r'isConnectedProvider',
+/// Copied from [isOffline].
+@ProviderFor(isOffline)
+final isOfflineProvider = Provider<bool>.internal(
+  isOffline,
+  name: r'isOfflineProvider',
   debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$isConnectedHash,
+      const bool.fromEnvironment('dart.vm.product') ? null : _$isOfflineHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef IsConnectedRef = AutoDisposeFutureProviderRef<bool>;
+typedef IsOfflineRef = ProviderRef<bool>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

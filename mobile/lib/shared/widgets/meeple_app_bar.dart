@@ -1,8 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 
 /// Glass-morphism app bar used across all main screens.
 ///
@@ -18,6 +20,7 @@ class MeepleAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton = false,
     this.onBack,
     this.centerTitle = false,
+    this.fallbackRoute = '/',
   });
 
   final String? title;
@@ -28,8 +31,23 @@ class MeepleAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
   final bool centerTitle;
 
+  /// Logical parent used when there is nothing to pop, e.g. after opening
+  /// a deep link (SCREENS §15.1).
+  final String fallbackRoute;
+
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  void _back(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    if (router == null) {
+      Navigator.of(context).maybePop();
+    } else if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go(fallbackRoute);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +63,8 @@ class MeepleAppBar extends StatelessWidget implements PreferredSizeWidget {
           leading: showBackButton
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: onBack ?? () => _back(context),
                 )
               : leading,
           title: titleWidget ??
@@ -61,9 +80,10 @@ class MeepleAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 /// The branded "Meeple" wordmark used on the home app bar.
 class MeepleBrandBar extends StatelessWidget implements PreferredSizeWidget {
-  const MeepleBrandBar({super.key, this.actions});
+  const MeepleBrandBar({super.key, this.actions, this.leading});
 
   final List<Widget>? actions;
+  final Widget? leading;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -71,7 +91,9 @@ class MeepleBrandBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return MeepleAppBar(
-      titleWidget: Text('Meeple', style: AppTypography.brandSmall),
+      titleWidget: Text(context.l10n.appName, style: AppTypography.brandSmall),
+      centerTitle: leading != null,
+      leading: leading,
       actions: actions,
     );
   }

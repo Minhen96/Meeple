@@ -1,0 +1,10 @@
+targets:
+  $default:
+    builders:
+      # cache_entry.g.dart is produced by isar_generator in isolation (it
+      # pins an analyzer incompatible with riverpod_generator/freezed); keep
+      # the regular part builders away from it. See docs/MOBILE_FLUTTER.md §6.
+      source_gen:combining_builder:
+        generate_for:
+          exclude:
+            - lib/core/storage/cache_entry.dart

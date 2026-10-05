@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -21,7 +22,7 @@ const _kLegacyRefreshToken = 'refresh_token';
 const _kLegacyUserId = 'user_id';
 
 @Riverpod(keepAlive: true)
-SecureStorage secureStorage(SecureStorageRef ref) => SecureStorage();
+SecureStorage secureStorage(Ref ref) => SecureStorage();
 
 /// The persisted auth session.
 final class StoredSession {
@@ -40,7 +41,7 @@ final class StoredSession {
 ///
 /// Uses encrypted shared preferences on Android and Keychain on iOS.
 /// All reads/writes are async and return null on missing keys.
-final class SecureStorage {
+class SecureStorage {
   SecureStorage()
       : _storage = const FlutterSecureStorage(
           aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -109,6 +110,20 @@ final class SecureStorage {
 
   Future<void> saveFcmToken(String token) =>
       _storage.write(key: _kFcmToken, value: token);
+
+  Future<void> deleteFcmToken() => _storage.delete(key: _kFcmToken);
+
+  // ── Preferences ────────────────────────────────────────────────────────────
+  //
+  // Small device-level settings (locale, biometric lock, recent searches,
+  // push pre-prompt). Keys are prefixed so they never collide with auth data.
+
+  Future<String?> readPref(String key) => _storage.read(key: 'pref_$key');
+
+  Future<void> writePref(String key, String value) =>
+      _storage.write(key: 'pref_$key', value: value);
+
+  Future<void> deletePref(String key) => _storage.delete(key: 'pref_$key');
 
   // ── Deletion ───────────────────────────────────────────────────────────────
 

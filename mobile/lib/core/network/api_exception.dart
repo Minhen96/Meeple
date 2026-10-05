@@ -66,6 +66,9 @@ sealed class ApiException implements Exception {
         ),
       403 => ForbiddenException(code: code),
       404 => NotFoundException(code: code),
+      // Endpoint exists for other verbs only — for this client that means
+      // the contract has not shipped yet; callers treat it like a 404.
+      405 => NotFoundException(code: code ?? 'METHOD_NOT_ALLOWED'),
       409 => ConflictException(serverMessage ?? 'Conflict.', code: code),
       413 => PayloadTooLargeException(
           serverMessage ?? 'The file is too large.',
@@ -93,6 +96,13 @@ sealed class ApiException implements Exception {
 final class NetworkException extends ApiException {
   const NetworkException()
       : super('No internet connection. Please check your network.');
+}
+
+/// Raised client-side by write actions attempted while offline
+/// (docs/MOBILE_FLUTTER.md §11); no request is sent.
+final class OfflineException extends ApiException {
+  const OfflineException()
+      : super("You're offline. Try again when you reconnect.", code: 'OFFLINE');
 }
 
 final class TimeoutException extends ApiException {
@@ -179,4 +189,27 @@ final class ServerException extends ApiException {
 
 final class UnexpectedException extends ApiException {
   const UnexpectedException(super.message, {super.code});
+}
+
+/// Runs an API call and converts any failure into an [ApiException].
+Future<T> guardApi<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } catch (e) {
+    throw ApiException.from(e);
+  }
+}
+
+/// Like [guardApi] but falls back to [fallback] when the endpoint answers
+/// 404/405 — GAP §6.1 contracts ship incrementally, so a missing endpoint
+/// degrades to the legacy one instead of failing.
+Future<T> guardApiOr<T>(
+  Future<T> Function() body,
+  Future<T> Function() fallback,
+) async {
+  try {
+    return await guardApi(body);
+  } on NotFoundException {
+    return guardApi(fallback);
+  }
 }
