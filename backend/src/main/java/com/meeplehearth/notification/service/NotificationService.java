@@ -335,6 +335,8 @@ public class NotificationService {
     @Transactional
     public void markAllRead(UUID userId) {
         notificationRepository.markAllReadForUser(userId);
+        // Evict now so reads in this transaction recompute; set 0 once the update is visible
+        unreadCounter.evict(userId);
         afterCommit(() -> unreadCounter.reset(userId));
     }
 
