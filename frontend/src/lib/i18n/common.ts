@@ -49,5 +49,12 @@ export default {
 	// Error page (routes/+error.svelte)
 	'error.title': 'Something went wrong',
 	'error.notFoundTitle': 'Page not found',
-	'error.home': 'Go to Home'
+	'error.home': 'Go to Home',
+
+	// Photo ordering (post create)
+	'photoOrder.handle': 'Drag to reorder photo {position}',
+	'photoOrder.moveLeft': 'Move photo {position} left',
+	'photoOrder.moveRight': 'Move photo {position} right',
+	'photoOrder.moved': 'Photo moved to position {position} of {total}',
+	'photoOrder.hint': 'Drag photos or use the arrows to change their order.'
 } as const satisfies Messages;
