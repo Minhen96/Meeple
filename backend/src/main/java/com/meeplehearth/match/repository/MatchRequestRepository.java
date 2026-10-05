@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -56,6 +57,38 @@ public interface MatchRequestRepository extends JpaRepository<MatchRequest, UUID
             ORDER BY mr.createdAt DESC
             """)
     List<MatchRequest> findReactivatableForGroups(Collection<UUID> groupIds);
+
+    /**
+     * Conflict-safe reactivation: flips the given MATCHED requests back to ACTIVE in one statement,
+     * skipping any (user, game) that already has an ACTIVE request (e.g. one the user created
+     * while the scheduler was running), so the partial unique index
+     * uq_match_requests_user_game_active is not hit. Callers must pass at most one id per
+     * (user, game). Returns the number of rows reactivated.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            UPDATE match_requests m SET status = 'ACTIVE'
+            WHERE m.id IN (:ids)
+              AND m.status = 'MATCHED'
+              AND NOT EXISTS (SELECT 1 FROM match_requests a
+                              WHERE a.user_id = m.user_id
+                                AND a.game_id = m.game_id
+                                AND a.status = 'ACTIVE')
+            """, nativeQuery = true)
+    int reactivateIfNoActive(Collection<UUID> ids);
+
+    /**
+     * Atomically claims ACTIVE requests for a new match group. Returns the number of rows moved
+     * to MATCHED; fewer than ids.size() means some were cancelled/matched concurrently.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "UPDATE match_requests SET status = 'MATCHED' WHERE id IN (:ids) AND status = 'ACTIVE'",
+            nativeQuery = true)
+    int markMatchedIfActive(Collection<UUID> ids);
+
+    @EntityGraph(attributePaths = {"user", "game"})
+    @Query("SELECT mr FROM MatchRequest mr WHERE mr.id IN :ids")
+    List<MatchRequest> findAllWithUserAndGameByIdIn(Collection<UUID> ids);
 
     /** Accepted friendships among users that currently have an ACTIVE request: rows of [senderId, receiverId]. */
     @Query("""

@@ -16,8 +16,11 @@ import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.user.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -29,18 +32,22 @@ public class MatchService {
 
     private static final Logger log = LoggerFactory.getLogger(MatchService.class);
     private static final int MAX_ACTIVE_REQUESTS = 5;
+    static final String ACTIVE_UNIQUE_INDEX = "uq_match_requests_user_game_active";
 
     private final MatchRequestRepository matchRequestRepository;
     private final MatchGroupRepository matchGroupRepository;
     private final GameRepository gameRepository;
     private final NotificationService notificationService;
     private final EventService eventService;
+    private final TransactionTemplate transactionTemplate;
 
     public MatchService(MatchRequestRepository matchRequestRepository,
                         MatchGroupRepository matchGroupRepository,
                         GameRepository gameRepository,
                         NotificationService notificationService,
-                        EventService eventService) {
+                        EventService eventService,
+                        PlatformTransactionManager transactionManager) {
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.matchRequestRepository = matchRequestRepository;
         this.matchGroupRepository = matchGroupRepository;
         this.gameRepository = gameRepository;
@@ -52,7 +59,12 @@ public class MatchService {
     // Create match request
     // -------------------------------------------------------------------------
 
-    @Transactional
+    /**
+     * Creates (or idempotently updates) the caller's ACTIVE request for a game. The scheduler can
+     * reactivate an older request for the same game between our existence check and the insert;
+     * the insert then hits the partial unique index, so the whole upsert is retried once in a
+     * fresh transaction, where it finds and updates that ACTIVE row instead of failing with a 500.
+     */
     public MatchRequestResponse createRequest(UUID userId, CreateMatchRequestDto dto) {
         // Validate time window
         if (dto.availableFrom() != null && dto.availableTo() != null) {
@@ -64,6 +76,25 @@ public class MatchService {
             }
         }
 
+        try {
+            return transactionTemplate.execute(status -> upsertRequest(userId, dto));
+        } catch (DataIntegrityViolationException e) {
+            if (!isActiveUniqueViolation(e)) {
+                throw e;
+            }
+            log.info("Match request insert raced with a reactivation; retrying as update");
+        }
+        try {
+            return transactionTemplate.execute(status -> upsertRequest(userId, dto));
+        } catch (DataIntegrityViolationException e) {
+            if (!isActiveUniqueViolation(e)) {
+                throw e;
+            }
+            throw ApiException.conflict("MATCH_REQUEST_CONFLICT", "Match request was modified concurrently, please retry");
+        }
+    }
+
+    private MatchRequestResponse upsertRequest(UUID userId, CreateMatchRequestDto dto) {
         var game = gameRepository.findById(dto.gameId())
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
 
@@ -91,7 +122,18 @@ public class MatchService {
         mr.setGame(game);
         mr.setAvailableFrom(dto.availableFrom());
         mr.setAvailableTo(dto.availableTo());
-        return MatchRequestResponse.from(matchRequestRepository.save(mr));
+        // Flush now so a unique-index violation surfaces here (translated), not at commit
+        return MatchRequestResponse.from(matchRequestRepository.saveAndFlush(mr));
+    }
+
+    static boolean isActiveUniqueViolation(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String msg = t.getMessage();
+            if (msg != null && msg.contains(ACTIVE_UNIQUE_INDEX)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // -------------------------------------------------------------------------
@@ -195,7 +237,11 @@ public class MatchService {
     // Matching algorithm (called by scheduler)
     // -------------------------------------------------------------------------
 
-    @Transactional
+    /**
+     * Not transactional as a whole: expiring each stale group and creating each new group run in
+     * their own transactions, so one failure (e.g. a unique-index race with a concurrent
+     * createRequest) only skips that group instead of rolling back the whole run.
+     */
     public void runMatchingAlgorithm() {
         expireOldGroups();
 
@@ -254,16 +300,29 @@ public class MatchService {
             Integer minPlayers = group.get(0).getGame().getMinPlayers();
             if (minPlayers != null && group.size() < minPlayers) continue;
 
-            createMatchGroup(group);
+            createMatchGroupInOwnTransaction(group.stream().map(MatchRequest::getId).toList());
         }
     }
 
-    private void createMatchGroup(List<MatchRequest> requests) {
-        // Check none are already matched to avoid duplicate groups
-        boolean anyAlreadyMatched = requests.stream()
-                .anyMatch(r -> r.getStatus() == MatchRequest.Status.MATCHED);
-        if (anyAlreadyMatched) return;
+    private void createMatchGroupInOwnTransaction(List<UUID> requestIds) {
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                // Atomically claim the requests; if any was cancelled/matched since the snapshot,
+                // undo the claim and skip this group (it is retried on the next run)
+                if (matchRequestRepository.markMatchedIfActive(requestIds) != requestIds.size()) {
+                    status.setRollbackOnly();
+                    log.debug("Skipping match group: requests changed since snapshot");
+                    return;
+                }
+                createMatchGroup(matchRequestRepository.findAllWithUserAndGameByIdIn(requestIds));
+            });
+        } catch (RuntimeException e) {
+            log.error("Failed to create match group for {} requests", requestIds.size(), e);
+        }
+    }
 
+    /** Persists a group for requests already claimed as MATCHED and notifies the members. */
+    private void createMatchGroup(List<MatchRequest> requests) {
         // Compute overlap window
         Instant overlapStart = requests.stream()
                 .map(MatchRequest::getAvailableFrom)
@@ -289,9 +348,6 @@ public class MatchService {
             member.setGroup(saved);
             member.setUser(r.getUser());
             saved.getMembers().add(member);
-
-            r.setStatus(MatchRequest.Status.MATCHED);
-            matchRequestRepository.save(r);
         }
 
         matchGroupRepository.save(saved);
@@ -311,29 +367,39 @@ public class MatchService {
                 saved.getId(), saved.getGame().getNameEn(), requests.size());
     }
 
+    /** Expires each stale PENDING group (and reactivates its requests) in its own transaction. */
     private void expireOldGroups() {
-        Instant cutoff = Instant.now().minus(48, ChronoUnit.HOURS);
-        List<MatchGroup> expired = matchGroupRepository.findExpiredGroups(cutoff);
-        if (expired.isEmpty()) return;
-
-        expired.forEach(g -> g.setStatus(MatchGroup.Status.EXPIRED));
-        matchGroupRepository.saveAll(expired);
-
-        reactivateRequests(expired.stream().map(MatchGroup::getId).toList());
+        Instant now = Instant.now();
+        Instant cutoff = now.minus(48, ChronoUnit.HOURS);
+        for (UUID groupId : matchGroupRepository.findExpiredGroupIds(cutoff)) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    // Skip if accepted/dismissed since the id list was read
+                    if (matchGroupRepository.expireIfPending(groupId, now) == 1) {
+                        reactivateRequests(List.of(groupId));
+                    }
+                });
+            } catch (RuntimeException e) {
+                log.error("Failed to expire match group {}", groupId, e);
+            }
+        }
     }
 
     /**
-     * Puts the groups' members' MATCHED requests back to ACTIVE in one query (no per-member
-     * lookups). At most one request per (user, game) is reactivated — the newest — so the
-     * one-ACTIVE-per-game unique index can never be violated.
+     * Puts the groups' members' MATCHED requests back to ACTIVE. At most one request per
+     * (user, game) is chosen (the newest), and the UPDATE itself skips any (user, game) that
+     * already has an ACTIVE request, so a request the user created concurrently wins and the
+     * one-ACTIVE-per-game unique index is not violated.
      */
     private void reactivateRequests(List<UUID> groupIds) {
         Set<String> seen = new HashSet<>();
-        List<MatchRequest> toReactivate = matchRequestRepository.findReactivatableForGroups(groupIds).stream()
+        List<UUID> ids = matchRequestRepository.findReactivatableForGroups(groupIds).stream()
                 .filter(mr -> seen.add(mr.getUser().getId() + ":" + mr.getGame().getId()))
+                .map(MatchRequest::getId)
                 .toList();
-        toReactivate.forEach(mr -> mr.setStatus(MatchRequest.Status.ACTIVE));
-        matchRequestRepository.saveAll(toReactivate);
+        if (!ids.isEmpty()) {
+            matchRequestRepository.reactivateIfNoActive(ids);
+        }
     }
 
     // -------------------------------------------------------------------------
