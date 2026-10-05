@@ -36,4 +36,8 @@ public class PostComment {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    /** Set when the author edits the comment (within 24h of creation). */
+    @Column(name = "edited_at")
+    private Instant editedAt;
 }

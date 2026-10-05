@@ -3,22 +3,28 @@ package com.meeplehearth.social.controller;
 import com.meeplehearth.common.dto.PageResponse;
 import com.meeplehearth.social.dto.FriendRequestResponse;
 import com.meeplehearth.social.dto.FriendStatusResponse;
+import com.meeplehearth.social.dto.SuggestedUser;
+import com.meeplehearth.user.dto.UserSummary;
 import com.meeplehearth.social.service.FriendService;
+import com.meeplehearth.social.service.SocialQueryService;
 import com.meeplehearth.user.dto.UserProfileResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
 public class FriendController {
 
     private final FriendService friendService;
+    private final SocialQueryService socialQueryService;
 
-    public FriendController(FriendService friendService) {
+    public FriendController(FriendService friendService, SocialQueryService socialQueryService) {
         this.friendService = friendService;
+        this.socialQueryService = socialQueryService;
     }
 
     /** POST /api/v1/users/{id}/friend-request — send a friend request */
@@ -28,6 +34,36 @@ public class FriendController {
             @PathVariable UUID id) {
         UUID currentUserId = UUID.fromString(userDetails.getUsername());
         return ResponseEntity.ok(friendService.sendFriendRequest(currentUserId, id));
+    }
+
+    /** DELETE /api/v1/users/{id}/friend-request — withdraw the pending request I sent to this user */
+    @DeleteMapping("/api/v1/users/{id}/friend-request")
+    public ResponseEntity<Void> cancelFriendRequestTo(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID id) {
+        UUID currentUserId = UUID.fromString(userDetails.getUsername());
+        friendService.cancelFriendRequestTo(currentUserId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** GET /api/v1/users/me/blocked — users I have blocked, most recent first */
+    @GetMapping("/api/v1/users/me/blocked")
+    public ResponseEntity<List<UserSummary>> getBlockedUsers(@AuthenticationPrincipal UserDetails userDetails) {
+        UUID currentUserId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(socialQueryService.blockedUsers(currentUserId));
+    }
+
+    /**
+     * GET /api/v1/friends/suggestions?limit=10 — people you may know, ranked by shared games.
+     * Same data as {@code GET /users/suggestions} once the account package maps it to
+     * {@link SocialQueryService#suggestions}.
+     */
+    @GetMapping("/api/v1/friends/suggestions")
+    public ResponseEntity<List<SuggestedUser>> getSuggestions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "10") int limit) {
+        UUID currentUserId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(socialQueryService.suggestions(currentUserId, limit));
     }
 
     /** GET /api/v1/users/{id}/friend-status — current user's relationship with target user */

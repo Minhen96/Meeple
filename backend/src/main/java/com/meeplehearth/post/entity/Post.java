@@ -71,6 +71,10 @@ public class Post {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /** Set when the author edits the post (within 48h of creation); clients show "Edited". */
+    @Column(name = "edited_at")
+    private Instant editedAt;
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();

@@ -28,13 +28,18 @@ export const load: PageLoad = async ({ params, parent, fetch, url }) => {
 	}
 
 	const isFriend = friendStatus.status === 'FRIENDS';
-	const [posts, collection, stats] = await Promise.all([
+	const [posts, taggedPosts, collection, stats] = await Promise.all([
 		postsApi.getUserPosts(params.userId, 0, 30, { fetch }).catch(() => []),
+		// null renders the Tagged tab's unavailable state
+		postsApi
+			.getTaggedPosts(params.userId, null, 30, { fetch })
+			.then((page) => page.items)
+			.catch(() => null),
 		isFriend
 			? gamesApi.getUserCollection(params.userId, { fetch }).catch((): UserGame[] => [])
 			: Promise.resolve<UserGame[]>([]),
 		usersApi.getStats(params.userId, { fetch }).catch(() => null)
 	]);
 
-	return { user, friendStatus, posts, collection, stats, isFriend };
+	return { user, friendStatus, posts, taggedPosts, collection, stats, isFriend };
 };

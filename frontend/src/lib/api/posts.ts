@@ -1,11 +1,5 @@
 import { api, type ApiOptions } from './client';
-import type { Comment, Post } from '$lib/types';
-
-// Backend returns PageResponse<T> = { data: T[], meta: { page, limit, total, hasMore } }
-interface PagedResponse<T> {
-	data: T[];
-	meta: { page: number; limit: number; total: number; hasMore: boolean };
-}
+import type { Comment, CursorPage, FeedItem, PaginatedResponse, Post } from '$lib/types';
 
 export interface CreatePostPayload {
 	caption?: string;
@@ -17,36 +11,87 @@ export interface CreatePostPayload {
 	taggedUserIds?: string[];
 }
 
+/** PUT /posts/{id}: omitted fields are unchanged; '' clears caption/location. */
+export interface UpdatePostPayload {
+	caption?: string;
+	location?: string;
+	playedAt?: string;
+	gameId?: string;
+	clearGame?: boolean;
+	taggedUserIds?: string[];
+}
+
+function cursorQuery(
+	cursor: string | null | undefined,
+	limit: number,
+	extra?: Record<string, string>
+): string {
+	const params = new URLSearchParams({ limit: String(limit), ...extra });
+	if (cursor) params.set('cursor', cursor);
+	return params.toString();
+}
+
 export const postsApi = {
-	// Feed is at /api/v1/feed (not /api/v1/posts)
-	getFeed: async (page = 0, size = 20, opts?: ApiOptions): Promise<Post[]> => {
-		const res = await api.get<PagedResponse<Post>>(`/api/v1/feed?page=${page}&size=${size}`, opts);
-		return res.data;
-	},
+	/** Home feed: posts and activity items from friends and me, newest first. */
+	getFeedPage: (
+		cursor?: string | null,
+		limit = 20,
+		opts?: ApiOptions
+	): Promise<CursorPage<FeedItem>> =>
+		api.get<CursorPage<FeedItem>>(`/api/v1/feed?${cursorQuery(cursor, limit)}`, opts),
 
 	getUserPosts: async (userId: string, page = 0, size = 20, opts?: ApiOptions): Promise<Post[]> => {
-		const res = await api.get<PagedResponse<Post>>(
+		const res = await api.get<PaginatedResponse<Post>>(
 			`/api/v1/users/${userId}/posts?page=${page}&size=${size}`,
 			opts
 		);
 		return res.data;
 	},
 
-	getPost: async (id: string, opts?: ApiOptions): Promise<Post> => {
-		const res = await api.get<Post>(`/api/v1/posts/${id}`, opts);
-		return res;
-	},
+	/** "View Memories": posts linked to an event. */
+	getEventPosts: (
+		eventId: string,
+		cursor?: string | null,
+		limit = 20,
+		opts?: ApiOptions
+	): Promise<CursorPage<Post>> =>
+		api.get<CursorPage<Post>>(`/api/v1/posts?${cursorQuery(cursor, limit, { eventId })}`, opts),
 
-	createPost: async (payload: CreatePostPayload): Promise<Post> => {
-		const res = await api.post<Post>('/api/v1/posts', payload);
-		return res;
-	},
+	/** Posts the user is tagged in (profile "Tagged" tab). */
+	getTaggedPosts: (
+		userId: string,
+		cursor?: string | null,
+		limit = 30,
+		opts?: ApiOptions
+	): Promise<CursorPage<Post>> =>
+		api.get<CursorPage<Post>>(
+			`/api/v1/users/${userId}/tagged-posts?${cursorQuery(cursor, limit)}`,
+			opts
+		),
+
+	getBookmarks: (
+		cursor?: string | null,
+		limit = 20,
+		opts?: ApiOptions
+	): Promise<CursorPage<Post>> =>
+		api.get<CursorPage<Post>>(`/api/v1/users/me/bookmarks?${cursorQuery(cursor, limit)}`, opts),
+
+	getPost: (id: string, opts?: ApiOptions): Promise<Post> =>
+		api.get<Post>(`/api/v1/posts/${id}`, opts),
+
+	createPost: (payload: CreatePostPayload): Promise<Post> =>
+		api.post<Post>('/api/v1/posts', payload),
+
+	updatePost: (id: string, payload: UpdatePostPayload): Promise<Post> =>
+		api.put<Post>(`/api/v1/posts/${id}`, payload),
 
 	deletePost: (id: string) => api.delete<void>(`/api/v1/posts/${id}`),
 
-	// Both return 204 void — callers must do optimistic updates
+	// All return 204 void — callers do optimistic updates
 	likePost: (id: string) => api.post<void>(`/api/v1/posts/${id}/like`),
 	unlikePost: (id: string) => api.delete<void>(`/api/v1/posts/${id}/like`),
+	bookmarkPost: (id: string) => api.post<void>(`/api/v1/posts/${id}/bookmark`),
+	unbookmarkPost: (id: string) => api.delete<void>(`/api/v1/posts/${id}/bookmark`),
 
 	getComments: async (
 		postId: string,
@@ -54,15 +99,21 @@ export const postsApi = {
 		size = 20,
 		opts?: ApiOptions
 	): Promise<Comment[]> => {
-		const res = await api.get<PagedResponse<Comment>>(
+		const res = await api.get<PaginatedResponse<Comment>>(
 			`/api/v1/posts/${postId}/comments?page=${page}&size=${size}`,
 			opts
 		);
 		return res.data;
 	},
 
-	addComment: async (postId: string, body: string): Promise<Comment> => {
-		const res = await api.post<Comment>(`/api/v1/posts/${postId}/comments`, { body });
-		return res;
-	}
+	addComment: (postId: string, body: string): Promise<Comment> =>
+		api.post<Comment>(`/api/v1/posts/${postId}/comments`, { body }),
+
+	/** Comment author only, within 24h. */
+	updateComment: (postId: string, commentId: string, body: string): Promise<Comment> =>
+		api.put<Comment>(`/api/v1/posts/${postId}/comments/${commentId}`, { body }),
+
+	/** Comment author or post author. */
+	deleteComment: (postId: string, commentId: string) =>
+		api.delete<void>(`/api/v1/posts/${postId}/comments/${commentId}`)
 };

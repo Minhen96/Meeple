@@ -1,6 +1,7 @@
 package com.meeplehearth.post.controller;
 
 import com.meeplehearth.common.dto.PageResponse;
+import com.meeplehearth.feed.dto.CursorPage;
 import com.meeplehearth.post.dto.*;
 import com.meeplehearth.post.service.PostService;
 import jakarta.validation.Valid;
@@ -22,14 +23,36 @@ public class PostController {
         this.postService = postService;
     }
 
-    /** GET /api/v1/feed?page=0&size=20 — global feed (Phase 1); friends feed in Phase 2 */
-    @GetMapping("/feed")
-    public ResponseEntity<PageResponse<PostResponse>> getFeed(
+    /** GET /api/v1/posts?eventId=&cursor=&limit=20 — "View Memories": posts linked to an event */
+    @GetMapping(value = "/posts", params = "eventId")
+    public ResponseEntity<CursorPage<PostResponse>> getEventPosts(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam UUID eventId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit) {
         UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(postService.getFeed(userId, page, size));
+        return ResponseEntity.ok(postService.getEventPosts(userId, eventId, cursor, limit));
+    }
+
+    /** GET /api/v1/users/{userId}/tagged-posts?cursor=&limit=20 — posts the user is tagged in */
+    @GetMapping("/users/{userId}/tagged-posts")
+    public ResponseEntity<CursorPage<PostResponse>> getTaggedPosts(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit) {
+        UUID viewerId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(postService.getTaggedPosts(viewerId, userId, cursor, limit));
+    }
+
+    /** GET /api/v1/users/me/bookmarks?cursor=&limit=20 — my saved posts, most recently saved first */
+    @GetMapping("/users/me/bookmarks")
+    public ResponseEntity<CursorPage<PostResponse>> getBookmarks(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(postService.getBookmarks(userId, cursor, limit));
     }
 
     /** GET /api/v1/users/{userId}/posts?page=0&size=20 */
@@ -59,6 +82,16 @@ public class PostController {
             @AuthenticationPrincipal UserDetails userDetails) {
         UUID userId = UUID.fromString(userDetails.getUsername());
         return ResponseEntity.ok(postService.getPost(id, userId));
+    }
+
+    /** PUT /api/v1/posts/{id} — edit within 48h of creation (author only) */
+    @PutMapping("/posts/{id}")
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody UpdatePostRequest request) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(postService.updatePost(userId, id, request));
     }
 
     /** DELETE /api/v1/posts/{id} */
@@ -91,6 +124,26 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
+    /** POST /api/v1/posts/{id}/bookmark — save (idempotent) */
+    @PostMapping("/posts/{id}/bookmark")
+    public ResponseEntity<Void> bookmarkPost(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        postService.bookmarkPost(userId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** DELETE /api/v1/posts/{id}/bookmark — unsave (idempotent) */
+    @DeleteMapping("/posts/{id}/bookmark")
+    public ResponseEntity<Void> unbookmarkPost(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        postService.unbookmarkPost(userId, id);
+        return ResponseEntity.noContent().build();
+    }
+
     /** GET /api/v1/posts/{id}/comments?page=0&size=20 */
     @GetMapping("/posts/{id}/comments")
     public ResponseEntity<PageResponse<PostCommentResponse>> getComments(
@@ -110,5 +163,27 @@ public class PostController {
             @Valid @RequestBody CreateCommentRequest request) {
         UUID userId = UUID.fromString(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(postService.addComment(userId, id, request));
+    }
+
+    /** PUT /api/v1/posts/{id}/comments/{commentId} — edit within 24h (comment author only) */
+    @PutMapping("/posts/{id}/comments/{commentId}")
+    public ResponseEntity<PostCommentResponse> updateComment(
+            @PathVariable UUID id,
+            @PathVariable UUID commentId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CreateCommentRequest request) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(postService.updateComment(userId, id, commentId, request));
+    }
+
+    /** DELETE /api/v1/posts/{id}/comments/{commentId} — comment author or post author */
+    @DeleteMapping("/posts/{id}/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable UUID id,
+            @PathVariable UUID commentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        postService.deleteComment(userId, id, commentId);
+        return ResponseEntity.noContent().build();
     }
 }

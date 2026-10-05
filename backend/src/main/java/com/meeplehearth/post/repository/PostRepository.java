@@ -94,4 +94,8 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Modifying
     @Query(value = "UPDATE posts SET comment_count = comment_count + 1 WHERE id = :postId", nativeQuery = true)
     int incrementCommentCount(UUID postId);
+
+    @Modifying
+    @Query(value = "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = :postId", nativeQuery = true)
+    int decrementCommentCount(UUID postId);
 }

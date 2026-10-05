@@ -108,7 +108,7 @@
 
 <ProfileContent
 	posts={data.posts}
-	taggedPosts={null}
+	taggedPosts={data.taggedPosts}
 	collection={data.collection}
 	own={false}
 	collectionVisible={data.isFriend || localStatus === 'FRIENDS'}

@@ -11,7 +11,12 @@ import com.meeplehearth.post.dto.PostResponse;
 import com.meeplehearth.post.entity.Post;
 import com.meeplehearth.post.repository.PostCommentRepository;
 import com.meeplehearth.post.repository.PostLikeRepository;
+import com.meeplehearth.post.repository.PostQueryRepository;
 import com.meeplehearth.post.repository.PostRepository;
+import com.meeplehearth.event.repository.EventParticipantRepository;
+import com.meeplehearth.event.repository.EventRepository;
+import com.meeplehearth.feed.service.FeedCache;
+import org.springframework.context.ApplicationEventPublisher;
 import com.meeplehearth.post.service.PostService;
 import com.meeplehearth.social.repository.BlockRepository;
 import com.meeplehearth.social.repository.FriendRequestRepository;
@@ -58,14 +63,20 @@ class PostServiceEdgeCaseTest {
     @Mock FriendRequestRepository friendRequestRepository;
     @Mock NotificationService notificationService;
     @Mock BlockRepository blockRepository;
+    @Mock PostQueryRepository postQueryRepository;
+    @Mock EventRepository eventRepository;
+    @Mock EventParticipantRepository eventParticipantRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock FeedCache feedCache;
 
     PostService service;
     final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        service = new PostService(postRepository, postLikeRepository, postCommentRepository, userRepository,
-                gameRepository, appProperties, friendRequestRepository, notificationService, blockRepository);
+        service = new PostService(postRepository, postLikeRepository, postCommentRepository, postQueryRepository,
+                userRepository, gameRepository, eventRepository, eventParticipantRepository, appProperties,
+                friendRequestRepository, notificationService, blockRepository, eventPublisher, feedCache);
         User me = new User();
         me.setId(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(me));
