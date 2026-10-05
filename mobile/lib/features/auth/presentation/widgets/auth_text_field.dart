@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 
 /// Reusable text field for all auth forms.
 ///
@@ -67,6 +68,9 @@ class _AuthTextFieldState extends State<AuthTextField> {
             : null,
         suffixIcon: widget.isPassword
             ? IconButton(
+                tooltip: _obscureText
+                    ? context.l10n.authShowPassword
+                    : context.l10n.authHidePassword,
                 icon: Icon(
                   _obscureText
                       ? Icons.visibility_outlined

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
@@ -56,9 +56,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
-          e is ApiException
-              ? e.message
-              : 'Something went wrong. Please try again.',
+          localizedError(context.l10n, e),
         )),
       );
     } finally {
@@ -70,7 +68,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Password'),
+        title: Text(context.l10n.authNewPasswordTitle),
         backgroundColor: AppColors.transparent,
         elevation: 0,
       ),
@@ -121,7 +119,7 @@ class _FormView extends StatelessWidget {
     if (!hasToken) {
       return Center(
         child: Text(
-          'Invalid or expired reset link.',
+          context.l10n.authResetLinkExpired,
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
@@ -134,10 +132,10 @@ class _FormView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppSpacing.vGapLg,
-        Text('Set a new password', style: AppTypography.headlineSmall),
+        Text(context.l10n.authSetNewPassword, style: AppTypography.headlineSmall),
         AppSpacing.vGapSm,
         Text(
-          'Your new password must be at least 8 characters.',
+          context.l10n.authNewPasswordHint,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
@@ -148,7 +146,7 @@ class _FormView extends StatelessWidget {
           child: Column(
             children: [
               AuthTextField(
-                label: 'New password',
+                label: context.l10n.authNewPassword,
                 controller: passwordController,
                 focusNode: passwordFocus,
                 isPassword: true,
@@ -156,8 +154,8 @@ class _FormView extends StatelessWidget {
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.newPassword],
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Password is required';
-                  if (v.length < 8) return 'Must be at least 8 characters';
+                  if (v == null || v.isEmpty) return context.l10n.authPasswordRequired;
+                  if (v.length < 8) return context.l10n.authPasswordMin;
                   return null;
                 },
                 onFieldSubmitted: (_) =>
@@ -165,7 +163,7 @@ class _FormView extends StatelessWidget {
               ),
               AppSpacing.vGapMd,
               AuthTextField(
-                label: 'Confirm new password',
+                label: context.l10n.authConfirmNewPassword,
                 controller: confirmController,
                 focusNode: confirmFocus,
                 isPassword: true,
@@ -174,7 +172,7 @@ class _FormView extends StatelessWidget {
                 autofillHints: const [AutofillHints.newPassword],
                 validator: (v) {
                   if (v != passwordController.text) {
-                    return 'Passwords do not match';
+                    return context.l10n.authPasswordsMismatch;
                   }
                   return null;
                 },
@@ -185,7 +183,7 @@ class _FormView extends StatelessWidget {
         ),
         AppSpacing.vGapXl,
         AppButton(
-          label: 'Reset Password',
+          label: context.l10n.authResetPasswordTitle,
           onPressed: isLoading ? null : onSubmit,
           isLoading: isLoading,
         ),
@@ -223,13 +221,13 @@ class _SuccessView extends StatelessWidget {
         ),
         AppSpacing.vGapXl,
         Text(
-          'Password updated!',
+          context.l10n.authPasswordUpdated,
           style: AppTypography.headlineSmall,
           textAlign: TextAlign.center,
         ),
         AppSpacing.vGapMd,
         Text(
-          'Your password has been reset. Sign in with your new password.',
+          context.l10n.authPasswordUpdatedBody,
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
@@ -237,7 +235,7 @@ class _SuccessView extends StatelessWidget {
         ),
         const Spacer(),
         AppButton(
-          label: 'Sign In',
+          label: context.l10n.authSignIn,
           onPressed: () => context.go(AppRoutes.login),
         ),
         AppSpacing.vGapXl,

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
-import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
@@ -61,9 +61,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e is ApiException
-                ? e.message
-                : 'Registration failed. Please try again.',
+            localizedError(context.l10n, e),
           ),
         ),
       );
@@ -95,10 +93,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                   AppSpacing.vGapMd,
-                  Text('Create account', style: AppTypography.headlineMedium),
+                  Text(context.l10n.authCreateAccountTitle, style: AppTypography.headlineMedium),
                   AppSpacing.vGapXs,
                   Text(
-                    'Join the Meeple community',
+                    context.l10n.authJoin,
                     style: AppTypography.bodyLarge.copyWith(
                       color: AppColors.onSurfaceVariant,
                     ),
@@ -116,7 +114,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           AuthTextField(
-                            label: 'Username',
+                            label: context.l10n.profileUsername,
                             hint: 'board_game_pro',
                             controller: _usernameController,
                             focusNode: _usernameFocus,
@@ -125,11 +123,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             autofillHints: const [AutofillHints.newUsername],
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
-                                return 'Username is required';
+                                return context.l10n.authUsernameRequired;
                               }
                               final name = v.trim().toLowerCase();
                               if (name.length < 3 || name.length > 20) {
-                                return 'Must be 3–20 characters';
+                                return context.l10n.authUsernameLength;
                               }
                               if (!RegExp(r'^[a-z0-9][a-z0-9_]*$')
                                   .hasMatch(name)) {
@@ -143,7 +141,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(
-                            label: 'Email',
+                            label: context.l10n.authEmail,
                             hint: 'you@example.com',
                             controller: _emailController,
                             focusNode: _emailFocus,
@@ -153,11 +151,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             autofillHints: const [AutofillHints.email],
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
-                                return 'Email is required';
+                                return context.l10n.authEmailRequired;
                               }
                               if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$')
                                   .hasMatch(v)) {
-                                return 'Enter a valid email address';
+                                return context.l10n.authInvalidEmail;
                               }
                               return null;
                             },
@@ -166,7 +164,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(
-                            label: 'Password',
+                            label: context.l10n.authPassword,
                             controller: _passwordController,
                             focusNode: _passwordFocus,
                             isPassword: true,
@@ -175,10 +173,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             autofillHints: const [AutofillHints.newPassword],
                             validator: (v) {
                               if (v == null || v.isEmpty) {
-                                return 'Password is required';
+                                return context.l10n.authPasswordRequired;
                               }
                               if (v.length < 8 || v.length > 128) {
-                                return 'Must be 8–128 characters';
+                                return context.l10n.authPasswordLength;
                               }
                               return null;
                             },
@@ -187,7 +185,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(
-                            label: 'Confirm password',
+                            label: context.l10n.authConfirmPassword,
                             controller: _confirmPasswordController,
                             focusNode: _confirmPasswordFocus,
                             isPassword: true,
@@ -196,7 +194,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             autofillHints: const [AutofillHints.newPassword],
                             validator: (v) {
                               if (v != _passwordController.text) {
-                                return 'Passwords do not match';
+                                return context.l10n.authPasswordsMismatch;
                               }
                               return null;
                             },
@@ -204,13 +202,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           AppSpacing.vGapLg,
                           AppButton(
-                            label: 'Create Account',
+                            label: context.l10n.authCreateAccount,
                             onPressed: _isLoading ? null : _submit,
                             isLoading: _isLoading,
                           ),
                           AppSpacing.vGapMd,
                           Text(
-                            'By creating an account you agree to our Terms of Service and Privacy Policy.',
+                            context.l10n.authTermsNote,
                             style: AppTypography.bodySmall,
                             textAlign: TextAlign.center,
                           ),
@@ -223,7 +221,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Already have an account? ',
+                        context.l10n.authHaveAccount,
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.onSurfaceVariant,
                         ),
@@ -236,7 +234,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          'Sign in',
+                          context.l10n.authSignInLink,
                           style: AppTypography.labelLarge.copyWith(
                             color: AppColors.primary,
                           ),

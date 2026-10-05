@@ -43,6 +43,8 @@
 	<string>Use Face ID to quickly unlock Meeple.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Meeple needs photo library access to share your game memories.</string>
+	<key>com.posthog.posthog.AUTO_INIT</key>
+	<false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

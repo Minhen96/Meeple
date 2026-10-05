@@ -1,202 +1,135 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meeple_hearth/core/config/app_config.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
-import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
-import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
+import 'package:meeple_hearth/features/home/presentation/widgets/home_widgets.dart';
+import 'package:meeple_hearth/features/posts/providers/post_provider.dart';
+import 'package:meeple_hearth/features/profile/presentation/profile_view.dart';
+import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/widgets/confirm_sheet.dart';
 import 'package:meeple_hearth/shared/widgets/meeple_app_bar.dart';
-import 'package:meeple_hearth/shared/widgets/skeleton_widget.dart';
+import 'package:share_plus/share_plus.dart';
 
-/// Authenticated user's own profile screen — Phase 1 stub.
+/// The signed-in user's profile (SCREENS §8.1).
 class OwnProfileScreen extends ConsumerWidget {
   const OwnProfileScreen({super.key});
 
+  Future<void> _menu(BuildContext context, WidgetRef ref, String userId) async {
+    final l10n = context.l10n;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: AppColors.surfaceContainerLowest,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (key, icon, label) in [
+              ('share', Icons.share_outlined, l10n.profileShare),
+              ('friends', Icons.group_outlined, l10n.friendsTitle),
+              ('bookmarks', Icons.bookmark_border_rounded, l10n.bookmarksTitle),
+              ('matching', Icons.group_add_outlined, l10n.matchingTitle),
+              ('settings', Icons.settings_outlined, l10n.settingsTitle),
+              ('logout', Icons.logout_rounded, l10n.settingsSignOut),
+            ])
+              ListTile(
+                key: ValueKey('profile-menu-$key'),
+                leading: Icon(icon),
+                title: Text(label),
+                onTap: () => Navigator.of(sheet).pop(key),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || choice == null) return;
+    switch (choice) {
+      case 'share':
+        await Share.share('${AppConfig.webOrigin}/profile/$userId');
+      case 'friends':
+        await context.push(AppRoutes.friends);
+      case 'bookmarks':
+        await context.push(AppRoutes.bookmarks);
+      case 'matching':
+        await context.push(AppRoutes.matching);
+      case 'settings':
+        await context.push(AppRoutes.settings);
+      case 'logout':
+        final ok = await showConfirmSheet(
+          context,
+          title: l10n.settingsSignOutTitle,
+          message: l10n.settingsSignOutMessage,
+          confirmLabel: l10n.settingsSignOut,
+          destructive: false,
+          icon: Icons.logout_rounded,
+        );
+        if (ok) await ref.read(authNotifierProvider.notifier).logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authNotifierProvider);
-    final user = authState.valueOrNull;
-
+    final l10n = context.l10n;
+    final user = ref.watch(authNotifierProvider).valueOrNull;
     return Scaffold(
       appBar: MeepleAppBar(
-        title: user?.username ?? 'Profile',
+        title: l10n.navProfile,
         actions: [
+          const NotificationBell(),
           IconButton(
+            key: const Key('profile-settings'),
+            tooltip: l10n.settingsTitle,
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
             onPressed: () => context.push(AppRoutes.settings),
           ),
         ],
       ),
-      body: authState.isLoading
-          ? const _ProfileSkeleton()
-          : CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _ProfileHeader(
-                    displayName: user?.displayName ?? '',
-                    username: user?.username ?? '',
-                    avatarUrl: user?.avatarUrl,
-                    bio: user?.bio,
-                    location: user?.location,
-                  ),
-                ),
-                SliverToBoxAdapter(child: _StatsRow()),
-                const SliverToBoxAdapter(
-                  child: Divider(color: AppColors.outlineVariant, height: 1),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: AppSpacing.pagePadding,
-                    child: Text(
-                      'Recent Activity',
-                      style: AppTypography.titleMedium,
+      body: user == null
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              notificationPredicate: (n) => n.depth == 0,
+              onRefresh: () async {
+                ref
+                  ..invalidate(userStatsProvider(user.id))
+                  ..invalidate(userFavoritesProvider(user.id))
+                  ..invalidate(userCollectionProvider(user.id))
+                  ..invalidate(userPostsProvider(user.id));
+              },
+              child: ProfileView(
+                user: user,
+                isSelf: true,
+                actions: Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        key: const Key('profile-edit'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.surfaceContainerHigh,
+                          foregroundColor: AppColors.onSurface,
+                          shape: const StadiumBorder(),
+                          minimumSize: const Size.fromHeight(44),
+                        ),
+                        onPressed: () => context.push(AppRoutes.editProfile),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: Text(l10n.profileEdit),
+                      ),
                     ),
-                  ),
+                    AppSpacing.hGapSm,
+                    IconButton.filledTonal(
+                      key: const Key('profile-menu'),
+                      tooltip: l10n.commonMore,
+                      onPressed: () => _menu(context, ref, user.id),
+                      icon: const Icon(Icons.more_horiz_rounded),
+                    ),
+                  ],
                 ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, __) => const PostCardSkeleton(),
-                    childCount: 3,
-                  ),
-                ),
-                const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
-              ],
-            ),
-    );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({
-    required this.displayName,
-    required this.username,
-    this.avatarUrl,
-    this.bio,
-    this.location,
-  });
-
-  final String displayName;
-  final String username;
-  final String? avatarUrl;
-  final String? bio;
-  final String? location;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: AppSpacing.pagePadding,
-      child: Column(
-        children: [
-          AppSpacing.vGapLg,
-          AppAvatar(
-            size: 80,
-            imageUrl: avatarUrl,
-            displayName: displayName,
-          ),
-          AppSpacing.vGapMd,
-          Text(displayName, style: AppTypography.headlineSmall),
-          AppSpacing.vGapXs,
-          Text(
-            '@$username',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-          if (bio != null && bio!.isNotEmpty) ...[
-            AppSpacing.vGapMd,
-            Text(
-              bio!,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.onSurfaceVariant,
               ),
-              textAlign: TextAlign.center,
             ),
-          ],
-          if (location != null && location!.isNotEmpty) ...[
-            AppSpacing.vGapXs,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.location_on_outlined,
-                  size: 14,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  location!,
-                  style: AppTypography.bodySmall,
-                ),
-              ],
-            ),
-          ],
-          AppSpacing.vGapXl,
-        ],
-      ),
-    );
-  }
-}
-
-class _StatsRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: const [
-          _StatItem(value: '—', label: 'Games'),
-          _Divider(),
-          _StatItem(value: '—', label: 'Friends'),
-          _Divider(),
-          _StatItem(value: '—', label: 'Posts'),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value, style: AppTypography.headlineSmall),
-        AppSpacing.vGapXs,
-        Text(label, style: AppTypography.bodySmall),
-      ],
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  const _Divider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 32,
-      color: AppColors.outlineVariant,
-    );
-  }
-}
-
-class _ProfileSkeleton extends StatelessWidget {
-  const _ProfileSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SkeletonShimmer(
-      child: Center(child: CircularProgressIndicator()),
     );
   }
 }

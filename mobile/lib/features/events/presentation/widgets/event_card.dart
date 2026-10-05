@@ -1,53 +1,173 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/core/utils/app_date_utils.dart';
 import 'package:meeple_hearth/features/events/domain/event_model.dart';
-import 'package:meeple_hearth/shared/widgets/app_chip.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
+import 'package:meeple_hearth/shared/widgets/user_widgets.dart';
 
-/// Card displaying an [Event] summary in a list or grid.
-class EventCard extends StatelessWidget {
-  const EventCard({
-    super.key,
-    required this.event,
-    this.onTap,
-    this.onRsvpTap,
-  });
+/// Localised status label + colours (Open / Full / Completed / Cancelled).
+(String, Color, Color) eventStatusStyle(AppLocalizations l10n, Event e) {
+  if (e.isCancelled) {
+    return (l10n.eventStatusCancelled, AppColors.errorContainer,
+        AppColors.onErrorContainer);
+  }
+  if (e.isCompleted) {
+    return (l10n.eventStatusCompleted, AppColors.surfaceContainerHighest,
+        AppColors.onSurfaceVariant);
+  }
+  if (e.isFull) {
+    return (l10n.eventStatusFull, AppColors.surfaceContainerHighest,
+        AppColors.onSurface);
+  }
+  return (l10n.eventStatusOpen, AppColors.secondaryContainer,
+      AppColors.onSecondaryContainer);
+}
+
+class EventStatusChip extends StatelessWidget {
+  const EventStatusChip({super.key, required this.event});
 
   final Event event;
-  final VoidCallback? onTap;
-  final VoidCallback? onRsvpTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppSpacing.borderRadiusLg,
-        child: Padding(
-          padding: AppSpacing.cardPadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _EventDateBadge(event: event),
-              AppSpacing.vGapMd,
-              Text(
-                event.title,
-                style: AppTypography.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+    final (label, bg, fg) = eventStatusStyle(context.l10n, event);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: AppSpacing.borderRadiusFull,
+      ),
+      child: Text(
+        label,
+        style: AppTypography.labelSmall.copyWith(color: fg),
+      ),
+    );
+  }
+}
+
+/// List card (SCREENS §6.2): game thumbnail, title, host, date, location,
+/// participant bar and status. Past events are muted.
+class EventCard extends StatelessWidget {
+  const EventCard({super.key, required this.event, this.onTap});
+
+  final Event event;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final e = event;
+    final muted = e.isCompleted || e.isCancelled;
+    final host = e.host;
+    return Opacity(
+      opacity: muted ? 0.7 : 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
+        child: Material(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: AppSpacing.borderRadiusXl,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: ValueKey('event-${e.id}'),
+            onTap: onTap ?? () => context.push(AppRoutes.eventDetail(e.id)),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _EventThumb(event: e),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                e.title,
+                                style: AppTypography.titleMedium,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            AppSpacing.hGapSm,
+                            EventStatusChip(event: e),
+                          ],
+                        ),
+                        AppSpacing.vGapXs,
+                        _Meta(
+                          icon: Icons.schedule_rounded,
+                          text: AppDateUtils.formatDateTime(e.scheduledAt),
+                        ),
+                        if (e.displayLocation != null)
+                          _Meta(
+                            icon: Icons.location_on_outlined,
+                            text: e.displayLocation!,
+                          ),
+                        AppSpacing.vGapSm,
+                        Row(
+                          children: [
+                            if (host != null) ...[
+                              AppAvatar(
+                                imageUrl: host.avatarUrl,
+                                displayName: host.displayName,
+                                size: AvatarSize.xs,
+                              ),
+                              AppSpacing.hGapXs,
+                              Expanded(
+                                child: Text(
+                                  l10n.eventHostedBy(displayNameOf(context, host)),
+                                  style: AppTypography.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ] else
+                              const Spacer(),
+                            Text(
+                              e.maxParticipants > 0
+                                  ? l10n.eventPlayersCount(
+                                      e.participantCount,
+                                      e.maxParticipants,
+                                    )
+                                  : l10n.eventGoingCount(e.participantCount),
+                              style: AppTypography.labelSmall,
+                            ),
+                          ],
+                        ),
+                        if (e.maxParticipants > 0) ...[
+                          AppSpacing.vGapXs,
+                          ClipRRect(
+                            borderRadius: AppSpacing.borderRadiusFull,
+                            child: LinearProgressIndicator(
+                              value: (e.participantCount / e.maxParticipants)
+                                  .clamp(0, 1)
+                                  .toDouble(),
+                              minHeight: 4,
+                              backgroundColor: AppColors.surfaceContainerHigh,
+                              color: AppColors.primaryContainer,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              AppSpacing.vGapXs,
-              _EventMeta(event: event),
-              if (event.gameNames.isNotEmpty) ...[
-                AppSpacing.vGapMd,
-                _GameChips(gameNames: event.gameNames),
-              ],
-              AppSpacing.vGapMd,
-              _EventFooter(event: event, onRsvpTap: onRsvpTap),
-            ],
+            ),
           ),
         ),
       ),
@@ -55,186 +175,123 @@ class EventCard extends StatelessWidget {
   }
 }
 
-class _EventDateBadge extends StatelessWidget {
-  const _EventDateBadge({required this.event});
+/// Compact card for the horizontal "Upcoming" row (DESIGN event card).
+class EventMiniCard extends StatelessWidget {
+  const EventMiniCard({super.key, required this.event});
 
   final Event event;
 
   @override
   Widget build(BuildContext context) {
-    final startTime = event.startTime;
-    final dayName = DateFormat.E().format(startTime).toUpperCase();
-    final dayNum = DateFormat.d().format(startTime);
-    final month = DateFormat.MMM().format(startTime).toUpperCase();
-
-    return Row(
-      children: [
-        Container(
-          width: 48,
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: AppSpacing.borderRadiusMd,
-          ),
-          child: Column(
-            children: [
-              Text(
-                dayName,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.onPrimary,
+    final e = event;
+    return SizedBox(
+      width: 240,
+      child: Material(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: AppSpacing.borderRadiusXl,
+        child: InkWell(
+          borderRadius: AppSpacing.borderRadiusXl,
+          onTap: () => context.push(AppRoutes.eventDetail(e.id)),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 2,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.secondaryContainer,
+                    borderRadius: AppSpacing.borderRadiusSm,
+                  ),
+                  child: Text(
+                    AppDateUtils.formatDateTime(e.scheduledAt),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.onSecondaryContainer,
+                    ),
+                  ),
                 ),
-              ),
-              Text(
-                dayNum,
-                style: AppTypography.titleLarge.copyWith(
-                  color: AppColors.onPrimary,
+                AppSpacing.vGapSm,
+                Text(
+                  e.title,
+                  style: AppTypography.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                month,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.onPrimary,
+                if (e.displayLocation != null)
+                  _Meta(
+                    icon: Icons.location_on_outlined,
+                    text: e.displayLocation!,
+                  ),
+                const Spacer(),
+                AvatarStack(
+                  users: [for (final p in e.acceptedParticipants) p.asUser],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        AppSpacing.hGapMd,
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              DateFormat.jm().format(startTime),
-              style: AppTypography.titleSmall,
-            ),
-            Text(
-              'by ${event.organizerDisplayName}',
+      ),
+    );
+  }
+}
+
+class _EventThumb extends StatelessWidget {
+  const _EventThumb({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = event.game?.coverUrl;
+    return ClipRRect(
+      borderRadius: AppSpacing.borderRadiusLg,
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: url == null
+            ? DecoratedBox(
+                decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+                child: Center(
+                  child: Text(
+                    '${event.scheduledAt.toLocal().day}',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: AppColors.onPrimary,
+                    ),
+                  ),
+                ),
+              )
+            : CachedNetworkImage(imageUrl: url, fit: BoxFit.cover),
+      ),
+    );
+  }
+}
+
+class _Meta extends StatelessWidget {
+  const _Meta({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.onSurfaceVariant),
+          AppSpacing.hGapXs,
+          Expanded(
+            child: Text(
+              text,
               style: AppTypography.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _EventMeta extends StatelessWidget {
-  const _EventMeta({required this.event});
-
-  final Event event;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(
-          Icons.location_on_outlined,
-          size: 14,
-          color: AppColors.onSurfaceVariant,
-        ),
-        AppSpacing.hGapXs,
-        Expanded(
-          child: Text(
-            event.location,
-            style: AppTypography.bodySmall,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _GameChips extends StatelessWidget {
-  const _GameChips({required this.gameNames});
-
-  final List<String> gameNames;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.xs,
-      runSpacing: AppSpacing.xs,
-      children: gameNames
-          .take(3)
-          .map(
-            (name) => AppChip(
-              label: name,
-              variant: AppChipVariant.tertiary,
-              icon: Icons.casino_outlined,
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-class _EventFooter extends StatelessWidget {
-  const _EventFooter({required this.event, this.onRsvpTap});
-
-  final Event event;
-  final VoidCallback? onRsvpTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isFull = event.maxAttendees != null &&
-        event.attendeeCount >= event.maxAttendees!;
-
-    return Row(
-      children: [
-        const Icon(
-          Icons.people_outline_rounded,
-          size: 16,
-          color: AppColors.onSurfaceVariant,
-        ),
-        AppSpacing.hGapXs,
-        Text(
-          event.maxAttendees != null
-              ? '${event.attendeeCount} / ${event.maxAttendees}'
-              : '${event.attendeeCount} attending',
-          style: AppTypography.bodySmall,
-        ),
-        const Spacer(),
-        if (isFull && !event.isAttending)
-          const AppChip(label: 'Full', variant: AppChipVariant.error)
-        else
-          _RsvpButton(isAttending: event.isAttending, onTap: onRsvpTap),
-      ],
-    );
-  }
-}
-
-class _RsvpButton extends StatelessWidget {
-  const _RsvpButton({required this.isAttending, this.onTap});
-
-  final bool isAttending;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          gradient: isAttending ? null : AppColors.primaryGradient,
-          color: isAttending ? AppColors.surfaceContainerHigh : null,
-          borderRadius: AppSpacing.borderRadiusFull,
-        ),
-        child: Text(
-          isAttending ? 'Going ✓' : 'RSVP',
-          style: AppTypography.labelLarge.copyWith(
-            color: isAttending
-                ? AppColors.onSurfaceVariant
-                : AppColors.onPrimary,
-            fontSize: 12,
-          ),
-        ),
+        ],
       ),
     );
   }

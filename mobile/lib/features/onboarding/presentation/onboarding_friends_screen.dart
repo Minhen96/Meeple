@@ -1,185 +1,107 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
-import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
+import 'package:meeple_hearth/features/onboarding/presentation/onboarding_scaffold.dart';
+import 'package:meeple_hearth/features/social/presentation/friend_button.dart';
+import 'package:meeple_hearth/features/social/providers/social_provider.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
+import 'package:meeple_hearth/shared/widgets/error_state.dart';
+import 'package:meeple_hearth/shared/widgets/user_widgets.dart';
 
-/// Onboarding step 4 — suggested friends (contacts / mutual interests).
-class OnboardingFriendsScreen extends StatefulWidget {
+/// Onboarding step 4 (SCREENS §3.5): suggestions + search with inline
+/// "Add Friend".
+class OnboardingFriendsScreen extends ConsumerStatefulWidget {
   const OnboardingFriendsScreen({super.key});
 
   @override
-  State<OnboardingFriendsScreen> createState() =>
+  ConsumerState<OnboardingFriendsScreen> createState() =>
       _OnboardingFriendsScreenState();
 }
 
-class _OnboardingFriendsScreenState extends State<OnboardingFriendsScreen> {
-  // Placeholder suggested users shown before real API is wired up.
-  final _suggested = const [
-    _SuggestedUser(name: 'Alex Meeple', username: 'alex_meeple', mutual: 3),
-    _SuggestedUser(name: 'BoardQueen', username: 'boardqueen', mutual: 7),
-    _SuggestedUser(name: 'DiceRoller99', username: 'diceroller99', mutual: 1),
-    _SuggestedUser(name: 'HexMaster', username: 'hexmaster', mutual: 5),
-  ];
-  final Set<String> _added = {};
+class _OnboardingFriendsScreenState
+    extends ConsumerState<OnboardingFriendsScreen> {
+  Timer? _debounce;
+  String _query = '';
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.pagePadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _OnboardingProgress(step: 3, total: 4),
-              AppSpacing.vGapXl,
-              Text('Find friends', style: AppTypography.headlineMedium),
-              AppSpacing.vGapSm,
-              Text(
-                'Send friend requests to people you may know.',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              AppSpacing.vGapXl,
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _suggested.length,
-                  separatorBuilder: (_, __) => AppSpacing.vGapSm,
-                  itemBuilder: (context, index) {
-                    final user = _suggested[index];
-                    final isAdded = _added.contains(user.username);
-                    return _SuggestedUserTile(
-                      user: user,
-                      isAdded: isAdded,
-                      onAdd: () => setState(
-                        () => isAdded
-                            ? _added.remove(user.username)
-                            : _added.add(user.username),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              AppSpacing.vGapMd,
-              AppButton(
-                label: _added.isEmpty ? 'Skip' : 'Send ${_added.length} Request${_added.length > 1 ? 's' : ''}',
-                onPressed: () => context.go(AppRoutes.onboardingAddGame),
-              ),
-              AppSpacing.vGapXl,
-            ],
-          ),
-        ),
-      ),
-    );
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
-}
-
-class _SuggestedUserTile extends StatelessWidget {
-  const _SuggestedUserTile({
-    required this.user,
-    required this.isAdded,
-    required this.onAdd,
-  });
-
-  final _SuggestedUser user;
-  final bool isAdded;
-  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+    final l10n = context.l10n;
+    final users = ref.watch(userSearchProvider(_query));
+    return OnboardingScaffold(
+      route: AppRoutes.onboardingFriends,
+      title: l10n.onboardingFriendsTitle,
+      subtitle: l10n.onboardingFriendsBody,
+      bottom: AppButton(
+        key: const Key('onboarding-friends-continue'),
+        label: l10n.commonContinue,
+        onPressed: () =>
+            goToNextOnboardingStep(context, ref, AppRoutes.onboardingFriends),
       ),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: AppSpacing.borderRadiusMd,
-      ),
-      child: Row(
+      child: Column(
         children: [
-          AppAvatar(size: 40, displayName: user.name),
-          AppSpacing.hGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(user.name, style: AppTypography.titleSmall),
-                Text(
-                  '${user.mutual} mutual friend${user.mutual > 1 ? 's' : ''}',
-                  style: AppTypography.bodySmall,
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: TextField(
+              onChanged: (v) {
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 400), () {
+                  if (mounted) setState(() => _query = v.trim());
+                });
+              },
+              decoration: InputDecoration(
+                hintText: l10n.friendsSearchHint,
+                prefixIcon: const Icon(Icons.search_rounded),
+              ),
             ),
           ),
-          TextButton(
-            onPressed: onAdd,
-            style: TextButton.styleFrom(
-              foregroundColor:
-                  isAdded ? AppColors.onSurfaceVariant : AppColors.primary,
-            ),
-            child: Text(
-              isAdded ? 'Pending' : 'Add Friend',
-              style: AppTypography.labelMedium.copyWith(
-                color: isAdded ? AppColors.onSurfaceVariant : AppColors.primary,
+          AppSpacing.vGapSm,
+          Expanded(
+            child: users.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => ErrorState(
+                error: e,
+                onRetry: () => ref.invalidate(userSearchProvider(_query)),
               ),
+              data: (list) => list.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Text(
+                          l10n.friendsNoSuggestions,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.bodyMedium,
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      children: [
+                        for (final u in list)
+                          UserRow(
+                            user: u,
+                            onTap: () {},
+                            trailing: FriendButton(
+                              userId: u.id,
+                              compact: true,
+                              initial: u.friendshipStatus,
+                            ),
+                          ),
+                      ],
+                    ),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-class _OnboardingProgress extends StatelessWidget {
-  const _OnboardingProgress({required this.step, required this.total});
-
-  final int step;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(total, (i) {
-        final isActive = i < step;
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: AppSpacing.xs),
-            height: 4,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? AppColors.primary
-                  : AppColors.surfaceContainerHigh,
-              borderRadius: AppSpacing.borderRadiusSm,
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _SuggestedUser {
-  const _SuggestedUser({
-    required this.name,
-    required this.username,
-    required this.mutual,
-  });
-
-  final String name;
-  final String username;
-  final int mutual;
 }

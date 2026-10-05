@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/features/auth/data/auth_repository.dart';
@@ -42,9 +42,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
-          e is ApiException
-              ? e.message
-              : 'Something went wrong. Please try again.',
+          localizedError(context.l10n, e),
         )),
       );
     } finally {
@@ -57,7 +55,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: const Text('Reset Password'),
+        title: Text(context.l10n.authResetPasswordTitle),
         backgroundColor: AppColors.transparent,
         elevation: 0,
       ),
@@ -111,10 +109,10 @@ class _FormView extends StatelessWidget {
           ),
         ),
         AppSpacing.vGapXl,
-        Text('Forgot your password?', style: AppTypography.headlineSmall),
+        Text(context.l10n.authForgotTitle, style: AppTypography.headlineSmall),
         AppSpacing.vGapSm,
         Text(
-          "Enter your email address and we'll send you a link to reset your password.",
+          context.l10n.authForgotBody,
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
@@ -123,7 +121,7 @@ class _FormView extends StatelessWidget {
         Form(
           key: formKey,
           child: AuthTextField(
-            label: 'Email address',
+            label: context.l10n.authEmail,
             hint: 'you@example.com',
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
@@ -131,9 +129,9 @@ class _FormView extends StatelessWidget {
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.email],
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Email is required';
+              if (v == null || v.trim().isEmpty) return context.l10n.authEmailRequired;
               if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(v)) {
-                return 'Enter a valid email address';
+                return context.l10n.authInvalidEmail;
               }
               return null;
             },
@@ -142,7 +140,7 @@ class _FormView extends StatelessWidget {
         ),
         AppSpacing.vGapXl,
         AppButton(
-          label: 'Send Reset Link',
+          label: context.l10n.authSendResetLink,
           onPressed: isLoading ? null : onSubmit,
           isLoading: isLoading,
         ),
@@ -184,13 +182,13 @@ class _SuccessView extends StatelessWidget {
         ),
         AppSpacing.vGapXl,
         Text(
-          'Check your inbox',
+          context.l10n.authCheckInbox,
           style: AppTypography.headlineSmall,
           textAlign: TextAlign.center,
         ),
         AppSpacing.vGapMd,
         Text(
-          'We sent a password reset link to\n$email',
+          context.l10n.authResetSentTo(email),
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
@@ -198,7 +196,7 @@ class _SuccessView extends StatelessWidget {
         ),
         const Spacer(),
         AppButton(
-          label: 'Back to Sign In',
+          label: context.l10n.authBackToSignIn,
           onPressed: () => Navigator.of(context).pop(),
         ),
         AppSpacing.vGapXl,

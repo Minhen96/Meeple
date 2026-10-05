@@ -218,10 +218,11 @@ void main() {
         'likedByMe': true,
         'createdAt': '2026-01-01T00:00:00Z',
       });
-      expect(post.authorId, 'u1');
-      expect(post.content, '');
-      expect(post.taggedGameName, 'Catan');
-      expect(post.isLikedByMe, isTrue);
+      expect(post.author.id, 'u1');
+      expect(post.caption, '');
+      expect(post.game!.name, 'Catan');
+      expect(post.likedByMe, isTrue);
+      expect(post.isBookmarked, isFalse);
 
       final comment = Comment.fromJson({
         'id': 'c1',
@@ -255,10 +256,11 @@ void main() {
         'myRsvp': 'ACCEPTED',
         'createdAt': '2026-01-01T00:00:00Z',
       });
-      expect(event.organizerDisplayName, 'Host');
+      expect(event.host!.displayName, 'Host');
       expect(event.isAttending, isTrue);
-      expect(event.maxAttendees, 8);
-      expect(event.gameNames, ['Catan']);
+      expect(event.maxParticipants, 8);
+      expect(event.game!.name, 'Catan');
+      expect(event.participants, isEmpty);
     });
   });
 }
