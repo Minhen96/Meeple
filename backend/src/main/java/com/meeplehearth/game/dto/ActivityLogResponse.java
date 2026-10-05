@@ -51,6 +51,12 @@ public record ActivityLogResponse(
                 null, null, null, p.getLocation(), p.getCaption(), images);
     }
 
+    /** The same item without its location (event locations are private to participants). */
+    public ActivityLogResponse withoutLocation() {
+        return new ActivityLogResponse(id, type, game, playedAt, eventTitle, eventId, scheduledAt,
+                null, caption, imageUrls);
+    }
+
     /** Keep backward-compat factory used before events were added. */
     public static ActivityLogResponse from(PlayLog p) {
         return fromPlay(p);

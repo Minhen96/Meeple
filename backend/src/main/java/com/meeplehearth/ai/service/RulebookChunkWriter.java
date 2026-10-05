@@ -5,6 +5,7 @@ import com.meeplehearth.ai.entity.RuleChunk;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.ai.repository.RuleChunkRepository;
 import com.meeplehearth.game.repository.GameRepository;
+import com.meeplehearth.game.service.GameCacheEvictor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +28,16 @@ public class RulebookChunkWriter {
     private final GameRulebookRepository rulebookRepository;
     private final RuleChunkRepository ruleChunkRepository;
     private final GameRepository gameRepository;
+    private final GameCacheEvictor gameCacheEvictor;
 
     public RulebookChunkWriter(GameRulebookRepository rulebookRepository,
                                RuleChunkRepository ruleChunkRepository,
-                               GameRepository gameRepository) {
+                               GameRepository gameRepository,
+                               GameCacheEvictor gameCacheEvictor) {
         this.rulebookRepository = rulebookRepository;
         this.ruleChunkRepository = ruleChunkRepository;
         this.gameRepository = gameRepository;
+        this.gameCacheEvictor = gameCacheEvictor;
     }
 
     /**
@@ -68,6 +72,8 @@ public class RulebookChunkWriter {
 
         rulebook.setStatus("approved");
         rulebookRepository.save(rulebook);
+        // The cached game detail carries hasRulebook: drop it once this swap commits
+        gameCacheEvictor.evictGameDetail(rulebook.getGame().getId());
         return true;
     }
 

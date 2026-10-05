@@ -1,11 +1,14 @@
 package com.meeplehearth.game.controller;
 
 import com.meeplehearth.game.dto.*;
-import com.meeplehearth.game.service.GameDataImportService;
 import com.meeplehearth.game.service.GameHydrationService;
 import com.meeplehearth.game.service.GameService;
+import com.meeplehearth.game.service.GameSocialService;
+import com.meeplehearth.game.service.LibraryAccessGuard;
+import com.meeplehearth.game.service.PlayLogService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,22 +29,21 @@ import java.math.BigDecimal;
 public class GameController {
 
     private final GameService gameService;
-    private final GameDataImportService importService;
     private final GameHydrationService gameHydrationService;
+    private final GameSocialService gameSocialService;
+    private final PlayLogService playLogService;
+    private final LibraryAccessGuard accessGuard;
 
-    public GameController(GameService gameService, GameDataImportService importService, GameHydrationService gameHydrationService) {
+    public GameController(GameService gameService,
+                          GameHydrationService gameHydrationService,
+                          GameSocialService gameSocialService,
+                          PlayLogService playLogService,
+                          LibraryAccessGuard accessGuard) {
         this.gameService = gameService;
-        this.importService = importService;
         this.gameHydrationService = gameHydrationService;
-    }
-
-    /** POST /api/v1/games/import — trigger data ingestion from boardgames.csv dataset */
-    @PostMapping("/games/import")
-    public ResponseEntity<Void> runImport() throws Exception {
-        importService.runImport(
-                "c:\\Users\\Minhen\\boardgame\\reference\\dataset\\boardgames.csv"
-        );
-        return ResponseEntity.ok().build();
+        this.gameSocialService = gameSocialService;
+        this.playLogService = playLogService;
+        this.accessGuard = accessGuard;
     }
 
     /** POST /api/v1/games/hydrate-images — bulk-fill thumbnail_url for all games missing images */
@@ -68,8 +70,7 @@ public class GameController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         if ("recommended".equalsIgnoreCase(sort) && userDetails != null) {
-            UUID userId = UUID.fromString(userDetails.getUsername());
-            return ResponseEntity.ok(gameService.getRecommended(userId, pageable));
+            return ResponseEntity.ok(gameService.getRecommended(userId(userDetails), pageable));
         }
 
         return ResponseEntity.ok(gameService.browse(q, genre, minPlayers, maxPlayers,
@@ -82,10 +83,11 @@ public class GameController {
         return ResponseEntity.ok(gameService.search(q));
     }
 
-/** GET /api/v1/games/{gameId} — get by our UUID (must already be cached) */
+    /** GET /api/v1/games/{gameId} — catalog detail (cached) plus the viewer's friend data */
     @GetMapping("/games/{gameId}")
-    public ResponseEntity<GameDetailResponse> getGame(@PathVariable UUID gameId) {
-        return ResponseEntity.ok(gameService.getGame(gameId));
+    public ResponseEntity<GameDetailResponse> getGame(@PathVariable UUID gameId,
+                                                      @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(gameSocialService.withFriendData(gameService.getGame(gameId), userId(userDetails)));
     }
 
     /** GET /api/v1/games/bgg/{bggId} — fetch from BGG and cache if not found locally */
@@ -94,63 +96,21 @@ public class GameController {
         return ResponseEntity.ok(gameService.ensureGame(bggId));
     }
 
-    /** GET /api/v1/users/me/games?filter=owned|wishlisted|favorited|all */
+    /** GET /api/v1/users/me/games?filter=all|owned|wishlisted|favorited */
     @GetMapping("/users/me/games")
     public ResponseEntity<List<UserGameResponse>> getCollection(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "all") String filter) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(gameService.getCollection(userId, filter));
+        return ResponseEntity.ok(gameService.getCollection(userId(userDetails), filter));
     }
 
-    /** PUT /api/v1/users/me/games/{gameId} — upsert collection flags + rating + notes */
+    /** PUT /api/v1/users/me/games/{gameId} — upsert flags + rating + notes; an emptied entry is deleted */
     @PutMapping("/users/me/games/{gameId}")
     public ResponseEntity<UserGameResponse> updateCollection(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID gameId,
             @Valid @RequestBody UserGameRequest request) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(gameService.updateCollection(userId, gameId, request));
-    }
-
-    /** GET /api/v1/users/me/plays — recent play activity across all games (latest 50) */
-    @GetMapping("/users/me/plays")
-    public ResponseEntity<List<ActivityLogResponse>> getActivity(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(gameService.getActivity(userId));
-    }
-
-    /** GET /api/v1/users/me/games/{gameId}/plays — play history for this game */
-    @GetMapping("/users/me/games/{gameId}/plays")
-    public ResponseEntity<List<PlayLogResponse>> getPlays(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable UUID gameId) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(gameService.getPlays(userId, gameId));
-    }
-
-    /** POST /api/v1/users/me/games/{gameId}/log-play — increment play count by 1 */
-    @PostMapping("/users/me/games/{gameId}/log-play")
-    public ResponseEntity<UserGameResponse> logPlay(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable UUID gameId) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        return ResponseEntity.ok(gameService.logPlay(userId, gameId));
-    }
-
-    /** GET /api/v1/users/{userId}/games — view another user's collection (friends only, enforced by frontend) */
-    @GetMapping("/users/{userId}/games")
-    public ResponseEntity<List<UserGameResponse>> getUserCollection(
-            @PathVariable UUID userId,
-            @RequestParam(defaultValue = "all") String filter) {
-        return ResponseEntity.ok(gameService.getCollection(userId, filter));
-    }
-
-    /** GET /api/v1/users/{userId}/plays — view another user's activity (friends only, enforced by frontend) */
-    @GetMapping("/users/{userId}/plays")
-    public ResponseEntity<List<ActivityLogResponse>> getUserActivity(@PathVariable UUID userId) {
-        return ResponseEntity.ok(gameService.getActivity(userId));
+        return ResponseEntity.ok(gameService.updateCollection(userId(userDetails), gameId, request));
     }
 
     /** DELETE /api/v1/users/me/games/{gameId} — remove from collection entirely */
@@ -158,8 +118,74 @@ public class GameController {
     public ResponseEntity<Void> removeFromCollection(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID gameId) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        gameService.removeFromCollection(userId, gameId);
+        gameService.removeFromCollection(userId(userDetails), gameId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** GET /api/v1/users/me/plays — recent activity across all games (latest 50) */
+    @GetMapping("/users/me/plays")
+    public ResponseEntity<List<ActivityLogResponse>> getActivity(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID me = userId(userDetails);
+        return ResponseEntity.ok(gameService.getActivity(me, me));
+    }
+
+    /** GET /api/v1/users/me/games/{gameId}/plays — play history for this game */
+    @GetMapping("/users/me/games/{gameId}/plays")
+    public ResponseEntity<List<PlayLogResponse>> getPlays(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID gameId) {
+        return ResponseEntity.ok(playLogService.getPlays(userId(userDetails), gameId));
+    }
+
+    /** POST /api/v1/users/me/games/{gameId}/plays {playedAt?, notes?, durationMinutes?, playerCount?} */
+    @PostMapping("/users/me/games/{gameId}/plays")
+    public ResponseEntity<PlayLogResponse> logPlay(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID gameId,
+            @Valid @RequestBody(required = false) LogPlayRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(playLogService.logPlay(userId(userDetails), gameId, request));
+    }
+
+    /** POST /api/v1/users/me/games/{gameId}/log-play — legacy alias: one play now, returns the entry */
+    @PostMapping("/users/me/games/{gameId}/log-play")
+    public ResponseEntity<UserGameResponse> logPlayLegacy(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID gameId) {
+        return ResponseEntity.ok(playLogService.logPlayLegacy(userId(userDetails), gameId));
+    }
+
+    /** DELETE /api/v1/users/me/plays/{playId} — delete one of my plays (play count -1) */
+    @DeleteMapping("/users/me/plays/{playId}")
+    public ResponseEntity<Void> deletePlay(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID playId) {
+        playLogService.deletePlay(userId(userDetails), playId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** GET /api/v1/users/{userId}/games — another user's collection; 404 if blocked either way */
+    @GetMapping("/users/{userId}/games")
+    public ResponseEntity<List<UserGameResponse>> getUserCollection(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "all") String filter) {
+        accessGuard.requireVisible(userId(userDetails), userId);
+        return ResponseEntity.ok(gameService.getCollection(userId, filter));
+    }
+
+    /** GET /api/v1/users/{userId}/plays — another user's activity; 404 if blocked either way */
+    @GetMapping("/users/{userId}/plays")
+    public ResponseEntity<List<ActivityLogResponse>> getUserActivity(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID userId) {
+        UUID viewer = userId(userDetails);
+        accessGuard.requireVisible(viewer, userId);
+        return ResponseEntity.ok(gameService.getActivity(userId, viewer));
+    }
+
+    private static UUID userId(UserDetails userDetails) {
+        return UUID.fromString(userDetails.getUsername());
     }
 }

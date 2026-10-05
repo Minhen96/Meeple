@@ -4,8 +4,14 @@ import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.entity.GameDetail;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
+/**
+ * Game detail. The catalog part is the same for every viewer and is cached ("game-detail");
+ * {@code friendAvgRating}, {@code friendRatingCount} and {@code ownedByFriends} are computed per
+ * viewer on every request ({@link #withFriendData}) and are null in the cached copy.
+ */
 public record GameDetailResponse(
         UUID id,
         Long bggId,
@@ -32,7 +38,10 @@ public record GameDetailResponse(
         String[] publishers,
         String[] honors,
         String[] expansions,
-        boolean hasRulebook
+        boolean hasRulebook,
+        BigDecimal friendAvgRating,
+        int friendRatingCount,
+        List<UserSummary> ownedByFriends
 ) {
     /** Use when rulebook status is unknown (e.g. ensureGame — not yet in collection). */
     public static GameDetailResponse from(Game game, GameDetail d) {
@@ -67,7 +76,18 @@ public record GameDetailResponse(
                 d != null ? d.getPublishers() : null,
                 d != null ? d.getHonors() : null,
                 d != null ? d.getExpansions() : null,
-                hasRulebook
+                hasRulebook,
+                null,
+                0,
+                null
         );
+    }
+
+    /** This detail with the viewer's friend data (ownedByFriends: at most 5). */
+    public GameDetailResponse withFriendData(BigDecimal avgRating, int ratingCount, List<UserSummary> owners) {
+        return new GameDetailResponse(id, bggId, title, thumbnailUrl, imageUrl, description, yearPublished,
+                minPlayers, maxPlayers, playTime, minAge, complexityWeight, bggRating, usersRated, rank,
+                ownedCount, gameType, bggUrl, categories, mechanics, families, designers, publishers, honors,
+                expansions, hasRulebook, avgRating, ratingCount, owners == null ? List.of() : List.copyOf(owners));
     }
 }
