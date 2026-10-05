@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, type ApiOptions } from './client';
 import type { ApiResponse, Event } from '$lib/types';
 
 export interface CreateEventPayload {
@@ -12,18 +12,18 @@ export interface CreateEventPayload {
 }
 
 export const eventsApi = {
-	getUpcoming: async (): Promise<Event[]> => {
-		const res = await api.get<Event[]>('/api/v1/events');
+	getUpcoming: async (opts?: ApiOptions): Promise<Event[]> => {
+		const res = await api.get<Event[]>('/api/v1/events', opts);
 		return res;
 	},
 
-	getMyEvents: async (): Promise<Event[]> => {
-		const res = await api.get<Event[]>('/api/v1/events/me');
+	getMyEvents: async (opts?: ApiOptions): Promise<Event[]> => {
+		const res = await api.get<Event[]>('/api/v1/events/me', opts);
 		return res;
 	},
 
-	getEvent: async (id: string): Promise<Event> => {
-		const res = await api.get<Event>(`/api/v1/events/${id}`);
+	getEvent: async (id: string, opts?: ApiOptions): Promise<Event> => {
+		const res = await api.get<Event>(`/api/v1/events/${id}`, opts);
 		return res;
 	},
 

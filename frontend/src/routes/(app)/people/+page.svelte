@@ -10,8 +10,10 @@
 	let suggestions = $state<User[]>([]);
 	let loading = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout>;
+	let searchInput = $state<HTMLInputElement>();
 
 	onMount(async () => {
+		searchInput?.focus();
 		const suggestRes = await friendsApi.getSuggestions();
 		suggestions = suggestRes?.data ?? [];
 	});
@@ -53,7 +55,7 @@
 		oninput={onSearch}
 		placeholder="Search for people…"
 		class="w-full bg-surface-container-low pl-10 pr-4 py-3.5 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
-		autofocus
+		bind:this={searchInput}
 	/>
 </div>
 

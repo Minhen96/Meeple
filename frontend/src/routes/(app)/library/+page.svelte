@@ -80,7 +80,7 @@
 
 		try {
 			const result = await gamesApi.browse({
-				q: query || undefined,
+				query: query || undefined,
 				genre: store.selectedGenre || undefined,
 				minPlayers: store.minPlayers,
 				maxPlayers: store.maxPlayers,
@@ -89,7 +89,6 @@
 				minComplexity: store.minComplexity,
 				maxComplexity: store.maxComplexity,
 				minRating: store.minRating,
-				isPopular: store.isPopular,
 				sort: store.sortOption || undefined,
 				page: pageNumber,
 			});
@@ -808,8 +807,7 @@
 								class="absolute top-3 right-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm"
 							>
 								<span
-									class="material-symbols-outlined text-[#FF9F1C] text-[14px]"
-									style="font-variation-settings: 'FILL' 1;"
+									class="icon-filled material-symbols-outlined text-primary-container text-[14px]"
 									>star</span
 								>
 								<span class="text-[11px] font-bold font-label"
@@ -955,8 +953,7 @@
 							class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full flex items-center gap-1 shadow-md"
 						>
 							<span
-								class="material-symbols-outlined text-primary text-[15px]"
-								style="font-variation-settings: 'FILL' 1;"
+								class="icon-filled material-symbols-outlined text-primary text-[15px]"
 								>star</span
 							>
 							<span class="text-[12px] font-label font-black"
@@ -977,8 +974,7 @@
 							class="absolute bottom-3 right-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 flex items-center gap-1"
 						>
 							<span
-								class="material-symbols-outlined text-[11px] text-primary"
-								style="font-variation-settings: 'FILL' 1;"
+								class="icon-filled material-symbols-outlined text-[11px] text-primary"
 								>sports_esports</span
 							>
 							<span

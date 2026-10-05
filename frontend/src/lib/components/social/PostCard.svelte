@@ -139,7 +139,7 @@
 		>
 			<span
 				class="material-symbols-outlined"
-				style={post.likedByMe ? "font-variation-settings: 'FILL' 1;" : ''}
+				class:icon-filled={post.likedByMe}
 			>favorite</span>
 		</button>
 		<a href="/posts/{post.id}" class="hover:text-primary transition-colors" aria-label="Comment">

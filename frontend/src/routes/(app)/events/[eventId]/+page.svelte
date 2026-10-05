@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import type { PageData } from './$types';
 	import { eventsApi } from '$lib/api/events';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
@@ -11,10 +12,8 @@
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-	let event = $state(data.event);
-	$effect(() => {
-		event = data.event;
-	});
+	// Writable derived: follows load data, overridden locally after RSVP.
+	let event = $derived(data.event);
 	let loading = $state(false);
 	let showDeleteConfirm = $state(false);
 
@@ -196,9 +195,14 @@
 					</p>
 				</div>
 				<!-- Progress ring or bar simplified -->
-				<div class="h-1.5 w-24 bg-surface-container-highest rounded-full overflow-hidden">
-					<div class="h-full bg-secondary transition-all duration-1000" style="width: {(event.participantCount / event.maxParticipants) * 100}%"></div>
-				</div>
+				<ProgressBar
+					value={event.participantCount}
+					max={event.maxParticipants}
+					tone="secondary"
+					track="highest"
+					class="h-1.5 w-24"
+					label="Spots filled"
+				/>
 			</div>
 
 			<div class="bg-surface-container-low rounded-3xl p-5 border border-outline-variant/10">

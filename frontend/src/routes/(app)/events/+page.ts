@@ -1,12 +1,12 @@
 import { eventsApi } from '$lib/api/events';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ parent }) => {
+export const load: PageLoad = async ({ parent, fetch }) => {
 	const { user } = await parent();
 
 	const [upcoming, mine] = await Promise.all([
-		eventsApi.getUpcoming().catch(() => []),
-		eventsApi.getMyEvents().catch(() => [])
+		eventsApi.getUpcoming({ fetch }).catch(() => []),
+		eventsApi.getMyEvents({ fetch }).catch(() => [])
 	]);
 
 	return { user, upcoming, mine };

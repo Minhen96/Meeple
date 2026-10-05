@@ -15,7 +15,7 @@
 </script>
 
 <nav
-	class="fixed bottom-0 left-0 w-full z-50 bg-[#F8F9FA]/80 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]"
+	class="fixed bottom-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]"
 >
 	<div class="flex justify-around items-center px-4 pb-safe pt-2 max-w-lg mx-auto">
 		{#each navItems as item}
@@ -28,7 +28,7 @@
 			>
 				<span
 					class="material-symbols-outlined text-[24px]"
-					style={isActive(item.href) ? "font-variation-settings: 'FILL' 1;" : ''}
+					class:icon-filled={isActive(item.href)}
 				>
 					{item.icon}
 				</span>

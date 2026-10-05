@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import { usersApi } from '$lib/api/users';
-	import { setUser } from '$lib/stores/auth';
+	import { clearClientSession } from '$lib/session';
 	import { goto } from '$app/navigation';
 
 	let confirmed = $state('');
@@ -16,7 +16,7 @@
 		error = '';
 		try {
 			await usersApi.deleteMe();
-			setUser(null);
+			clearClientSession();
 			goto('/auth/login');
 		} catch {
 			error = 'Could not delete account. Please try again.';
@@ -47,10 +47,11 @@
 
 <div class="space-y-4">
 	<div>
-		<label class="block text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+		<label for="delete-account-confirmed" class="block text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-2">
 			Type DELETE to confirm
 		</label>
 		<input
+			id="delete-account-confirmed"
 			type="text"
 			bind:value={confirmed}
 			placeholder="DELETE"

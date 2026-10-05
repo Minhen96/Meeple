@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, type ApiOptions } from './client';
 import type { MatchRequest, MatchGroup } from '$lib/types';
 import type { Event } from '$lib/types';
 
@@ -21,8 +21,8 @@ export const matchesApi = {
 		return res;
 	},
 
-	getSuggestions: async (): Promise<MatchGroup[]> => {
-		const res = await api.get<MatchGroup[]>('/api/v1/matches/suggestions');
+	getSuggestions: async (opts?: ApiOptions): Promise<MatchGroup[]> => {
+		const res = await api.get<MatchGroup[]>('/api/v1/matches/suggestions', opts);
 		return res;
 	},
 

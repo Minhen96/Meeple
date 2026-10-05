@@ -119,7 +119,7 @@
 	</div>
 {:else if $notifications.length === 0}
 	<div class="flex flex-col items-center gap-3 py-20 text-center text-on-surface-variant">
-		<span class="material-symbols-outlined text-5xl opacity-40" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+		<span class="icon-filled material-symbols-outlined text-5xl opacity-40">check_circle</span>
 		<p class="font-semibold">You're all caught up!</p>
 		<p class="text-sm">Notifications will appear here.</p>
 	</div>
@@ -136,7 +136,7 @@
 				<div class="flex-shrink-0 w-9 h-9 rounded-full bg-surface-container flex items-center justify-center">
 					<span
 						class="material-symbols-outlined text-[18px] {notifIconColor(notification.type)}"
-						style={notification.type === 'POST_LIKE' ? "font-variation-settings: 'FILL' 1;" : ''}
+						class:icon-filled={notification.type === 'POST_LIKE'}
 					>
 						{notifIcon(notification.type)}
 					</span>

@@ -4,6 +4,8 @@
 	import { aiApi } from "$lib/api/ai";
 	import { ApiRequestError } from "$lib/api/client";
 	import type { ConversationTurn } from "$lib/types";
+	import { currentUser } from "$lib/stores/auth";
+	import { aiChatStorageKey } from "$lib/session";
 
 	interface Message {
 		role: "user" | "assistant";
@@ -19,7 +21,10 @@
 	}
 	let { show = $bindable(), gameId, gameTitle }: Props = $props();
 
-	const STORAGE_KEY = $derived(`ai_chat_${gameId}`);
+	// Scoped per user so a shared browser never shows another account's chat.
+	const STORAGE_KEY = $derived(
+		$currentUser ? aiChatStorageKey($currentUser.id, gameId) : null
+	);
 
 	function makeWelcome(): Message {
 		return {
@@ -34,16 +39,17 @@
 	let scrollContainer = $state<HTMLDivElement>();
 
 	onMount(() => {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			try {
+		if (!STORAGE_KEY) return;
+		try {
+			const stored = localStorage.getItem(STORAGE_KEY);
+			if (stored) {
 				const parsed = JSON.parse(stored) as Message[];
 				if (Array.isArray(parsed) && parsed.length > 0) {
 					messages = parsed;
 				}
-			} catch {
-				// ignore corrupt storage
 			}
+		} catch {
+			// storage unavailable or corrupt — start fresh
 		}
 	});
 
@@ -66,6 +72,7 @@
 	}
 
 	function saveToStorage() {
+		if (!STORAGE_KEY) return;
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
 		} catch {
@@ -75,7 +82,12 @@
 
 	function clearChat() {
 		messages = [makeWelcome()];
-		localStorage.removeItem(STORAGE_KEY);
+		if (!STORAGE_KEY) return;
+		try {
+			localStorage.removeItem(STORAGE_KEY);
+		} catch {
+			// storage unavailable — nothing to clear
+		}
 	}
 
 	async function scrollToBottom() {

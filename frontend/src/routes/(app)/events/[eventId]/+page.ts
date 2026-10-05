@@ -1,13 +1,13 @@
 import { eventsApi } from '$lib/api/events';
-import { error } from '@sveltejs/kit';
+import { throwLoadError } from '$lib/api/load';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ params, parent }) => {
+export const load: PageLoad = async ({ params, parent, fetch, url }) => {
 	const { user } = await parent();
 	try {
-		const event = await eventsApi.getEvent(params.eventId);
+		const event = await eventsApi.getEvent(params.eventId, { fetch });
 		return { user, event };
-	} catch {
-		throw error(404, 'Event not found');
+	} catch (err) {
+		throwLoadError(err, url, 'Event not found');
 	}
 };

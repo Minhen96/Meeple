@@ -134,7 +134,7 @@
 				<p class="text-xs text-on-surface-variant font-label mt-1">{selected.yearPublished}</p>
 			{/if}
 			<div class="flex items-center gap-1.5 mt-2">
-				<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+				<span class="icon-filled material-symbols-outlined text-primary text-[16px]">check_circle</span>
 				<span class="text-xs font-bold text-primary">Selected</span>
 			</div>
 		</div>
@@ -156,7 +156,7 @@
 			disabled={logging}
 			class="w-full py-4 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-base shadow-lg shadow-primary/25 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
 		>
-			<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">sports_esports</span>
+			<span class="icon-filled material-symbols-outlined text-[20px]">sports_esports</span>
 			{logging ? 'Logging...' : 'Log Play'}
 		</button>
 	</div>

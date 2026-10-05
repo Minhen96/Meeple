@@ -11,7 +11,8 @@
 	let { data }: Props = $props();
 
 	let tab = $state<'upcoming' | 'mine'>('upcoming');
-	let events = $state({ upcoming: data.upcoming, mine: data.mine });
+	// Writable derived: resets when load data changes, can be overridden optimistically.
+	let events = $derived({ upcoming: data.upcoming, mine: data.mine });
 
 	const displayed = $derived(
 		tab === 'upcoming' 
@@ -194,10 +195,10 @@
 
 				<!-- RSVP buttons -->
 				{#if event.myRsvp !== 'ACCEPTED' && event.status !== 'CANCELLED'}
-					<div class="flex gap-2 px-4 pb-4" onclick={(e) => e.preventDefault()}>
+					<div class="flex gap-2 px-4 pb-4" role="presentation" onclick={(e) => e.preventDefault()}>
 						<button
 							onclick={() => rsvp(event, 'ACCEPTED')}
-							disabled={event.status === 'FULL' && event.myRsvp !== 'ACCEPTED'}
+							disabled={event.status === 'FULL'}
 							class="flex-1 py-2 rounded-xl text-sm font-label font-bold bg-primary text-on-primary disabled:opacity-40 transition-colors"
 						>Join</button>
 						{#if event.myRsvp === 'INVITED'}
@@ -209,7 +210,7 @@
 					</div>
 				{:else if event.myRsvp === 'ACCEPTED'}
 					<p class="px-4 pb-4 text-xs font-label font-bold text-tertiary flex items-center gap-1">
-						<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+						<span class="icon-filled material-symbols-outlined text-[14px]">check_circle</span>
 						You're going
 					</p>
 				{/if}

@@ -1,11 +1,27 @@
-import { api } from './client';
-import type { ActivityLog, ApiResponse, GameDetail, GameSearchResult, PlayLog, UserGame } from '$lib/types';
+import { api, type ApiOptions } from './client';
+import type {
+	ActivityLog,
+	GameDetail,
+	GameSearchResult,
+	GameSummary,
+	PlayLog,
+	UserGame
+} from '$lib/types';
 
 export interface UpdateCollectionPayload {
 	isOwned?: boolean;
 	isFavorited?: boolean;
 	personalRating?: number | null;
 	notes?: string | null;
+}
+
+/** Spring Page<GameSummaryResponse>, normalized by client.ts. */
+export interface GamesPage {
+	content: GameSummary[];
+	number: number;
+	last: boolean;
+	totalPages: number;
+	totalElements: number;
 }
 
 export const gamesApi = {
@@ -25,8 +41,12 @@ export const gamesApi = {
 		minComplexity?: number; maxComplexity?: number;
 		minRating?: number;
 		page?: number;
+		/**
+		 * Spring Pageable sort, e.g. 'rank,asc', 'usersRated,desc' (popularity),
+		 * 'yearPublished,desc', 'playTime,asc', or 'recommended' (personalized).
+		 */
 		sort?: string;
-	}) => {
+	}): Promise<GamesPage> => {
 		const searchParams = new URLSearchParams();
 		if (params.query) searchParams.set('q', params.query);
 		if (params.genre) searchParams.set('genre', params.genre);
@@ -39,17 +59,17 @@ export const gamesApi = {
 		if (params.minRating) searchParams.set('minRating', params.minRating.toString());
 		if (params.page !== undefined) searchParams.set('page', params.page.toString());
 		if (params.sort) searchParams.set('sort', params.sort);
-		const res = await api.get<any>(`/api/v1/games?${searchParams.toString()}`);
+		const res = await api.get<GamesPage>(`/api/v1/games?${searchParams.toString()}`);
 		return res;
 	},
 
-	getGame: async (id: string): Promise<GameDetail> => {
-		const res = await api.get<GameDetail>(`/api/v1/games/${id}`);
+	getGame: async (id: string, opts?: ApiOptions): Promise<GameDetail> => {
+		const res = await api.get<GameDetail>(`/api/v1/games/${id}`, opts);
 		return res;
 	},
 
-	getMyCollection: async (): Promise<UserGame[]> => {
-		const res = await api.get<UserGame[]>('/api/v1/users/me/games');
+	getMyCollection: async (opts?: ApiOptions): Promise<UserGame[]> => {
+		const res = await api.get<UserGame[]>('/api/v1/users/me/games', opts);
 		return res;
 	},
 
@@ -71,8 +91,8 @@ export const gamesApi = {
 		return res;
 	},
 
-	getActivity: async (): Promise<ActivityLog[]> => {
-		const res = await api.get<ActivityLog[]>('/api/v1/users/me/plays');
+	getActivity: async (opts?: ApiOptions): Promise<ActivityLog[]> => {
+		const res = await api.get<ActivityLog[]>('/api/v1/users/me/plays', opts);
 		return res;
 	},
 
@@ -81,13 +101,13 @@ export const gamesApi = {
 		return res;
 	},
 
-	getUserCollection: async (userId: string): Promise<UserGame[]> => {
-		const res = await api.get<UserGame[]>(`/api/v1/users/${userId}/games`);
+	getUserCollection: async (userId: string, opts?: ApiOptions): Promise<UserGame[]> => {
+		const res = await api.get<UserGame[]>(`/api/v1/users/${userId}/games`, opts);
 		return res;
 	},
 
-	getUserActivity: async (userId: string): Promise<ActivityLog[]> => {
-		const res = await api.get<ActivityLog[]>(`/api/v1/users/${userId}/plays`);
+	getUserActivity: async (userId: string, opts?: ApiOptions): Promise<ActivityLog[]> => {
+		const res = await api.get<ActivityLog[]>(`/api/v1/users/${userId}/plays`, opts);
 		return res;
 	}
 };

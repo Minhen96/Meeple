@@ -1,65 +1,72 @@
-import { redirect, isRedirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import {
+	ACCESS_TOKEN_COOKIE,
+	REFRESH_TOKEN_COOKIE,
+	fetchMe,
+	refreshSession
+} from '$lib/api/server';
+import type { User } from '$lib/types';
 import type { LayoutServerLoad } from './$types';
 
 const PUBLIC_PREFIXES = ['/auth', '/onboarding'];
 
-export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
+export const load: LayoutServerLoad = async ({ cookies, url, fetch, locals }) => {
 	const isPublic = PUBLIC_PREFIXES.some((p) => url.pathname.startsWith(p));
-	const accessToken = cookies.get('access_token');
-	const refreshToken = cookies.get('refresh_token');
+	const accessToken = cookies.get(ACCESS_TOKEN_COOKIE);
+	const refreshToken = cookies.get(REFRESH_TOKEN_COOKIE);
+	const loginRedirect = `/auth/login?redirect=${encodeURIComponent(url.pathname)}`;
 
 	if (!accessToken && !refreshToken) {
-		if (!isPublic) {
-			throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
-		}
+		if (!isPublic) redirect(302, loginRedirect);
 		return { user: null };
 	}
 
-	const apiUrl = import.meta.env.VITE_API_URL as string;
-	let user = null;
+	let user: User | null = null;
 
-	// 1. Try with access token if it exists
+	// 1. Try the current access token.
 	if (accessToken) {
-		try {
-			const res = await fetch(`${apiUrl}/api/v1/users/me`, {
-				headers: { 'Authorization': `Bearer ${accessToken}` }
-			});
-			if (res.ok) {
-				const body = await res.json();
-				user = body.data ? body.data : body;
-			}
-		} catch (e) {
-			// ignore for now, will try refresh
-		}
+		user = await fetchMe(fetch, accessToken);
 	}
 
-	// 2. If no user yet, but we have a refresh token, try to refresh
+	// 2. Access token missing/expired: refresh on the server.
 	if (!user && refreshToken) {
-		try {
-			const res = await fetch(`${apiUrl}/api/v1/auth/refresh`, {
-				method: 'POST',
-				headers: { 'Cookie': `refresh_token=${refreshToken}` }
-			});
-
-			if (res.ok) {
-				const body = await res.json();
-				user = body.data ? body.data : body;
+		const refreshed = await refreshSession(fetch, refreshToken);
+		if (refreshed) {
+			// Propagate the rotated cookies to the browser, preserving the
+			// backend's attributes, so browser and server stay in sync.
+			for (const c of refreshed.cookies) {
+				cookies.set(c.name, c.value, {
+					path: c.path ?? '/',
+					domain: c.domain,
+					httpOnly: c.httpOnly,
+					secure: c.secure,
+					sameSite: c.sameSite,
+					maxAge: c.maxAge,
+					expires: c.expires,
+					// Values come straight from Set-Cookie and are already encoded.
+					encode: (v) => v
+				});
 			}
-		} catch (e) {
-			// refresh failed
+
+			// Later server fetches in this request (handleFetch) use the new tokens.
+			if (refreshed.accessToken) locals.accessToken = refreshed.accessToken;
+			if (refreshed.refreshToken) locals.refreshToken = refreshed.refreshToken;
+
+			// The refresh response is not a full User — load the real profile.
+			if (refreshed.accessToken) {
+				user = await fetchMe(fetch, refreshed.accessToken);
+			}
 		}
 	}
 
 	// 3. Final check and redirect logic
 	if (!user) {
-		if (!isPublic) {
-			throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
-		}
+		if (!isPublic) redirect(302, loginRedirect);
 		return { user: null };
 	}
 
 	if (!user.onboardingCompleted && !url.pathname.startsWith('/onboarding')) {
-		throw redirect(302, '/onboarding/welcome');
+		redirect(302, '/onboarding/welcome');
 	}
 
 	return { user };

@@ -1,8 +1,11 @@
-import { Client, type StompSubscription } from '@stomp/stompjs';
+import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs';
 import { addNotification } from './notifications';
 import type { Notification } from '$lib/types';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
+
+/** Per-user notifications (Spring user destination, resolved from the authenticated principal). */
+const NOTIFICATIONS_DESTINATION = '/user/queue/notifications';
 
 function wsUrl(): string {
 	return API_URL.replace(/^http/, 'ws') + '/ws';
@@ -11,32 +14,115 @@ function wsUrl(): string {
 let stompClient: Client | null = null;
 
 /**
- * Connect to the STOMP broker. Auth is handled via the access_token cookie
- * that the browser sends automatically during the WebSocket upgrade.
- * Pass accessToken explicitly only for mobile (where cookies aren't used).
+ * Consecutive STOMP ERROR frames (e.g. CONNECT rejected because the session
+ * expired) before we stop reconnecting. A later connectWS() — triggered when
+ * the user id changes, e.g. after logging in again — starts over.
  */
-export function connectWS(userId: string, accessToken?: string) {
-	if (stompClient?.connected) return;
+const MAX_CONSECUTIVE_STOMP_ERRORS = 3;
 
-	stompClient = new Client({
+// ── Topic registry ───────────────────────────────────────────────────────────
+// Every subscription lives here and is (re)attached in onConnect after each
+// (re)connect, so callers can subscribe before the socket is up and survive
+// reconnects without wrapping onConnect.
+
+interface TopicEntry {
+	topic: string;
+	callback: (message: IMessage) => void;
+	live: StompSubscription | null;
+}
+
+const registry = new Set<TopicEntry>();
+
+function attach(entry: TopicEntry) {
+	if (!stompClient?.connected) {
+		entry.live = null;
+		return;
+	}
+	entry.live = stompClient.subscribe(entry.topic, entry.callback);
+}
+
+/**
+ * Subscribe to a STOMP destination. Safe to call before the socket connects.
+ * Returns an unsubscribe function — call it in onDestroy.
+ */
+export function subscribeTopic(topic: string, callback: (message: IMessage) => void): () => void {
+	const entry: TopicEntry = { topic, callback, live: null };
+	registry.add(entry);
+	attach(entry);
+
+	return () => {
+		if (!registry.delete(entry)) return;
+		if (entry.live && stompClient?.connected) {
+			try {
+				entry.live.unsubscribe();
+			} catch {
+				// connection dropped between the check and the call — nothing to clean up
+			}
+		}
+		entry.live = null;
+	};
+}
+
+function handleNotification(message: IMessage) {
+	try {
+		addNotification(JSON.parse(message.body) as Notification);
+	} catch {
+		// ignore malformed frames
+	}
+}
+
+/**
+ * Connect to the STOMP broker.
+ *
+ * Web auth: the backend reads the httpOnly access_token cookie from the
+ * WebSocket upgrade request, so no Authorization connect header is sent
+ * (JS cannot read the cookie). Mobile clients pass the JWT in the CONNECT
+ * frame instead.
+ *
+ * No-op if a client is already active (connecting, connected or reconnecting).
+ */
+export function connectWS() {
+	if (stompClient?.active) return;
+
+	let consecutiveErrors = 0;
+	const client = new Client({
 		brokerURL: wsUrl(),
-		connectHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
 		reconnectDelay: 5000,
 		onConnect: () => {
-			stompClient?.subscribe(`/topic/notifications/${userId}`, (message) => {
-				const notification = JSON.parse(message.body) as Notification;
-				addNotification(notification);
+			consecutiveErrors = 0;
+			client.subscribe(NOTIFICATIONS_DESTINATION, handleNotification);
+			registry.forEach(attach);
+		},
+		onStompError: () => {
+			// Unauthenticated CONNECT is rejected with an ERROR frame — don't
+			// reconnect-loop forever with a dead session.
+			consecutiveErrors++;
+			if (consecutiveErrors >= MAX_CONSECUTIVE_STOMP_ERRORS && stompClient === client) {
+				disconnectWS();
+			}
+		},
+		onWebSocketClose: () => {
+			// Subscriptions die with the socket; they are re-attached on reconnect.
+			registry.forEach((entry) => {
+				entry.live = null;
 			});
 		}
 	});
 
-	stompClient.activate();
+	stompClient = client;
+	client.activate();
 }
 
 export function disconnectWS() {
-	stompClient?.deactivate();
+	const client = stompClient;
 	stompClient = null;
+	registry.forEach((entry) => {
+		entry.live = null;
+	});
+	void client?.deactivate();
 }
+
+// ── How-to-play progress ─────────────────────────────────────────────────────
 
 export interface HowToPlayProgressMessage {
 	status: 'generating' | 'ready' | 'error';
@@ -46,40 +132,16 @@ export interface HowToPlayProgressMessage {
 /**
  * Subscribe to how-to-play progress updates for a game.
  * Returns an unsubscribe function — call it in onDestroy.
- *
- * If the WS client is not yet connected the subscription is deferred until
- * the next connection (the caller should also use the REST endpoint for the
- * initial progress value on page load).
  */
 export function subscribeToHowToPlayProgress(
 	gameId: string,
 	onMessage: (msg: HowToPlayProgressMessage) => void
 ): () => void {
-	const topic = `/topic/how-to-play/${gameId}`;
-
-	if (stompClient?.connected) {
-		const sub: StompSubscription = stompClient.subscribe(topic, (frame) => {
-			try {
-				onMessage(JSON.parse(frame.body) as HowToPlayProgressMessage);
-			} catch {
-				// ignore malformed frames
-			}
-		});
-		return () => sub.unsubscribe();
-	}
-
-	// WS not ready yet — attach via onConnect so we get it once connected
-	const prev = stompClient?.onConnect;
-	if (stompClient) {
-		let sub: StompSubscription | null = null;
-		stompClient.onConnect = (frame) => {
-			prev?.call(stompClient, frame);
-			sub = stompClient!.subscribe(topic, (f) => {
-				try { onMessage(JSON.parse(f.body) as HowToPlayProgressMessage); } catch { /* ignore */ }
-			});
-		};
-		return () => sub?.unsubscribe();
-	}
-
-	return () => {};
+	return subscribeTopic(`/topic/how-to-play/${gameId}`, (frame) => {
+		try {
+			onMessage(JSON.parse(frame.body) as HowToPlayProgressMessage);
+		} catch {
+			// ignore malformed frames
+		}
+	});
 }

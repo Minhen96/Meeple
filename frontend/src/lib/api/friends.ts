@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, type ApiOptions } from './client';
 import type { FriendRequest, FriendStatus, PaginatedResponse, User } from '$lib/types';
 
 export const friendsApi = {
@@ -7,8 +7,8 @@ export const friendsApi = {
 		return res;
 	},
 
-	getStatus: async (userId: string): Promise<FriendStatus> => {
-		const res = await api.get<FriendStatus>(`/api/v1/users/${userId}/friend-status`);
+	getStatus: async (userId: string, opts?: ApiOptions): Promise<FriendStatus> => {
+		const res = await api.get<FriendStatus>(`/api/v1/users/${userId}/friend-status`, opts);
 		return res;
 	},
 
@@ -26,8 +26,11 @@ export const friendsApi = {
 
 	unfriend: (userId: string) => api.delete<void>(`/api/v1/friends/${userId}`),
 
-	getFriends: async (page = 0, size = 20): Promise<PaginatedResponse<User>> => {
-		const res = await api.get<PaginatedResponse<User>>(`/api/v1/friends?page=${page}&size=${size}`);
+	getFriends: async (page = 0, size = 20, opts?: ApiOptions): Promise<PaginatedResponse<User>> => {
+		const res = await api.get<PaginatedResponse<User>>(
+			`/api/v1/friends?page=${page}&size=${size}`,
+			opts
+		);
 		return res;
 	},
 

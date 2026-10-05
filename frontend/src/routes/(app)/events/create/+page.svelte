@@ -244,8 +244,8 @@
 		height: 24px;
 		width: 24px;
 		border-radius: 8px;
-		background: #fff;
-		border: 4px solid var(--md-sys-color-primary);
+		background: theme('colors.surface-container-lowest');
+		border: 4px solid theme('colors.primary');
 		cursor: pointer;
 		box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 	}

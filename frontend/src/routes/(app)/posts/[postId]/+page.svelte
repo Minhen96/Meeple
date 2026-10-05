@@ -8,15 +8,12 @@
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-	let post = $state<Post>(data.post);
-	let comments = $state<Comment[]>([]);
+	// Writable deriveds: follow load data, overridden locally for optimistic updates.
+	let post = $derived<Post>(data.post);
+	let comments = $derived<Comment[]>(data.comments);
 	let commentBody = $state('');
 	let submitting = $state(false);
 
-	$effect(() => {
-		post = data.post;
-		comments = data.comments;
-	});
 
 	function formatDate(iso: string) {
 		return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -130,7 +127,7 @@
 						class="flex items-center gap-2 text-sm font-bold transition-all active:scale-90
 							{post.likedByMe ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'}"
 					>
-						<span class="material-symbols-outlined text-[24px]" style={post.likedByMe ? "font-variation-settings: 'FILL' 1;" : ''}>
+						<span class="material-symbols-outlined text-[24px]" class:icon-filled={post.likedByMe}>
 							favorite
 						</span>
 						{post.likeCount}

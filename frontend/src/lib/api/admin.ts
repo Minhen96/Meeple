@@ -16,11 +16,10 @@ export const adminApi = {
 	uploadRulebookForGame: (gameId: string, file: File): Promise<{ status: string; rulebookId: string }> => {
 		const form = new FormData();
 		form.append('file', file);
-		return fetch(`${import.meta.env.VITE_API_URL}/api/v1/admin/games/${gameId}/rulebook`, {
-			method: 'POST',
-			credentials: 'include',
-			body: form
-		}).then((r) => r.json());
+		return api.post<{ status: string; rulebookId: string }>(
+			`/api/v1/admin/games/${gameId}/rulebook`,
+			form
+		);
 	},
 
 	getRuleNoteQueue: (page = 0, size = 20): Promise<RuleNoteQueuePage> =>
