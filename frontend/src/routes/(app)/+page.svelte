@@ -1,104 +1,179 @@
 <script lang="ts">
-	import { getGreeting } from '$lib/utils/date';
+	import { onMount, untrack } from 'svelte';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import PostCard from '$lib/components/social/PostCard.svelte';
+	import ActivityItem from '$lib/components/social/ActivityItem.svelte';
+	import PostCardSkeleton from '$lib/components/social/PostCardSkeleton.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import {
+		CursorPager,
+		preferExisting,
+		watchScrollDepth,
+		type PagerState
+	} from '$lib/components/social/cursorPager';
+	import { daysUntil, greetingKey } from '$lib/components/social/format';
+	import { postsApi } from '$lib/api/posts';
+	import { getLocale, m } from '$lib/i18n';
+	import type { FeedItem, MatchGroup } from '$lib/types';
 	import type { PageData } from './$types';
-	import type { MatchGroup, Post } from '$lib/types';
 
 	interface Props {
 		data: PageData;
 	}
 	let { data }: Props = $props();
 
-	const greeting = getGreeting();
+	const itemKey = (item: FeedItem) =>
+		item.kind === 'post' ? `p:${item.post.id}` : `a:${item.activity.id}`;
 
-	let posts = $state<Post[]>([]);
-	let matchSuggestions = $state<MatchGroup[]>([]);
+	let feed = $state<PagerState<FeedItem>>({
+		items: [],
+		loading: true,
+		loadingMore: false,
+		hasMore: true,
+		error: null,
+		loaded: false
+	});
+	let pager: CursorPager<FeedItem> | null = null;
+	let dismissed = $state<string[]>([]);
 
+	const matchSuggestions = $derived(
+		data.matchSuggestions.filter((g: MatchGroup) => !dismissed.includes(g.id))
+	);
+	const name = $derived(
+		data.user?.displayName || data.user?.username || m('social.home.fallbackName')
+	);
+	const nextEvent = $derived(data.upcomingEvents[0] ?? null);
+	const nextInDays = $derived(nextEvent ? daysUntil(nextEvent.scheduledAt) : null);
+	const subtitle = $derived(
+		nextInDays === null
+			? m('social.home.noUpcoming')
+			: nextInDays === 0
+				? m('social.home.nextSessionToday')
+				: nextInDays === 1
+					? m('social.home.nextSessionTomorrow')
+					: m('social.home.nextSessionDays', { days: nextInDays })
+	);
+	const emptyKind = $derived(
+		data.friendCount > 0 ? 'quiet' : data.pendingSentCount > 0 ? 'pending' : 'noFriends'
+	);
+
+	// A fresh pager per load (navigation back to Home, invalidation)
 	$effect(() => {
-		posts = data.posts;
-		matchSuggestions = data.matchSuggestions;
+		const initial = data.feed ?? undefined;
+		untrack(() => {
+			feed = { ...feed, items: [] };
+			const p = new CursorPager<FeedItem>(
+				(cursor) => postsApi.getFeedPage(cursor, 20),
+				itemKey,
+				// Keep the (possibly locally edited) items already on screen when a page is appended
+				(state) => (feed = { ...state, items: preferExisting(feed.items, state.items, itemKey) }),
+				initial
+			);
+			pager = p;
+			if (!initial) void p.loadMore();
+		});
 	});
 
-	function onGroupDismiss(id: string) {
-		matchSuggestions = matchSuggestions.filter((g) => g.id !== id);
+	onMount(() =>
+		watchScrollDepth(() => {
+			if (pager && feed.loaded && feed.hasMore && !feed.loadingMore && !feed.error)
+				void pager.loadMore();
+		})
+	);
+
+	function removePost(postId: string) {
+		pager?.update((items) => items.filter((i) => !(i.kind === 'post' && i.post.id === postId)));
 	}
 
-	function formatEventDay(iso: string) {
-		return new Date(iso).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+	function formatDay(iso: string) {
+		return new Date(iso).toLocaleDateString(getLocale(), { weekday: 'short' }).toUpperCase();
 	}
 
-	function formatEventDate(iso: string) {
-		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	function formatDate(iso: string) {
+		return new Date(iso).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
 	}
-
 </script>
 
 <svelte:head>
-	<title>Home — Meeple</title>
+	<title>{m('social.home.title')} — Meeple</title>
 </svelte:head>
 
 <div class="space-y-8">
 	<!-- Greeting -->
 	<section class="space-y-1">
-		<h2 class="text-3xl font-headline font-extrabold tracking-tight text-on-surface">
-			{greeting}, <span class="text-primary">{data.user?.displayName ?? data.user?.username ?? 'there'}</span>!
+		<h2 class="font-headline text-3xl font-extrabold tracking-tight text-on-surface">
+			{m(greetingKey(new Date().getHours()), { name })}
 		</h2>
-		<p class="text-on-surface-variant font-medium text-sm">
-			{#if data.upcomingEvents.length > 0}
-				You have {data.upcomingEvents.length} upcoming event{data.upcomingEvents.length !== 1 ? 's' : ''}.
-			{:else}
-				No upcoming events — create one!
-			{/if}
-		</p>
+		<p class="text-sm font-medium text-on-surface-variant">{subtitle}</p>
 	</section>
 
-	<!-- Match suggestions -->
+	<!-- Match suggestions: first card plus a "+N more" chip -->
 	{#if matchSuggestions.length > 0}
-		<section class="space-y-3">
-			{#each matchSuggestions as group (group.id)}
-				<MatchSuggestionCard {group} onDismiss={onGroupDismiss} />
-			{/each}
+		<section class="space-y-2">
+			<MatchSuggestionCard
+				group={matchSuggestions[0]}
+				onDismiss={(id) => (dismissed = [...dismissed, id])}
+			/>
+			{#if matchSuggestions.length > 1}
+				<a
+					href="/match"
+					class="inline-flex items-center gap-1 rounded-full bg-secondary-container px-3 py-1 font-label text-xs font-bold text-on-secondary-container"
+				>
+					{m('social.home.moreMatches', { count: matchSuggestions.length - 1 })}
+					<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+				</a>
+			{/if}
 		</section>
 	{/if}
 
-	<!-- Upcoming Events carousel -->
+	<!-- Upcoming events: hidden entirely when there are none -->
 	{#if data.upcomingEvents.length > 0}
 		<section class="space-y-4">
-			<div class="flex justify-between items-center">
-				<h3 class="text-lg font-headline font-bold">Upcoming Events</h3>
-				<a href="/events" class="text-primary text-xs font-label font-bold uppercase tracking-widest">View All</a>
+			<div class="flex items-center justify-between">
+				<h3 class="font-headline text-lg font-bold">{m('social.home.upcomingTitle')}</h3>
+				<a
+					href="/events?view=calendar"
+					class="font-label text-xs font-bold uppercase tracking-widest text-primary"
+				>
+					{m('social.home.viewCalendar')}
+				</a>
 			</div>
-			<div class="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
+			<div class="hide-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
 				{#each data.upcomingEvents.slice(0, 6) as event (event.id)}
 					<a
 						href="/events/{event.id}"
-						class="flex-shrink-0 w-56 bg-surface-container-low rounded-xl p-4 shadow-sm spring-bounce"
+						class="spring-bounce w-[42%] min-w-48 flex-shrink-0 rounded-xl bg-surface-container-low p-4 shadow-sm"
 					>
-						<div class="flex justify-between items-start mb-3">
-							<span class="bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-[10px] font-label font-bold uppercase tracking-tight">
-								{formatEventDay(event.scheduledAt)}
+						<div class="mb-3 flex items-start justify-between">
+							<span
+								class="rounded bg-secondary-container px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-tight text-on-secondary-container"
+							>
+								{formatDay(event.scheduledAt)}
 							</span>
-							<span class="text-[10px] font-label text-on-surface-variant">{formatEventDate(event.scheduledAt)}</span>
+							<span class="font-label text-[10px] text-on-surface-variant"
+								>{formatDate(event.scheduledAt)}</span
+							>
 						</div>
-						<h4 class="font-bold text-sm text-on-surface line-clamp-1 mb-1">{event.title}</h4>
-						{#if event.location}
-							<p class="text-xs text-on-surface-variant flex items-center gap-1 mb-3">
-								<span class="material-symbols-outlined text-[13px]">location_on</span>
-								<span class="line-clamp-1">{event.location}</span>
-							</p>
+						<h4 class="mb-1 line-clamp-1 text-sm font-bold text-on-surface">{event.title}</h4>
+						{#if event.game}
+							<p class="mb-3 line-clamp-1 text-xs text-on-surface-variant">{event.game.title}</p>
 						{:else}
 							<div class="mb-3"></div>
 						{/if}
 						<div class="flex items-center justify-between">
-							<span class="text-[10px] font-label font-bold text-on-surface-variant">
-								{event.participantCount}/{event.maxParticipants} players
+							<span class="font-label text-[10px] font-bold text-on-surface-variant">
+								{m('social.home.players', {
+									count: event.participantCount,
+									max: event.maxParticipants
+								})}
 							</span>
-							{#if event.status === 'FULL'}
-								<span class="text-[10px] font-label font-bold text-error">Full</span>
-							{:else}
-								<span class="text-[10px] font-label font-bold text-tertiary">Open</span>
-							{/if}
+							<span
+								class="font-label text-[10px] font-bold {event.status === 'FULL'
+									? 'text-error'
+									: 'text-tertiary'}"
+							>
+								{m(event.status === 'FULL' ? 'social.home.full' : 'social.home.open')}
+							</span>
 						</div>
 					</a>
 				{/each}
@@ -106,24 +181,97 @@
 		</section>
 	{/if}
 
-	<!-- Activity Feed -->
-	<section class="space-y-4">
-		<div class="flex justify-between items-center">
-			<h3 class="text-lg font-headline font-bold">Activity Feed</h3>
-			<span class="material-symbols-outlined text-on-surface-variant">tune</span>
-		</div>
+	<!-- Activity feed -->
+	<section class="space-y-4" aria-busy={feed.loading || feed.loadingMore}>
+		<h3 class="font-headline text-lg font-bold">{m('social.home.feedTitle')}</h3>
 
-		{#if posts.length === 0}
-			<div class="text-center py-16 text-on-surface-variant">
-				<span class="material-symbols-outlined text-5xl mb-3 block opacity-40">feed</span>
-				<p class="font-semibold">Nothing here yet</p>
-				<p class="text-sm mt-1">Be the first to share a game session!</p>
+		{#if feed.loading && !feed.loaded}
+			<PostCardSkeleton count={2} />
+		{:else if feed.error && !feed.loaded}
+			<div class="space-y-3 rounded-2xl bg-surface-container-low py-12 text-center">
+				<span class="material-symbols-outlined text-4xl text-error">warning</span>
+				<p class="font-semibold text-on-surface">{m('social.feed.errorTitle')}</p>
+				<button
+					type="button"
+					onclick={() => pager?.refresh()}
+					class="rounded-full bg-surface-container-high px-5 py-2 text-sm font-bold text-on-surface transition-all hover:scale-105 active:scale-95"
+				>
+					{m('common.retry')}
+				</button>
+			</div>
+		{:else if feed.items.length === 0}
+			<div class="space-y-3 rounded-2xl bg-surface-container-low px-6 py-12 text-center">
+				{#if emptyKind === 'noFriends'}
+					<div class="flex justify-center gap-1 text-primary">
+						<span class="material-symbols-outlined text-5xl">chess_pawn</span>
+						<span class="material-symbols-outlined -rotate-12 text-5xl text-tertiary"
+							>waving_hand</span
+						>
+					</div>
+					<p class="font-headline text-lg font-bold text-on-surface">
+						{m('social.feed.emptyNoFriendsTitle')}
+					</p>
+					<p class="text-sm text-on-surface-variant">{m('social.feed.emptyNoFriendsBody')}</p>
+					<a
+						href="/onboarding/find-friends"
+						class="inline-block rounded-full bg-gradient-to-r from-primary to-primary-container px-6 py-2.5 font-headline text-sm font-bold text-on-primary shadow-[0_8px_24px_rgba(137,81,0,0.20)] transition-all hover:scale-105 active:scale-95"
+					>
+						{m('social.feed.findFriends')}
+					</a>
+				{:else}
+					<span class="material-symbols-outlined text-5xl text-on-surface-variant/40">
+						{emptyKind === 'pending' ? 'hourglass_top' : 'feed'}
+					</span>
+					<p class="font-headline text-lg font-bold text-on-surface">
+						{m(
+							emptyKind === 'pending'
+								? 'social.feed.emptyPendingTitle'
+								: 'social.feed.emptyQuietTitle'
+						)}
+					</p>
+					<p class="text-sm text-on-surface-variant">
+						{m(
+							emptyKind === 'pending'
+								? 'social.feed.emptyPendingBody'
+								: 'social.feed.emptyQuietBody'
+						)}
+					</p>
+					<a
+						href="/posts/create"
+						class="inline-block rounded-full bg-gradient-to-r from-primary to-primary-container px-6 py-2.5 font-headline text-sm font-bold text-on-primary shadow-[0_8px_24px_rgba(137,81,0,0.20)] transition-all hover:scale-105 active:scale-95"
+					>
+						{m('social.feed.createPost')}
+					</a>
+				{/if}
 			</div>
 		{:else}
 			<div class="space-y-4">
-				{#each posts as _, i (posts[i].id)}
-					<PostCard bind:post={posts[i]} />
+				{#each feed.items as item (itemKey(item))}
+					{#if item.kind === 'post'}
+						<PostCard bind:post={item.post} onDeleted={removePost} />
+					{:else}
+						<ActivityItem activity={item.activity} createdAt={item.createdAt} />
+					{/if}
 				{/each}
+			</div>
+
+			<div class="py-4 text-center text-sm text-on-surface-variant" aria-live="polite">
+				{#if feed.loadingMore}
+					<span class="inline-flex items-center gap-2"
+						><Spinner className="h-4 w-4" />{m('social.feed.loadingMore')}</span
+					>
+				{:else if feed.error}
+					<p>{m('social.feed.loadMoreFailed')}</p>
+					<button
+						type="button"
+						onclick={() => pager?.loadMore()}
+						class="mt-1 font-bold text-primary"
+					>
+						{m('common.retry')}
+					</button>
+				{:else if !feed.hasMore}
+					<p class="font-semibold">{m('social.feed.caughtUp')}</p>
+				{/if}
 			</div>
 		{/if}
 	</section>
