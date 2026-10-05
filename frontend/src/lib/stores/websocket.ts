@@ -1,7 +1,7 @@
 import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs';
 import { ensureSession, onSessionRefreshed } from '$lib/api/client';
-import { addNotification } from './notifications';
-import type { Notification } from '$lib/types';
+import { notificationsApi } from '$lib/api/notifications';
+import { handleNotificationFrame, resetNotifications, setUnreadCount } from './notifications';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -69,11 +69,20 @@ export function subscribeTopic(topic: string, callback: (message: IMessage) => v
 	};
 }
 
+/** Frames are `{notification, unreadCount}` (docs/GAP_ANALYSIS.md section 6.3); malformed ones are ignored. */
 function handleNotification(message: IMessage) {
+	handleNotificationFrame(message.body);
+}
+
+/**
+ * Resync the badge after every (re)connect: frames sent while the socket was down were missed.
+ * Failures keep the last known value.
+ */
+async function syncUnreadCount() {
 	try {
-		addNotification(JSON.parse(message.body) as Notification);
+		setUnreadCount(await notificationsApi.getUnreadCount());
 	} catch {
-		// ignore malformed frames
+		// offline or session expired — the next connect retries
 	}
 }
 
@@ -96,6 +105,7 @@ function startClient() {
 			consecutiveErrors = 0;
 			client.subscribe(NOTIFICATIONS_DESTINATION, handleNotification);
 			registry.forEach(attach);
+			void syncUnreadCount();
 		},
 		onStompError: () => {
 			consecutiveErrors++;
@@ -186,6 +196,7 @@ export function disconnectWS() {
 	wanted = false;
 	setBrowserListeners(false);
 	stopClient();
+	resetNotifications();
 }
 
 // ── How-to-play progress ─────────────────────────────────────────────────────
