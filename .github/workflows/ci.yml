@@ -163,5 +163,25 @@ jobs:
           fi
       - name: Analyze
         run: flutter analyze --no-fatal-infos
-      - name: Test
-        run: flutter test
+      - name: Test with coverage
+        run: flutter test --coverage
+      # Gate on lib/ line coverage, excluding generated code (build_runner, gen-l10n)
+      - name: Enforce coverage threshold
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          generated = re.compile(r'(\.g\.dart|\.freezed\.dart)$|/l10n/gen/')
+          hit = total = 0
+          current = None
+          for line in open('coverage/lcov.info'):
+              if line.startswith('SF:'):
+                  current = line[3:].strip()
+              elif line.startswith('DA:') and current and not generated.search(current):
+                  total += 1
+                  hit += int(line.strip().split(',')[1]) > 0
+          pct = 100.0 * hit / total if total else 0.0
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write(f"Mobile line coverage (excluding generated): {pct:.1f}% ({hit}/{total})\n")
+          print(f"Mobile line coverage: {pct:.1f}%")
+          sys.exit(0 if pct >= 80.0 else 1)
+          PY
