@@ -28,12 +28,21 @@ public class FcmTokenService {
 
     @Transactional
     public void register(UUID userId, RegisterFcmTokenRequest request) {
+        register(userId, request, null);
+    }
+
+    /**
+     * @param familyId the session (refresh-token family) the device registered from, so revoking
+     *                 that session also removes the registration; null when unknown
+     */
+    @Transactional
+    public void register(UUID userId, RegisterFcmTokenRequest request, UUID familyId) {
         String token = request.token().trim();
         tokenRepository.deleteByTokenForOtherUsers(token, userId);
 
         String deviceInfo = request.deviceInfo() == null || request.deviceInfo().isBlank()
                 ? null : request.deviceInfo().trim();
-        tokenRepository.upsert(userId, token, deviceInfo, request.platform());
+        tokenRepository.upsert(userId, token, deviceInfo, request.platform(), familyId);
 
         List<UserFcmToken> all = tokenRepository.findByUserIdOrderByUpdatedAtDesc(userId);
         if (all.size() > MAX_TOKENS_PER_USER) {

@@ -20,15 +20,32 @@ public interface UserFcmTokenRepository extends JpaRepository<UserFcmToken, UUID
 
     Optional<UserFcmToken> findByUserIdAndToken(UUID userId, String token);
 
-    /** Register or refresh one device; a null deviceInfo keeps the stored one. */
+    /**
+     * Register or refresh one device; a null deviceInfo keeps the stored one, and so does a null
+     * familyId (registration without a refresh cookie).
+     */
     @Modifying
-    @Query(value = "INSERT INTO user_fcm_tokens (user_id, fcm_token, device_info, platform, updated_at)"
-            + " VALUES (:userId, :token, CAST(:deviceInfo AS VARCHAR), :platform, now())"
+    @Query(value = "INSERT INTO user_fcm_tokens (user_id, fcm_token, device_info, platform, family_id, updated_at)"
+            + " VALUES (:userId, :token, CAST(:deviceInfo AS VARCHAR), :platform, CAST(:familyId AS UUID), now())"
             + " ON CONFLICT (user_id, fcm_token) DO UPDATE SET platform = EXCLUDED.platform,"
-            + " device_info = COALESCE(EXCLUDED.device_info, user_fcm_tokens.device_info), updated_at = now()",
+            + " device_info = COALESCE(EXCLUDED.device_info, user_fcm_tokens.device_info),"
+            + " family_id = COALESCE(EXCLUDED.family_id, user_fcm_tokens.family_id), updated_at = now()",
             nativeQuery = true)
     int upsert(@Param("userId") UUID userId, @Param("token") String token,
-               @Param("deviceInfo") String deviceInfo, @Param("platform") String platform);
+               @Param("deviceInfo") String deviceInfo, @Param("platform") String platform,
+               @Param("familyId") UUID familyId);
+
+    /** Push registrations made from one session (refresh-token family) of a user: that session was revoked. */
+    @Modifying
+    @Query(value = "DELETE FROM user_fcm_tokens WHERE user_id = :userId AND family_id = :familyId",
+            nativeQuery = true)
+    int deleteByUserIdAndFamilyId(@Param("userId") UUID userId, @Param("familyId") UUID familyId);
+
+    /** Every push registration of a user except those made from session {@code keepFamilyId}. */
+    @Modifying
+    @Query(value = "DELETE FROM user_fcm_tokens WHERE user_id = :userId"
+            + " AND (family_id IS NULL OR family_id <> :keepFamilyId)", nativeQuery = true)
+    int deleteByUserIdExceptFamily(@Param("userId") UUID userId, @Param("keepFamilyId") UUID keepFamilyId);
 
     /** Unregister one device of one user. */
     @Modifying
