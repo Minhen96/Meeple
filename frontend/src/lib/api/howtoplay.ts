@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { ApiResponse, HowToPlayApiResponse } from '$lib/types';
+import type { HowToPlayApiResponse } from '$lib/types';
 
 export const howToPlayApi = {
 	get: (gameId: string): Promise<HowToPlayApiResponse> =>

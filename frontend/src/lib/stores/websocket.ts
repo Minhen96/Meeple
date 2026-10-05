@@ -125,8 +125,13 @@ export function disconnectWS() {
 // ── How-to-play progress ─────────────────────────────────────────────────────
 
 export interface HowToPlayProgressMessage {
-	status: 'generating' | 'ready' | 'error';
+	/**
+	 * 'failed' is the terminal failure message (carries errorMessage).
+	 * 'error' is the legacy failure status from older backends — treated the same.
+	 */
+	status: 'generating' | 'ready' | 'failed' | 'error';
 	progress: number;
+	errorMessage?: string | null;
 }
 
 /**
