@@ -3,8 +3,10 @@ package com.meeplehearth.config;
 import com.meeplehearth.auth.event.UserSessionsRevokedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.socket.CloseStatus;
@@ -38,9 +40,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * before a revocation but registered after it (the token check and the revoking commit raced)
  * is closed as soon as it registers.
  *
+ * <p>Sessions whose CONNECT access token has expired are closed by a periodic sweep
+ * ({@link #closeExpiredSessions}), so a listen-only socket that never sends SUBSCRIBE/SEND
+ * again cannot keep receiving messages past its token's lifetime.
+ *
  * <p>The registry is per application instance, like the simple STOMP broker it serves.
+ * Eagerly created ({@code @Lazy(false)}) because the application runs with lazy
+ * initialization and the {@code @Scheduled} sweep would otherwise never be registered.
  */
 @Component
+@Lazy(false)
 public class WebSocketSessionRevoker {
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketSessionRevoker.class);
@@ -186,6 +195,33 @@ public class WebSocketSessionRevoker {
     public void closeSession(String sessionId, CloseStatus status) {
         if (sessionId != null) {
             close(sessionsById.get(sessionId), status);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Token expiry
+    // -------------------------------------------------------------------------
+
+    /**
+     * Closes every tracked session whose CONNECT access token has expired, with
+     * {@link #TOKEN_EXPIRED}. Sessions that have not completed CONNECT carry no expiry and are
+     * left alone.
+     */
+    // No Redis lock: each instance sweeps only its own in-memory sessions, not shared state.
+    @Scheduled(fixedDelayString = "${meeple.ws.expiry-sweep-interval-ms:60000}",
+            initialDelayString = "${meeple.ws.expiry-sweep-interval-ms:60000}")
+    public void closeExpiredSessions() {
+        long now = currentTimeMillis();
+        int closed = 0;
+        for (WebSocketSession session : List.copyOf(sessionsById.values())) {
+            Object expiresAt = session.getAttributes().get(TOKEN_EXPIRES_AT_ATTR);
+            if (expiresAt instanceof Long exp && now >= exp && session.isOpen()) {
+                close(session, TOKEN_EXPIRED);
+                closed++;
+            }
+        }
+        if (closed > 0) {
+            log.info("Closed {} WebSocket session(s) with an expired access token", closed);
         }
     }
 

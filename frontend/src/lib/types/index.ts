@@ -220,6 +220,9 @@ export interface RulebookStatus {
 	hasHowToPlay: boolean;
 }
 
+/** Statuses the admin rulebook queue can be filtered by. */
+export type RulebookQueueStatus = 'pending_review' | 'failed' | 'ingesting';
+
 export interface RulebookQueueItem {
 	id: string;
 	gameId: string;

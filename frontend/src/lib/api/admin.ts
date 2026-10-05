@@ -1,14 +1,22 @@
 import { api } from './client';
-import type { RulebookQueuePage, RuleNoteQueuePage } from '$lib/types';
+import type { RulebookQueuePage, RulebookQueueStatus, RuleNoteQueuePage } from '$lib/types';
 
 export const adminApi = {
-	getRulebookQueue: (status = 'pending_review', page = 0, size = 20): Promise<RulebookQueuePage> =>
+	getRulebookQueue: (
+		status: RulebookQueueStatus = 'pending_review',
+		page = 0,
+		size = 20
+	): Promise<RulebookQueuePage> =>
 		api.get<RulebookQueuePage>(
 			`/api/v1/admin/rulebooks?status=${status}&page=${page}&size=${size}`
 		),
 
 	approveRulebook: (id: string): Promise<{ status: string }> =>
 		api.post<{ status: string }>(`/api/v1/admin/rulebooks/${id}/approve`),
+
+	/** Re-runs ingestion for a 'failed' rulebook or one stalled in 'ingesting'. */
+	retryRulebook: (id: string): Promise<{ status: string }> =>
+		api.post<{ status: string }>(`/api/v1/admin/rulebooks/${id}/retry`),
 
 	rejectRulebook: (id: string, reason?: string): Promise<{ status: string }> =>
 		api.post<{ status: string }>(`/api/v1/admin/rulebooks/${id}/reject`, { reason }),
