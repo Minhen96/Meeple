@@ -36,4 +36,8 @@ public class RefreshToken {
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
+
+    /** Set when the token is rotated. A used token presented again signals token theft. */
+    @Column(name = "used_at")
+    private Instant usedAt;
 }

@@ -2,6 +2,7 @@ package com.meeplehearth.auth.filter;
 
 import com.meeplehearth.auth.service.UserDetailsServiceImpl;
 import com.meeplehearth.auth.util.JwtUtil;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -15,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -45,8 +47,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            String userId = jwtUtil.getUserIdFromToken(accessToken).toString();
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
+            Claims claims = jwtUtil.validateAccessToken(accessToken);
+            UserDetails userDetails = userDetailsService.loadUserForAccessToken(
+                    UUID.fromString(claims.getSubject()), JwtUtil.getTokenVersion(claims));
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
