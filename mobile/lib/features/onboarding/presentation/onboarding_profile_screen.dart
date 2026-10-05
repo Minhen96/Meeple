@@ -1,153 +1,104 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
-import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
-import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
+import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/features/onboarding/presentation/onboarding_scaffold.dart';
+import 'package:meeple_hearth/features/profile/data/user_repository.dart';
+import 'package:meeple_hearth/features/profile/presentation/widgets/avatar_picker.dart';
+import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
+import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 
-/// Onboarding step 2 — set bio, location, avatar.
-class OnboardingProfileScreen extends StatefulWidget {
+/// Onboarding step 2 (SCREENS §3.3): avatar, display name, location.
+class OnboardingProfileScreen extends ConsumerStatefulWidget {
   const OnboardingProfileScreen({super.key});
 
   @override
-  State<OnboardingProfileScreen> createState() =>
+  ConsumerState<OnboardingProfileScreen> createState() =>
       _OnboardingProfileScreenState();
 }
 
-class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
-  final _bioController = TextEditingController();
-  final _locationController = TextEditingController();
+class _OnboardingProfileScreenState
+    extends ConsumerState<OnboardingProfileScreen> {
+  final _form = GlobalKey<FormState>();
+  late final _name = TextEditingController(
+    text: ref.read(authNotifierProvider).valueOrNull?.displayName,
+  );
+  late final _location = TextEditingController(
+    text: ref.read(authNotifierProvider).valueOrNull?.location,
+  );
+  bool _saving = false;
 
   @override
   void dispose() {
-    _bioController.dispose();
-    _locationController.dispose();
+    _name.dispose();
+    _location.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.pagePadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _OnboardingProgress(step: 1, total: 4),
-              AppSpacing.vGapXl,
-              Text('Your profile', style: AppTypography.headlineMedium),
-              AppSpacing.vGapSm,
-              Text(
-                'Add a few details so others can get to know you.',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              AppSpacing.vGapXxl,
-              // Avatar picker placeholder
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: AppColors.surfaceContainerHigh,
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 48,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          size: 16,
-                          color: AppColors.onPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AppSpacing.vGapXxl,
-              AuthTextField(
-                label: 'Bio',
-                hint: 'Tell us about your gaming style…',
-                controller: _bioController,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                prefixIcon: Icons.edit_note_rounded,
-              ),
-              AppSpacing.vGapMd,
-              AuthTextField(
-                label: 'Location',
-                hint: 'City, Country',
-                controller: _locationController,
-                prefixIcon: Icons.location_on_outlined,
-                textInputAction: TextInputAction.done,
-              ),
-              const Spacer(),
-              AppButton(
-                label: 'Continue',
-                onPressed: () => context.go(AppRoutes.onboardingBgg),
-              ),
-              AppSpacing.vGapMd,
-              AppTextButton(
-                label: 'Skip for now',
-                onPressed: () => context.go(AppRoutes.onboardingBgg),
-              ),
-              AppSpacing.vGapXl,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OnboardingProgress extends StatelessWidget {
-  const _OnboardingProgress({required this.step, required this.total});
-
-  final int step;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(total, (i) {
-        final isActive = i < step;
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: AppSpacing.xs),
-            height: 4,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? AppColors.primary
-                  : AppColors.surfaceContainerHigh,
-              borderRadius: AppSpacing.borderRadiusSm,
+  Future<void> _continue() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(profileActionsProvider).update(
+            ProfileUpdate(
+              displayName: _name.text.trim(),
+              location: _location.text.trim(),
             ),
-          ),
-        );
-      }),
+          );
+      if (mounted) {
+        await goToNextOnboardingStep(context, ref, AppRoutes.onboardingProfile);
+      }
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return OnboardingScaffold(
+      route: AppRoutes.onboardingProfile,
+      title: l10n.onboardingProfileTitle,
+      subtitle: l10n.onboardingProfileBody,
+      bottom: AppButton(
+        key: const Key('onboarding-profile-continue'),
+        label: l10n.commonContinue,
+        isLoading: _saving,
+        onPressed: _continue,
+      ),
+      child: Form(
+        key: _form,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          children: [
+            const Center(child: AvatarPicker()),
+            AppSpacing.vGapXl,
+            TextFormField(
+              key: const Key('onboarding-display-name'),
+              controller: _name,
+              maxLength: 50,
+              decoration: InputDecoration(labelText: l10n.profileDisplayName),
+              validator: (v) => (v ?? '').trim().length < 2
+                  ? l10n.profileDisplayNameTooShort
+                  : null,
+            ),
+            AppSpacing.vGapSm,
+            TextFormField(
+              controller: _location,
+              maxLength: 100,
+              decoration: InputDecoration(
+                labelText: l10n.eventFieldLocation,
+                hintText: l10n.profileLocationHint,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

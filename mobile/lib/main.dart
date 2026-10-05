@@ -1,22 +1,21 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:meeple_hearth/core/storage/isar_service.dart';
-import 'package:meeple_hearth/firebase_options.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
-
 import 'package:meeple_hearth/app.dart';
+import 'package:meeple_hearth/core/config/app_config.dart';
+import 'package:meeple_hearth/core/config/firebase_bootstrap.dart';
+import 'package:meeple_hearth/core/storage/isar_service.dart';
+import 'package:meeple_hearth/core/utils/app_logger.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// Background FCM handler — must be a top-level function.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Background message received — OS notification tray handles display.
-  // No UI operations permitted here.
+  await initFirebase();
+  // The OS shows the notification itself; no UI work is allowed here.
 }
 
 Future<void> main() async {
@@ -29,13 +28,10 @@ Future<void> main() async {
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Portrait-only orientation.
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-
-  // Transparent status bar with dark icons (warm off-white background).
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -45,43 +41,39 @@ Future<void> _bootstrap() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // Enable edge-to-edge rendering on Android 15+.
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // Firebase is optional: without --dart-define FIREBASE_* the app runs with
+  // push disabled instead of crashing.
+  final firebaseReady = await initFirebase();
+  if (firebaseReady) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
 
-  // Firebase — must be initialised before registering the background handler.
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // The offline cache is optional too: reads fall back to the network.
+  try {
+    await IsarService.instance.initialize();
+  } catch (e) {
+    AppLogger.warning('Offline cache unavailable', error: e);
+  }
 
-  // Isar local database.
-  await IsarService.instance.initialize();
-
-  const sentryDsn = String.fromEnvironment('SENTRY_DSN');
-  const environment = String.fromEnvironment(
-    'ENVIRONMENT',
-    defaultValue: 'development',
+  final app = ProviderScope(
+    overrides: [firebaseReadyProvider.overrideWithValue(firebaseReady)],
+    child: const MeepleApp(),
   );
 
-  if (sentryDsn.isNotEmpty) {
+  if (AppConfig.sentryDsn.isNotEmpty) {
     await SentryFlutter.init(
-      // ignore: inference_failure_on_untyped_parameter
       (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = environment == 'production' ? 0.2 : 1.0;
-        options.environment = environment;
-        options.attachScreenshot = true;
+        options.dsn = AppConfig.sentryDsn;
+        options.tracesSampleRate =
+            AppConfig.environment == 'production' ? 0.2 : 1.0;
+        options.environment = AppConfig.environment;
+        options.sendDefaultPii = false;
       },
-      appRunner: _runApp,
+      appRunner: () => runApp(app),
     );
   } else {
-    await _runApp();
+    runApp(app);
   }
-}
-
-Future<void> _runApp() async {
-  runApp(
-    const ProviderScope(
-      child: MeepleApp(),
-    ),
-  );
 }

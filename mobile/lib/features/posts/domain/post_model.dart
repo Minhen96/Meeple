@@ -1,34 +1,43 @@
 // ignore_for_file: invalid_annotation_target
 
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:meeple_hearth/features/library/domain/game_model.dart';
+import 'package:meeple_hearth/shared/models/user_summary.dart';
 
 part 'post_model.freezed.dart';
 part 'post_model.g.dart';
 
-/// A post (`PostResponse`). Author and game fields are flattened from the
-/// nested `author` / `game` objects.
+/// A post (`PostResponse`, incl. the GAP §6.1 [WP3] additions `editedAt`,
+/// `isBookmarked` and `author.deleted`).
 @freezed
 class Post with _$Post {
   const factory Post({
     required String id,
-    @JsonKey(readValue: _readAuthorId) required String authorId,
-    @JsonKey(readValue: _readAuthorUsername) required String authorUsername,
-    @JsonKey(readValue: _readAuthorDisplayName)
-    required String authorDisplayName,
-    @JsonKey(readValue: _readAuthorAvatarUrl) String? authorAvatarUrl,
-    @JsonKey(name: 'caption', defaultValue: '') required String content,
+    required UserSummary author,
+    @JsonKey(defaultValue: '') required String caption,
     String? location,
     DateTime? playedAt,
-    @Default([]) List<String> imageUrls,
-    @JsonKey(readValue: _readGameId) String? taggedGameId,
-    @JsonKey(readValue: _readGameTitle) String? taggedGameName,
+    @Default(<String>[]) List<String> imageUrls,
+    Game? game,
+    @Default(<UserSummary>[]) List<UserSummary> taggedUsers,
     @Default(0) int likeCount,
     @Default(0) int commentCount,
-    @JsonKey(name: 'likedByMe') @Default(false) bool isLikedByMe,
+    @Default(false) bool likedByMe,
+    @Default(false) bool isBookmarked,
+    String? eventId,
+    DateTime? editedAt,
     required DateTime createdAt,
   }) = _Post;
 
+  const Post._();
+
   factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
+
+  /// Posts can be edited for 48 hours (FEATURES §5.4).
+  static const editWindow = Duration(hours: 48);
+
+  bool canEdit({DateTime? now}) =>
+      (now ?? DateTime.now()).difference(createdAt) < editWindow;
 }
 
 /// A post comment (`PostCommentResponse`).
@@ -37,28 +46,21 @@ class Comment with _$Comment {
   const factory Comment({
     required String id,
     required String authorId,
-    required String authorUsername,
+    @Default('') String authorUsername,
     String? authorAvatarUrl,
     @JsonKey(name: 'body') required String content,
+    DateTime? editedAt,
     required DateTime createdAt,
   }) = _Comment;
 
+  const Comment._();
+
   factory Comment.fromJson(Map<String, dynamic> json) =>
       _$CommentFromJson(json);
+
+  /// Comments can be edited for 24 hours (GAP §6.1 [WP3]).
+  static const editWindow = Duration(hours: 24);
+
+  bool canEdit({DateTime? now}) =>
+      (now ?? DateTime.now()).difference(createdAt) < editWindow;
 }
-
-Object? _author(Map<dynamic, dynamic> json, String field) =>
-    (json['author'] as Map?)?[field];
-
-Object? _readAuthorId(Map<dynamic, dynamic> json, String key) =>
-    _author(json, 'id');
-Object? _readAuthorUsername(Map<dynamic, dynamic> json, String key) =>
-    _author(json, 'username');
-Object? _readAuthorDisplayName(Map<dynamic, dynamic> json, String key) =>
-    _author(json, 'displayName') ?? _author(json, 'username');
-Object? _readAuthorAvatarUrl(Map<dynamic, dynamic> json, String key) =>
-    _author(json, 'avatarUrl');
-Object? _readGameId(Map<dynamic, dynamic> json, String key) =>
-    (json['game'] as Map?)?['id'];
-Object? _readGameTitle(Map<dynamic, dynamic> json, String key) =>
-    (json['game'] as Map?)?['title'];

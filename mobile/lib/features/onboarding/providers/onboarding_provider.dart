@@ -1,8 +1,5 @@
-import 'package:meeple_hearth/core/constants/api_constants.dart';
-import 'package:meeple_hearth/core/network/api_exception.dart';
-import 'package:meeple_hearth/core/network/dio_client.dart';
-import 'package:meeple_hearth/features/auth/domain/user_model.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/features/profile/data/user_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'onboarding_provider.g.dart';
@@ -10,46 +7,17 @@ part 'onboarding_provider.g.dart';
 @riverpod
 class OnboardingNotifier extends _$OnboardingNotifier {
   @override
-  bool build() => false; // false = not submitting
+  bool build() => false; // true while submitting
 
-  /// Update bio and location on the current user's profile (`PUT /users/me`,
-  /// partial: null fields are left unchanged).
-  Future<void> updateProfile({
-    String? bio,
-    String? location,
-  }) async {
-    state = true;
-    try {
-      final dio = ref.read(dioProvider);
-      final res = await dio.put<Map<String, dynamic>>(
-        ApiConstants.me,
-        data: {
-          if (bio != null) 'bio': bio,
-          if (location != null) 'location': location,
-        },
-      );
-      final updated = User.fromJson(res.data!);
-      ref.read(authNotifierProvider.notifier).updateUser(updated);
-    } catch (e) {
-      throw ApiException.from(e);
-    } finally {
-      state = false;
-    }
-  }
-
-  /// Marks onboarding as complete and syncs the auth state.
+  /// Marks onboarding as complete (`PUT /users/me {onboardingCompleted}`)
+  /// and syncs the auth state, which lets the router leave onboarding.
   Future<void> completeOnboarding() async {
     state = true;
     try {
-      final dio = ref.read(dioProvider);
-      final res = await dio.put<Map<String, dynamic>>(
-        ApiConstants.me,
-        data: {'onboardingCompleted': true},
-      );
-      final updated = User.fromJson(res.data!);
+      final updated = await ref
+          .read(userRepositoryProvider)
+          .updateMe(const ProfileUpdate(onboardingCompleted: true));
       ref.read(authNotifierProvider.notifier).updateUser(updated);
-    } catch (e) {
-      throw ApiException.from(e);
     } finally {
       state = false;
     }

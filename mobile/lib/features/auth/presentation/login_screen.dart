@@ -7,7 +7,10 @@ import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
+import 'package:meeple_hearth/features/auth/data/google_auth_client.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -40,35 +43,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
+    final l10n = context.l10n;
     try {
       await ref.read(authNotifierProvider.notifier).login(
             emailOrUsername: _emailController.text.trim(),
             password: _passwordController.text,
           );
+      // The router redirect (incl. `?redirect=`) takes over from here.
+    } on EmailNotVerifiedException {
       if (!mounted) return;
-      // Router redirect handles navigation; use explicit redirect if provided.
-      if (widget.redirect != null) {
-        context.go(Uri.decodeComponent(widget.redirect!));
-      }
-    } on EmailNotVerifiedException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showToast(context, l10n.authVerifyFirst);
       final identifier = _emailController.text.trim();
-      context.push(
+      await context.push(
         AppRoutes.verifyEmail,
         extra: identifier.contains('@') ? identifier : null,
       );
-    } catch (e) {
+    } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e is ApiException ? e.message : 'Sign-in failed. Please try again.',
-          ),
-        ),
-      );
+      if (e.code == 'ACCOUNT_DELETED') {
+        await context.push(
+          AppRoutes.reactivate,
+          extra: _emailController.text.trim(),
+        );
+      } else {
+        showErrorToast(context, e);
+      }
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _google() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,7 +99,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   AppSpacing.vGapXxxl,
-                  const _BrandHeader(subtitle: 'Sign in to your account'),
+                  _BrandHeader(subtitle: context.l10n.authSignInSubtitle),
                   const SizedBox(height: 48),
                   _FormCard(
                     child: Form(
@@ -96,8 +108,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           AuthTextField(
-                            label: 'Email or username',
-                            hint: 'you@example.com',
+                            label: context.l10n.authEmailOrUsername,
+                            hint: context.l10n.authEmailHint,
                             controller: _emailController,
                             focusNode: _emailFocus,
                             keyboardType: TextInputType.emailAddress,
@@ -108,14 +120,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               AutofillHints.username,
                             ],
                             validator: (v) => (v == null || v.trim().isEmpty)
-                                ? 'Please enter your email or username'
+                                ? context.l10n.authEmailOrUsernameRequired
                                 : null,
                             onFieldSubmitted: (_) => FocusScope.of(context)
                                 .requestFocus(_passwordFocus),
                           ),
                           AppSpacing.vGapMd,
                           AuthTextField(
-                            label: 'Password',
+                            label: context.l10n.authPassword,
                             controller: _passwordController,
                             focusNode: _passwordFocus,
                             isPassword: true,
@@ -123,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             prefixIcon: Icons.lock_outline_rounded,
                             autofillHints: const [AutofillHints.password],
                             validator: (v) => (v == null || v.isEmpty)
-                                ? 'Please enter your password'
+                                ? context.l10n.authPasswordRequired
                                 : null,
                             onFieldSubmitted: (_) => _submit(),
                           ),
@@ -134,7 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onPressed: () =>
                                   context.push(AppRoutes.forgotPassword),
                               child: Text(
-                                'Forgot password?',
+                                context.l10n.authForgotPassword,
                                 style: AppTypography.labelMedium.copyWith(
                                   color: AppColors.primary,
                                 ),
@@ -143,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           AppSpacing.vGapLg,
                           AppButton(
-                            label: 'Sign In',
+                            label: context.l10n.authSignIn,
                             onPressed: _isLoading ? null : _submit,
                             isLoading: _isLoading,
                           ),
@@ -154,13 +166,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   AppSpacing.vGapXl,
                   const _OrDivider(),
                   AppSpacing.vGapXl,
-                  _GoogleSignInButton(isLoading: _isLoading),
+                  _GoogleSignInButton(isLoading: _isLoading, onPressed: _google),
                   AppSpacing.vGapXxxl,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        context.l10n.authNoAccount,
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.onSurfaceVariant,
                         ),
@@ -173,7 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          'Sign up',
+                          context.l10n.authSignUp,
                           style: AppTypography.labelLarge.copyWith(
                             color: AppColors.primary,
                           ),
@@ -250,7 +263,7 @@ class _BrandHeader extends StatelessWidget {
           ),
         ),
         AppSpacing.vGapLg,
-        Text('Meeple', style: AppTypography.brandLarge),
+        Text(context.l10n.appName, style: AppTypography.brandLarge),
         AppSpacing.vGapXs,
         Text(
           subtitle,
@@ -292,7 +305,7 @@ class _OrDivider extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(
-            'or',
+            context.l10n.authOr,
             style: AppTypography.labelMedium.copyWith(
               color: AppColors.onSurfaceVariant,
             ),
@@ -304,27 +317,32 @@ class _OrDivider extends StatelessWidget {
   }
 }
 
-class _GoogleSignInButton extends StatelessWidget {
-  const _GoogleSignInButton({required this.isLoading});
+class _GoogleSignInButton extends ConsumerWidget {
+  const _GoogleSignInButton({required this.isLoading, required this.onPressed});
 
   final bool isLoading;
+  final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden when no Google client id was provided at build time.
+    if (!ref.watch(googleAuthClientProvider).isAvailable) {
+      return const SizedBox.shrink();
+    }
     return OutlinedButton.icon(
-      onPressed: isLoading
-          ? null
-          : () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Google sign-in coming soon')),
-              ),
+      key: const Key('google-sign-in'),
+      onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: AppColors.outlineVariant),
+        side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMd),
+        shape: const StadiumBorder(),
         foregroundColor: AppColors.onSurface,
       ),
-      icon: const Icon(Icons.g_mobiledata_rounded, size: 24),
-      label: Text('Continue with Google', style: AppTypography.labelLarge),
+      icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+      label: Text(
+        context.l10n.authContinueWithGoogle,
+        style: AppTypography.labelLarge,
+      ),
     );
   }
 }

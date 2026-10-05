@@ -1,0 +1,5 @@
+// Google Sign-In URL scheme: the REVERSED iOS OAuth client id, e.g.
+// com.googleusercontent.apps.1234567890-abcdef. Replace the placeholder (or
+// override it in CI) before shipping; the iOS client id itself is passed at
+// build time with --dart-define=GOOGLE_IOS_CLIENT_ID=...
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID

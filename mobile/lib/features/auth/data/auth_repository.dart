@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/features/auth/data/auth_local_storage.dart';
 import 'package:meeple_hearth/features/auth/data/auth_remote_data_source.dart';
@@ -7,7 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'auth_repository.g.dart';
 
 @Riverpod(keepAlive: true)
-AuthRepository authRepository(AuthRepositoryRef ref) => AuthRepository(
+AuthRepository authRepository(Ref ref) => AuthRepository(
       remote: ref.read(authRemoteDataSourceProvider),
       local: ref.read(authLocalStorageProvider),
     );
@@ -78,6 +79,18 @@ final class AuthRepository {
     return result.user;
   }
 
+  Future<User> reactivate({
+    required String emailOrUsername,
+    required String password,
+  }) async {
+    final result = await _remote.reactivate(
+      emailOrUsername: emailOrUsername,
+      password: password,
+    );
+    await _local.saveSession(tokens: result.tokens, userId: result.user.id);
+    return result.user;
+  }
+
   Future<void> resendVerification({required String email}) =>
       _remote.resendVerification(email: email);
 
@@ -90,6 +103,10 @@ final class AuthRepository {
       await _local.clearSession();
     }
   }
+
+  /// Drops the local session only (e.g. after the account was deleted and
+  /// the server already revoked every session).
+  Future<void> clearLocalSession() => _local.clearSession();
 
   Future<void> forgotPassword({required String email}) =>
       _remote.forgotPassword(email: email);

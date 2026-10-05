@@ -374,8 +374,7 @@ final router = GoRouter(
             routes: [
               GoRoute(path: ':userId', builder: (context, state) =>
                 UserProfileScreen(userId: state.pathParameters['userId']!)),
-              GoRoute(path: 'followers', builder: (_, __) => const FollowersScreen()),
-              GoRoute(path: 'following', builder: (_, __) => const FollowingScreen()),
+              // Friend model (CLAUDE.md): friends & requests live at /friends.
             ],
           ),
         ]),
@@ -475,6 +474,25 @@ class CachedNotification {
   late DateTime createdAt;
 }
 ```
+
+### Implementation (as built)
+
+Instead of one Isar collection per entity, the app stores each cached read
+as a JSON blob in a single `CacheEntry` collection keyed by a logical key
+(`feed:first`, `collection:all`, `events:upcoming`, `notifications:first`,
+`game:{id}`) — see `lib/core/storage/cache_store.dart`. Reads are
+network-first (`readThrough`): fresh data is written to the cache, and on a
+connectivity failure a cached value younger than its TTL is returned with
+its `cachedAt`, which the screens show as the stale-data banner. When Isar
+cannot be opened the app uses an in-memory store.
+
+`cache_entry.g.dart` is generated with `isar_generator 3.1.0+1` in a
+throwaway package (it pins an analyzer that conflicts with
+riverpod_generator/freezed) and excluded from the regular part builder in
+`build.yaml`. To regenerate: create a package depending on `isar: 3.1.0+1`,
+`isar_generator: 3.1.0+1` and `build_runner`, copy
+`lib/core/storage/cache_entry.dart` into it, run
+`dart run build_runner build`, and copy the `.g.dart` back.
 
 ### Cache Strategy
 
@@ -615,7 +633,7 @@ const channel = AndroidNotificationChannel(
 const channel2 = AndroidNotificationChannel(
   'meeple_hearth_social',
   'Social Activity',
-  description: 'Likes, comments, and followers',
+  description: 'Likes, comments, and friend requests',
   importance: Importance.defaultImportance,
 );
 ```
@@ -970,6 +988,10 @@ ThemeData get lightTheme => ThemeData(
 <string>We use this to improve the app and understand how features are used.</string>
 ```
 
+**Bundle / application id (as built):** `com.meeplehearth.meeple` on both
+platforms (Android `applicationId`/`namespace`, iOS
+`PRODUCT_BUNDLE_IDENTIFIER`).
+
 **Entitlements:**
 ```xml
 <key>aps-environment</key>
@@ -989,7 +1011,7 @@ ThemeData get lightTheme => ThemeData(
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.meeplehearth.app",
+        "appID": "<TEAM_ID>.com.meeplehearth.meeple",
         "paths": ["/events/*", "/posts/*", "/profile/*", "/library/*"]
       }
     ]
@@ -1015,8 +1037,8 @@ ThemeData get lightTheme => ThemeData(
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.meeplehearth.app",
-    "sha256_cert_fingerprints": ["SHA256_OF_YOUR_SIGNING_CERT"]
+    "package_name": "com.meeplehearth.meeple",
+    "sha256_cert_fingerprints": ["<SHA-256 of the release signing cert>"]
   }
 }]
 ```
@@ -1069,6 +1091,42 @@ Launch app
 - [ ] `flutter analyze` passes with zero warnings
 - [ ] Sentry DSN configured for crash reporting
 - [ ] `android:label` in AndroidManifest updated to "Meeple"
-- [ ] Bundle ID: `com.meeplehearth.app` on both platforms
+- [ ] Bundle ID: `com.meeplehearth.meeple` on both platforms
 - [ ] Signing certificates set up (iOS provisioning + Android keystore)
 - [ ] Keystore file stored securely (NOT in git), documented in team password manager
+
+---
+
+## 17. Build Configuration (`--dart-define`) and Native Setup
+
+Every value is optional; a missing one disables its feature without
+crashing.
+
+| Define | Used for |
+|--------|----------|
+| `ENVIRONMENT` | `development` (default) / `staging` / `production` API host |
+| `API_BASE_URL` | Override the API origin (e.g. a LAN IP for a device) |
+| `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_ANDROID_APP_ID`, `FIREBASE_IOS_APP_ID`, `FIREBASE_STORAGE_BUCKET` (opt.), `FIREBASE_IOS_BUNDLE_ID` (opt.) | Firebase init (`lib/firebase_options.dart`) → FCM push |
+| `GOOGLE_SERVER_CLIENT_ID` | Web OAuth client id the backend verifies Google ID tokens against; enables "Continue with Google" |
+| `GOOGLE_IOS_CLIENT_ID` | iOS OAuth client id (also set the reversed id in `ios/Flutter/GoogleSignIn.xcconfig`) |
+| `POSTHOG_API_KEY`, `POSTHOG_HOST` | Product analytics |
+| `SENTRY_DSN` | Crash reporting |
+| `WEB_ORIGIN` | Share links (default `https://meeple-hearth.com`) |
+
+Native steps that need team credentials:
+
+- **iOS push:** enable Push Notifications + Background Modes (remote
+  notifications) for the App ID, upload the APNs key to Firebase; switch
+  `aps-environment` to `production` for release.
+- **Universal Links / App Links:** replace `<TEAM_ID>` and the signing-cert
+  SHA-256 in the `.well-known` files served by the backend; the Android
+  host comes from the Gradle property `meeple.deepLinkHost` (default
+  `meeple-hearth.com`), iOS from `Runner.entitlements`.
+- **Google Sign-In on Android:** register the debug/release SHA-1 for
+  `com.meeplehearth.meeple` in the Google Cloud console.
+- **Release signing:** `android/key.properties` + keystore (never committed).
+
+Code generation: `dart run build_runner build --delete-conflicting-outputs`
+(models/providers) and `flutter gen-l10n` (ARB → `lib/l10n/gen`). Strings live
+in `lib/l10n/app_en.arb` and `app_zh.arb` (Simplified Chinese, sent to the
+server as `zh-CN`).

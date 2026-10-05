@@ -4,6 +4,7 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/features/library/domain/game_model.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 
 /// Grid tile for a [Game] in search results or the browse view.
 class GameCard extends StatelessWidget {
@@ -24,21 +25,32 @@ class GameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: ValueKey('game-${game.id}'),
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _GameThumbnail(game: game, trailing: trailing),
-          AppSpacing.vGapSm,
-          Text(
-            game.name,
-            style: AppTypography.titleSmall,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          AppSpacing.vGapXs,
-          _GameMeta(game: game),
-        ],
+      // In grids/rows (bounded height) the cover takes the remaining space
+      // so long titles never overflow; unbounded, it is square.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final thumb = _GameThumbnail(game: game, trailing: trailing);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (constraints.hasBoundedHeight)
+                Expanded(child: Center(child: thumb))
+              else
+                thumb,
+              AppSpacing.vGapSm,
+              Text(
+                game.name,
+                style: AppTypography.titleSmall,
+                maxLines: constraints.hasBoundedHeight ? 1 : 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              _GameMeta(game: game),
+            ],
+          );
+        },
       ),
     );
   }
@@ -59,9 +71,9 @@ class _GameThumbnail extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: AppSpacing.borderRadiusLg,
-            child: game.thumbnailUrl != null
+            child: game.coverUrl != null
                 ? CachedNetworkImage(
-                    imageUrl: game.thumbnailUrl!,
+                    imageUrl: game.coverUrl!,
                     fit: BoxFit.cover,
                     errorWidget: (_, __, ___) => const _GameThumbnailFallback(),
                   )
@@ -144,22 +156,18 @@ class _GameMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final players = _playerRange(game);
+    final players = game.playersLabel;
+    final year = game.yearPublished;
+    final text = [
+      if (players != null) context.l10n.gamePlayers(players),
+      if (players == null && year != null) '$year',
+    ].join();
     return Text(
-      players,
+      text,
       style: AppTypography.bodySmall,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
-  }
-
-  String _playerRange(Game g) {
-    if (g.minPlayers != null && g.maxPlayers != null) {
-      if (g.minPlayers == g.maxPlayers) return '${g.minPlayers} players';
-      return '${g.minPlayers}–${g.maxPlayers} players';
-    }
-    if (g.minPlayers != null) return '${g.minPlayers}+ players';
-    return '';
   }
 }
 
@@ -188,9 +196,9 @@ class GameListTile extends StatelessWidget {
       onTap: onTap,
       leading: ClipRRect(
         borderRadius: AppSpacing.borderRadiusSm,
-        child: game.thumbnailUrl != null
+        child: game.coverUrl != null
             ? CachedNetworkImage(
-                imageUrl: game.thumbnailUrl!,
+                imageUrl: game.coverUrl!,
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,

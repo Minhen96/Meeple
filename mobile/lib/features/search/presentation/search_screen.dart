@@ -1,103 +1,129 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
-import 'package:meeple_hearth/shared/widgets/empty_state.dart';
+import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/events/presentation/widgets/event_card.dart';
+import 'package:meeple_hearth/features/library/presentation/widgets/game_card.dart';
+import 'package:meeple_hearth/features/search/data/search_repository.dart';
+import 'package:meeple_hearth/features/search/providers/search_provider.dart';
+import 'package:meeple_hearth/features/social/presentation/friend_button.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/widgets/error_state.dart';
+import 'package:meeple_hearth/shared/widgets/skeleton_widget.dart';
+import 'package:meeple_hearth/shared/widgets/status_banners.dart';
+import 'package:meeple_hearth/shared/widgets/user_widgets.dart';
 
-/// Search screen — Phase 1 stub.
-///
-/// Full implementation searches users, games, and events in one unified bar.
-class SearchScreen extends StatefulWidget {
+/// Unified search (SCREENS §13): games, players and events, 400 ms
+/// debounce, recent searches when the input is empty.
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
+  Timer? _debounce;
   String _query = '';
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(() => _query = value.trim());
+      if (_query.length >= 2) {
+        ref.read(recentSearchesProvider.notifier).add(_query);
+      }
+    });
+  }
+
+  void _useRecent(String q) {
+    _controller.text = q;
+    _controller.selection = TextSelection.collapsed(offset: q.length);
+    _debounce?.cancel();
+    setState(() => _query = q);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: _SearchAppBar(
-        controller: _controller,
-        onChanged: (q) => setState(() => _query = q),
-        onClose: () => Navigator.of(context).pop(),
+      appBar: AppBar(
+        backgroundColor: AppColors.glassBackground,
+        titleSpacing: 0,
+        title: TextField(
+          key: const Key('search-input'),
+          controller: _controller,
+          autofocus: true,
+          onChanged: _onChanged,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: l10n.searchHint,
+            prefixIcon: const Icon(Icons.search_rounded),
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: l10n.commonClose,
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () =>
+                context.canPop() ? context.pop() : context.go(AppRoutes.home),
+          ),
+        ],
       ),
-      body: _query.isEmpty ? const _SearchPrompt() : const _SearchResults(),
+      body: _query.isEmpty ? _Recent(onPick: _useRecent) : _Results(query: _query),
     );
   }
 }
 
-class _SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _SearchAppBar({
-    required this.controller,
-    required this.onChanged,
-    required this.onClose,
-  });
+class _Recent extends ConsumerWidget {
+  const _Recent({required this.onPick});
 
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClose;
+  final ValueChanged<String> onPick;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
-  Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppColors.surface,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      title: TextField(
-        controller: controller,
-        autofocus: true,
-        onChanged: onChanged,
-        textInputAction: TextInputAction.search,
-        style: AppTypography.bodyLarge,
-        decoration: InputDecoration(
-          hintText: 'Search games, people, events…',
-          hintStyle: AppTypography.bodyLarge.copyWith(
-            color: AppColors.onSurfaceVariant,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final recent = ref.watch(recentSearchesProvider).valueOrNull ?? const [];
+    return ListView(
+      children: [
+        if (recent.isNotEmpty)
+          SectionHeader(
+            title: l10n.searchRecent,
+            actionLabel: l10n.searchClear,
+            onAction: () => ref.read(recentSearchesProvider.notifier).clear(),
           ),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          filled: false,
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: AppColors.onSurfaceVariant,
+        for (final q in recent)
+          ListTile(
+            leading: const Icon(Icons.history_rounded),
+            title: Text(q),
+            onTap: () => onPick(q),
+            trailing: IconButton(
+              tooltip: l10n.commonDelete,
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () => ref.read(recentSearchesProvider.notifier).remove(q),
+            ),
           ),
-          suffixIcon: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder: (_, value, __) => value.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded),
-                    color: AppColors.onSurfaceVariant,
-                    onPressed: () {
-                      controller.clear();
-                      onChanged('');
-                    },
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: onClose,
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Text(
-            'Cancel',
-            style: AppTypography.labelLarge.copyWith(
-              color: AppColors.primary,
+            l10n.searchEmptyPrompt,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.onSurfaceVariant,
             ),
           ),
         ),
@@ -106,76 +132,94 @@ class _SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-class _SearchPrompt extends StatelessWidget {
-  const _SearchPrompt();
+class _Results extends ConsumerWidget {
+  const _Results({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final results = ref.watch(searchResultsProvider(query));
+    return results.when(
+      loading: () => const _ResultsSkeleton(),
+      error: (e, _) => ErrorState(
+        error: e,
+        onRetry: () => ref.invalidate(searchResultsProvider(query)),
+      ),
+      data: (r) => r.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                child: Text(
+                  l10n.searchNoResults(query),
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodyLarge,
+                ),
+              ),
+            )
+          : _ResultsList(results: r),
+    );
+  }
+}
+
+class _ResultsList extends StatelessWidget {
+  const _ResultsList({required this.results});
+
+  final SearchResults results;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return ListView(
-      padding: AppSpacing.pagePadding,
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       children: [
-        AppSpacing.vGapLg,
-        Text('Search by', style: AppTypography.titleMedium),
-        AppSpacing.vGapMd,
-        _SearchCategoryChip(
-          icon: Icons.casino_rounded,
-          label: 'Games',
-        ),
-        AppSpacing.vGapSm,
-        _SearchCategoryChip(
-          icon: Icons.person_outline_rounded,
-          label: 'People',
-        ),
-        AppSpacing.vGapSm,
-        _SearchCategoryChip(
-          icon: Icons.event_outlined,
-          label: 'Events',
-        ),
+        if (results.games.isNotEmpty) ...[
+          SectionHeader(title: l10n.searchGames),
+          for (final g in results.games)
+            GameListTile(
+              game: g,
+              subtitle: g.yearPublished?.toString(),
+              onTap: () => context.push(AppRoutes.gameDetail(g.id)),
+            ),
+        ],
+        if (results.users.isNotEmpty) ...[
+          SectionHeader(title: l10n.searchPlayers),
+          for (final u in results.users)
+            UserRow(
+              user: u,
+              trailing: FriendButton(userId: u.id, compact: true, initial: u.friendshipStatus),
+            ),
+        ],
+        if (results.events.isNotEmpty) ...[
+          SectionHeader(title: l10n.searchEvents),
+          for (final e in results.events) EventCard(event: e),
+        ],
       ],
     );
   }
 }
 
-class _SearchCategoryChip extends StatelessWidget {
-  const _SearchCategoryChip({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
+class _ResultsSkeleton extends StatelessWidget {
+  const _ResultsSkeleton();
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppSpacing.borderRadiusMd,
-      onTap: () {},
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        child: Row(
+  Widget build(BuildContext context) => SkeletonShimmer(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            Icon(icon, size: 22, color: AppColors.onSurfaceVariant),
-            AppSpacing.hGapMd,
-            Text(label, style: AppTypography.bodyLarge),
+            for (var i = 0; i < 6; i++)
+              const Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.md),
+                child: Row(
+                  children: [
+                    SkeletonCircle(size: 48),
+                    AppSpacing.hGapMd,
+                    Expanded(child: SkeletonBox(height: 16)),
+                  ],
+                ),
+              ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SearchResults extends StatelessWidget {
-  const _SearchResults();
-
-  @override
-  Widget build(BuildContext context) {
-    return const EmptyState(
-      icon: Icons.search_off_rounded,
-      title: 'No results',
-      subtitle: 'Try a different search term.',
-    );
-  }
+      );
 }

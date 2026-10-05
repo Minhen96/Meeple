@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:meeple_hearth/core/network/auth_session.dart';
 import 'package:meeple_hearth/core/storage/secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -5,7 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'auth_local_storage.g.dart';
 
 @Riverpod(keepAlive: true)
-AuthLocalStorage authLocalStorage(AuthLocalStorageRef ref) => AuthLocalStorage(
+AuthLocalStorage authLocalStorage(Ref ref) => AuthLocalStorage(
       ref.read(secureStorageProvider),
       ref.read(authSessionManagerProvider),
     );

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:meeple_hearth/core/constants/api_constants.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/auth_session.dart';
@@ -9,7 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'auth_remote_data_source.g.dart';
 
 @riverpod
-AuthRemoteDataSource authRemoteDataSource(AuthRemoteDataSourceRef ref) =>
+AuthRemoteDataSource authRemoteDataSource(Ref ref) =>
     AuthRemoteDataSource(ref.read(dioProvider));
 
 /// Result of an endpoint that signs the user in.
@@ -67,6 +68,17 @@ final class AuthRemoteDataSource {
   /// `GOOGLE_ACCOUNT_CONFLICT` when the email belongs to another account.
   Future<AuthResult> googleLogin({required String idToken}) =>
       _signIn(ApiConstants.googleLogin, {'idToken': idToken});
+
+  /// `POST /auth/reactivate {emailOrUsername, password}` — restores an
+  /// account inside its 30-day deletion grace period and signs in.
+  Future<AuthResult> reactivate({
+    required String emailOrUsername,
+    required String password,
+  }) =>
+      _signIn(
+        ApiConstants.reactivate,
+        {'emailOrUsername': emailOrUsername, 'password': password},
+      );
 
   Future<void> resendVerification({required String email}) async {
     try {

@@ -1,195 +1,170 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
-import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/features/library/domain/game_model.dart';
+import 'package:meeple_hearth/features/library/presentation/library_screen.dart';
+import 'package:meeple_hearth/features/library/presentation/widgets/game_card.dart';
+import 'package:meeple_hearth/features/library/providers/library_provider.dart';
+import 'package:meeple_hearth/features/onboarding/presentation/onboarding_scaffold.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
+import 'package:meeple_hearth/shared/widgets/app_toast.dart';
+import 'package:meeple_hearth/shared/widgets/error_state.dart';
+import 'package:meeple_hearth/shared/widgets/skeleton_widget.dart';
 
-/// Onboarding step 5 — add first game to library, then complete onboarding.
-class OnboardingAddGameScreen extends ConsumerWidget {
+/// Onboarding step 5 (SCREENS §3.6): search (popular games when empty) and
+/// quick-add to the collection, then finish.
+class OnboardingAddGameScreen extends ConsumerStatefulWidget {
   const OnboardingAddGameScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
+  ConsumerState<OnboardingAddGameScreen> createState() =>
+      _OnboardingAddGameScreenState();
+}
+
+class _OnboardingAddGameScreenState
+    extends ConsumerState<OnboardingAddGameScreen> {
+  Timer? _debounce;
+  String _query = '';
+  bool _finishing = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _quickAdd(Game game) async {
+    final l10n = context.l10n;
+    final add = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
         child: Padding(
-          padding: AppSpacing.pagePadding,
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _OnboardingProgress(step: 4, total: 4),
-              AppSpacing.vGapXl,
               Text(
-                'Add your first game',
-                style: AppTypography.headlineMedium,
+                l10n.onboardingAddGameConfirm(game.name),
+                style: AppTypography.titleLarge,
+                textAlign: TextAlign.center,
               ),
-              AppSpacing.vGapSm,
-              Text(
-                'Search the BoardGameGeek database to add games to your collection.',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              AppSpacing.vGapXxl,
-              // Search bar stub
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
-                  borderRadius: AppSpacing.borderRadiusMd,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.search_rounded,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                    AppSpacing.hGapSm,
-                    Text(
-                      'Search games…',
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AppSpacing.vGapXl,
-              // Popular games placeholder
-              Text('Popular right now', style: AppTypography.titleMedium),
-              AppSpacing.vGapMd,
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: AppSpacing.sm,
-                  mainAxisSpacing: AppSpacing.sm,
-                  children: const [
-                    _GamePlaceholderCard(name: 'Catan'),
-                    _GamePlaceholderCard(name: 'Ticket to Ride'),
-                    _GamePlaceholderCard(name: 'Pandemic'),
-                    _GamePlaceholderCard(name: 'Azul'),
-                    _GamePlaceholderCard(name: 'Wingspan'),
-                    _GamePlaceholderCard(name: 'Gloomhaven'),
-                  ],
-                ),
-              ),
-              AppSpacing.vGapMd,
+              AppSpacing.vGapLg,
               AppButton(
-                label: 'Finish Setup',
-                onPressed: () => _completeOnboarding(context, ref),
+                key: const Key('quick-add-confirm'),
+                label: l10n.gameAddToCollection,
+                onPressed: () => Navigator.of(sheet).pop(true),
               ),
-              AppSpacing.vGapMd,
-              AppTextButton(
-                label: 'Skip — I\'ll add games later',
-                onPressed: () => _completeOnboarding(context, ref),
-              ),
-              AppSpacing.vGapXl,
             ],
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _completeOnboarding(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    // Mark onboarding complete — router redirect handles navigation to home.
-    final user = ref.read(authNotifierProvider).valueOrNull;
-    if (user != null) {
-      ref.read(authNotifierProvider.notifier).updateUser(
-            user.copyWith(onboardingCompleted: true),
-          );
+    if (add != true || !mounted) return;
+    try {
+      await ref
+          .read(collectionNotifierProvider.notifier)
+          .setFlags(game, isOwned: true);
+      if (mounted) {
+        showToast(context, l10n.gameAddedToCollection, type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
     }
-    if (context.mounted) context.go(AppRoutes.home);
   }
-}
-
-class _GamePlaceholderCard extends StatelessWidget {
-  const _GamePlaceholderCard({required this.name});
-
-  final String name;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: AppSpacing.borderRadiusMd,
+    final l10n = context.l10n;
+    final results = ref.watch(gameSearchNotifierProvider(_query));
+    final owned = ref.watch(collectionNotifierProvider).valueOrNull;
+    return OnboardingScaffold(
+      route: AppRoutes.onboardingAddGame,
+      title: l10n.onboardingAddGameTitle,
+      subtitle: l10n.onboardingAddGameBody,
+      bottom: AppButton(
+        key: const Key('onboarding-finish'),
+        label: l10n.onboardingFinish,
+        isLoading: _finishing,
+        onPressed: () async {
+          setState(() => _finishing = true);
+          await goToNextOnboardingStep(context, ref, AppRoutes.onboardingAddGame);
+          if (mounted) setState(() => _finishing = false);
+        },
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
-              borderRadius: AppSpacing.borderRadiusSm,
-            ),
-            child: const Icon(
-              Icons.casino_rounded,
-              color: AppColors.onSurfaceVariant,
-              size: 28,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: TextField(
+              onChanged: (v) {
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 400), () {
+                  if (mounted) setState(() => _query = v.trim());
+                });
+              },
+              decoration: InputDecoration(
+                hintText: l10n.librarySearchHint,
+                prefixIcon: const Icon(Icons.search_rounded),
+              ),
             ),
           ),
-          AppSpacing.vGapXs,
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-            child: Text(
-              name,
-              style: AppTypography.labelSmall,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          if (_query.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(l10n.onboardingPopular, style: AppTypography.titleMedium),
+              ),
+            ),
+          Expanded(
+            child: results.when(
+              loading: () => GridView.count(
+                crossAxisCount: 3,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                children: List.filled(6, const GameCardSkeleton()),
+              ),
+              error: (e, _) => ErrorState(
+                error: e,
+                onRetry: () => ref.invalidate(gameSearchNotifierProvider(_query)),
+              ),
+              data: (page) => page.content.isEmpty
+                  ? Center(child: Text(l10n.libraryNoResults(_query)))
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: AppSpacing.md,
+                        mainAxisSpacing: AppSpacing.lg,
+                        childAspectRatio: 0.62,
+                      ),
+                      itemCount: page.content.length,
+                      itemBuilder: (_, i) {
+                        final g = page.content[i];
+                        final entry = owned?.entryFor(g.id);
+                        return GameCard(
+                          game: g,
+                          trailing:
+                              entry == null ? null : CollectionBadges(entry: entry),
+                          onTap: () => _quickAdd(g),
+                        );
+                      },
+                    ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _OnboardingProgress extends StatelessWidget {
-  const _OnboardingProgress({required this.step, required this.total});
-
-  final int step;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(total, (i) {
-        final isActive = i < step;
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: AppSpacing.xs),
-            height: 4,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? AppColors.primary
-                  : AppColors.surfaceContainerHigh,
-              borderRadius: AppSpacing.borderRadiusSm,
-            ),
-          ),
-        );
-      }),
     );
   }
 }

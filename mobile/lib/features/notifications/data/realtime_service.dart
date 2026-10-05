@@ -8,6 +8,7 @@ import 'package:meeple_hearth/core/network/auth_session.dart';
 import 'package:meeple_hearth/core/utils/app_logger.dart';
 import 'package:meeple_hearth/features/auth/domain/user_model.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/features/notifications/domain/notification_model.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
@@ -40,7 +41,9 @@ final realtimeServiceProvider = Provider<RealtimeService>((ref) {
 ///   shared single-flight [AuthSessionManager]) before every (re)connect when
 ///   it is close to expiry, or unconditionally after the server rejected or
 ///   closed the session.
-/// * Per-user events arrive on `/user/queue/notifications`.
+/// * Per-user events arrive on `/user/queue/notifications` as
+///   `{notification: NotificationDto, unreadCount}` (GAP §6.3); bare legacy
+///   `NotificationResponse` frames are still understood.
 /// * The server closes sessions whose token expired or was revoked; the
 ///   service reconnects with exponential backoff and stops for good once the
 ///   refresh token is rejected (the user is logged out) or [stop] is called.
@@ -50,7 +53,7 @@ final class RealtimeService {
   static const _maxBackoff = Duration(seconds: 30);
 
   final AuthSessionManager _session;
-  final _notifications = StreamController<Map<String, dynamic>>.broadcast();
+  final _notifications = StreamController<RealtimeNotification>.broadcast();
   final _random = Random();
 
   StompClient? _client;
@@ -60,8 +63,8 @@ final class RealtimeService {
   int _attempt = 0;
   int _generation = 0;
 
-  /// Notification payloads (`NotificationResponse` JSON).
-  Stream<Map<String, dynamic>> get notifications => _notifications.stream;
+  /// Parsed notification frames.
+  Stream<RealtimeNotification> get notifications => _notifications.stream;
 
   bool get isConnected => _client?.connected ?? false;
 
@@ -145,12 +148,25 @@ final class RealtimeService {
     client.activate();
   }
 
+  /// Visible for tests: handles one STOMP frame body.
+  void handleFrameBody(String? body) => _onNotification(StompFrame(
+        command: 'MESSAGE',
+        body: body,
+      ));
+
   void _onNotification(StompFrame frame) {
     final body = frame.body;
     if (body == null || _notifications.isClosed) return;
     try {
       final decoded = jsonDecode(body);
-      if (decoded is Map<String, dynamic>) _notifications.add(decoded);
+      final parsed = decoded is Map<String, dynamic>
+          ? RealtimeNotification.tryParse(decoded)
+          : null;
+      if (parsed != null) {
+        _notifications.add(parsed);
+      } else {
+        AppLogger.warning('Ignoring unknown notification frame');
+      }
     } on FormatException {
       AppLogger.warning('Ignoring malformed notification frame');
     }

@@ -4,14 +4,21 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 
-/// First onboarding screen — shown once after successful registration.
+/// Onboarding step 1 (SCREENS §3.2): logo, tagline, three teasers.
 class OnboardingWelcomeScreen extends StatelessWidget {
   const OnboardingWelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final teasers = [
+      (Icons.library_books_outlined, l10n.welcomeLibrary),
+      (Icons.event_outlined, l10n.welcomeEvents),
+      (Icons.group_add_outlined, l10n.welcomeMatching),
+    ];
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -20,17 +27,16 @@ class OnboardingWelcomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              // Illustration placeholder
               Center(
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.4),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 48,
                         offset: const Offset(0, 12),
                       ),
@@ -39,33 +45,44 @@ class OnboardingWelcomeScreen extends StatelessWidget {
                   child: const Icon(
                     Icons.games_rounded,
                     color: AppColors.onPrimary,
-                    size: 72,
+                    size: 64,
                   ),
                 ),
               ),
-              AppSpacing.vGapXxl,
+              AppSpacing.vGapXl,
               Text(
-                'Welcome to\nMeeple',
-                style: AppTypography.headlineLarge,
+                l10n.appName,
+                style: AppTypography.displaySmall.copyWith(color: AppColors.primary),
                 textAlign: TextAlign.center,
               ),
-              AppSpacing.vGapMd,
+              AppSpacing.vGapSm,
               Text(
-                'Your board game community. Track your collection, discover events, and connect with fellow gamers.',
+                l10n.welcomeTagline,
                 style: AppTypography.bodyLarge.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
+              AppSpacing.vGapXl,
+              for (final (icon, text) in teasers)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppColors.primaryFixed,
+                        child: Icon(icon, color: AppColors.primary),
+                      ),
+                      AppSpacing.hGapMd,
+                      Expanded(child: Text(text, style: AppTypography.titleSmall)),
+                    ],
+                  ),
+                ),
               const Spacer(),
               AppButton(
-                label: "Let's Get Started",
+                key: const Key('welcome-start'),
+                label: l10n.welcomeStart,
                 onPressed: () => context.go(AppRoutes.onboardingProfile),
-              ),
-              AppSpacing.vGapMd,
-              AppTextButton(
-                label: 'Skip setup',
-                onPressed: () => context.go(AppRoutes.home),
               ),
               AppSpacing.vGapXl,
             ],

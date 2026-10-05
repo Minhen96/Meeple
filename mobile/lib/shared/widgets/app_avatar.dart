@@ -140,7 +140,8 @@ class _OnlineIndicator extends StatelessWidget {
   }
 }
 
-extension AppAvatarSizes on AppAvatar {
+/// Standard avatar diameters.
+abstract final class AvatarSize {
   static const double xs = 24;
   static const double sm = 32;
   static const double md = 40;

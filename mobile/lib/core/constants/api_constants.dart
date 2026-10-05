@@ -4,8 +4,7 @@
 //   flutter run --dart-define=ENVIRONMENT=production
 //   flutter run --dart-define=ENVIRONMENT=staging
 //   flutter run  (defaults to development — points to Android emulator localhost)
-//
-// In CI/CD, set ENVIRONMENT via your build configuration.
+//   flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8080  (override)
 
 /// All API endpoint paths and configuration constants.
 abstract final class ApiConstants {
@@ -13,18 +12,23 @@ abstract final class ApiConstants {
     'ENVIRONMENT',
     defaultValue: 'development',
   );
+  static const _baseOverride = String.fromEnvironment('API_BASE_URL');
 
-  static const String baseUrl = _env == 'production'
-      ? 'https://api.meeple-hearth.com'
-      : _env == 'staging'
-          ? 'https://staging-api.meeple-hearth.com'
-          : 'http://10.0.2.2:8080'; // Android emulator localhost
+  static const String baseUrl = _baseOverride != ''
+      ? _baseOverride
+      : _env == 'production'
+          ? 'https://api.meeple-hearth.com'
+          : _env == 'staging'
+              ? 'https://staging-api.meeple-hearth.com'
+              : 'http://10.0.2.2:8080'; // Android emulator localhost
 
-  static const String wsUrl = _env == 'production'
-      ? 'wss://api.meeple-hearth.com/ws'
-      : _env == 'staging'
-          ? 'wss://staging-api.meeple-hearth.com/ws'
-          : 'ws://10.0.2.2:8080/ws';
+  static String get wsUrl => _baseOverride != ''
+      ? '${_baseOverride.replaceFirst('http', 'ws')}/ws'
+      : _env == 'production'
+          ? 'wss://api.meeple-hearth.com/ws'
+          : _env == 'staging'
+              ? 'wss://staging-api.meeple-hearth.com/ws'
+              : 'ws://10.0.2.2:8080/ws';
 
   static const String cdnUrl = 'https://cdn.meeple-hearth.com';
 
@@ -40,24 +44,38 @@ abstract final class ApiConstants {
   static const String verifyEmail = '$v1/auth/verify-email';
   static const String resendVerification = '$v1/auth/resend-verification';
   static const String googleLogin = '$v1/auth/google';
+  static const String reactivate = '$v1/auth/reactivate';
+  static const String sessions = '$v1/auth/sessions';
+  static const String checkUsername = '$v1/auth/check-username';
+  static const String checkEmail = '$v1/auth/check-email';
 
   // ── Users ─────────────────────────────────────────────────────────────────
   static const String me = '$v1/users/me';
   static const String users = '$v1/users';
+  static const String fcmTokens = '$v1/users/me/fcm-tokens';
+
+  // ── Social ────────────────────────────────────────────────────────────────
+  static const String friends = '$v1/friends';
+  static const String friendRequests = '$v1/friend-requests';
+  static const String reports = '$v1/reports';
+  static const String search = '$v1/search';
 
   // ── Games ─────────────────────────────────────────────────────────────────
   static const String games = '$v1/games';
   static const String myCollection = '$v1/users/me/games';
+  static const String aiRules = '$v1/ai/rules';
 
-  // ── Feed ──────────────────────────────────────────────────────────────────
+  // ── Feed / Posts ──────────────────────────────────────────────────────────
   static const String feed = '$v1/feed';
-
-  // ── Posts ─────────────────────────────────────────────────────────────────
   static const String posts = '$v1/posts';
 
-  // ── Events ────────────────────────────────────────────────────────────────
+  // ── Events / Matching ─────────────────────────────────────────────────────
   static const String events = '$v1/events';
   static const String myEvents = '$v1/events/me';
+  static const String matches = '$v1/matches';
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  static const String notifications = '$v1/notifications';
 
   // ── Uploads ────────────────────────────────────────────────────────────────
   /// Body `{contentType, size}` → `{uploadUrl, key, publicUrl}`.

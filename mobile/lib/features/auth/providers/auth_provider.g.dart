@@ -6,7 +6,23 @@ part of 'auth_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authNotifierHash() => r'b50000b1ed49936ce32c59a8e8f480596fb2524e';
+String _$logoutHooksHash() => r'adbc86b976b7356c1239ec3fe1fdb36cb089b65b';
+
+/// See also [logoutHooks].
+@ProviderFor(logoutHooks)
+final logoutHooksProvider = Provider<LogoutHooks>.internal(
+  logoutHooks,
+  name: r'logoutHooksProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$logoutHooksHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef LogoutHooksRef = ProviderRef<LogoutHooks>;
+String _$authNotifierHash() => r'ce6512e98d3a888442c8e71da1a057ba62b6deed';
 
 /// See also [AuthNotifier].
 @ProviderFor(AuthNotifier)

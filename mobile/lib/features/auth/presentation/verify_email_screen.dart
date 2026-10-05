@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
-import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
@@ -46,7 +46,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   Future<void> _resend(String email) => _run(
         () => ref.read(authNotifierProvider.notifier).resendVerification(email),
-        successMessage: 'Verification email resent',
+        successMessage: context.l10n.authVerificationResent,
       );
 
   Future<void> _run(
@@ -55,6 +55,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   }) async {
     if (_busy) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     setState(() => _busy = true);
     try {
       await action();
@@ -65,9 +66,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            e is ApiException
-                ? e.message
-                : 'Something went wrong. Please try again.',
+            localizedError(l10n, e),
           ),
         ),
       );
@@ -79,7 +78,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final knownEmail = widget.email;
-    final email = knownEmail ?? 'your email';
+    final email = knownEmail ?? context.l10n.authYourEmail;
 
     return Scaffold(
       body: SafeArea(
@@ -118,10 +117,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                 ),
               ),
               AppSpacing.vGapXl,
-              Text('Check your inbox', style: AppTypography.headlineSmall),
+              Text(context.l10n.authCheckInbox, style: AppTypography.headlineSmall),
               AppSpacing.vGapMd,
               Text(
-                "We've sent a verification link to\n$email",
+                context.l10n.authVerifySentTo(email),
                 style: AppTypography.bodyLarge.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
@@ -129,7 +128,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
               AppSpacing.vGapXs,
               Text(
-                'Click the link in the email to activate your account.',
+                context.l10n.authVerifyBody,
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
@@ -138,13 +137,13 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               const Spacer(),
               // Verified via the link in another app/browser — sign in now.
               AppButton(
-                label: "I've Verified My Email",
+                label: context.l10n.authIveVerified,
                 onPressed: _busy ? null : () => context.go(AppRoutes.login),
               ),
               if (knownEmail != null) ...[
                 AppSpacing.vGapMd,
                 AppOutlinedButton(
-                  label: 'Resend Email',
+                  label: context.l10n.authResendEmail,
                   onPressed: _busy ? null : () => _resend(knownEmail),
                 ),
               ],
