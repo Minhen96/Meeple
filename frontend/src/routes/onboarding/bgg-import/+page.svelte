@@ -1,19 +1,27 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
+	import BggImportPanel from '$lib/components/game/BggImportPanel.svelte';
+	import { m } from '$lib/i18n';
+
+	const NEXT_STEP = '/onboarding/find-friends';
 </script>
 
-<svelte:head><title>Import Collection — Meeple</title></svelte:head>
+<svelte:head><title>{m('library.bgg.title')} — Meeple</title></svelte:head>
 
-<h2 class="text-2xl font-extrabold font-headline mb-2">Import your collection</h2>
-<p class="text-sm text-on-surface-variant mb-6">Connect your BoardGameGeek account to import your games.</p>
-
-<div class="space-y-4">
-	<input
-		type="text"
-		placeholder="BGG username"
-		class="w-full bg-surface-container-highest rounded-xl px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/20 focus:outline-none font-body text-sm"
-	/>
-	<p class="text-xs text-on-surface-variant px-1">We only read your public collection.</p>
-	<Button fullWidth>Import Collection</Button>
-	<a href="/onboarding/find-friends" class="block text-center text-sm text-on-surface-variant">Skip</a>
+<div class="flex items-center gap-3 mb-2">
+	<span class="material-symbols-outlined text-primary text-[28px]">inventory_2</span>
+	<h2 class="text-2xl font-extrabold font-headline">{m('library.bgg.title')}</h2>
 </div>
+<p class="text-sm text-on-surface-variant mb-6">{m('library.bgg.intro')}</p>
+
+<BggImportPanel context="onboarding">
+	{#snippet done()}
+		<a
+			href={NEXT_STEP}
+			class="flex items-center justify-center w-full py-3 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-bold"
+		>
+			{m('library.bgg.continue')}
+		</a>
+	{/snippet}
+</BggImportPanel>
+
+<a href={NEXT_STEP} class="block text-center text-sm text-on-surface-variant mt-4">{m('library.bgg.skip')}</a>
