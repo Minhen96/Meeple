@@ -62,8 +62,12 @@
 			.finally(() => (loadingLogs = false));
 	});
 
+	// Bumped by "Try again" so the effect below re-runs after a failed load
+	let reloadKey = $state(0);
+
 	$effect(() => {
 		const tab = activeTab;
+		void reloadKey;
 		if (tab === "reviews" && reviews === null) void loadTab(async () => (reviews = await gamesApi.getGameReviews(game.id)));
 		if (tab === "friends" && friends === null) void loadTab(async () => (friends = await gamesApi.getGameFriends(game.id)));
 		if (tab === "sessions" && sessions === null) void loadTab(() => loadSessions(true));
@@ -86,6 +90,7 @@
 		if (activeTab === "friends") friends = null;
 		if (activeTab === "sessions") sessions = null;
 		tabError = false;
+		reloadKey++;
 	}
 
 	async function loadSessions(reset: boolean) {
