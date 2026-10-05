@@ -143,7 +143,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public CursorPage<PostResponse> getEventPosts(UUID viewerId, UUID eventId, String cursor, int limit) {
         FeedCursor parsed = FeedCursor.parse(cursor);
-        if (!eventRepository.isVisibleTo(eventId, viewerId)) {
+        if (eventRepository.findVisibleById(eventId, viewerId).isEmpty()) {
             throw ApiException.notFound("EVENT_NOT_FOUND", "Event not found");
         }
         int safeLimit = clampSize(limit);
