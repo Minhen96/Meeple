@@ -113,6 +113,11 @@ export function formatEventTime(iso: string, locale: string): string {
 	return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
-export function displayName(user: { displayName: string | null; username: string }): string {
-	return user.displayName ?? user.username;
+export function displayName(user: {
+	displayName: string | null;
+	username: string | null;
+	deleted?: boolean;
+}): string {
+	if (user.deleted) return m('event.deletedUser');
+	return user.displayName ?? user.username ?? m('event.deletedUser');
 }

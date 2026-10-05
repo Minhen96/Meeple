@@ -44,6 +44,7 @@ export default {
 	'rsvp.left': '已退出',
 	'rsvp.kicked': '已移除',
 
+	deletedUser: '已注销用户',
 	'detail.back': '返回',
 	'detail.when': '时间',
 	'detail.where': '地点',

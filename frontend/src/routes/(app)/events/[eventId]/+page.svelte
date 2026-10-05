@@ -249,11 +249,9 @@
 			</p>
 		{/if}
 
-		<!-- Host row -->
-		<a
-			href="/profile/{event.host.id}"
-			class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors"
-		>
+		<!-- Host row (not linked when the host's account was deleted) -->
+		{#if event.host.deleted}
+			<div class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low">
 			<Avatar src={event.host.avatarUrl} name={displayName(event.host)} size="md" />
 			<div class="flex-1 min-w-0">
 				<p class="text-sm font-bold font-headline text-on-surface truncate">
@@ -261,8 +259,22 @@
 				</p>
 				<p class="text-[10px] font-bold text-primary uppercase tracking-widest">{m('event.detail.host')}</p>
 			</div>
-			<span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">chevron_right</span>
-		</a>
+			</div>
+		{:else}
+			<a
+				href="/profile/{event.host.id}"
+				class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors"
+			>
+			<Avatar src={event.host.avatarUrl} name={displayName(event.host)} size="md" />
+			<div class="flex-1 min-w-0">
+				<p class="text-sm font-bold font-headline text-on-surface truncate">
+					{m('event.detail.hostedBy', { name: displayName(event.host) })}
+				</p>
+				<p class="text-[10px] font-bold text-primary uppercase tracking-widest">{m('event.detail.host')}</p>
+			</div>
+				<span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">chevron_right</span>
+			</a>
+		{/if}
 
 		<!-- Info cards -->
 		<div class="grid grid-cols-2 gap-3">

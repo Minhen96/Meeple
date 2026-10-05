@@ -23,9 +23,11 @@ export interface Event {
 	id: string;
 	host: {
 		id: string;
-		username: string;
+		/** Null when the host's account was deleted. */
+		username: string | null;
 		displayName: string | null;
 		avatarUrl: string | null;
+		deleted?: boolean;
 	};
 	game: GameSummary | null;
 	title: string;

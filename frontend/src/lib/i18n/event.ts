@@ -51,6 +51,7 @@ export default {
 	'rsvp.kicked': 'Removed',
 
 	// Detail
+	deletedUser: 'Deleted User',
 	'detail.back': 'Back',
 	'detail.when': 'When',
 	'detail.where': 'Where',
