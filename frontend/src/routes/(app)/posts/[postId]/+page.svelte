@@ -11,6 +11,12 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ReportSheet from '$lib/components/social/ReportSheet.svelte';
 	import MentionText from '$lib/components/social/MentionText.svelte';
+	import PostTagsEditor from '$lib/components/social/PostTagsEditor.svelte';
+	import {
+		tagUpdatePayload,
+		type TaggedFriend,
+		type TaggedGame
+	} from '$lib/components/social/postTags';
 	import { displayName, timeAgo } from '$lib/components/social/format';
 	import { postUrl, shareLink } from '$lib/components/social/share';
 	import { toast } from 'svelte-sonner';
@@ -41,6 +47,8 @@
 	// Post editing
 	let editCaption = $state('');
 	let editLocation = $state('');
+	let editGame = $state<TaggedGame | null>(null);
+	let editFriends = $state<TaggedFriend[]>([]);
 	let savingEdit = $state(false);
 
 	// Comment editing
@@ -63,6 +71,10 @@
 		if (editing && post) {
 			editCaption = post.caption ?? '';
 			editLocation = post.location ?? '';
+			editGame = post.game
+				? { id: post.game.id, title: post.game.title, thumbnailUrl: post.game.thumbnailUrl }
+				: null;
+			editFriends = post.taggedUsers.map((u) => ({ ...u }));
 		}
 	});
 
@@ -132,7 +144,8 @@
 		try {
 			post = await postsApi.updatePost(post.id, {
 				caption: editCaption.trim(),
-				location: editLocation.trim()
+				location: editLocation.trim(),
+				...tagUpdatePayload(post, { game: editGame, friends: editFriends })
 			});
 			editing = false;
 			toast.success(m('social.edit.saved'));
@@ -467,6 +480,7 @@
 								class="w-full rounded-2xl bg-surface-container-highest px-4 py-3 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/30"
 							/>
 						</label>
+						<PostTagsEditor bind:game={editGame} bind:friends={editFriends} />
 						<div class="flex gap-2">
 							<Button type="submit" loading={savingEdit} size="sm">{m('social.edit.save')}</Button>
 							<Button variant="secondary" size="sm" onclick={() => (editing = false)}
