@@ -43,8 +43,8 @@ public class MatchController {
         return ResponseEntity.noContent().build();
     }
 
-    /** GET /api/v1/matches/requests/me — list my active match requests */
-    @GetMapping("/requests/me")
+    /** GET /api/v1/matches/requests/me (alias /requests/mine, FEATURES 6.1) — list my active match requests */
+    @GetMapping({"/requests/me", "/requests/mine"})
     public ResponseEntity<List<MatchRequestResponse>> listMyRequests(
             @AuthenticationPrincipal UserDetails userDetails) {
         UUID userId = UUID.fromString(userDetails.getUsername());

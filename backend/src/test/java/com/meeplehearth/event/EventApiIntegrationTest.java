@@ -1,13 +1,11 @@
 package com.meeplehearth.event;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.meeplehearth.support.social.ApiIntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Events API end to end: JWT auth → EventController → EventService → real Postgres. */
-class EventApiIntegrationTest extends ApiIntegrationTestBase {
+class EventApiIntegrationTest extends EventIntegrationTestBase {
 
     // -------------------------------------------------------------------------
     // Create
@@ -47,49 +45,152 @@ class EventApiIntegrationTest extends ApiIntegrationTestBase {
         assertThat(data.get("maxParticipants").asInt()).isEqualTo(8);
         assertThat(data.get("participantCount").asInt()).isEqualTo(1);
         assertThat(data.get("myRsvp").asText()).isEqualTo("ACCEPTED");
+        assertThat(data.get("isHost").asBoolean()).isTrue();
+        assertThat(data.get("reminderSent").asBoolean()).isFalse();
         assertThat(data.get("status").asText()).isEqualTo("OPEN");
         assertThat(data.get("visibility").asText()).isEqualTo("PUBLIC");
+        assertThat(data.get("participants")).hasSize(1);
+        assertThat(data.get("participants").get(0).get("id").asText()).isEqualTo(host.toString());
+        assertThat(data.get("participants").get(0).get("status").asText()).isEqualTo("ACCEPTED");
         assertThat(string("SELECT status FROM event_participants WHERE event_id = ? AND user_id = ?", eventId, host))
                 .isEqualTo("ACCEPTED");
     }
 
     @Test
-    void createEventWithUnknownGameStoresNoGame() throws Exception {
+    void createEventWithUnknownGameIs404() throws Exception {
         UUID host = user();
         mvc.perform(post("/api/v1/events").with(as(host))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(eventBody("Mystery", Instant.now().plus(1, ChronoUnit.DAYS),
                                 "FRIENDS", UUID.randomUUID(), 4))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.game").doesNotExist())
-                .andExpect(jsonPath("$.data.maxParticipants").value(4));
-    }
-
-    @Test
-    void createEventValidatesRequest() throws Exception {
-        UUID host = user();
-        Instant future = Instant.now().plus(1, ChronoUnit.DAYS);
-
-        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(eventBody("Past", Instant.now().minus(1, ChronoUnit.DAYS), "PUBLIC", null, null))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
-        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(eventBody("ab", future, "PUBLIC", null, null))))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(eventBody("No visibility", future, null, null, null))))
-                .andExpect(status().isBadRequest());
-
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("GAME_NOT_FOUND"));
         assertThat(count("SELECT COUNT(*) FROM events WHERE host_id = ?", host)).isZero();
     }
 
+    @Test
+    void createEventValidatesRequestPerFeatureLimits() throws Exception {
+        UUID host = user();
+        Instant future = Instant.now().plus(1, ChronoUnit.DAYS);
+
+        List<Map<String, Object>> invalid = List.of(
+                eventBody("Past", Instant.now().minus(10, ChronoUnit.MINUTES), "PUBLIC", null, null),
+                eventBody("   ", future, "PUBLIC", null, null),
+                eventBody("x".repeat(101), future, "PUBLIC", null, null),
+                eventBody("Too small", future, "PUBLIC", null, 1),
+                eventBody("Too big", future, "PUBLIC", null, 51),
+                eventBody("No visibility", future, null, null, null),
+                eventBody("Secret", future, "SECRET", null, null),
+                with(eventBody("Long location", future, "PUBLIC", null, null), "location", "x".repeat(101)),
+                with(eventBody("Long display", future, "PUBLIC", null, null), "locationDisplay", "x".repeat(101)),
+                with(eventBody("Long description", future, "PUBLIC", null, null), "description", "x".repeat(1001)));
+        for (Map<String, Object> body : invalid) {
+            mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
+                            .content(toJson(body)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        }
+        assertThat(count("SELECT COUNT(*) FROM events WHERE host_id = ?", host)).isZero();
+
+        // Boundaries are accepted: 1-char title, 100-char title, 2 and 50 players, 2 minutes ago (clock drift)
+        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(eventBody("a", future, "PUBLIC", null, 2))))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(eventBody("x".repeat(100), Instant.now().minus(2, ChronoUnit.MINUTES),
+                                "PUBLIC", null, 50))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.reminderSent").value(true));
+    }
+
+    @Test
+    void createWithInvitesInvitesFriendsAndNotifiesEach() throws Exception {
+        UUID host = user();
+        UUID friendA = user();
+        UUID friendB = user();
+        friends(host, friendA);
+        friends(friendB, host);
+
+        Map<String, Object> body = eventBody("Invite night", Instant.now().plus(3, ChronoUnit.DAYS), "INVITE_ONLY", null, 4);
+        body.put("invitedUserIds", List.of(friendA, friendB, friendA));
+        JsonNode data = json(mvc.perform(post("/api/v1/events").with(as(host))
+                        .contentType(MediaType.APPLICATION_JSON).content(toJson(body)))
+                .andExpect(status().isCreated()).andReturn()).get("data");
+        UUID eventId = UUID.fromString(data.get("id").asText());
+
+        assertThat(data.get("participantCount").asInt()).isEqualTo(1);
+        assertThat(data.get("participants")).hasSize(3); // host sees invitees with their status
+        assertThat(string("SELECT status FROM event_participants WHERE event_id = ? AND user_id = ?", eventId, friendA))
+                .isEqualTo("INVITED");
+        assertThat(notifications(friendA, "EVENT_INVITE", eventId)).isEqualTo(1);
+        assertThat(notifications(friendB, "EVENT_INVITE", eventId)).isEqualTo(1);
+        // INVITE_ONLY events are not announced in the feed... and invitees can see the event
+        mvc.perform(get("/api/v1/events/{id}", eventId).with(as(friendB)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.myRsvp").value("INVITED"))
+                .andExpect(jsonPath("$.data.isHost").value(false))
+                .andExpect(jsonPath("$.data.participants.length()").value(1)); // non-hosts see accepted only
+    }
+
+    @Test
+    void invitingNonFriendsOrYourselfIsRejectedAndCreatesNothing() throws Exception {
+        UUID host = user();
+        UUID friend = user();
+        UUID stranger = user();
+        UUID pending = user();
+        friends(host, friend);
+        jdbc.update("INSERT INTO friend_requests (sender_id, receiver_id, status) VALUES (?, ?, 'PENDING')", host, pending);
+        Instant when = Instant.now().plus(2, ChronoUnit.DAYS);
+
+        for (UUID notFriend : List.of(stranger, pending)) {
+            Map<String, Object> body = eventBody("Night", when, "FRIENDS", null, null);
+            body.put("invitedUserIds", List.of(friend, notFriend));
+            mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON).content(toJson(body)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("NOT_FRIENDS"));
+        }
+        Map<String, Object> self = eventBody("Night", when, "FRIENDS", null, null);
+        self.put("invitedUserIds", List.of(host));
+        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON).content(toJson(self)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CANNOT_INVITE_SELF"));
+
+        // A deleted friend cannot be invited either
+        softDeleteUser(friend);
+        Map<String, Object> deleted = eventBody("Night", when, "FRIENDS", null, null);
+        deleted.put("invitedUserIds", List.of(friend));
+        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON).content(toJson(deleted)))
+                .andExpect(status().isForbidden());
+
+        assertThat(count("SELECT COUNT(*) FROM events WHERE host_id = ?", host)).isZero();
+        assertThat(count("SELECT COUNT(*) FROM notifications WHERE type = 'EVENT_INVITE' AND actor_id = ?", host)).isZero();
+    }
+
+    @Test
+    void createPublishesActivityOnlyForNonInviteOnlyEvents() throws Exception {
+        UUID host = user();
+        Instant when = Instant.now().plus(2, ChronoUnit.DAYS);
+        applicationEvents.clear();
+
+        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(eventBody("Secret", when, "INVITE_ONLY", null, null)))).andExpect(status().isCreated());
+        assertThat(activities(host)).isEmpty();
+
+        String id = json(mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(eventBody("Open", when, "FRIENDS", null, null))))
+                .andExpect(status().isCreated()).andReturn()).get("data").get("id").asText();
+        assertThat(activities(host)).singleElement().satisfies(a -> {
+            assertThat(a.type()).isEqualTo("event_created");
+            assertThat(a.data()).containsEntry("eventId", UUID.fromString(id)).containsEntry("eventTitle", "Open");
+        });
+    }
+
     // -------------------------------------------------------------------------
-    // List / get
+    // Lists
     // -------------------------------------------------------------------------
 
     @Test
-    void upcomingListRespectsVisibilityOrderingCancellationAndLimit() throws Exception {
+    void upcomingListShowsTheCallersCircleInOrder() throws Exception {
         UUID host = user();
         UUID friend = user();
         UUID stranger = user();
@@ -109,15 +210,21 @@ class EventApiIntegrationTest extends ApiIntegrationTestBase {
         assertThat(forFriend).containsSubsequence(publicSoon, friendsOnly, publicLater)
                 .doesNotContain(inviteOnly, past, cancelled);
 
-        List<UUID> forStranger = ids(json(mvc.perform(get("/api/v1/events").with(as(stranger)))
+        // A stranger's circle has none of the host's events; public ones are in the community tab
+        List<UUID> forStranger = ids(json(mvc.perform(get("/api/v1/events").param("scope", "upcoming").with(as(stranger)))
                 .andExpect(status().isOk()).andReturn()));
-        assertThat(forStranger).contains(publicSoon, publicLater).doesNotContain(friendsOnly, inviteOnly);
+        assertThat(forStranger).doesNotContain(publicSoon, publicLater, friendsOnly, inviteOnly);
+        participant(inviteOnly, stranger, "INVITED");
+        assertThat(ids(json(mvc.perform(get("/api/v1/events").with(as(stranger))).andReturn()))).contains(inviteOnly);
+        jdbc.update("UPDATE event_participants SET status = 'LEFT' WHERE event_id = ? AND user_id = ?", inviteOnly, stranger);
+        assertThat(ids(json(mvc.perform(get("/api/v1/events").with(as(stranger))).andReturn()))).doesNotContain(inviteOnly);
 
-        // Batch-built counts and caller RSVP
+        // Batch-built counts, caller RSVP and accepted participants
         JsonNode friendList = json(mvc.perform(get("/api/v1/events").with(as(friend))).andReturn());
         JsonNode soon = find(friendList.get("data"), publicSoon);
         assertThat(soon.get("participantCount").asInt()).isEqualTo(2);
         assertThat(soon.get("myRsvp").asText()).isEqualTo("ACCEPTED");
+        assertThat(soon.get("participants")).hasSize(2);
         assertThat(find(friendList.get("data"), publicLater).get("myRsvp").isNull()).isTrue();
 
         // limit is clamped to at least 1
@@ -126,6 +233,159 @@ class EventApiIntegrationTest extends ApiIntegrationTestBase {
                 .andExpect(jsonPath("$.data.length()").value(1));
         mvc.perform(get("/api/v1/events").with(as(host)).param("limit", "2"))
                 .andExpect(jsonPath("$.data.length()").value(2));
+        mvc.perform(get("/api/v1/events").with(as(host)).param("scope", "later"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void pastScopeListsHostedAndAttendedEventsMostRecentFirst() throws Exception {
+        UUID host = user();
+        UUID guest = user();
+        UUID other = user();
+        Instant now = Instant.now();
+        UUID older = event(host, "PUBLIC", now.minus(5, ChronoUnit.DAYS), 8);
+        UUID recent = event(host, "PUBLIC", now.minus(1, ChronoUnit.DAYS), 8);
+        UUID completedEarly = event(host, "PUBLIC", now.plus(1, ChronoUnit.HOURS), 8);
+        jdbc.update("UPDATE events SET status = 'COMPLETED' WHERE id = ?", completedEarly);
+        UUID upcoming = event(host, "PUBLIC", now.plus(1, ChronoUnit.DAYS), 8);
+        UUID cancelled = event(host, "PUBLIC", now.minus(2, ChronoUnit.DAYS), 8);
+        jdbc.update("UPDATE events SET status = 'CANCELLED', deleted_at = now() WHERE id = ?", cancelled);
+        UUID notAttended = event(other, "PUBLIC", now.minus(1, ChronoUnit.DAYS), 8);
+        participant(recent, guest, "ACCEPTED");
+        participant(older, guest, "LEFT");
+        participant(notAttended, guest, "DECLINED");
+
+        assertThat(ids(json(mvc.perform(get("/api/v1/events").param("scope", "past").with(as(host)))
+                .andExpect(status().isOk()).andReturn())))
+                .containsExactly(completedEarly, recent, older)
+                .doesNotContain(upcoming, cancelled);
+        assertThat(ids(json(mvc.perform(get("/api/v1/events").param("scope", "PAST").with(as(guest))).andReturn())))
+                .containsExactly(recent);
+    }
+
+    @Test
+    void mineScopeAndMeListOnlyAcceptedEvents() throws Exception {
+        UUID host = user();
+        UUID me = user();
+        UUID accepted = event(host, "PUBLIC", Instant.now().plus(2, ChronoUnit.DAYS), 8);
+        UUID declined = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
+        UUID left = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
+        participant(accepted, me, "ACCEPTED");
+        participant(declined, me, "DECLINED");
+        participant(left, me, "LEFT");
+
+        mvc.perform(get("/api/v1/events/me").with(as(me)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(accepted.toString()))
+                .andExpect(jsonPath("$.data[0].participantCount").value(2));
+        mvc.perform(get("/api/v1/events").param("scope", "mine").with(as(me)))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(accepted.toString()));
+
+        UUID nobody = user();
+        mvc.perform(get("/api/v1/events/me").with(as(nobody)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void calendarReturnsCircleEventsInRangeIncludingCompleted() throws Exception {
+        UUID host = user();
+        UUID friend = user();
+        UUID stranger = user();
+        friends(host, friend);
+        Instant from = Instant.now().minus(10, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);
+        Instant to = from.plus(31, ChronoUnit.DAYS);
+        UUID inPast = event(host, "FRIENDS", from.plus(2, ChronoUnit.DAYS), 8);
+        jdbc.update("UPDATE events SET status = 'COMPLETED' WHERE id = ?", inPast);
+        UUID inFuture = event(host, "PUBLIC", from.plus(20, ChronoUnit.DAYS), 8);
+        UUID atStart = event(host, "FRIENDS", from, 8);
+        UUID atEnd = event(host, "FRIENDS", to, 8); // exclusive upper bound
+        UUID before = event(host, "FRIENDS", from.minusSeconds(1), 8);
+        UUID inviteOnly = event(host, "INVITE_ONLY", from.plus(3, ChronoUnit.DAYS), 8);
+        UUID cancelled = event(host, "FRIENDS", from.plus(4, ChronoUnit.DAYS), 8);
+        jdbc.update("UPDATE events SET status = 'CANCELLED', deleted_at = now() WHERE id = ?", cancelled);
+
+        List<UUID> forFriend = ids(json(mvc.perform(get("/api/v1/events/calendar").with(as(friend))
+                        .param("from", from.toString()).param("to", to.toString()))
+                .andExpect(status().isOk()).andReturn()));
+        assertThat(forFriend).containsExactly(atStart, inPast, inFuture)
+                .doesNotContain(atEnd, before, inviteOnly, cancelled);
+        assertThat(ids(json(mvc.perform(get("/api/v1/events/calendar").with(as(host))
+                .param("from", from.toString()).param("to", to.toString())).andReturn())))
+                .containsExactly(atStart, inPast, inviteOnly, inFuture);
+        assertThat(ids(json(mvc.perform(get("/api/v1/events/calendar").with(as(stranger))
+                .param("from", from.toString()).param("to", to.toString())).andReturn()))).isEmpty();
+
+        mvc.perform(get("/api/v1/events/calendar").with(as(friend))
+                        .param("from", from.toString()).param("to", from.plus(63, ChronoUnit.DAYS).toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_RANGE"));
+        mvc.perform(get("/api/v1/events/calendar").with(as(friend)).param("from", "yesterday").param("to", to.toString()))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/events/calendar").with(as(friend)).param("from", from.toString()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void communityListsUpcomingPublicEventsWithCursorAndMasksLocation() throws Exception {
+        UUID viewer = user();
+        UUID hostA = user();
+        UUID hostB = user();
+        UUID blockedHost = user();
+        block(viewer, blockedHost);
+        UUID gameId = game();
+        Instant base = Instant.now().plus(400, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        // Far in the future so other tests' public events sort before ours; filter by game for isolation
+        UUID e1 = event(hostA, "PUBLIC", base, 8);
+        UUID e2 = event(hostB, "PUBLIC", base, 8); // same time: ordered by id
+        UUID e3 = event(hostA, "PUBLIC", base.plus(1, ChronoUnit.DAYS), 8);
+        UUID friendsOnly = event(hostA, "FRIENDS", base, 8);
+        UUID blocked = event(blockedHost, "PUBLIC", base, 8);
+        UUID completed = event(hostA, "PUBLIC", base, 8);
+        jdbc.update("UPDATE events SET status = 'COMPLETED' WHERE id = ?", completed);
+        UUID pastPublic = event(hostA, "PUBLIC", Instant.now().minus(1, ChronoUnit.DAYS), 8);
+        for (UUID id : List.of(e1, e2, e3, friendsOnly, blocked, completed, pastPublic)) {
+            jdbc.update("UPDATE events SET game_id = ?, location = '12 Secret St', location_display = 'Petaling Jaya'"
+                    + " WHERE id = ?", gameId, id);
+        }
+
+        JsonNode page1 = json(mvc.perform(get("/api/v1/events/community").with(as(viewer))
+                        .param("gameId", gameId.toString()).param("limit", "2"))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(page1.get("hasMore").asBoolean()).isTrue();
+        List<UUID> first = idsOf(page1.get("items"));
+        List<UUID> sameTime = e1.toString().compareTo(e2.toString()) < 0 ? List.of(e1, e2) : List.of(e2, e1);
+        assertThat(first).containsExactlyElementsOf(sameTime);
+        JsonNode item = page1.get("items").get(0);
+        assertThat(item.get("location").isNull()).isTrue();
+        assertThat(item.get("locationDisplay").asText()).isEqualTo("Petaling Jaya");
+
+        JsonNode page2 = json(mvc.perform(get("/api/v1/events/community").with(as(viewer))
+                        .param("gameId", gameId.toString()).param("limit", "2")
+                        .param("cursor", page1.get("nextCursor").asText()))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(idsOf(page2.get("items"))).containsExactly(e3);
+        assertThat(page2.get("hasMore").asBoolean()).isFalse();
+        assertThat(page2.get("nextCursor").isNull()).isTrue();
+
+        // Without the game filter our events are still there (other tests may add more)
+        JsonNode all = json(mvc.perform(get("/api/v1/events/community").with(as(viewer)).param("limit", "100"))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(all.get("items")).isNotNull();
+
+        // The host and joined participants see the full address
+        participant(e1, viewer, "ACCEPTED");
+        mvc.perform(get("/api/v1/events/{id}", e1).with(as(viewer)))
+                .andExpect(jsonPath("$.data.location").value("12 Secret St"));
+        mvc.perform(get("/api/v1/events/{id}", e3).with(as(hostA)))
+                .andExpect(jsonPath("$.data.location").value("12 Secret St"));
+        mvc.perform(get("/api/v1/events/{id}", e3).with(as(viewer)))
+                .andExpect(jsonPath("$.data.location").doesNotExist());
+        mvc.perform(get("/api/v1/events/community").with(as(viewer)).param("cursor", "not a cursor"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
     }
 
     @Test
@@ -145,305 +405,38 @@ class EventApiIntegrationTest extends ApiIntegrationTestBase {
         participant(inviteOnly, stranger, "INVITED");
         mvc.perform(get("/api/v1/events/{id}", inviteOnly).with(as(stranger)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.myRsvp").value("INVITED"));
+                .andExpect(jsonPath("$.data.myRsvp").value("INVITED"))
+                .andExpect(jsonPath("$.data.location").doesNotExist());
     }
 
     @Test
-    void myEventsListsOnlyAcceptedEvents() throws Exception {
+    void participantsHideBlockedUsersFromTheViewer() throws Exception {
         UUID host = user();
-        UUID me = user();
-        UUID accepted = event(host, "PUBLIC", Instant.now().plus(2, ChronoUnit.DAYS), 8);
-        UUID declined = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-        participant(accepted, me, "ACCEPTED");
-        participant(declined, me, "DECLINED");
-
-        mvc.perform(get("/api/v1/events/me").with(as(me)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].id").value(accepted.toString()))
-                .andExpect(jsonPath("$.data[0].participantCount").value(2));
-
-        UUID nobody = user();
-        mvc.perform(get("/api/v1/events/me").with(as(nobody)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(0));
-    }
-
-    // -------------------------------------------------------------------------
-    // Update / delete
-    // -------------------------------------------------------------------------
-
-    @Test
-    void hostCanPartiallyUpdateEvent() throws Exception {
-        UUID host = user();
-        UUID eventId = event(host, "INVITE_ONLY", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-        jdbc.update("UPDATE events SET description = 'keep me', location = 'Old place' WHERE id = ?", eventId);
-        Instant newTime = Instant.now().plus(5, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("title", "Renamed night");
-        body.put("location", "New place");
-        body.put("scheduledAt", newTime.toString());
-        body.put("visibility", "PUBLIC");
-        body.put("maxParticipants", 3);
-
-        mvc.perform(put("/api/v1/events/{id}", eventId).with(as(host))
-                        .contentType(MediaType.APPLICATION_JSON).content(toJson(body)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.title").value("Renamed night"))
-                .andExpect(jsonPath("$.data.description").value("keep me"))
-                .andExpect(jsonPath("$.data.location").value("New place"))
-                .andExpect(jsonPath("$.data.visibility").value("PUBLIC"))
-                .andExpect(jsonPath("$.data.maxParticipants").value(3));
-
-        assertThat(string("SELECT visibility FROM events WHERE id = ?", eventId)).isEqualTo("PUBLIC");
-        assertThat(jdbc.queryForObject("SELECT scheduled_at FROM events WHERE id = ?", java.sql.Timestamp.class,
-                eventId).toInstant()).isEqualTo(newTime);
-    }
-
-    @Test
-    void updateWithOnlyDescriptionKeepsEverythingElse() throws Exception {
-        UUID host = user();
-        JsonNode created = json(mvc.perform(post("/api/v1/events").with(as(host))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(eventBody("No game night", Instant.now().plus(2, ChronoUnit.DAYS),
-                                "PUBLIC", null, 6))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.game").doesNotExist())
-                .andReturn()).get("data");
-        UUID eventId = UUID.fromString(created.get("id").asText());
-
-        // PUT shares CreateEventRequest validation, so title/scheduledAt/visibility are still required
-        Map<String, Object> body = eventBody("No game night", Instant.parse(created.get("scheduledAt").asText()),
-                "PUBLIC", null, null);
-        body.put("description", "Bring snacks");
-        mvc.perform(put("/api/v1/events/{id}", eventId).with(as(host))
-                        .contentType(MediaType.APPLICATION_JSON).content(toJson(body)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.description").value("Bring snacks"))
-                .andExpect(jsonPath("$.data.maxParticipants").value(6))
-                .andExpect(jsonPath("$.data.title").value("No game night"));
-    }
-
-    @Test
-    void leavingAFullEventAsADeclinedParticipantKeepsItFull() throws Exception {
-        UUID host = user();
-        UUID guest = user();
-        UUID decliner = user();
-        UUID eventId = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 2);
-        participant(eventId, decliner, "DECLINED");
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(guest)).param("status", "ACCEPTED"))
-                .andExpect(jsonPath("$.data.status").value("FULL"));
-
-        mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(decliner))).andExpect(status().isNoContent());
-
-        assertThat(string("SELECT status FROM events WHERE id = ?", eventId)).isEqualTo("FULL");
-    }
-
-    @Test
-    void nonHostUpdateOrDeleteIsForbiddenAndInvisibleEventIs404() throws Exception {
-        UUID host = user();
-        UUID other = user();
-        UUID publicEvent = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-        UUID hidden = event(host, "INVITE_ONLY", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-        String body = toJson(eventBody("Hijacked", Instant.now().plus(2, ChronoUnit.DAYS), "PUBLIC", null, null));
-
-        mvc.perform(put("/api/v1/events/{id}", publicEvent).with(as(other))
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
-        mvc.perform(delete("/api/v1/events/{id}", publicEvent).with(as(other)))
-                .andExpect(status().isForbidden());
-        mvc.perform(put("/api/v1/events/{id}", hidden).with(as(other))
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isNotFound());
-
-        assertThat(string("SELECT title FROM events WHERE id = ?", publicEvent)).isEqualTo("PUBLIC night");
-    }
-
-    @Test
-    void hostDeleteCancelsAndHidesEvent() throws Exception {
-        UUID host = user();
+        UUID viewer = user();
+        UUID blockedGuest = user();
         UUID guest = user();
         UUID eventId = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
+        participant(eventId, blockedGuest, "ACCEPTED");
         participant(eventId, guest, "ACCEPTED");
+        participant(eventId, viewer, "DECLINED");
+        block(blockedGuest, viewer);
 
-        mvc.perform(delete("/api/v1/events/{id}", eventId).with(as(host))).andExpect(status().isNoContent());
+        JsonNode data = json(mvc.perform(get("/api/v1/events/{id}", eventId).with(as(viewer)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(data.get("participantCount").asInt()).isEqualTo(3);
+        assertThat(idsOf(data.get("participants"))).containsExactlyInAnyOrder(host, guest);
 
-        assertThat(string("SELECT status FROM events WHERE id = ?", eventId)).isEqualTo("CANCELLED");
-        assertThat(count("SELECT COUNT(*) FROM events WHERE id = ? AND deleted_at IS NOT NULL", eventId)).isEqualTo(1);
-        mvc.perform(get("/api/v1/events/{id}", eventId).with(as(host))).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/events/me").with(as(guest))).andExpect(jsonPath("$.data.length()").value(0));
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(guest)).param("status", "DECLINED"))
-                .andExpect(status().isNotFound());
-        mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(guest)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("EVENT_NOT_FOUND"));
-    }
-
-    // -------------------------------------------------------------------------
-    // RSVP and capacity
-    // -------------------------------------------------------------------------
-
-    @Test
-    void rsvpEnforcesCapacityAndTogglesFullStatus() throws Exception {
-        UUID host = user();
-        UUID a = user();
-        UUID b = user();
-        UUID eventId = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 2);
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(a)).param("status", "ACCEPTED"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("FULL"))
-                .andExpect(jsonPath("$.data.participantCount").value(2))
-                .andExpect(jsonPath("$.data.myRsvp").value("ACCEPTED"));
-        assertThat(count("SELECT COUNT(*) FROM notifications WHERE recipient_id = ? AND type = 'EVENT_RSVP'"
-                + " AND actor_id = ?", host, a)).isEqualTo(1);
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(b)).param("status", "ACCEPTED"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("EVENT_FULL"));
-        // Re-accepting when already accepted is not blocked by the capacity check
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(a)).param("status", "ACCEPTED"))
-                .andExpect(status().isOk());
-        // Declining on a full event is always allowed and frees a seat
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(b)).param("status", "DECLINED"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.myRsvp").value("DECLINED"));
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(a)).param("status", "DECLINED"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("OPEN"))
-                .andExpect(jsonPath("$.data.participantCount").value(1));
-
-        // b switches DECLINED → ACCEPTED now that a seat is free
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(b)).param("status", "ACCEPTED"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("FULL"));
-        assertThat(string("SELECT status FROM events WHERE id = ?", eventId)).isEqualTo("FULL");
-        assertThat(count("SELECT COUNT(*) FROM event_participants WHERE event_id = ?", eventId)).isEqualTo(3);
-    }
-
-    @Test
-    void hostRsvpDoesNotNotifyThemselves() throws Exception {
-        UUID host = user();
-        UUID eventId = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(host)).param("status", "ACCEPTED"))
-                .andExpect(status().isOk());
-
-        assertThat(count("SELECT COUNT(*) FROM notifications WHERE recipient_id = ?", host)).isZero();
-    }
-
-    @Test
-    void rsvpToInvisibleOrUnknownEventIs404() throws Exception {
-        UUID host = user();
-        UUID stranger = user();
-        UUID invitee = user();
-        UUID inviteOnly = event(host, "INVITE_ONLY", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-        participant(inviteOnly, invitee, "INVITED");
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", inviteOnly).with(as(stranger)).param("status", "ACCEPTED"))
-                .andExpect(status().isNotFound());
-        mvc.perform(post("/api/v1/events/{id}/rsvp", UUID.randomUUID()).with(as(stranger)).param("status", "ACCEPTED"))
-                .andExpect(status().isNotFound());
-        assertThat(count("SELECT COUNT(*) FROM event_participants WHERE user_id = ?", stranger)).isZero();
-
-        // An invited user may accept an invite-only event
-        mvc.perform(post("/api/v1/events/{id}/rsvp", inviteOnly).with(as(invitee)).param("status", "ACCEPTED"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.myRsvp").value("ACCEPTED"));
-    }
-
-    @Test
-    void leaveEventRules() throws Exception {
-        UUID host = user();
-        UUID guest = user();
-        UUID outsider = user();
-        UUID eventId = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 2);
-
-        mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(outsider)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("RSVP_NOT_FOUND"));
-        mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(host)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("HOST_CANNOT_LEAVE"));
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(guest)).param("status", "ACCEPTED"))
-                .andExpect(jsonPath("$.data.status").value("FULL"));
-        mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(guest))).andExpect(status().isNoContent());
-
-        assertThat(string("SELECT status FROM events WHERE id = ?", eventId)).isEqualTo("OPEN");
-        assertThat(count("SELECT COUNT(*) FROM event_participants WHERE event_id = ? AND user_id = ?",
-                eventId, guest)).isZero();
-
-        // Leaving a non-full event keeps it OPEN
-        participant(eventId, outsider, "DECLINED");
-        mvc.perform(delete("/api/v1/events/{id}/rsvp", eventId).with(as(outsider))).andExpect(status().isNoContent());
-        assertThat(string("SELECT status FROM events WHERE id = ?", eventId)).isEqualTo("OPEN");
-    }
-
-    @Test
-    void invalidRsvpStatusIsRejectedAsBadRequest() throws Exception {
-        UUID host = user();
-        UUID guest = user();
-        UUID eventId = event(host, "PUBLIC", Instant.now().plus(1, ChronoUnit.DAYS), 8);
-
-        mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(guest)).param("status", "MAYBE"))
-                .andExpect(status().isBadRequest());
-        assertThat(count("SELECT COUNT(*) FROM event_participants WHERE user_id = ?", guest)).isZero();
-    }
-
-    @Test
-    void unknownVisibilityIsRejectedAsBadRequest() throws Exception {
-        UUID host = user();
-        mvc.perform(post("/api/v1/events").with(as(host)).contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(eventBody("Secret night", Instant.now().plus(1, ChronoUnit.DAYS),
-                                "SECRET", null, null))))
-                .andExpect(status().isBadRequest());
+        JsonNode forHost = json(mvc.perform(get("/api/v1/events/{id}", eventId).with(as(host))).andReturn()).get("data");
+        assertThat(idsOf(forHost.get("participants"))).containsExactlyInAnyOrder(host, blockedGuest, guest, viewer);
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
-    private static Map<String, Object> eventBody(String title, Instant scheduledAt, String visibility,
-                                                 UUID gameId, Integer maxParticipants) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("title", title);
-        body.put("scheduledAt", scheduledAt.toString());
-        body.put("visibility", visibility);
-        body.put("gameId", gameId);
-        body.put("maxParticipants", maxParticipants);
-        return body;
-    }
-
-    private UUID event(UUID host, String visibility, Instant scheduledAt, int maxParticipants) {
-        UUID id = UUID.randomUUID();
-        jdbc.update("INSERT INTO events (id, host_id, title, scheduled_at, visibility, max_participants)"
-                        + " VALUES (?, ?, ?, ?, ?, ?)",
-                id, host, visibility + " night", ts(scheduledAt), visibility, maxParticipants);
-        participant(id, host, "ACCEPTED");
-        return id;
-    }
-
-    private void participant(UUID eventId, UUID userId, String status) {
-        jdbc.update("INSERT INTO event_participants (event_id, user_id, status) VALUES (?, ?, ?)",
-                eventId, userId, status);
-    }
-
-    private static List<UUID> ids(JsonNode list) {
-        List<UUID> out = new ArrayList<>();
-        list.get("data").forEach(n -> out.add(UUID.fromString(n.get("id").asText())));
-        return out;
-    }
-
-    private static JsonNode find(JsonNode array, UUID id) {
-        for (JsonNode n : array) {
-            if (n.get("id").asText().equals(id.toString())) {
-                return n;
-            }
-        }
-        throw new AssertionError("event " + id + " not in response");
+    private static Map<String, Object> with(Map<String, Object> body, String key, Object value) {
+        Map<String, Object> copy = new HashMap<>(body);
+        copy.put(key, value);
+        return copy;
     }
 }

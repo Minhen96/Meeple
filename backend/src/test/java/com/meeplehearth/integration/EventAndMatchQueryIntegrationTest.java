@@ -1,7 +1,7 @@
 package com.meeplehearth.integration;
 
 import com.meeplehearth.common.exception.ApiException;
-import com.meeplehearth.event.dto.CreateEventRequest;
+import com.meeplehearth.event.dto.UpdateEventRequest;
 import com.meeplehearth.event.dto.EventResponse;
 import com.meeplehearth.event.repository.EventRepository;
 import com.meeplehearth.event.service.EventService;
@@ -169,15 +169,15 @@ class EventAndMatchQueryIntegrationTest {
 
     @Test
     void hostOnlyMutationsDoNotLeakInvisibleEvents() {
-        CreateEventRequest update = new CreateEventRequest("Renamed", null, null, null, null, null, null);
+        UpdateEventRequest update = new UpdateEventRequest("Renamed", null, null, null, null, null, null, null);
 
         assertStatus(() -> eventService.updateEvent(stranger, inviteOnlyEvent, update), HttpStatus.NOT_FOUND);
-        assertStatus(() -> eventService.deleteEvent(stranger, friendsEvent), HttpStatus.NOT_FOUND);
-        assertStatus(() -> eventService.deleteEvent(blocked, publicEvent), HttpStatus.NOT_FOUND);
+        assertStatus(() -> eventService.cancelEvent(stranger, friendsEvent), HttpStatus.NOT_FOUND);
+        assertStatus(() -> eventService.cancelEvent(blocked, publicEvent), HttpStatus.NOT_FOUND);
         assertStatus(() -> eventService.updateEvent(stranger, UUID.randomUUID(), update), HttpStatus.NOT_FOUND);
 
         assertStatus(() -> eventService.updateEvent(friend, friendsEvent, update), HttpStatus.FORBIDDEN);
-        assertStatus(() -> eventService.deleteEvent(stranger, publicEvent), HttpStatus.FORBIDDEN);
+        assertStatus(() -> eventService.cancelEvent(stranger, publicEvent), HttpStatus.FORBIDDEN);
 
         assertThat(eventService.updateEvent(host, friendsEvent, update).title()).isEqualTo("Renamed");
     }

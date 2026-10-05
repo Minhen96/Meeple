@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -54,5 +55,15 @@ class MatchSchedulerTest {
         assertThatCode(scheduler::runMatchingJob).doesNotThrowAnyException();
 
         verify(matchService).runMatchingAlgorithm();
+    }
+
+    @Test
+    void expiryJobFailureIsLoggedAndLockStillReleased() {
+        when(ops.setIfAbsent(eq("lock:match_request_expire"), anyString(), any(Duration.class))).thenReturn(true);
+        doThrow(new IllegalStateException("db down")).when(matchService).expireStaleRequests(any(Instant.class));
+
+        assertThatCode(scheduler::expireStaleRequests).doesNotThrowAnyException();
+
+        verify(redis).execute(any(RedisScript.class), eq(List.of("lock:match_request_expire")), anyString());
     }
 }

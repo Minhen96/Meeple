@@ -8,9 +8,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.Instant;
 
 /**
- * Eagerly created ({@code @Lazy(false)}) because the application runs with
+ * Matching jobs (TECH_STACK_ADDITIONS section 21), each under a Redis lock:
+ * {@code matching_job} (every 30 minutes) and {@code match_request_expire} (hourly, lock TTL
+ * 55 minutes).
+ *
+ * <p>Eagerly created ({@code @Lazy(false)}) because the application runs with
  * {@code spring.main.lazy-initialization=true}; a lazy bean would never be instantiated
  * and its {@code @Scheduled} method would never be registered.
  */
@@ -24,6 +29,10 @@ public class MatchScheduler {
 
     /** Comfortably above the expected runtime so the lock cannot lapse mid-run. */
     static final Duration LOCK_TTL = Duration.ofMinutes(20);
+
+    /** Redis key {@code lock:match_request_expire}. */
+    static final String EXPIRE_LOCK_NAME = "match_request_expire";
+    static final Duration EXPIRE_LOCK_TTL = Duration.ofMinutes(55);
 
     private final MatchService matchService;
     private final JobLock jobLock;
@@ -42,6 +51,18 @@ public class MatchScheduler {
                 log.info("Matching job complete");
             } catch (Exception e) {
                 log.error("Matching job failed", e);
+            }
+        });
+    }
+
+    @Scheduled(cron = "${meeple.match.request-expire-cron:0 23 * * * *}")
+    public void expireStaleRequests() {
+        jobLock.runWithLock(EXPIRE_LOCK_NAME, EXPIRE_LOCK_TTL, () -> {
+            try {
+                int expired = matchService.expireStaleRequests(Instant.now());
+                log.info("match_request_expire: {} requests expired", expired);
+            } catch (Exception e) {
+                log.error("match_request_expire failed", e);
             }
         });
     }

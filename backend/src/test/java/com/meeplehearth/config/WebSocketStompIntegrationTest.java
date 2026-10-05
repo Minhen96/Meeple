@@ -184,11 +184,17 @@ class WebSocketStompIntegrationTest {
 
         Map<String, Object> received = notifyUntilReceived(alice.getId(), aliceInbox);
 
-        assertThat(received).containsEntry("type", "FRIEND_REQUEST").containsEntry("read", false);
-        assertThat(received.get("id")).isNotNull();
+        // Frame shape (docs/GAP_ANALYSIS.md section 6.3): {notification: NotificationDto, unreadCount}
+        assertThat(received).containsKey("unreadCount");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> notification = (Map<String, Object>) received.get("notification");
+        assertThat(notification).containsEntry("type", "FRIEND_REQUEST").containsEntry("read", false);
+        assertThat(notification.get("id")).isNotNull();
         // Bob is connected and subscribed to the same destination, but it resolves to his own queue
         assertThat(bobInbox.poll(500, TimeUnit.MILLISECONDS)).isNull();
-        assertThat(notifyUntilReceived(bob.getId(), bobInbox)).containsEntry("type", "FRIEND_REQUEST");
+        assertThat(notifyUntilReceived(bob.getId(), bobInbox).get("notification"))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                .containsEntry("type", "FRIEND_REQUEST");
     }
 
     @Test

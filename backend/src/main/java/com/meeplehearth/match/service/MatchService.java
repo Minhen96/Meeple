@@ -1,5 +1,6 @@
 package com.meeplehearth.match.service;
 
+import com.meeplehearth.common.event.UserSoftDeletedEvent;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.event.dto.CreateEventRequest;
 import com.meeplehearth.event.dto.EventResponse;
@@ -19,9 +20,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -33,6 +38,11 @@ public class MatchService {
     private static final Logger log = LoggerFactory.getLogger(MatchService.class);
     private static final int MAX_ACTIVE_REQUESTS = 5;
     static final String ACTIVE_UNIQUE_INDEX = "uq_match_requests_user_game_active";
+    static final int MAX_EVENT_TITLE = 100;
+    static final int MIN_EVENT_CAPACITY = 2;
+    static final int MAX_EVENT_CAPACITY = 50;
+    /** Requests without an end of availability expire this long after creation. */
+    static final Duration OPEN_ENDED_REQUEST_TTL = Duration.ofDays(7);
 
     private final MatchRequestRepository matchRequestRepository;
     private final MatchGroupRepository matchGroupRepository;
@@ -173,40 +183,70 @@ public class MatchService {
     // Accept match → create event
     // -------------------------------------------------------------------------
 
+    /**
+     * Creates an event for the group (host = the accepting member) with every other member
+     * invited, suggested time = the overlap start, and sends the other invited members
+     * MATCH_ACCEPTED (FEATURES section 6.2). Members blocked with the host are not invited.
+     */
     @Transactional
     public EventResponse acceptMatch(UUID userId, UUID groupId) {
         MatchGroup group = findPendingGroup(groupId);
         assertMember(group, userId);
 
-        // Build event from match group — host is the accepting user
+        List<UUID> otherMembers = group.getMembers().stream()
+                .map(m -> m.getUser().getId())
+                .filter(id -> !id.equals(userId))
+                .toList();
         CreateEventRequest req = new CreateEventRequest(
-                group.getGame().getNameEn() + " Night",
+                eventTitle(group.getGame().getNameEn()),
                 null,
                 null,
-                group.getOverlapStart() != null ? group.getOverlapStart() : Instant.now().plus(1, ChronoUnit.DAYS),
+                null,
+                suggestedStart(group.getOverlapStart(), Instant.now()),
                 group.getGame().getId(),
-                group.getGame().getMaxPlayers() != null ? group.getGame().getMaxPlayers() : 8,
-                "FRIENDS"
+                eventCapacity(group.getGame().getMaxPlayers(), group.getMembers().size()),
+                "FRIENDS",
+                otherMembers
         );
-
-        EventResponse event = eventService.createEvent(userId, req);
+        EventResponse event = eventService.createEventFromMatch(userId, req);
 
         group.setStatus(MatchGroup.Status.ACCEPTED);
         matchGroupRepository.save(group);
 
-        // Notify other members
-        for (MatchGroupMember m : group.getMembers()) {
-            if (!m.getUser().getId().equals(userId)) {
-                notificationService.send(
-                        m.getUser().getId(),
-                        Notification.NotificationType.EVENT_INVITE,
-                        userId,
-                        event.id(),
-                        "EVENT"
-                );
+        for (EventResponse.ParticipantInfo p : event.participants()) {
+            if (!p.id().equals(userId) && "INVITED".equals(p.status())) {
+                notificationService.send(p.id(), Notification.NotificationType.MATCH_ACCEPTED,
+                        userId, event.id(), "EVENT");
             }
         }
         return event;
+    }
+
+    /** "{game} Night", trimmed to the 100-character event title limit. */
+    static String eventTitle(String gameName) {
+        String title = (gameName == null || gameName.isBlank() ? "Game" : gameName.trim()) + " Night";
+        return title.length() <= MAX_EVENT_TITLE ? title : title.substring(0, MAX_EVENT_TITLE);
+    }
+
+    /**
+     * The overlap start when it is still ahead; otherwise (window already open, or no window)
+     * a slot that is still useful: the next full hour at least an hour away, or tomorrow when
+     * there was no window at all.
+     */
+    static Instant suggestedStart(Instant overlapStart, Instant now) {
+        if (overlapStart == null) {
+            return now.plus(1, ChronoUnit.DAYS);
+        }
+        if (overlapStart.isAfter(now)) {
+            return overlapStart;
+        }
+        return now.plus(2, ChronoUnit.HOURS).truncatedTo(ChronoUnit.HOURS);
+    }
+
+    /** The game's max players (default 8), at least the group size, within the 2–50 event limit. */
+    static int eventCapacity(Integer gameMaxPlayers, int groupSize) {
+        int capacity = gameMaxPlayers != null ? gameMaxPlayers : CreateEventRequest.DEFAULT_MAX_PARTICIPANTS;
+        return Math.min(MAX_EVENT_CAPACITY, Math.max(Math.max(MIN_EVENT_CAPACITY, groupSize), capacity));
     }
 
     // -------------------------------------------------------------------------
@@ -431,6 +471,31 @@ public class MatchService {
         if (!ids.isEmpty()) {
             matchRequestRepository.reactivateIfNoActive(ids);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Request expiry (match_request_expire job)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Expires ACTIVE requests that can no longer be matched: their availability window ended
+     * before {@code now}, or they have no end and are older than 7 days (the furthest a window
+     * may reach). Returns the number expired.
+     */
+    @Transactional
+    public int expireStaleRequests(Instant now) {
+        return matchRequestRepository.expireStale(now, now.minus(OPEN_ENDED_REQUEST_TTL));
+    }
+
+    /**
+     * Account soft-deleted (GAP_ANALYSIS section 6.2): the user's ACTIVE match requests are
+     * cancelled so they are never matched again. Runs after the deletion commits.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onUserSoftDeleted(UserSoftDeletedEvent event) {
+        int cancelled = matchRequestRepository.cancelActiveForUser(event.userId());
+        log.info("Cancelled {} active match requests of a deleted account", cancelled);
     }
 
     // -------------------------------------------------------------------------
