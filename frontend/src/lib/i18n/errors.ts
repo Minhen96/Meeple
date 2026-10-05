@@ -29,7 +29,19 @@ const messages = {
 	usernameTaken: 'That username is taken.',
 	emailTaken: 'An account with that email already exists.',
 	invalidPassword: 'Incorrect password.',
-	fileTooLarge: 'That file is too large.'
+	fileTooLarge: 'That file is too large.',
+	passwordRequired: 'Enter your password to continue.',
+	confirmationRequired: 'Type DELETE to confirm.',
+	googleReauth: 'Please sign in with Google again to confirm.',
+	googleMismatch: 'That Google account is not linked to this Meeple account.',
+	accountNotDeleted: 'This account is active. Log in instead.',
+	emailUnchanged: 'That is already your email address.',
+	emailNotVerified: 'Please verify your email address first.',
+	invalidTimezone: 'That time zone is not valid.',
+	cannotRevokeCurrent: 'Use Log Out to sign out of this device.',
+	sessionNotFound: 'That device is already signed out.',
+	linkInvalid: 'This link is invalid or has expired.',
+	uploadFailed: 'Upload failed. Try again.'
 } as const satisfies Messages;
 
 export default messages;
@@ -70,5 +82,22 @@ export const ERROR_CODE_KEYS: Readonly<Record<string, ErrorMessageKey>> = {
 	USERNAME_TAKEN: 'errors.usernameTaken',
 	EMAIL_TAKEN: 'errors.emailTaken',
 	INVALID_PASSWORD: 'errors.invalidPassword',
-	FILE_TOO_LARGE: 'errors.fileTooLarge'
+	FILE_TOO_LARGE: 'errors.fileTooLarge',
+	REFRESH_UNAVAILABLE: 'errors.network',
+	PASSWORD_REQUIRED: 'errors.passwordRequired',
+	CONFIRMATION_REQUIRED: 'errors.confirmationRequired',
+	INVALID_GOOGLE_TOKEN: 'errors.googleReauth',
+	GOOGLE_REAUTH_REQUIRED: 'errors.googleReauth',
+	GOOGLE_ACCOUNT_MISMATCH: 'errors.googleMismatch',
+	ACCOUNT_NOT_DELETED: 'errors.accountNotDeleted',
+	EMAIL_UNCHANGED: 'errors.emailUnchanged',
+	EMAIL_NOT_VERIFIED: 'errors.emailNotVerified',
+	INVALID_TIMEZONE: 'errors.invalidTimezone',
+	CANNOT_REVOKE_CURRENT_SESSION: 'errors.cannotRevokeCurrent',
+	CURRENT_SESSION_UNKNOWN: 'errors.unknown',
+	SESSION_NOT_FOUND: 'errors.sessionNotFound',
+	INVALID_TOKEN: 'errors.linkInvalid',
+	TOKEN_EXPIRED: 'errors.linkInvalid',
+	TOKEN_USED: 'errors.linkInvalid',
+	UPLOAD_FAILED: 'errors.uploadFailed'
 };

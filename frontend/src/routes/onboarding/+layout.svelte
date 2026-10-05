@@ -1,33 +1,43 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	// Onboarding shell (SCREENS_AND_STATES section 3.1): progress dots for steps 2–5 and "Skip",
+	// which moves to the next step and finishes onboarding after the last one.
 	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import StepDots from '$lib/components/ui/StepDots.svelte';
 	import { usersApi } from '$lib/api/users';
+	import { m } from '$lib/i18n';
 	import { setUser } from '$lib/stores/auth';
+	import { ONBOARDING_STEPS, nextStepPath, stepNumber } from './onboarding';
 
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
 	let { children }: Props = $props();
 
-	const steps = ['profile', 'bgg-import', 'find-friends', 'add-game'];
-	const currentStep = $derived(
-		steps.findIndex((s) => $page.url.pathname.includes(s))
-	);
-	const showSteps = $derived(currentStep >= 0 || $page.url.pathname.includes('welcome'));
-
+	const current = $derived(stepNumber(page.url.pathname));
 	let skipping = $state(false);
 
-	async function handleSkip() {
-		if (skipping) return;
-		skipping = true;
+	async function finish() {
 		try {
 			const updatedUser = await usersApi.updateMe({ onboardingCompleted: true });
 			setUser(updatedUser);
 			await invalidateAll();
-			goto('/');
-		} catch (err) {
-			console.error('Failed to skip onboarding:', err);
+			await goto('/');
+		} catch {
 			window.location.href = '/';
+		}
+	}
+
+	async function handleSkip() {
+		if (skipping) return;
+		const next = nextStepPath(page.url.pathname);
+		if (next) {
+			void goto(next);
+			return;
+		}
+		skipping = true;
+		try {
+			await finish();
 		} finally {
 			skipping = false;
 		}
@@ -35,26 +45,15 @@
 </script>
 
 <div class="min-h-screen bg-background flex flex-col">
-	<!-- Header with step indicator -->
 	<header class="flex items-center justify-between px-6 py-4 max-w-lg mx-auto w-full">
-		{#if showSteps}
-			<div class="flex gap-2">
-				{#each steps as _, i (i)}
-					<div
-						class="w-2 h-2 rounded-full transition-colors {i <= currentStep ? 'bg-primary' : 'bg-surface-container-highest'}"
-					></div>
-				{/each}
-			</div>
-		{:else}
-			<div></div>
-		{/if}
-
-		{#if showSteps}
-			<button 
-				onclick={handleSkip} 
-				class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors"
+		{#if current !== null}
+			<StepDots total={ONBOARDING_STEPS.length} {current} />
+			<button
+				onclick={handleSkip}
+				disabled={skipping}
+				class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors disabled:opacity-50"
 			>
-				Skip
+				{m('common.skip')}
 			</button>
 		{/if}
 	</header>
@@ -63,4 +62,3 @@
 		{@render children?.()}
 	</main>
 </div>
-

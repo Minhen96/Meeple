@@ -39,7 +39,7 @@ class ConfigBeansTest {
         MockEnvironment env = new MockEnvironment();
         env.setActiveProfiles(profiles);
         SecurityConfig config = new SecurityConfig(corsProps("http://localhost:5173"), mock(JwtUtil.class),
-                mock(UserDetailsServiceImpl.class), env);
+                mock(UserDetailsServiceImpl.class), env, mock(com.meeplehearth.common.ratelimit.RedisRateLimiter.class));
         ReflectionTestUtils.setField(config, "openAdminEndpoints", openAdminFlag);
         return config;
     }

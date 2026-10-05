@@ -3,33 +3,41 @@
 	// GSI callback always uses the current component's props.
 	let gsiInitialized = false;
 	let currentOnError: ((msg: string) => void) | undefined;
+	let currentOnAccountDeleted: ((credential: string) => void) | undefined;
 	let currentRedirectTo = '/';
 </script>
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api, ApiRequestError } from '$lib/api/client';
+	import { authApi } from '$lib/api/auth';
+	import { ApiRequestError } from '$lib/api/client';
+	import { m } from '$lib/i18n';
 	import { safeRedirectPath } from '$lib/utils/redirect';
 
 	interface Props {
 		onError?: (message: string) => void;
+		/**
+		 * The Google account belongs to a Meeple account deleted less than 30 days ago; receives
+		 * the Google credential so the page can offer reactivation with it.
+		 */
+		onAccountDeleted?: (credential: string) => void;
 		/** Same-origin path to open after sign-in; validated again here. */
 		redirectTo?: string;
 	}
-	let { onError, redirectTo = '/' }: Props = $props();
+	let { onError, onAccountDeleted, redirectTo = '/' }: Props = $props();
 
 	const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 
 	function googleErrorMessage(err: unknown): string {
-		if (!(err instanceof ApiRequestError)) return 'Google sign-in failed. Try again.';
+		if (!(err instanceof ApiRequestError)) return m('account.google.failed');
 		switch (err.code) {
 			case 'GOOGLE_EMAIL_NOT_VERIFIED':
-				return 'Your Google email address is not verified. Verify it with Google, then try again.';
+				return m('account.google.emailNotVerified');
 			case 'GOOGLE_ACCOUNT_CONFLICT':
-				return 'An account with this email already exists. Log in with your password instead.';
+				return m('account.google.conflict');
 		}
-		if (err.status === 429) return 'Too many requests, try later.';
-		return err.message || 'Google sign-in failed. Try again.';
+		if (err.status === 429) return m('errors.rateLimited');
+		return m('account.google.failed');
 	}
 	let container: HTMLDivElement;
 
@@ -38,6 +46,7 @@
 
 		// Keep module-level refs current for this mount
 		currentOnError = onError;
+		currentOnAccountDeleted = onAccountDeleted;
 		currentRedirectTo = safeRedirectPath(redirectTo);
 
 		function initGSI() {
@@ -53,9 +62,17 @@
 					client_id: clientId,
 					callback: async (response: { credential: string }) => {
 						try {
-							await api.post('/api/v1/auth/google', { idToken: response.credential });
+							await authApi.googleLogin(response.credential);
 							window.location.href = currentRedirectTo;
 						} catch (err) {
+							if (
+								err instanceof ApiRequestError &&
+								err.code === 'ACCOUNT_DELETED' &&
+								currentOnAccountDeleted
+							) {
+								currentOnAccountDeleted(response.credential);
+								return;
+							}
 							currentOnError?.(googleErrorMessage(err));
 						}
 					}

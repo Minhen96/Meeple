@@ -2,6 +2,7 @@ package com.meeplehearth.config;
 
 import com.meeplehearth.auth.service.UserDetailsServiceImpl;
 import com.meeplehearth.auth.util.JwtUtil;
+import com.meeplehearth.event.repository.EventRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiPredicate;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -42,19 +44,23 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private static final String USER_DESTINATION_PREFIX = "/user";
     private static final String USER_QUEUE_SUBSCRIPTION_PREFIX = "/user/queue/";
     private static final String HOW_TO_PLAY_TOPIC_PREFIX = "/topic/how-to-play/";
+    /** Live participant updates of one event: {@code /topic/events/{eventId}} (section 6.3). */
+    static final String EVENT_TOPIC_PREFIX = "/topic/events/";
     private static final String APP_DESTINATION_PREFIX = "/app";
 
     private final AppProperties appProperties;
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
     private final WebSocketSessionRevoker sessionRevoker;
+    private final EventRepository eventRepository;
 
     public WebSocketConfig(AppProperties appProperties, JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService,
-                           WebSocketSessionRevoker sessionRevoker) {
+                           WebSocketSessionRevoker sessionRevoker, EventRepository eventRepository) {
         this.appProperties = appProperties;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
         this.sessionRevoker = sessionRevoker;
+        this.eventRepository = eventRepository;
     }
 
     /** Tracks raw sessions so revoked users' sockets can be closed (see {@link WebSocketSessionRevoker}). */
@@ -107,7 +113,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new StompAuthorizationInterceptor(jwtUtil, userDetailsService, sessionRevoker));
+        registration.interceptors(new StompAuthorizationInterceptor(jwtUtil, userDetailsService, sessionRevoker,
+                eventRepository::isVisibleTo));
     }
 
     /**
@@ -119,8 +126,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      *       The token's expiry is stored in the session attributes.</li>
      *   <li>SUBSCRIBE and SEND are rejected, and the socket closed, once the token presented on
      *       CONNECT has expired, so clients reconnect with a fresh token.</li>
-     *   <li>SUBSCRIBE is allowed only to the caller's own user queues ({@code /user/queue/**})
-     *       and to public game progress topics ({@code /topic/how-to-play/**}).</li>
+     *   <li>SUBSCRIBE is allowed only to the caller's own user queues ({@code /user/queue/**}),
+     *       to public game progress topics ({@code /topic/how-to-play/**}) and to
+     *       {@code /topic/events/{eventId}} for events the caller can see
+     *       ({@code EventRepository.isVisibleTo}).</li>
      *   <li>SEND is allowed only to application destinations ({@code /app/**}), so clients can
      *       never publish directly onto broker topics or other users' queues.</li>
      * </ul>
@@ -130,12 +139,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         private final JwtUtil jwtUtil;
         private final UserDetailsServiceImpl userDetailsService;
         private final WebSocketSessionRevoker sessionRevoker;
+        /** (eventId, userId) → may this user see the event. */
+        private final BiPredicate<UUID, UUID> eventVisibility;
 
+        /** Without an event visibility check: every /topic/events subscription is refused. */
         StompAuthorizationInterceptor(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService,
                                       WebSocketSessionRevoker sessionRevoker) {
+            this(jwtUtil, userDetailsService, sessionRevoker, (eventId, userId) -> false);
+        }
+
+        StompAuthorizationInterceptor(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService,
+                                      WebSocketSessionRevoker sessionRevoker,
+                                      BiPredicate<UUID, UUID> eventVisibility) {
             this.jwtUtil = jwtUtil;
             this.userDetailsService = userDetailsService;
             this.sessionRevoker = sessionRevoker;
+            this.eventVisibility = eventVisibility;
         }
 
         @Override
@@ -151,7 +170,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             } else if (StompCommand.SUBSCRIBE.equals(command)) {
                 requireUser(accessor);
                 requireUnexpiredToken(accessor);
-                if (!isSubscriptionAllowed(accessor.getDestination())) {
+                if (!isSubscriptionAllowed(accessor.getDestination())
+                        && !isEventSubscriptionAllowed(accessor.getDestination(), accessor.getUser())) {
                     throw new MessageDeliveryException("Subscription to this destination is not allowed");
                 }
             } else if (StompCommand.SEND.equals(command)) {
@@ -222,6 +242,35 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             }
             sessionRevoker.closeSession(accessor.getSessionId(), WebSocketSessionRevoker.TOKEN_EXPIRED);
             throw new MessageDeliveryException("Access token expired");
+        }
+
+        /**
+         * {@code /topic/events/{eventId}}: only a well-formed event id, and only for a viewer who
+         * can see that event (host, participant, friend of the host for FRIENDS events, anyone for
+         * PUBLIC events; never across a block).
+         */
+        boolean isEventSubscriptionAllowed(String destination, Principal user) {
+            if (destination == null || user == null || !destination.startsWith(EVENT_TOPIC_PREFIX)) {
+                return false;
+            }
+            String id = destination.substring(EVENT_TOPIC_PREFIX.length());
+            UUID eventId;
+            UUID userId;
+            try {
+                eventId = UUID.fromString(id);
+                userId = UUID.fromString(user.getName());
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+            // UUID.fromString accepts non-canonical forms ("1-1-1-1-1"); require the canonical one
+            if (!eventId.toString().equalsIgnoreCase(id)) {
+                return false;
+            }
+            try {
+                return eventVisibility.test(eventId, userId);
+            } catch (RuntimeException e) {
+                return false;
+            }
         }
 
         static boolean isSubscriptionAllowed(String destination) {

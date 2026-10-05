@@ -4,10 +4,14 @@ server:
   # Resolve the client IP from X-Forwarded-For via Tomcat's RemoteIpValve, which only trusts
   # entries appended by internal (private-network) proxies, so clients cannot spoof their IP.
   forward-headers-strategy: native
+  # Finish in-flight requests before stopping (ENGINEERING_STANDARDS section 12)
+  shutdown: graceful
 
 spring:
   application:
     name: meeple-backend
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   main:
     lazy-initialization: true
 
@@ -69,6 +73,17 @@ management:
 app:
   seed:
     csv-url: ${SEED_CSV_URL:}
+  # Global API rate limits per one-minute window (FEATURES_COMPLETE section 12.6)
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    per-user-per-minute: 200
+    per-ip-per-minute: 20
+    login-per-minute: 10
+  # iOS universal links / Android App Links (/.well-known). Empty: files list no apps.
+  deep-links:
+    ios-app-id: ${IOS_APP_ID:}
+    android-package: ${ANDROID_PACKAGE_NAME:}
+    android-sha256-fingerprints: ${ANDROID_SHA256_FINGERPRINTS:}
   fcm:
     # Firebase service-account JSON (raw or base64, see TECH_STACK_ADDITIONS section 24).
     # Empty disables push (no-op sender).

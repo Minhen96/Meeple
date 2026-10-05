@@ -34,6 +34,10 @@ public class RefreshToken {
     @Column(name = "last_used_at", nullable = false)
     private Instant lastUsedAt = Instant.now();
 
+    /** When the device session began (login); carried forward on every rotation. */
+    @Column(name = "session_started_at")
+    private Instant sessionStartedAt;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 

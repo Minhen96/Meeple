@@ -11,6 +11,29 @@ const REFRESH_PATH = '/api/v1/auth/refresh';
  * real answer, not an expired session — never refresh/redirect for these.
  */
 const AUTH_PREFIX = '/api/v1/auth/';
+/** Authenticated endpoints under the auth prefix: a 401 there is an expired session. */
+const AUTHENTICATED_AUTH_PREFIXES = ['/api/v1/auth/sessions'];
+
+/** True when a 401 from `path` means "session expired" (refresh and retry), not a real answer. */
+export function refreshesOn401(path: string): boolean {
+	if (!path.startsWith(AUTH_PREFIX)) return true;
+	return AUTHENTICATED_AUTH_PREFIXES.some(
+		(prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`)
+	);
+}
+
+/**
+ * Seconds to wait from a Retry-After header (delta-seconds or an HTTP date), or null when the
+ * header is absent or unusable. Never negative.
+ */
+export function parseRetryAfter(header: string | null, now: number = Date.now()): number | null {
+	if (!header) return null;
+	const trimmed = header.trim();
+	if (/^\d+$/.test(trimmed)) return Number(trimmed);
+	const date = Date.parse(trimmed);
+	if (Number.isNaN(date)) return null;
+	return Math.max(0, Math.ceil((date - now) / 1000));
+}
 const REFRESH_LOCK = 'meeple-refresh';
 /** Backend code (HTTP 409) for a refresh token that a concurrent refresh rotated moments ago. */
 const REFRESH_RACE_CODE = 'REFRESH_RACE';
@@ -21,7 +44,9 @@ export class ApiRequestError extends Error {
 	constructor(
 		public readonly code: string,
 		message: string,
-		public readonly status: number
+		public readonly status: number,
+		/** For 429 responses: seconds until the request may be retried (Retry-After). */
+		public readonly retryAfterSeconds: number | null = null
 	) {
 		super(message);
 		this.name = 'ApiRequestError';
@@ -183,7 +208,12 @@ async function parseError(res: Response): Promise<ApiRequestError> {
 	} catch {
 		err = { error: 'Request failed', code: 'UNKNOWN_ERROR' };
 	}
-	return new ApiRequestError(err.code || 'UNKNOWN_ERROR', err.error || 'Request failed', res.status);
+	return new ApiRequestError(
+		err.code || 'UNKNOWN_ERROR',
+		err.error || 'Request failed',
+		res.status,
+		res.status === 429 ? parseRetryAfter(res.headers.get('Retry-After')) : null
+	);
 }
 
 interface PageLike {
@@ -243,7 +273,7 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
 	// Token refresh is a browser concern. On the server, cookies come from the
 	// incoming request (see hooks.server.ts handleFetch) and the root layout
 	// server load has already refreshed them if needed.
-	if (res.status === 401 && browser && !path.startsWith(AUTH_PREFIX)) {
+	if (res.status === 401 && browser && refreshesOn401(path)) {
 		const probed: { res: Response | null } = { res: null };
 		const outcome = await refreshSingleFlight(fetchFn, async () => {
 			const r = await doFetch();
@@ -322,7 +352,11 @@ export const api = {
 		request<T>(path, { ...options, method: 'PATCH', body: encodeBody(body) }),
 
 	delete: <T>(path: string, options?: ApiOptions) =>
-		request<T>(path, { ...options, method: 'DELETE' })
+		request<T>(path, { ...options, method: 'DELETE' }),
+
+	/** DELETE with a JSON body (e.g. account deletion's re-authentication). */
+	deleteWithBody: <T>(path: string, body: unknown, options?: ApiOptions) =>
+		request<T>(path, { ...options, method: 'DELETE', body: encodeBody(body) })
 };
 
 /**

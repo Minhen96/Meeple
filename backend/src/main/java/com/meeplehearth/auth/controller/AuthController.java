@@ -4,30 +4,92 @@ import com.meeplehearth.auth.dto.AuthResponse;
 import com.meeplehearth.auth.dto.AvailabilityResponse;
 import com.meeplehearth.auth.dto.LoginRequest;
 import com.meeplehearth.auth.dto.MessageResponse;
+import com.meeplehearth.auth.dto.ReactivateRequest;
 import com.meeplehearth.auth.dto.RegisterRequest;
+import com.meeplehearth.auth.dto.SessionResponse;
 import com.meeplehearth.auth.service.AuthService;
+import com.meeplehearth.auth.service.SessionService;
+import com.meeplehearth.user.service.EmailChangeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AuthService authService;
+    private final SessionService sessionService;
+    private final EmailChangeService emailChangeService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService,
+                          SessionService sessionService,
+                          EmailChangeService emailChangeService) {
         this.authService = authService;
+        this.sessionService = sessionService;
+        this.emailChangeService = emailChangeService;
+    }
+
+    /**
+     * POST /api/v1/auth/reactivate
+     * Restores an account deleted less than 30 days ago and signs in (same cookies as login).
+     * Body: { "emailOrUsername", "password" } or, for Google accounts, { "googleIdToken" }.
+     */
+    @PostMapping("/reactivate")
+    public ResponseEntity<AuthResponse> reactivate(@Valid @RequestBody ReactivateRequest request,
+                                                   HttpServletRequest httpRequest,
+                                                   HttpServletResponse response) {
+        return ResponseEntity.ok(authService.reactivate(request, httpRequest.getRemoteAddr(), response));
+    }
+
+    /**
+     * POST /api/v1/auth/confirm-email-change
+     * Applies a pending email change from the link sent to the new address. Body: { "token" }.
+     */
+    @PostMapping("/confirm-email-change")
+    public ResponseEntity<MessageResponse> confirmEmailChange(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(emailChangeService.confirm(body.get("token")));
+    }
+
+    /** GET /api/v1/auth/sessions — signed-in devices of the current user (authenticated). */
+    @GetMapping("/sessions")
+    public ResponseEntity<List<SessionResponse>> sessions(@AuthenticationPrincipal UserDetails userDetails,
+                                                          HttpServletRequest request) {
+        return ResponseEntity.ok(sessionService.listSessions(UUID.fromString(userDetails.getUsername()), request));
+    }
+
+    /** DELETE /api/v1/auth/sessions/{id} — signs one other device out (authenticated). */
+    @DeleteMapping("/sessions/{id}")
+    public ResponseEntity<Void> revokeSession(@AuthenticationPrincipal UserDetails userDetails,
+                                              @PathVariable UUID id,
+                                              HttpServletRequest request) {
+        sessionService.revokeSession(UUID.fromString(userDetails.getUsername()), id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** POST /api/v1/auth/sessions/revoke-others — signs every other device out (authenticated). */
+    @PostMapping("/sessions/revoke-others")
+    public ResponseEntity<Map<String, Integer>> revokeOtherSessions(@AuthenticationPrincipal UserDetails userDetails,
+                                                                    HttpServletRequest request,
+                                                                    HttpServletResponse response) {
+        int revoked = sessionService.revokeOtherSessions(UUID.fromString(userDetails.getUsername()), request, response);
+        return ResponseEntity.ok(Map.of("revoked", revoked));
     }
 
     /**

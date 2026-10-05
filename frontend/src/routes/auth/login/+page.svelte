@@ -1,168 +1,192 @@
 <script lang="ts">
-	import Button from "$lib/components/ui/Button.svelte";
-	import GoogleButton from "$lib/components/ui/GoogleButton.svelte";
-	import { api, ApiRequestError } from "$lib/api/client";
-	import { page } from "$app/state";
-	import { safeRedirectPath } from "$lib/utils/redirect";
+	// Login (SCREENS_AND_STATES section 2.1) plus reactivation of an account deleted less than
+	// 30 days ago (FEATURES_COMPLETE section 1.6): login answers 403 ACCOUNT_DELETED and the user
+	// can restore the account with the same credentials (or Google sign-in).
+	import { page } from '$app/state';
+	import Button from '$lib/components/ui/Button.svelte';
+	import GoogleButton from '$lib/components/ui/GoogleButton.svelte';
+	import { authApi } from '$lib/api/auth';
+	import { errorMessage, m } from '$lib/i18n';
+	import { safeRedirectPath } from '$lib/utils/redirect';
+	import { classifyLoginError, type LoginFailure } from './loginErrors';
 
-	let emailOrUsername = $state("");
-	let password = $state("");
+	let emailOrUsername = $state('');
+	let password = $state('');
 	let showPassword = $state(false);
 	let loading = $state(false);
-	let error = $state("");
+	let failure = $state<LoginFailure | null>(null);
+	let googleMessage = $state('');
+	/** Set when Google sign-in hit a deleted account: reactivation uses this credential. */
+	let deletedGoogleCredential = $state<string | null>(null);
+	let reactivating = $state(false);
+	let resent = $state(false);
 	// Where to go after login (set by the auth guard); only same-origin paths.
-	const redirectTo = $derived(safeRedirectPath(page.url.searchParams.get("redirect")));
+	const redirectTo = $derived(safeRedirectPath(page.url.searchParams.get('redirect')));
+	const justDeleted = $derived(page.url.searchParams.get('deleted') === '1');
+	const showDeleted = $derived(failure?.kind === 'deleted' || deletedGoogleCredential !== null);
+
+	const errorText = $derived.by(() => {
+		if (googleMessage) return googleMessage;
+		if (!failure) return '';
+		switch (failure.kind) {
+			case 'invalidCredentials':
+				return m('account.login.invalidCredentials');
+			case 'locked':
+				return m('account.login.locked');
+			case 'rateLimited':
+				return failure.retryAfterSeconds
+					? m('account.login.rateLimited', { seconds: failure.retryAfterSeconds })
+					: m('errors.rateLimited');
+			case 'other':
+				return errorMessage(failure.code);
+			default:
+				return '';
+		}
+	});
+
+	function reset() {
+		failure = null;
+		googleMessage = '';
+		deletedGoogleCredential = null;
+		resent = false;
+	}
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
-		error = "";
+		reset();
 		loading = true;
-
 		try {
-			await api.post("/api/v1/auth/login", { emailOrUsername, password });
+			await authApi.login(emailOrUsername, password);
 			window.location.href = redirectTo;
 		} catch (err) {
-			if (err instanceof ApiRequestError) {
-				error = err.message;
-			} else {
-				error = "Something went wrong. Please try again.";
-			}
+			failure = classifyLoginError(err);
 		} finally {
 			loading = false;
 		}
 	}
+
+	async function reactivate() {
+		reactivating = true;
+		try {
+			if (deletedGoogleCredential) {
+				await authApi.reactivate({ googleIdToken: deletedGoogleCredential });
+			} else {
+				await authApi.reactivate({ emailOrUsername, password });
+			}
+			window.location.href = redirectTo;
+		} catch (err) {
+			deletedGoogleCredential = null;
+			const next = classifyLoginError(err);
+			failure = next.kind === 'deleted' ? { kind: 'other', code: 'ACCOUNT_DELETED' } : next;
+		} finally {
+			reactivating = false;
+		}
+	}
+
+	async function resendVerification() {
+		try {
+			await authApi.resendVerification(emailOrUsername.trim());
+		} catch {
+			// The answer never reveals whether the address exists
+		}
+		resent = true;
+	}
 </script>
 
 <svelte:head>
-	<title>Log In — Meeple</title>
+	<title>{m('account.login.title')} — {m('common.appName')}</title>
 </svelte:head>
 
-<!-- Premium Game Board Background -->
+<!-- Game board backdrop -->
 <div class="fixed inset-0 -z-10 bg-auth-backdrop dark:bg-surface overflow-hidden">
-	<!-- Base Gradients -->
 	<div
 		class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-from),_transparent_70%),_radial-gradient(circle_at_bottom_left,_var(--tw-gradient-to),_transparent_70%)] from-primary/30 to-secondary/30 opacity-90"
 	></div>
-
-	<!-- Board Grid Pattern -->
 	<div
-		class="absolute inset-0 opacity-[0.06] dark:opacity-[0.08] [background-image:radial-gradient(circle_at_center,_#000_1px,transparent_1px)] [background-size:32px_32px]"
+		class="absolute inset-0 opacity-[0.06] dark:opacity-[0.08] [background-image:radial-gradient(circle_at_center,_theme(colors.on-surface)_1px,transparent_1px)] [background-size:32px_32px]"
 	></div>
-	<div
-		class="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] [background-image:linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:128px_128px]"
-	></div>
-
-	<!-- Floating Immersive Assets -->
 	<div class="absolute inset-0 pointer-events-none">
-		<!-- Floating Card -->
-		<div
-			class="absolute top-[15%] left-[10%] w-32 h-44 bg-white/5 dark:bg-white/10 backdrop-blur-3xl rounded-xl border border-white/10 shadow-2xl transform rotate-12 animate-float opacity-40 hidden lg:block overflow-hidden"
-		>
-			<div
-				class="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary/20"
-			></div>
-			<div class="mt-12 px-4 space-y-2">
-				<div class="h-2 w-full bg-white/10 rounded"></div>
-				<div class="h-2 w-2/3 bg-white/10 rounded"></div>
-			</div>
-		</div>
-
-		<!-- Floating Die -->
-		<div
-			class="absolute bottom-[20%] right-[15%] w-20 h-20 bg-primary/10 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-xl transform -rotate-12 animate-float-slow hidden md:flex items-center justify-center"
-		>
-			<div class="grid grid-cols-2 gap-2 p-4 opacity-40">
-				<div class="w-2 h-2 rounded-full bg-primary"></div>
-				<div class="w-2 h-2 rounded-full bg-primary"></div>
-				<div class="w-2 h-2 rounded-full bg-primary"></div>
-				<div class="w-2 h-2 rounded-full bg-primary"></div>
-			</div>
-		</div>
-
-		<!-- Subtle Blobs -->
-		<div
-			class="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse"
-		></div>
+		<div class="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse"></div>
 		<div
 			class="absolute bottom-1/4 left-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]"
 		></div>
 	</div>
 </div>
 
-<!-- Background Accents -->
-<div
-	class="fixed top-0 left-0 w-full h-1/2 -z-5 bg-gradient-to-b from-primary/[0.05] to-transparent pointer-events-none"
-></div>
-
 <main
 	class="min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 max-w-6xl mx-auto md:flex-row gap-8 lg:gap-16 overflow-hidden relative"
 >
-	<!-- Left Side: Compact Brand Hero -->
 	<div class="flex-1 text-center md:text-left space-y-2 pt-4 md:pt-0">
-		<div
-			class="flex items-center justify-center md:justify-start gap-4 mb-4"
-		>
+		<div class="flex items-center justify-center md:justify-start gap-4 mb-4">
 			<div
-				class="w-16 h-16 bg-white/90 dark:bg-surface-container-high/90 backdrop-blur-2xl rounded-2xl shadow-2xl flex items-center justify-center p-3 transform -rotate-6 hover:rotate-0 transition-all duration-500 border border-white/10 shadow-primary/10"
+				class="w-16 h-16 bg-surface-container-lowest/90 backdrop-blur-2xl rounded-2xl shadow-2xl flex items-center justify-center p-3 transform -rotate-6 hover:rotate-0 transition-all duration-500 border border-white/10"
 			>
-				<img
-					src="/favicon.svg"
-					alt="Meeple Logo"
-					class="w-full h-full object-contain"
-				/>
+				<img src="/favicon.svg" alt="" class="w-full h-full object-contain" />
 			</div>
-			<h1
-				class="text-6xl sm:text-7xl font-black font-headline text-on-surface tracking-tighter leading-none"
-			>
-				<span class="text-primary italic">Meeple</span>
+			<h1 class="text-6xl sm:text-7xl font-black font-headline text-on-surface tracking-tighter leading-none">
+				<span class="text-primary italic">{m('common.appName')}</span>
 			</h1>
 		</div>
-
 		<div class="space-y-4">
-			<h4
-				class="text-3xl sm:text-4xl font-black font-headline text-on-surface tracking-tight opacity-90"
-			>
-				Boardgame app
-			</h4>
-			<p
-				class="text-base text-on-surface-variant font-medium max-w-sm mx-auto md:mx-0 opacity-60 leading-relaxed"
-			>
-				Welcome back to the world's most premium board game community.
-				Discover, track, and play.
+			<p class="text-3xl sm:text-4xl font-black font-headline text-on-surface tracking-tight opacity-90">
+				{m('account.login.heroTitle')}
+			</p>
+			<p class="text-base text-on-surface-variant font-medium max-w-sm mx-auto md:mx-0 opacity-60 leading-relaxed">
+				{m('account.login.heroBody')}
 			</p>
 		</div>
 	</div>
 
-	<!-- Right Side: The Form -->
 	<div class="w-full max-w-md pb-12 md:pb-0">
-		<div class="space-y-4 relative">
-			<!-- Glass backdrop for the form area itself to pop -->
-			<div
-				class="absolute -inset-8 bg-white/[0.02] dark:bg-black/[0.02] backdrop-blur-sm -z-10 rounded-[3rem] border border-white/10 lg:block hidden"
-			></div>
+		<div class="space-y-4">
+			{#if justDeleted && !showDeleted}
+				<div class="text-sm bg-surface-container-high rounded-2xl px-5 py-4 text-on-surface" role="status">
+					{m('account.login.deletedNotice')}
+				</div>
+			{/if}
+
+			{#if showDeleted}
+				<div class="bg-secondary-container rounded-2xl px-5 py-4 space-y-3 text-on-secondary-container" role="alert">
+					<p class="font-bold">{m('account.login.deletedTitle')}</p>
+					<p class="text-sm">{m('account.login.deletedBody')}</p>
+					<Button fullWidth loading={reactivating} onclick={reactivate}>{m('account.login.reactivate')}</Button>
+				</div>
+			{/if}
 
 			<form onsubmit={handleSubmit} class="space-y-5">
-				{#if error}
+				{#if errorText}
 					<div
 						class="text-sm text-error bg-error-container/40 backdrop-blur-md rounded-2xl px-5 py-4 flex items-center gap-3 border border-white/10"
+						role="alert"
 					>
-						<span class="material-symbols-outlined text-[20px]"
-							>error</span
-						>
-						{error}
+						<span class="material-symbols-outlined text-[20px]">error</span>
+						{errorText}
+					</div>
+				{/if}
+
+				{#if failure?.kind === 'unverified'}
+					<div class="text-sm bg-secondary-container text-on-secondary-container rounded-2xl px-5 py-4 space-y-2" role="alert">
+						<p>{m('account.login.unverified')}</p>
+						{#if resent}
+							<p class="font-bold">{m('account.verify.resent')}</p>
+						{:else if emailOrUsername.includes('@')}
+							<button type="button" class="font-bold underline" onclick={resendVerification}>
+								{m('account.login.resend')}
+							</button>
+						{:else}
+							<a href="/auth/verify-email" class="font-bold underline">{m('account.login.resend')}</a>
+						{/if}
 					</div>
 				{/if}
 
 				<div class="space-y-1.5 px-0.5">
-					<label
-						for="email"
-						class="text-[10px] font-black text-on-surface-variant uppercase tracking-[.2em] pl-1"
-						>Identity</label
-					>
+					<label for="email" class="text-[10px] font-black text-on-surface-variant uppercase tracking-[.2em] pl-1">
+						{m('account.login.identityLabel')}
+					</label>
 					<input
 						id="email"
 						type="text"
-						placeholder="Email or username"
+						placeholder={m('account.login.identityPlaceholder')}
 						bind:value={emailOrUsername}
 						required
 						autocomplete="username"
@@ -172,22 +196,18 @@
 
 				<div class="space-y-1.5 px-0.5">
 					<div class="flex justify-between items-center pl-1">
-						<label
-							for="password"
-							class="text-[10px] font-black text-on-surface-variant uppercase tracking-[.2em]"
-							>Password</label
-						>
-						<a
-							href="/auth/forgot-password"
-							class="text-[10px] text-primary font-black uppercase tracking-widest hover:underline"
-							>Forget password?</a
-						>
+						<label for="password" class="text-[10px] font-black text-on-surface-variant uppercase tracking-[.2em]">
+							{m('account.login.passwordLabel')}
+						</label>
+						<a href="/auth/forgot-password" class="text-[10px] text-primary font-black uppercase tracking-widest hover:underline">
+							{m('account.login.forgot')}
+						</a>
 					</div>
 					<div class="relative">
 						<input
 							id="password"
-							type={showPassword ? "text" : "password"}
-							placeholder="Your password"
+							type={showPassword ? 'text' : 'password'}
+							placeholder={m('account.login.passwordPlaceholder')}
 							bind:value={password}
 							required
 							autocomplete="current-password"
@@ -197,70 +217,48 @@
 							type="button"
 							onclick={() => (showPassword = !showPassword)}
 							class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
-							aria-label="Toggle password visibility"
+							aria-label={m('account.login.togglePassword')}
 						>
 							<span class="material-symbols-outlined text-[22px]">
-								{showPassword ? "visibility_off" : "visibility"}
+								{showPassword ? 'visibility_off' : 'visibility'}
 							</span>
 						</button>
 					</div>
 				</div>
 
 				<div class="pt-6">
-					<Button type="submit" {loading} size="lg" fullWidth
-						>Log In</Button
-					>
+					<Button type="submit" {loading} size="lg" fullWidth>
+						{loading ? m('account.login.submitting') : m('account.login.submit')}
+					</Button>
 				</div>
 
 				<div class="pt-6 text-center">
 					<p class="text-sm text-on-surface-variant font-medium">
-						New player?
-						<a
-							href="/auth/register"
-							class="text-primary font-black hover:underline px-1"
-							>Join Community</a
-						>
+						{m('account.login.newPlayer')}
+						<a href="/auth/register" class="text-primary font-black hover:underline px-1">{m('account.login.join')}</a>
 					</p>
 				</div>
 
 				<div class="relative flex items-center gap-4 py-5">
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
-					<span
-						class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]"
-						>Quick Connect</span
-					>
+					<span class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]">
+						{m('account.login.quickConnect')}
+					</span>
 					<div class="flex-1 h-px bg-outline-variant/20"></div>
 				</div>
 
-				<GoogleButton {redirectTo} onError={(msg) => (error = msg)} />
+				<GoogleButton
+					{redirectTo}
+					onError={(msg) => {
+						reset();
+						googleMessage = msg;
+					}}
+					onAccountDeleted={(credential) => {
+						reset();
+						deletedGoogleCredential = credential;
+					}}
+				/>
 			</form>
 		</div>
 	</div>
 </main>
-
-<style>
-	@keyframes float {
-		0%,
-		100% {
-			transform: translateY(0) rotate(12deg);
-		}
-		50% {
-			transform: translateY(-20px) rotate(15deg);
-		}
-	}
-	@keyframes float-slow {
-		0%,
-		100% {
-			transform: translateY(0) rotate(-12deg);
-		}
-		50% {
-			transform: translateY(-15px) rotate(-8deg);
-		}
-	}
-	.animate-float {
-		animation: float 6s ease-in-out infinite;
-	}
-	.animate-float-slow {
-		animation: float-slow 8s ease-in-out infinite;
-	}
-</style>
