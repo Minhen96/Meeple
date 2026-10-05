@@ -1,12 +1,9 @@
 <script lang="ts">
 	import { getGreeting } from '$lib/utils/date';
-	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import PostCard from '$lib/components/social/PostCard.svelte';
 	import type { PageData } from './$types';
 	import type { MatchGroup, Post } from '$lib/types';
-	import { postsApi } from '$lib/api/posts';
-	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		data: PageData;
@@ -27,25 +24,6 @@
 		matchSuggestions = matchSuggestions.filter((g) => g.id !== id);
 	}
 
-	async function toggleLike(post: Post) {
-		const delta = post.likedByMe ? -1 : 1;
-		posts = posts.map((p) =>
-			p.id === post.id ? { ...p, likedByMe: !p.likedByMe, likeCount: p.likeCount + delta } : p
-		);
-		try {
-			if (post.likedByMe) {
-				await postsApi.unlikePost(post.id);
-			} else {
-				await postsApi.likePost(post.id);
-			}
-		} catch {
-			posts = posts.map((p) =>
-				p.id === post.id ? { ...p, likedByMe: post.likedByMe, likeCount: post.likeCount } : p
-			);
-			toast.error('Could not update like');
-		}
-	}
-
 	function formatEventDay(iso: string) {
 		return new Date(iso).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 	}
@@ -54,14 +32,6 @@
 		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 	}
 
-	function formatPostTime(iso: string) {
-		const d = new Date(iso);
-		const now = new Date();
-		const hrs = Math.floor((now.getTime() - d.getTime()) / 3600000);
-		if (hrs < 1) return 'Just now';
-		if (hrs < 24) return `${hrs}h ago`;
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
 </script>
 
 <svelte:head>
@@ -100,7 +70,7 @@
 				<a href="/events" class="text-primary text-xs font-label font-bold uppercase tracking-widest">View All</a>
 			</div>
 			<div class="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
-				{#each data.upcomingEvents.slice(0, 6) as event}
+				{#each data.upcomingEvents.slice(0, 6) as event (event.id)}
 					<a
 						href="/events/{event.id}"
 						class="flex-shrink-0 w-56 bg-surface-container-low rounded-xl p-4 shadow-sm spring-bounce"

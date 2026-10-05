@@ -7,11 +7,8 @@
 	interface Props { data: PageData }
 	let { data }: Props = $props();
 
-    let friends = $state<typeof data.friends>([]);
-
-	$effect(() => {
-		friends = data.friends;
-	});
+	// Writable derived: resets when data reloads, overridden locally on unfriend.
+	let friends = $derived(data.friends);
 
     async function handleUnfriend(userId: string) {
         if (!confirm('Are you sure you want to remove this friend?')) return;

@@ -35,7 +35,7 @@
 		try {
 			const res = await friendsApi.getFriends(0, 100);
 			friends = res.data;
-		} catch (e) {
+		} catch {
 			toast.error('Failed to load friends');
 		} finally {
 			loading = false;
@@ -53,7 +53,7 @@
 			toast.success(`${user.displayName || user.username} is now an Admin`);
 			// Remove from list or update local state
 			friends = friends.filter(f => f.id !== user.id);
-		} catch (e) {
+		} catch {
 			toast.error('Failed to promote user');
 		} finally {
 			promotingId = null;
@@ -101,7 +101,7 @@
 	<!-- Friends List -->
 	<div class="space-y-2">
 		{#if loading}
-			{#each [1, 2, 3] as _}
+			{#each [1, 2, 3] as n (n)}
 				<div class="flex items-center justify-between p-3 bg-surface-container-lowest rounded-2xl animate-pulse">
 					<div class="flex items-center gap-3">
 						<div class="w-10 h-10 rounded-full bg-surface-container-high"></div>

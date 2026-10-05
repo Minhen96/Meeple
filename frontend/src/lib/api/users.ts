@@ -1,5 +1,5 @@
 import { api, type ApiOptions } from './client';
-import type { ApiResponse, User } from '$lib/types';
+import type { User } from '$lib/types';
 
 export interface UpdateProfilePayload {
 	displayName?: string;

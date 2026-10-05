@@ -14,8 +14,8 @@
 	let requestId = $derived(localRequestId ?? data.friendStatus.requestId);
 
 	$effect(() => {
-		// Reset local overrides when the user changes
-		data.user.id; 
+		// Reset local overrides when the user changes (reading the id tracks it).
+		void data.user.id;
 		localStatus = null;
 		localRequestId = null;
 	});

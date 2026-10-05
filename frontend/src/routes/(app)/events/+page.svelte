@@ -2,7 +2,6 @@
 	import type { PageData } from './$types';
 	import type { Event } from '$lib/types';
 	import { eventsApi } from '$lib/api/events';
-	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -21,24 +20,18 @@
 	);
 
 	// Calendar strip — 7 days starting from today
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
-
-	const calendarDays = Array.from({ length: 7 }, (_, i) => {
-		const d = new Date(today);
-		d.setDate(today.getDate() + i);
-		return d;
-	});
+	const now = new Date();
+	const calendarDays = Array.from(
+		{ length: 7 },
+		(_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
+	);
 
 	let selectedDay = $state(0);
 
 	const eventDates = $derived(
 		new Set(
-			events.upcoming.map((e) => {
-				const d = new Date(e.scheduledAt);
-				d.setHours(0, 0, 0, 0);
-				return d.toDateString();
-			})
+			// toDateString() drops the time of day, so no normalisation is needed.
+			events.upcoming.map((e) => new Date(e.scheduledAt).toDateString())
 		)
 	);
 
@@ -50,9 +43,6 @@
 		return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 	}
 
-	function formatDate(iso: string) {
-		return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-	}
 
 	async function rsvp(event: Event, status: 'ACCEPTED' | 'DECLINED') {
 		try {
@@ -81,7 +71,7 @@
 <!-- Calendar strip -->
 <section class="mb-6">
 	<div class="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-2">
-		{#each calendarDays as day, i}
+		{#each calendarDays as day, i (i)}
 			{@const isSelected = selectedDay === i}
 			{@const hasEvent = dayHasEvent(day)}
 			<button

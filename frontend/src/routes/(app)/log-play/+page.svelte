@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { GameSearchResult } from '$lib/types';
 	import { gamesApi } from '$lib/api/games';
-	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
 	let query = $state('');

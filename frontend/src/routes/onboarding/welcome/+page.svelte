@@ -16,7 +16,7 @@
 			{ icon: 'library_books', title: 'Game Library', desc: 'Browse and track every board game you own.' },
 			{ icon: 'event', title: 'Game Nights', desc: 'Organize and join events with friends.' },
 			{ icon: 'groups', title: 'Find Players', desc: 'Match with people who want to play the same games.' }
-		] as feature}
+		] as feature (feature.title)}
 			<div class="flex items-start gap-4 bg-surface-container-low rounded-xl p-4">
 				<span class="material-symbols-outlined text-primary text-2xl mt-0.5">{feature.icon}</span>
 				<div>

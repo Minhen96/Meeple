@@ -24,8 +24,6 @@
 	let maxPlayers = $derived(store.maxPlayers);
 	let minPlaytime = $derived(store.minPlaytime);
 	let maxPlaytime = $derived(store.maxPlaytime);
-	let minComplexity = $derived(store.minComplexity);
-	let maxComplexity = $derived(store.maxComplexity);
 	let minRating = $derived(store.minRating);
 	let sortOption = $derived(store.sortOption);
 	let selectedGenre = $derived(store.selectedGenre);
@@ -239,7 +237,7 @@
 	<div
 		class="flex items-center gap-6 overflow-x-auto hide-scrollbar mb-3"
 	>
-		{#each tabs as tab}
+		{#each tabs as tab (tab.id)}
 			<button
 				onclick={() => {
 					store = { ...store, activeTab: tab.id };
@@ -427,7 +425,7 @@
 							>Genre</span
 						>
 						<div class="flex flex-wrap gap-2">
-							{#each ["Strategy", "Party", "Family", "2 Player", "Abstract"] as cat}
+							{#each categories as cat (cat)}
 								<button
 									onclick={() => {
 										store = {
@@ -457,7 +455,7 @@
 							>Complexity Level</span
 						>
 						<div class="flex flex-wrap gap-2">
-							{#each [{ label: "Light", min: 1.0, max: 2.0 }, { label: "Medium", min: 2.1, max: 3.5 }, { label: "Heavy", min: 3.6, max: 5.0 }] as level}
+							{#each [{ label: "Light", min: 1.0, max: 2.0 }, { label: "Medium", min: 2.1, max: 3.5 }, { label: "Heavy", min: 3.6, max: 5.0 }] as level (level.label)}
 								<button
 									onclick={() => {
 										store = {
@@ -635,7 +633,7 @@
 {#if showSearch}
 	{#if searching}
 		<div class="space-y-4 mt-6">
-			{#each { length: 4 } as _}
+			{#each { length: 4 } as _, i (i)}
 				<div
 					class="flex gap-4 items-center bg-surface-container-low/50 p-3 rounded-2xl"
 				>
@@ -737,7 +735,7 @@
 
 	{#if loadingCatalog && (gamesPage?.content?.length ?? 0) === 0}
 		<div class="grid grid-cols-2 gap-5">
-			{#each { length: 6 } as _}
+			{#each { length: 6 } as _, i (i)}
 				<div class="space-y-3">
 					<Skeleton class="aspect-[3/4] rounded-[2rem]" />
 					<Skeleton class="h-4 w-3/4 rounded-md" />
@@ -872,7 +870,7 @@
 				<div
 					class="grid grid-cols-2 gap-5 animate-in fade-in duration-500"
 				>
-					{#each { length: 2 } as _}
+					{#each { length: 2 } as _, i (i)}
 						<div class="space-y-3">
 							<Skeleton class="aspect-[3/4] rounded-[2rem]" />
 							<div class="space-y-2 px-1">

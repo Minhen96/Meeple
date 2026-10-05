@@ -3,7 +3,6 @@
 	import GoogleButton from "$lib/components/ui/GoogleButton.svelte";
 	import { api, ApiRequestError } from "$lib/api/client";
 	import { goto } from "$app/navigation";
-	import AppBar from "$lib/components/layout/AppBar.svelte";
 
 	let email = $state("");
 	let username = $state("");

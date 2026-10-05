@@ -103,7 +103,7 @@
 				Could not load setup status. Check backend connectivity.
 			</div>
 		{:else if !status}
-			{#each [1, 2, 3] as _}
+			{#each [1, 2, 3] as n (n)}
 				<div class="bg-surface-container-low rounded-2xl p-5 space-y-3 animate-pulse">
 					<div class="h-4 w-32 bg-surface-container-high rounded-full"></div>
 					<div class="h-2.5 w-full bg-surface-container-high rounded-full"></div>

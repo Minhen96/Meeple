@@ -7,7 +7,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
-	import { fade, fly, scale } from 'svelte/transition';
+	import { fly, scale } from 'svelte/transition';
 
 	interface Props { data: PageData }
 	let { data }: Props = $props();

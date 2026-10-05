@@ -64,7 +64,7 @@
 	</div>
 
 	<div class="flex items-center gap-1.5">
-		{#each group.members as member}
+		{#each group.members as member (member.id)}
 			<Avatar src={member.avatarUrl} size="xs" />
 		{/each}
 		<span class="text-xs text-on-surface-variant ml-1">
