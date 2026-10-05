@@ -5,6 +5,7 @@ import com.meeplehearth.social.service.FriendService;
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.UUID;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class FriendApiIntegrationTest extends ApiIntegrationTestBase {
 
     @Autowired private FriendService friendService;
+    @Autowired private StringRedisTemplate redis;
 
     // -------------------------------------------------------------------------
     // Request → accept → unfriend
@@ -97,10 +99,14 @@ class FriendApiIntegrationTest extends ApiIntegrationTestBase {
         sendRequest(alice, bob).andExpect(status().isOk());
         sendRequest(alice, bob).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("REQUEST_PENDING"));
-        sendRequest(bob, alice).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("REQUEST_PENDING"));
+        // Bob asking Alice back is mutual intent: Alice's pending request is accepted
+        sendRequest(bob, alice).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.sender.id").value(alice.toString()));
 
         assertThat(count("SELECT COUNT(*) FROM friend_requests WHERE sender_id IN (?, ?)", alice, bob)).isEqualTo(1);
+        sendRequest(alice, bob).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_FRIENDS"));
     }
 
     @Test
@@ -135,6 +141,12 @@ class FriendApiIntegrationTest extends ApiIntegrationTestBase {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("REQUEST_NOT_PENDING"));
 
+        // Seven-day cooldown after a decline (FEATURES_COMPLETE 2.1)
+        sendRequest(alice, bob).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("REQUEST_COOLDOWN"));
+        assertThat(redis.getExpire("fr:cooldown:" + alice + ":" + bob)).isGreaterThan(6L * 24 * 3600);
+
+        redis.delete("fr:cooldown:" + alice + ":" + bob); // the cooldown elapsed
         sendRequest(alice, bob)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(requestId.toString()))

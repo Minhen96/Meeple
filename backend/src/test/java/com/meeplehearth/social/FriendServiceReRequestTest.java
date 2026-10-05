@@ -1,5 +1,6 @@
 package com.meeplehearth.social;
 
+import com.meeplehearth.feed.service.FeedCache;
 import com.meeplehearth.notification.entity.Notification;
 import com.meeplehearth.notification.service.NotificationService;
 import com.meeplehearth.social.dto.FriendRequestResponse;
@@ -11,8 +12,10 @@ import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,11 +33,13 @@ class FriendServiceReRequestTest {
     @Mock BlockRepository blockRepository;
     @Mock UserRepository userRepository;
     @Mock NotificationService notificationService;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS) StringRedisTemplate redis;
+    @Mock FeedCache feedCache;
 
     @Test
     void reRequestAfterDeclineByOtherSideMakesCurrentUserTheSender() {
         FriendService service = new FriendService(friendRequestRepository, blockRepository,
-                userRepository, notificationService);
+                userRepository, notificationService, redis, feedCache);
 
         User alice = user("alice");
         User bob = user("bob");
