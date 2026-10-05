@@ -49,3 +49,7 @@ mobile/.dart_tool/
 mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 mobile/build/
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/worktrees/

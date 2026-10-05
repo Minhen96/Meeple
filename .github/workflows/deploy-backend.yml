@@ -1,18 +1,22 @@
 name: Deploy Backend
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'backend/**'
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Only deploy commits on main whose CI run passed
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -39,5 +43,5 @@ jobs:
           application_name: Meeple-backend
           environment_name: Meeple-backend-env-v2
           region: ap-southeast-1
-          version_label: ${{ github.sha }}
+          version_label: ${{ github.event.workflow_run.head_sha || github.sha }}
           deployment_package: backend/Dockerrun.aws.json
