@@ -1,21 +1,17 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
+	import { onDestroy, tick } from 'svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { postsApi } from '$lib/api/posts';
 	import { uploadApi } from '$lib/api/upload';
-	import { gamesApi } from '$lib/api/games';
-	import { friendsApi } from '$lib/api/friends';
 	import { ApiRequestError } from '$lib/api/client';
 	import { errorMessage, m } from '$lib/i18n';
 	import { compressPostImage, formatBytes } from '$lib/utils/image';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import type { GameSearchResult, User } from '$lib/types';
+	import PostTagsEditor from '$lib/components/social/PostTagsEditor.svelte';
+	import { moveItem, type TaggedFriend, type TaggedGame } from '$lib/components/social/postTags';
 	import { toast } from 'svelte-sonner';
 
 	const MAX_IMAGES = 10;
@@ -39,19 +35,17 @@
 	let caption = $state('');
 	let location = $state('');
 	let playedAtLocal = $state(toLocalInput(new Date()));
-	let taggedGame = $state<GameSearchResult | null>(null);
-	let taggedFriends = $state<User[]>([]);
+	let taggedGame = $state<TaggedGame | null>(null);
+	let taggedFriends = $state<TaggedFriend[]>([]);
 	let submitting = $state(false);
 	let error = $state('');
 	let fileInput = $state<HTMLInputElement>();
 
-	// Modals
-	let showGameSearch = $state(false);
-	let showFriendSearch = $state(false);
-	let gameQuery = $state('');
-	let gameResults = $state<GameSearchResult[]>([]);
-	let gameSearchTimer: ReturnType<typeof setTimeout> | undefined;
-	let friendsList = $state<User[] | null>(null);
+	// Photo reordering: drag by the handle (pointer events) or the move buttons / arrow keys.
+	// The list itself is re-ordered as the pointer passes over another photo, no transforms.
+	let dragId = $state<string | null>(null);
+	let photoStrip = $state<HTMLDivElement>();
+	let reorderStatus = $state('');
 
 	// Discard guard
 	let pendingNavigation = $state<URL | null>(null);
@@ -144,39 +138,68 @@
 
 	onDestroy(() => uploads.forEach((u) => URL.revokeObjectURL(u.preview)));
 
-	// ─── Tagging ─────────────────────────────────────────────────────────────
+	// ─── Reordering ──────────────────────────────────────────────────────────
 
-	function onGameQuery() {
-		clearTimeout(gameSearchTimer);
-		const q = gameQuery.trim();
-		if (q.length < 2) {
-			gameResults = [];
-			return;
-		}
-		gameSearchTimer = setTimeout(async () => {
-			try {
-				// Only games already in our catalogue (with an id) can be tagged
-				gameResults = (await gamesApi.search(q)).filter((g) => g.id !== null);
-			} catch {
-				gameResults = [];
-			}
-		}, 300);
+	const indexOf = (id: string) => uploads.findIndex((u) => u.id === id);
+
+	function announceOrder(id: string) {
+		reorderStatus = m('common.photoOrder.moved', {
+			position: indexOf(id) + 1,
+			total: uploads.length
+		});
 	}
 
-	async function openFriends() {
-		showFriendSearch = true;
-		if (friendsList !== null) return;
-		try {
-			friendsList = (await friendsApi.getFriends(0, 100)).data;
-		} catch {
-			friendsList = [];
+	/**
+	 * Move a photo by one slot. Keyed re-rendering moves the DOM node, which can drop focus,
+	 * so focus returns to the control the user pressed (or the handle once at either end).
+	 */
+	async function movePhoto(id: string, delta: number, control: 'handle' | 'left' | 'right') {
+		const from = indexOf(id);
+		const to = from + delta;
+		if (from < 0 || to < 0 || to >= uploads.length) return;
+		uploads = moveItem(uploads, from, to);
+		announceOrder(id);
+		await tick();
+		const tile = photoStrip?.querySelector<HTMLElement>(`[data-photo-id="${id}"]`);
+		const target = tile?.querySelector<HTMLButtonElement>(`[data-reorder="${control}"]`);
+		(target && !target.disabled
+			? target
+			: tile?.querySelector<HTMLButtonElement>('[data-reorder="handle"]')
+		)?.focus();
+	}
+
+	function onHandleKeydown(event: KeyboardEvent, id: string) {
+		const delta = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+		if (delta === 0) return;
+		event.preventDefault();
+		void movePhoto(id, delta, 'handle');
+	}
+
+	function startDrag(event: PointerEvent, id: string) {
+		if (event.button !== 0 || uploads.length < 2) return;
+		event.preventDefault();
+		(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+		dragId = id;
+	}
+
+	function dragMove(event: PointerEvent) {
+		if (dragId === null) return;
+		const over = document
+			.elementFromPoint(event.clientX, event.clientY)
+			?.closest<HTMLElement>('[data-photo-id]')?.dataset.photoId;
+		if (over && over !== dragId) uploads = moveItem(uploads, indexOf(dragId), indexOf(over));
+		// Scroll the strip while dragging near its edges
+		if (photoStrip) {
+			const rect = photoStrip.getBoundingClientRect();
+			if (event.clientX < rect.left + 40) photoStrip.scrollLeft -= 12;
+			else if (event.clientX > rect.right - 40) photoStrip.scrollLeft += 12;
 		}
 	}
 
-	function toggleFriend(friend: User) {
-		taggedFriends = taggedFriends.some((f) => f.id === friend.id)
-			? taggedFriends.filter((f) => f.id !== friend.id)
-			: [...taggedFriends, friend];
+	function endDrag() {
+		if (dragId === null) return;
+		announceOrder(dragId);
+		dragId = null;
 	}
 
 	// ─── Submit & guard ──────────────────────────────────────────────────────
@@ -314,9 +337,15 @@
 					</div>
 				</button>
 			{:else}
-				<div class="hide-scrollbar flex gap-3 overflow-x-auto pb-2">
-					{#each uploads as upload (upload.id)}
-						<div class="relative w-32 flex-shrink-0">
+				<div bind:this={photoStrip} class="hide-scrollbar flex gap-3 overflow-x-auto pb-2">
+					{#each uploads as upload, index (upload.id)}
+						<div
+							class="relative w-32 flex-shrink-0 rounded-2xl transition-opacity {dragId ===
+							upload.id
+								? 'opacity-60 ring-2 ring-primary'
+								: ''}"
+							data-photo-id={upload.id}
+						>
 							<button
 								type="button"
 								disabled={upload.status !== 'error'}
@@ -348,6 +377,43 @@
 							>
 								<span class="material-symbols-outlined text-xs">close</span>
 							</button>
+							{#if uploads.length > 1}
+								<button
+									type="button"
+									onpointerdown={(e) => startDrag(e, upload.id)}
+									onpointermove={dragMove}
+									onpointerup={endDrag}
+									onpointercancel={endDrag}
+									onkeydown={(e) => onHandleKeydown(e, upload.id)}
+									data-reorder="handle"
+									class="absolute left-1.5 top-1.5 flex h-6 w-6 touch-none cursor-grab items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm active:cursor-grabbing"
+									aria-label={m('common.photoOrder.handle', { position: index + 1 })}
+								>
+									<span class="material-symbols-outlined text-xs">drag_indicator</span>
+								</button>
+								<div class="mt-1.5 flex justify-between">
+									<button
+										type="button"
+										onclick={() => movePhoto(upload.id, -1, 'left')}
+										data-reorder="left"
+										disabled={index === 0}
+										class="flex h-7 w-7 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-opacity disabled:opacity-30"
+										aria-label={m('common.photoOrder.moveLeft', { position: index + 1 })}
+									>
+										<span class="material-symbols-outlined text-sm">chevron_left</span>
+									</button>
+									<button
+										type="button"
+										onclick={() => movePhoto(upload.id, 1, 'right')}
+										data-reorder="right"
+										disabled={index === uploads.length - 1}
+										class="flex h-7 w-7 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-opacity disabled:opacity-30"
+										aria-label={m('common.photoOrder.moveRight', { position: index + 1 })}
+									>
+										<span class="material-symbols-outlined text-sm">chevron_right</span>
+									</button>
+								</div>
+							{/if}
 							<div class="mt-1.5 space-y-1">
 								{#if upload.status !== 'done' && upload.status !== 'error'}
 									<ProgressBar value={upload.progress} tone="tertiary" class="h-1.5 w-full" />
@@ -372,6 +438,12 @@
 						</button>
 					{/if}
 				</div>
+				<p class="sr-only" aria-live="polite">{reorderStatus}</p>
+				{#if uploads.length > 1}
+					<p class="px-1 font-label text-[10px] text-on-surface-variant/70">
+						{m('common.photoOrder.hint')}
+					</p>
+				{/if}
 				{#if busyUploads.length > 0}
 					<p
 						class="flex items-center gap-2 px-1 font-label text-xs text-on-surface-variant"
@@ -409,71 +481,7 @@
 
 		<!-- Game + friends -->
 		<div class="grid grid-cols-1 gap-3">
-			<div class="flex items-center gap-4 rounded-2xl bg-surface-container-low p-4">
-				<button
-					type="button"
-					onclick={() => (showGameSearch = true)}
-					class="flex flex-1 items-center gap-4 text-left"
-				>
-					<span
-						class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
-					>
-						<span class="material-symbols-outlined text-[20px]">casino</span>
-					</span>
-					<span class="flex-1">
-						<span class="block text-sm font-bold"
-							>{taggedGame ? taggedGame.title : m('social.create.tagGame')}</span
-						>
-						<span class="block text-[10px] uppercase tracking-tighter text-on-surface-variant/60"
-							>{m('social.create.whichGame')}</span
-						>
-					</span>
-				</button>
-				{#if taggedGame}
-					<button
-						type="button"
-						onclick={() => (taggedGame = null)}
-						class="text-on-surface-variant/60 transition-colors hover:text-on-surface"
-						aria-label={m('social.create.removeGame')}
-					>
-						<span class="material-symbols-outlined text-sm">close</span>
-					</button>
-				{/if}
-			</div>
-
-			<button
-				type="button"
-				onclick={openFriends}
-				class="flex items-center gap-4 rounded-2xl bg-surface-container-low p-4 text-left transition-all hover:bg-secondary/10 active:scale-[0.98]"
-			>
-				<span
-					class="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary"
-				>
-					<span class="material-symbols-outlined text-[20px]">group</span>
-				</span>
-				<span class="flex-1">
-					<span class="block text-sm font-bold">
-						{taggedFriends.length === 0
-							? m('social.create.tagFriends')
-							: m('social.create.friendsTagged', { count: taggedFriends.length })}
-					</span>
-					<span class="block text-[10px] uppercase tracking-tighter text-on-surface-variant/60"
-						>{m('social.create.whoPlayed')}</span
-					>
-				</span>
-				{#if taggedFriends.length > 0}
-					<span class="flex -space-x-2">
-						{#each taggedFriends.slice(0, 3) as friend (friend.id)}
-							<Avatar
-								src={friend.avatarUrl}
-								name={friend.displayName ?? friend.username}
-								size="xs"
-								className="ring-2 ring-surface"
-							/>
-						{/each}
-					</span>
-				{/if}
-			</button>
+			<PostTagsEditor bind:game={taggedGame} bind:friends={taggedFriends} />
 
 			<label class="flex items-center gap-4 rounded-2xl bg-surface-container-low p-4">
 				<span
@@ -532,146 +540,6 @@
 		</div>
 	</form>
 </div>
-
-<!-- Game search -->
-{#if showGameSearch}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4" transition:fade>
-		<button
-			type="button"
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-			onclick={() => (showGameSearch = false)}
-			aria-label={m('social.create.close')}
-		></button>
-		<div
-			class="relative flex w-full max-w-lg flex-col gap-6 rounded-[2.5rem] bg-surface p-6 shadow-2xl"
-			transition:fly={{ y: 20 }}
-		>
-			<div class="flex items-center justify-between">
-				<h3 class="font-headline text-xl font-black">{m('social.create.gameModalTitle')}</h3>
-				<button
-					type="button"
-					onclick={() => (showGameSearch = false)}
-					class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container"
-					aria-label={m('social.create.close')}
-				>
-					<span class="material-symbols-outlined text-sm">close</span>
-				</button>
-			</div>
-			<div class="relative">
-				<span
-					class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50"
-					>search</span
-				>
-				<input
-					type="search"
-					placeholder={m('social.create.searchGames')}
-					aria-label={m('social.create.searchGames')}
-					bind:value={gameQuery}
-					oninput={onGameQuery}
-					class="h-12 w-full rounded-2xl bg-surface-container pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-				/>
-			</div>
-			<div class="max-h-64 space-y-2 overflow-y-auto pb-4 pr-1">
-				{#each gameResults as game (game.bggId)}
-					<button
-						type="button"
-						onclick={() => {
-							taggedGame = game;
-							showGameSearch = false;
-						}}
-						class="flex w-full items-center gap-3 rounded-xl p-2 transition-colors hover:bg-surface-container"
-					>
-						{#if game.thumbnailUrl}
-							<img
-								src={game.thumbnailUrl}
-								alt=""
-								class="h-10 w-10 rounded-lg bg-surface-container object-cover"
-							/>
-						{:else}
-							<span
-								class="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container"
-								><span class="material-symbols-outlined">casino</span></span
-							>
-						{/if}
-						<span class="text-left">
-							<span class="block text-sm font-bold leading-tight">{game.title}</span>
-							{#if game.yearPublished}<span class="block text-[10px] text-on-surface-variant"
-									>{game.yearPublished}</span
-								>{/if}
-						</span>
-					</button>
-				{/each}
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Friend tagging -->
-{#if showFriendSearch}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4" transition:fade>
-		<button
-			type="button"
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-			onclick={() => (showFriendSearch = false)}
-			aria-label={m('social.create.close')}
-		></button>
-		<div
-			class="relative flex w-full max-w-lg flex-col gap-6 rounded-[2.5rem] bg-surface p-6 shadow-2xl"
-			transition:fly={{ y: 20 }}
-		>
-			<div class="flex items-center justify-between">
-				<h3 class="font-headline text-xl font-black">{m('social.create.friendsModalTitle')}</h3>
-				<button
-					type="button"
-					onclick={() => (showFriendSearch = false)}
-					class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container"
-					aria-label={m('social.create.close')}
-				>
-					<span class="material-symbols-outlined text-sm">close</span>
-				</button>
-			</div>
-			<div class="max-h-80 space-y-2 overflow-y-auto pb-4 pr-1">
-				{#if friendsList === null}
-					<div class="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
-				{:else if friendsList.length === 0}
-					<p class="py-12 text-center text-sm text-on-surface-variant">
-						{m('social.create.noFriends')}
-					</p>
-				{:else}
-					{#each friendsList as friend (friend.id)}
-						{@const selected = taggedFriends.some((f) => f.id === friend.id)}
-						<button
-							type="button"
-							onclick={() => toggleFriend(friend)}
-							aria-pressed={selected}
-							class="flex w-full items-center justify-between rounded-2xl p-3 transition-colors {selected
-								? 'bg-secondary/10'
-								: 'hover:bg-surface-container'}"
-						>
-							<span class="flex items-center gap-3">
-								<Avatar
-									src={friend.avatarUrl}
-									name={friend.displayName ?? friend.username}
-									size="sm"
-								/>
-								<span class="text-sm font-bold">{friend.displayName ?? friend.username}</span>
-							</span>
-							<span
-								class="material-symbols-outlined {selected
-									? 'text-secondary'
-									: 'text-on-surface-variant/30'}"
-							>
-								{selected ? 'check_circle' : 'add_circle'}
-							</span>
-						</button>
-					{/each}
-				{/if}
-			</div>
-			<Button fullWidth onclick={() => (showFriendSearch = false)}>{m('social.create.done')}</Button
-			>
-		</div>
-	</div>
-{/if}
 
 {#if pendingNavigation}
 	<ConfirmDialog

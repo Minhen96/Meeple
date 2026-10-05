@@ -27,6 +27,7 @@ import event from './event';
 import social from './social';
 import library from './library';
 import account from './account';
+import admin from './admin';
 import errors, { ERROR_CODE_KEYS } from './errors';
 import zhCommon from './zh-CN/common';
 import zhNotif from './zh-CN/notif';
@@ -34,6 +35,7 @@ import zhEvent from './zh-CN/event';
 import zhSocial from './zh-CN/social';
 import zhLibrary from './zh-CN/library';
 import zhAccount from './zh-CN/account';
+import zhAdmin from './zh-CN/admin';
 import zhErrors from './zh-CN/errors';
 
 export type { MessageParams } from './types';
@@ -45,7 +47,7 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_COOKIE = 'lang';
 const LOCALE_COOKIE_MAX_AGE_S = 60 * 60 * 24 * 365;
 
-const en = { common, notif, event, social, library, account, errors };
+const en = { common, notif, event, social, library, account, admin, errors };
 
 type Namespaces = typeof en;
 type Namespace = keyof Namespaces;
@@ -64,6 +66,7 @@ const catalogs: Record<Locale, Record<Namespace, Messages>> = {
 		social: zhSocial,
 		library: zhLibrary,
 		account: zhAccount,
+		admin: zhAdmin,
 		errors: zhErrors
 	}
 };

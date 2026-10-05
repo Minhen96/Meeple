@@ -6,6 +6,10 @@
 	import type { GameDetail } from '$lib/types';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
 	import type { MatchRequest, MatchGroup, GameSearchResult } from '$lib/types';
+	import { getLocale, m } from '$lib/i18n';
+
+	const shortDate = (iso: string) =>
+		new Date(iso).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
 
 	let tab = $state<'requests' | 'suggestions'>('suggestions');
 	let myRequests = $state<MatchRequest[]>([]);
@@ -86,22 +90,22 @@
 	}
 </script>
 
-<svelte:head><title>Match — Meeple</title></svelte:head>
+<svelte:head><title>{m('event.match.title')} — Meeple</title></svelte:head>
 
 <div class="flex items-center justify-between mb-4">
-	<h2 class="text-2xl font-extrabold font-headline">Match</h2>
+	<h2 class="text-2xl font-extrabold font-headline">{m('event.match.title')}</h2>
 	<button
 		onclick={() => showForm = !showForm}
 		class="flex items-center gap-1 text-sm font-semibold text-primary"
 	>
 		<span class="material-symbols-outlined text-lg">{showForm ? 'close' : 'add'}</span>
-		{showForm ? 'Cancel' : 'New Request'}
+		{showForm ? m('common.cancel') : m('event.match.new')}
 	</button>
 </div>
 
 {#if showForm}
 	<div class="bg-surface-container-low rounded-2xl p-4 mb-5 space-y-3">
-		<p class="font-semibold text-sm">Looking to play…</p>
+		<p class="font-semibold text-sm">{m('event.match.lookingToPlay')}</p>
 
 		<!-- Game search -->
 		<div class="relative">
@@ -109,7 +113,7 @@
 				type="text"
 				bind:value={gameQuery}
 				oninput={onGameSearch}
-				placeholder="Search for a game"
+				placeholder={m('event.match.searchGame')}
 				class="w-full bg-surface pl-4 pr-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
 			/>
 			{#if gameResults.length > 0}
@@ -135,12 +139,12 @@
 		<!-- Time window -->
 		<div class="grid grid-cols-2 gap-2">
 			<div>
-				<label for="match-availableFrom" class="text-xs text-on-surface-variant mb-1 block">Available from</label>
+				<label for="match-availableFrom" class="text-xs text-on-surface-variant mb-1 block">{m('event.match.availableFrom')}</label>
 				<input id="match-availableFrom" type="datetime-local" bind:value={availableFrom}
 					class="w-full bg-surface px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" />
 			</div>
 			<div>
-				<label for="match-availableTo" class="text-xs text-on-surface-variant mb-1 block">Until</label>
+				<label for="match-availableTo" class="text-xs text-on-surface-variant mb-1 block">{m('event.match.until')}</label>
 				<input id="match-availableTo" type="datetime-local" bind:value={availableTo}
 					class="w-full bg-surface px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" />
 			</div>
@@ -151,14 +155,14 @@
 			disabled={!selectedGame || submitting}
 			class="w-full bg-primary text-on-primary font-semibold py-2.5 rounded-xl text-sm disabled:opacity-50"
 		>
-			{submitting ? 'Submitting…' : 'Submit Request'}
+			{submitting ? m('event.match.submitting') : m('event.match.submit')}
 		</button>
 	</div>
 {/if}
 
 <!-- Tabs -->
 <div class="flex gap-1 bg-surface-container-low p-1 rounded-xl mb-5">
-	{#each [['suggestions', `Suggestions${suggestions.length ? ` (${suggestions.length})` : ''}`], ['requests', 'My Requests']] as [value, label] (value)}
+	{#each [['suggestions', suggestions.length ? m('event.match.tab.suggestionsCount', { count: suggestions.length }) : m('event.match.tab.suggestions')], ['requests', m('event.match.tab.requests')]] as [value, label] (value)}
 		<button
 			onclick={() => tab = value as typeof tab}
 			class="flex-1 text-sm font-semibold py-2 rounded-lg transition-colors {tab === value ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}"
@@ -179,8 +183,8 @@
 	{#if suggestions.length === 0}
 		<div class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant">
 			<span class="material-symbols-outlined text-5xl">groups</span>
-			<p class="font-semibold">No matches yet</p>
-			<p class="text-sm">Submit a match request and we'll find friends who want to play the same game.</p>
+			<p class="font-semibold">{m('event.match.empty.suggestionsTitle')}</p>
+			<p class="text-sm">{m('event.match.empty.suggestionsBody')}</p>
 		</div>
 	{:else}
 		<div class="space-y-3">
@@ -194,8 +198,8 @@
 	{#if myRequests.length === 0}
 		<div class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant">
 			<span class="material-symbols-outlined text-5xl">sports_esports</span>
-			<p class="font-semibold">No active requests</p>
-			<p class="text-sm">Tap "New Request" to find friends to play with.</p>
+			<p class="font-semibold">{m('event.match.empty.requestsTitle')}</p>
+			<p class="text-sm">{m('event.match.empty.requestsBody')}</p>
 		</div>
 	{:else}
 		<div class="space-y-2">
@@ -209,19 +213,18 @@
 						<p class="font-semibold text-sm truncate">{req.game.title}</p>
 						{#if req.availableFrom}
 							<p class="text-xs text-on-surface-variant mt-0.5">
-								{new Date(req.availableFrom).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-								{#if req.availableTo}
-									– {new Date(req.availableTo).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-								{/if}
+								{req.availableTo
+									? m('event.match.range', { start: shortDate(req.availableFrom), end: shortDate(req.availableTo) })
+									: shortDate(req.availableFrom)}
 							</p>
 						{:else}
-							<p class="text-xs text-on-surface-variant mt-0.5">Any time</p>
+							<p class="text-xs text-on-surface-variant mt-0.5">{m('event.match.anyTime')}</p>
 						{/if}
 					</div>
 					<button
 						onclick={() => cancelRequest(req.id)}
 						class="text-on-surface-variant hover:text-error p-1 transition-colors"
-						aria-label="Cancel request"
+						aria-label={m('event.match.cancelRequest')}
 					>
 						<span class="material-symbols-outlined text-lg">close</span>
 					</button>

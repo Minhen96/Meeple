@@ -162,5 +162,29 @@ export default {
 	'error.cannotInviteSelf': '你已经是自己活动的一员。',
 	'error.invalidTransition': '请退出活动，而不是拒绝。',
 	'error.notParticipant': '你没有参加此活动。',
-	'error.pastDate': '请选择未来的日期。'
+	'error.pastDate': '请选择未来的日期。',
+
+	// Matching (match requests and suggestions)
+	'match.title': '匹配',
+	'match.new': '新建请求',
+	'match.lookingToPlay': '想玩…',
+	'match.searchGame': '搜索游戏',
+	'match.availableFrom': '开始时间',
+	'match.until': '结束时间',
+	'match.submitting': '提交中…',
+	'match.submit': '提交请求',
+	'match.tab.suggestions': '推荐',
+	'match.tab.suggestionsCount': '推荐（{count}）',
+	'match.tab.requests': '我的请求',
+	'match.empty.suggestionsTitle': '暂无匹配',
+	'match.empty.suggestionsBody': '提交匹配请求，我们会帮你找到想玩同一款游戏的好友。',
+	'match.empty.requestsTitle': '没有进行中的请求',
+	'match.empty.requestsBody': '点击“新建请求”，寻找一起玩的好友。',
+	'match.anyTime': '任意时间',
+	'match.range': '{start} – {end}',
+	'match.window': '{date} · {start} – {end}',
+	'match.windowOpen': '{date} · {start}',
+	'match.cancelRequest': '取消请求',
+	'match.found': '找到匹配！',
+	'match.dismiss': '忽略'
 } satisfies Translation<typeof en>;
