@@ -1,6 +1,8 @@
 package com.meeplehearth.event.service;
 
+import com.meeplehearth.common.event.UserHardDeletedEvent;
 import com.meeplehearth.common.event.UserSoftDeletedEvent;
+import com.meeplehearth.event.entity.Event;
 import com.meeplehearth.event.repository.EventParticipantRepository;
 import com.meeplehearth.event.repository.EventRepository;
 import com.meeplehearth.event.service.EventLiveUpdatePublisher.EventChanged;
@@ -9,6 +11,7 @@ import com.meeplehearth.notification.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,6 +22,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -68,8 +74,10 @@ public class EventLifecycleService {
                     if (eventRepository.completeIfLive(eventId, now) != 1) {
                         return false; // cancelled or completed since the id list was read
                     }
-                    eventRepository.findWithHostAndGameById(eventId).ifPresent(event ->
-                            notificationService.send(event.getHost().getId(), NotificationType.EVENT_COMPLETED,
+                    // No "share your memories" prompt when the host's account was deleted
+                    eventRepository.findWithHostAndGameById(eventId)
+                            .map(Event::hostIdOrNull)
+                            .ifPresent(hostId -> notificationService.send(hostId, NotificationType.EVENT_COMPLETED,
                                     null, eventId, EventService.REFERENCE_TYPE));
                     eventPublisher.publishEvent(new EventChanged(eventId));
                     return true;
@@ -123,5 +131,44 @@ public class EventLifecycleService {
     public void onUserSoftDeleted(UserSoftDeletedEvent event) {
         int removed = participantRepository.deletePendingInvitesForUser(event.userId(), Instant.now());
         log.info("Removed {} pending event invites of a deleted account", removed);
+    }
+
+    /**
+     * Account hard-deleted (FEATURES_COMPLETE section 1.6): the host's upcoming live events are
+     * cancelled (status CANCELLED plus soft delete, as if the host had cancelled them) and every
+     * accepted participant gets EVENT_CANCELLED. Past and completed events are kept and their host
+     * becomes "Deleted User" once the user row is removed ({@code host_id} is set to NULL, V60).
+     *
+     * <p>Runs synchronously inside the hard-delete transaction, before the user row is deleted, so
+     * the host's events can still be found and the cancellation commits or rolls back with it.
+     * Notifications carry no actor: the actor row is about to disappear.
+     */
+    @EventListener
+    @Transactional
+    public void onUserHardDeleted(UserHardDeletedEvent event) {
+        UUID hostId = event.userId();
+        Instant now = Instant.now();
+        List<UUID> eventIds = eventRepository.findUpcomingLiveIdsHostedBy(hostId, now);
+        if (eventIds.isEmpty()) {
+            return;
+        }
+        // Recipients are read before the update: it clears the persistence context
+        Map<UUID, List<UUID>> recipients = new LinkedHashMap<>();
+        for (UUID eventId : eventIds) {
+            recipients.put(eventId, participantRepository.findAcceptedUserIds(eventId));
+        }
+        eventRepository.cancelLive(eventIds, now);
+        recipients.forEach((eventId, userIds) -> {
+            for (UUID recipient : userIds) {
+                if (!recipient.equals(hostId)) {
+                    notificationService.send(recipient, NotificationType.EVENT_CANCELLED,
+                            null, eventId, EventService.REFERENCE_TYPE);
+                }
+            }
+            eventPublisher.publishEvent(new EventChanged(eventId));
+        });
+        // Write the notifications now, before the account's row is deleted by plain JDBC
+        eventRepository.flush();
+        log.info("Cancelled {} upcoming events of a permanently deleted account", eventIds.size());
     }
 }

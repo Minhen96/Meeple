@@ -24,8 +24,9 @@ public class PostComment {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "author_id", nullable = false)
+    /** Null once the author's account was permanently deleted (V60); clients show "Deleted User". */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
     private User author;
 
     @Column(columnDefinition = "TEXT", nullable = false)

@@ -98,7 +98,7 @@ public abstract class AiGameIntegrationTestBase {
         }
         for (UUID id : createdUsers) {
             jdbc.update("DELETE FROM notifications WHERE recipient_id = ?", id);
-            jdbc.update("DELETE FROM users WHERE id = ?", id);
+            com.meeplehearth.support.social.ApiIntegrationTestBase.deleteUserRows(jdbc, id);
             deleteRedisKeysMentioning(id);
         }
         createdGames.clear();

@@ -11,6 +11,12 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ReportSheet from '$lib/components/social/ReportSheet.svelte';
 	import MentionText from '$lib/components/social/MentionText.svelte';
+	import PostTagsEditor from '$lib/components/social/PostTagsEditor.svelte';
+	import {
+		tagUpdatePayload,
+		type TaggedFriend,
+		type TaggedGame
+	} from '$lib/components/social/postTags';
 	import { displayName, timeAgo } from '$lib/components/social/format';
 	import { postUrl, shareLink } from '$lib/components/social/share';
 	import { toast } from 'svelte-sonner';
@@ -23,10 +29,13 @@
 	const POST_EDIT_WINDOW_MS = 48 * 3600 * 1000;
 	const COMMENT_EDIT_WINDOW_MS = 24 * 3600 * 1000;
 	const MAX_COMMENT = 500;
+	const COMMENT_PAGE_SIZE = 20;
 
 	// Writable deriveds: follow load data, overridden locally for optimistic updates.
 	let post = $derived<Post | null>(data.post);
 	let comments = $derived<Comment[]>(data.comments);
+	let commentsCursor = $derived<string | null>(data.commentsCursor);
+	let loadingComments = $state(false);
 	let commentBody = $state('');
 	let submitting = $state(false);
 	let activeImage = $state(0);
@@ -38,6 +47,8 @@
 	// Post editing
 	let editCaption = $state('');
 	let editLocation = $state('');
+	let editGame = $state<TaggedGame | null>(null);
+	let editFriends = $state<TaggedFriend[]>([]);
 	let savingEdit = $state(false);
 
 	// Comment editing
@@ -60,6 +71,10 @@
 		if (editing && post) {
 			editCaption = post.caption ?? '';
 			editLocation = post.location ?? '';
+			editGame = post.game
+				? { id: post.game.id, title: post.game.title, thumbnailUrl: post.game.thumbnailUrl }
+				: null;
+			editFriends = post.taggedUsers.map((u) => ({ ...u }));
 		}
 	});
 
@@ -129,7 +144,8 @@
 		try {
 			post = await postsApi.updatePost(post.id, {
 				caption: editCaption.trim(),
-				location: editLocation.trim()
+				location: editLocation.trim(),
+				...tagUpdatePayload(post, { game: editGame, friends: editFriends })
 			});
 			editing = false;
 			toast.success(m('social.edit.saved'));
@@ -157,10 +173,29 @@
 		}
 	}
 
+	async function loadMoreComments() {
+		if (!post || !commentsCursor || loadingComments) return;
+		loadingComments = true;
+		try {
+			const page = await postsApi.getComments(post.id, commentsCursor, COMMENT_PAGE_SIZE);
+			// A comment posted here meanwhile can come back in a later page: keep one copy
+			const known = new Set(comments.map((c) => c.id));
+			comments = [...comments, ...page.items.filter((c) => !known.has(c.id))];
+			commentsCursor = page.hasMore ? page.nextCursor : null;
+		} catch (err) {
+			apiError(err, m('social.detail.loadCommentsFailed'));
+		} finally {
+			loadingComments = false;
+		}
+	}
+
+	/** Mine only while my account exists: a deleted author never matches (placeholder id). */
+	function isMine(c: Comment) {
+		return !c.author.deleted && c.author.id === me;
+	}
+
 	function canEditComment(c: Comment) {
-		return (
-			c.authorId === me && Date.now() - new Date(c.createdAt).getTime() < COMMENT_EDIT_WINDOW_MS
-		);
+		return isMine(c) && Date.now() - new Date(c.createdAt).getTime() < COMMENT_EDIT_WINDOW_MS;
 	}
 
 	function startEditComment(c: Comment) {
@@ -445,6 +480,7 @@
 								class="w-full rounded-2xl bg-surface-container-highest px-4 py-3 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/30"
 							/>
 						</label>
+						<PostTagsEditor bind:game={editGame} bind:friends={editFriends} />
 						<div class="flex gap-2">
 							<Button type="submit" loading={savingEdit} size="sm">{m('social.edit.save')}</Button>
 							<Button variant="secondary" size="sm" onclick={() => (editing = false)}
@@ -503,21 +539,29 @@
 			{#if comments.length > 0}
 				<ul class="space-y-6">
 					{#each comments as comment (comment.id)}
-						{@const authorName = comment.authorDisplayName ?? comment.authorUsername}
+						{@const authorName = displayName(comment.author)}
 						<li class="group flex items-start gap-3">
-							<a href="/profile/{comment.authorId}"
-								><Avatar
-									src={comment.authorAvatarUrl}
-									name={authorName}
-									size="sm"
-									className="mt-0.5"
-								/></a
-							>
+							{#if comment.author.deleted}
+								<Avatar src={null} name={authorName} size="sm" className="mt-0.5" />
+							{:else}
+								<a href="/profile/{comment.author.id}"
+									><Avatar
+										src={comment.author.avatarUrl}
+										name={authorName}
+										size="sm"
+										className="mt-0.5"
+									/></a
+								>
+							{/if}
 							<div class="min-w-0 flex-1">
 								<div class="mb-1 flex items-baseline gap-2">
-									<a href="/profile/{comment.authorId}" class="text-xs font-bold text-on-surface"
-										>{authorName}</a
-									>
+									{#if comment.author.deleted}
+										<span class="text-xs font-bold text-on-surface-variant">{authorName}</span>
+									{:else}
+										<a href="/profile/{comment.author.id}" class="text-xs font-bold text-on-surface"
+											>{authorName}</a
+										>
+									{/if}
 									<span class="font-label text-[10px] text-on-surface-variant">
 										{timeAgo(comment.createdAt)}{comment.editedAt
 											? ` · ${m('social.comment.edited')}`
@@ -553,14 +597,14 @@
 												class="hover:text-on-surface">{m('social.comment.edit')}</button
 											>
 										{/if}
-										{#if comment.authorId === me || isAuthor}
+										{#if isMine(comment) || isAuthor}
 											<button
 												type="button"
 												onclick={() => (deletingComment = comment)}
 												class="hover:text-error">{m('social.comment.delete')}</button
 											>
 										{/if}
-										{#if comment.authorId !== me}
+										{#if !isMine(comment)}
 											<button
 												type="button"
 												onclick={() => (reportTarget = { type: 'comment', id: comment.id })}
@@ -573,6 +617,13 @@
 						</li>
 					{/each}
 				</ul>
+				{#if commentsCursor}
+					<div class="mt-6 flex justify-center">
+						<Button variant="secondary" size="sm" loading={loadingComments} onclick={loadMoreComments}>
+							{m('social.detail.loadMoreComments')}
+						</Button>
+					</div>
+				{/if}
 			{:else}
 				<div class="py-12 text-center text-on-surface-variant">
 					<span class="material-symbols-outlined mb-2 text-3xl opacity-40">forum</span>

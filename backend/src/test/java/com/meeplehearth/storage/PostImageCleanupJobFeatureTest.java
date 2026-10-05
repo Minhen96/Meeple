@@ -59,6 +59,27 @@ class PostImageCleanupJobFeatureTest extends AccountFeatureTestBase {
     }
 
     @Test
+    void keepsObjectsStillUsedByALivePost() {
+        UUID author = user();
+        String base = appProperties.getR2().getPublicUrl();
+        String sharedKey = "uploads/" + author + "/" + UUID.randomUUID() + ".webp";
+        String ownKey = "posts/" + UUID.randomUUID() + "/0.webp";
+        UUID oldPost = post(author, Instant.now().minus(Duration.ofDays(40)));
+        UUID livePost = post(author, null);
+        UUID sharedOld = image(oldPost, base + "/" + sharedKey);
+        UUID ownOld = image(oldPost, base + "/" + ownKey);
+        UUID sharedLive = image(livePost, base + "/" + sharedKey);
+
+        job.cleanUp();
+
+        verify(s3Client).deleteObjects(argThat((DeleteObjectsRequest r) ->
+                r.delete().objects().stream().anyMatch(o -> o.key().equals(ownKey))
+                        && r.delete().objects().stream().noneMatch(o -> o.key().equals(sharedKey))));
+        assertThat(count("SELECT count(*) FROM post_images WHERE id IN (?, ?)", sharedOld, ownOld)).isZero();
+        assertThat(count("SELECT count(*) FROM post_images WHERE id = ?", sharedLive)).isEqualTo(1);
+    }
+
+    @Test
     void keepsRowsWhenStorageFails() {
         UUID author = user();
         UUID oldPost = post(author, Instant.now().minus(Duration.ofDays(45)));

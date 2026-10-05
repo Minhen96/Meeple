@@ -144,8 +144,25 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
-    /** GET /api/v1/posts/{id}/comments?page=0&size=20 */
-    @GetMapping("/posts/{id}/comments")
+    /**
+     * GET /api/v1/posts/{id}/comments?cursor=&limit=20 — oldest first,
+     * {@code {items, nextCursor, hasMore}}. The legacy {@code ?page=&size=} form (below) keeps the
+     * {@code {data, meta}} shape.
+     */
+    @GetMapping(value = "/posts/{id}/comments", params = "!page")
+    public ResponseEntity<CursorPage<PostCommentResponse>> getCommentPage(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer size) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        int pageSize = limit != null ? limit : size != null ? size : 20;
+        return ResponseEntity.ok(postService.getCommentPage(id, userId, cursor, pageSize));
+    }
+
+    /** GET /api/v1/posts/{id}/comments?page=0&size=20 — legacy offset pages */
+    @GetMapping(value = "/posts/{id}/comments", params = "page")
     public ResponseEntity<PageResponse<PostCommentResponse>> getComments(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails userDetails,

@@ -21,8 +21,9 @@ public class Event {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "host_id", nullable = false)
+    /** Null once the host's account was permanently deleted (V60); clients show "Deleted User". */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "host_id")
     private User host;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -78,6 +79,16 @@ public class Event {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
+    }
+
+    /** The host's id, or null when the host's account was permanently deleted. */
+    public UUID hostIdOrNull() {
+        return host != null ? host.getId() : null;
+    }
+
+    /** True when {@code userId} hosts this event (never for an event whose host was deleted). */
+    public boolean isHostedBy(UUID userId) {
+        return host != null && host.getId().equals(userId);
     }
 
     public enum Visibility { INVITE_ONLY, FRIENDS, PUBLIC }

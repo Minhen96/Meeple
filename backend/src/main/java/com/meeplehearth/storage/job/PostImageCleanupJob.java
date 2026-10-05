@@ -26,7 +26,8 @@ import java.util.UUID;
  * never touches live posts. Daily at 04:00 UTC under {@code lock:post_image_cleanup}.
  *
  * <p>Only URLs pointing into this bucket are deleted from storage; rows with foreign URLs are
- * simply removed. If storage fails the rows stay and are retried the next day.
+ * simply removed, and so are rows whose object another live (or recently deleted) post still
+ * uses: that object is kept. If storage fails the rows stay and are retried the next day.
  */
 @Component
 @Lazy(false)
@@ -66,10 +67,14 @@ public class PostImageCleanupJob {
         int removed = 0;
         while (true) {
             List<Map<String, Object>> rows = jdbc.queryForList("""
-                    SELECT pi.id, pi.url FROM post_images pi
+                    SELECT pi.id, pi.url,
+                           EXISTS (SELECT 1 FROM post_images o JOIN posts op ON op.id = o.post_id
+                                   WHERE o.url = pi.url AND o.id <> pi.id
+                                     AND (op.deleted_at IS NULL OR op.deleted_at >= ?)) AS still_used
+                    FROM post_images pi
                     JOIN posts p ON p.id = pi.post_id
                     WHERE p.deleted_at IS NOT NULL AND p.deleted_at < ?
-                    LIMIT ?""", cutoff, BATCH_SIZE);
+                    LIMIT ?""", cutoff, cutoff, BATCH_SIZE);
             if (rows.isEmpty()) {
                 break;
             }
@@ -77,7 +82,10 @@ public class PostImageCleanupJob {
             List<String> keys = new ArrayList<>();
             for (Map<String, Object> row : rows) {
                 ids.add((UUID) row.get("id"));
-                storage.keyFromPublicUrl((String) row.get("url")).ifPresent(keys::add);
+                String url = (String) row.get("url");
+                if (!Boolean.TRUE.equals(row.get("still_used"))) {
+                    storage.keyFromPublicUrl(url).filter(k -> !keys.contains(k)).ifPresent(keys::add);
+                }
             }
             try {
                 if (!keys.isEmpty()) {

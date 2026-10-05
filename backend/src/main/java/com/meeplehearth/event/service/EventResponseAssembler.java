@@ -47,12 +47,13 @@ public class EventResponseAssembler {
             myRsvps.put(ep.getId().getEventId(), ep.getStatus().name());
         }
 
-        Map<UUID, UUID> hostByEvent = new HashMap<>();
-        events.forEach(e -> hostByEvent.put(e.getId(), e.getHost().getId()));
+        Map<UUID, Event> byId = new HashMap<>();
+        events.forEach(e -> byId.put(e.getId(), e));
         Map<UUID, List<ParticipantInfo>> participants = new HashMap<>();
         for (EventParticipant ep : participantRepository.findForEventsVisibleTo(ids, viewerId)) {
             UUID eventId = ep.getId().getEventId();
-            boolean viewerIsHost = viewerId.equals(hostByEvent.get(eventId));
+            Event event = byId.get(eventId);
+            boolean viewerIsHost = event != null && event.isHostedBy(viewerId);
             if (viewerIsHost || ep.getStatus() == EventParticipant.RsvpStatus.ACCEPTED) {
                 participants.computeIfAbsent(eventId, k -> new ArrayList<>()).add(ParticipantInfo.from(ep));
             }

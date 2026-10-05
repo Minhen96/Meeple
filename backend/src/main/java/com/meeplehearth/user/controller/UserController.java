@@ -2,7 +2,10 @@ package com.meeplehearth.user.controller;
 
 import com.meeplehearth.auth.dto.MessageResponse;
 import com.meeplehearth.auth.service.AuthService;
+import com.meeplehearth.common.dto.PageMeta;
 import com.meeplehearth.common.dto.PageResponse;
+import com.meeplehearth.social.dto.UserSummaryWithStatus;
+import com.meeplehearth.social.service.SocialQueryService;
 import com.meeplehearth.user.dto.ChangeEmailRequest;
 import com.meeplehearth.user.dto.DataExportResponse;
 import com.meeplehearth.user.dto.DeleteAccountRequest;
@@ -20,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -31,17 +35,20 @@ public class UserController {
     private final EmailChangeService emailChangeService;
     private final DataExportService dataExportService;
     private final AuthService authService;
+    private final SocialQueryService socialQueryService;
 
     public UserController(UserService userService,
                           AccountDeletionService accountDeletionService,
                           EmailChangeService emailChangeService,
                           DataExportService dataExportService,
-                          AuthService authService) {
+                          AuthService authService,
+                          SocialQueryService socialQueryService) {
         this.userService = userService;
         this.accountDeletionService = accountDeletionService;
         this.emailChangeService = emailChangeService;
         this.dataExportService = dataExportService;
         this.authService = authService;
+        this.socialQueryService = socialQueryService;
     }
 
     private static UUID userId(UserDetails userDetails) {
@@ -93,22 +100,40 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(dataExportService.requestExport(userId(userDetails)));
     }
 
-    /** GET /api/v1/users/search?q= — search by username or display name */
+    /**
+     * GET /api/v1/users/search?q=&page=0&size=20 (or {@code limit}) — users matching the username
+     * or display name, as {@code UserSummaryWithStatus} rows ({@code id, username, displayName,
+     * avatarUrl, friendshipStatus}) in the {@code {data, meta}} page shape. Excludes the viewer,
+     * deleted accounts and anyone blocked either way (FEATURES_COMPLETE 2.3).
+     */
     @GetMapping("/search")
-    public ResponseEntity<PageResponse<UserProfileResponse>> search(
+    public ResponseEntity<PageResponse<UserSummaryWithStatus>> search(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String q,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(userService.search(q, page, size));
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) Integer limit) {
+        int pageSize = size != null ? size : limit != null ? limit : 20;
+        return ResponseEntity.ok(socialQueryService.searchWithStatus(userId(userDetails), q, page, pageSize));
     }
 
-    /** GET /api/v1/users/suggestions — people you may know */
+    /**
+     * GET /api/v1/users/suggestions?size=10 (or {@code limit}, max 10) — people you may know,
+     * ranked by games in common with the viewer's collection. Friends, pending requests either
+     * way, blocks and deleted accounts are never suggested, so every row's
+     * {@code friendshipStatus} is {@code none}. Always a single page.
+     */
     @GetMapping("/suggestions")
-    public ResponseEntity<PageResponse<UserProfileResponse>> getSuggestions(
+    public ResponseEntity<PageResponse<UserSummaryWithStatus>> getSuggestions(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(userService.getSuggestions(userId(userDetails), page, size));
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) Integer limit) {
+        int max = size != null ? size : limit != null ? limit : 10;
+        List<UserSummaryWithStatus> rows = socialQueryService.suggestions(userId(userDetails), max).stream()
+                .map(s -> new UserSummaryWithStatus(s.id(), s.username(), s.displayName(), s.avatarUrl(),
+                        UserSummaryWithStatus.NONE))
+                .toList();
+        return ResponseEntity.ok(new PageResponse<>(rows, new PageMeta(1, rows.size(), rows.size(), false)));
     }
 
     /** GET /api/v1/users/{id} — public profile; 404 if deleted or blocked either way */
