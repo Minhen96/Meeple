@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -106,4 +107,23 @@ public interface MatchRequestRepository extends JpaRepository<MatchRequest, UUID
               AND bu.id.blockedId IN (SELECT b.user.id FROM MatchRequest b WHERE b.status = 'ACTIVE')
             """)
     List<Object[]> findBlockPairsAmongActiveRequesters();
+
+    /**
+     * Expires ACTIVE requests whose window ended before {@code now}, or that have no end and were
+     * created before {@code openEndedCutoff}. Returns the number expired.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            UPDATE match_requests SET status = 'EXPIRED'
+            WHERE status = 'ACTIVE'
+              AND ((available_to IS NOT NULL AND available_to < :now)
+                OR (available_to IS NULL AND created_at < :openEndedCutoff))
+            """, nativeQuery = true)
+    int expireStale(Instant now, Instant openEndedCutoff);
+
+    /** Cancels all of a user's ACTIVE requests (account deletion). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "UPDATE match_requests SET status = 'CANCELLED' WHERE user_id = :userId AND status = 'ACTIVE'",
+            nativeQuery = true)
+    int cancelActiveForUser(UUID userId);
 }

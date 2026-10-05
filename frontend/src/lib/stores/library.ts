@@ -1,9 +1,10 @@
 import { writable } from 'svelte/store';
 import type { GamesPage } from '$lib/api/games';
+import type { LibraryTab } from '$lib/components/game/collection';
 
 interface LibraryState {
 	gamesPage: GamesPage;
-	activeTab: 'all' | 'owned' | 'played' | 'favorites';
+	activeTab: LibraryTab;
 	minPlayers?: number;
 	maxPlayers?: number;
 	minPlaytime?: number;

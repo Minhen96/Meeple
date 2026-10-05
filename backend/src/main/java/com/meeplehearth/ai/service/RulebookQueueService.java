@@ -3,6 +3,7 @@ package com.meeplehearth.ai.service;
 import com.meeplehearth.ai.entity.GameRulebook;
 import com.meeplehearth.ai.job.RulebookAutoFetchJob;
 import com.meeplehearth.ai.repository.GameRulebookRepository;
+import com.meeplehearth.notification.entity.Notification.NotificationType;
 import com.meeplehearth.config.AppProperties;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.entity.Game;
@@ -199,6 +200,7 @@ public class RulebookQueueService {
                 other.setReviewedBy(admin);
                 other.setReviewedAt(Instant.now());
                 rulebookRepository.save(other);
+                publishReviewed(other, NotificationType.RULEBOOK_REJECTED, admin);
             }
         }
 
@@ -209,6 +211,7 @@ public class RulebookQueueService {
         rulebookRepository.save(rulebook);
 
         eventPublisher.publishEvent(new RulebookIngestionRequestedEvent(rulebook.getId()));
+        publishReviewed(rulebook, NotificationType.RULEBOOK_APPROVED, admin);
         log.info("Admin '{}' approved rulebook {} for game '{}'",
                 actorName(admin), rulebook.getId(), rulebook.getGame().getNameEn());
     }
@@ -265,8 +268,10 @@ public class RulebookQueueService {
         rulebook.setReviewedBy(admin);
         rulebook.setReviewedAt(Instant.now());
         rulebookRepository.save(rulebook);
+        publishReviewed(rulebook, NotificationType.RULEBOOK_REJECTED, admin);
 
-        // Compact queue — decrement positions of items that were behind the rejected one
+        // Compact queue — decrement positions of items that were behind the rejected one.
+        // The submission that moves to the front of the queue is now under review.
         if (rulebook.getQueuePosition() != null) {
             List<GameRulebook> remaining = rulebookRepository
                     .findByGame_IdAndStatusOrderByQueuePositionAsc(rulebook.getGame().getId(), "pending_review");
@@ -274,6 +279,9 @@ public class RulebookQueueService {
                 if (item.getQueuePosition() != null && item.getQueuePosition() > rulebook.getQueuePosition()) {
                     item.setQueuePosition(item.getQueuePosition() - 1);
                     rulebookRepository.save(item);
+                    if (item.getQueuePosition() == 0) {
+                        publishReviewed(item, NotificationType.RULEBOOK_UNDER_REVIEW, admin);
+                    }
                 }
             }
         }
@@ -337,7 +345,15 @@ public class RulebookQueueService {
             item.setReviewedBy(reviewer);
             item.setReviewedAt(Instant.now());
             rulebookRepository.save(item);
+            publishReviewed(item, NotificationType.RULEBOOK_REJECTED, reviewer);
         }
+    }
+
+    /** Uploader notification, sent after commit by {@link RulebookNotificationListener}. */
+    private void publishReviewed(GameRulebook rulebook, NotificationType type, User reviewer) {
+        if (rulebook.getUploadedBy() == null) return; // auto-fetched rulebooks have no uploader
+        eventPublisher.publishEvent(new RulebookReviewedEvent(rulebook.getUploadedBy().getId(), type,
+                rulebook.getGame().getId(), reviewer != null ? reviewer.getId() : null));
     }
 
     /** Deletes the R2 object for a rulebook (used if upload needs to be rolled back). */

@@ -1,13 +1,15 @@
 package com.meeplehearth.game.service;
 
 import com.meeplehearth.ai.repository.GameRulebookRepository;
+import com.meeplehearth.common.event.ActivityRecordedEvent;
+import com.meeplehearth.config.CacheConfig.CacheNames;
+import com.meeplehearth.event.entity.Event;
 import com.meeplehearth.ai.service.SearchTranslationService;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.client.BggApiClient;
 import com.meeplehearth.game.dto.*;
 import com.meeplehearth.game.entity.Game;
 import com.meeplehearth.game.entity.GameDetail;
-import com.meeplehearth.game.entity.PlayLog;
 import com.meeplehearth.game.entity.UserGame;
 import com.meeplehearth.event.repository.EventParticipantRepository;
 import com.meeplehearth.game.repository.GameDetailRepository;
@@ -17,6 +19,8 @@ import com.meeplehearth.game.repository.UserGameRepository;
 import com.meeplehearth.post.repository.PostRepository;
 import com.meeplehearth.user.entity.User;
 import com.meeplehearth.user.repository.UserRepository;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,9 +39,14 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -57,6 +66,9 @@ public class GameService {
     private final EventParticipantRepository eventParticipantRepository;
     private final PostRepository postRepository;
     private final TransactionTemplate transactionTemplate;
+    private final UserCollectionReader collectionReader;
+    private final GameCacheEvictor cacheEvictor;
+    private final ApplicationEventPublisher eventPublisher;
 
     public GameService(GameRepository gameRepository,
             GameDetailRepository gameDetailRepository,
@@ -70,7 +82,10 @@ public class GameService {
             GameRulebookRepository rulebookRepository,
             EventParticipantRepository eventParticipantRepository,
             PostRepository postRepository,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            UserCollectionReader collectionReader,
+            GameCacheEvictor cacheEvictor,
+            ApplicationEventPublisher eventPublisher) {
         this.gameRepository = gameRepository;
         this.gameDetailRepository = gameDetailRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -84,6 +99,9 @@ public class GameService {
         this.rulebookRepository = rulebookRepository;
         this.eventParticipantRepository = eventParticipantRepository;
         this.postRepository = postRepository;
+        this.collectionReader = collectionReader;
+        this.cacheEvictor = cacheEvictor;
+        this.eventPublisher = eventPublisher;
     }
 
     // -------------------------------------------------------------------------
@@ -283,10 +301,15 @@ public class GameService {
     // -------------------------------------------------------------------------
 
     /**
-     * Not @Transactional on purpose: the optional synchronous BGG hydration must not run
+     * Viewer-independent game detail, cached for 7 days in "game-detail" (evicted when a rulebook
+     * is approved). Not cached while the game is still unhydrated, so the next request retries
+     * hydration. Friend data is added per viewer by {@link GameSocialService#withFriendData}.
+     *
+     * <p>Not @Transactional on purpose: the optional synchronous BGG hydration must not run
      * inside a DB transaction. Hydration persists in its own short transaction, after
      * which the game is re-read.
      */
+    @Cacheable(cacheNames = CacheNames.GAME_DETAIL, key = "#gameId", unless = "#result.minPlayers() == null")
     public GameDetailResponse getGame(UUID gameId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
@@ -341,17 +364,39 @@ public class GameService {
     // Collection
     // -------------------------------------------------------------------------
 
+    /** Collection filters accepted by {@code GET /users/{id}/games?filter=}. */
+    public static final List<String> COLLECTION_FILTERS = List.of("all", "owned", "wishlisted", "favorited");
+
+    /**
+     * The user's collection entries for {@code filter} (all | owned | wishlisted | favorited), read
+     * from the cached full collection.
+     */
     public List<UserGameResponse> getCollection(UUID userId, String filter) {
-        List<UserGame> entries = switch (filter) {
-            case "owned" -> userGameRepository.findOwnedByUserId(userId);
-            case "favorited" -> userGameRepository.findFavoritedByUserId(userId);
-            default -> userGameRepository.findAllByUserId(userId);
+        String f = filter == null ? "all" : filter.toLowerCase(Locale.ROOT);
+        if (!COLLECTION_FILTERS.contains(f)) {
+            throw ApiException.badRequest("INVALID_FILTER", "filter must be one of " + COLLECTION_FILTERS);
+        }
+        List<UserGameResponse> all = collectionReader.load(userId);
+        return switch (f) {
+            case "owned" -> all.stream().filter(UserGameResponse::isOwned).toList();
+            case "wishlisted" -> all.stream().filter(UserGameResponse::isWishlisted).toList();
+            case "favorited" -> all.stream().filter(UserGameResponse::isFavorited).toList();
+            default -> all;
         };
-        return entries.stream().map(UserGameResponse::from).toList();
     }
 
+    /**
+     * Upserts the caller's entry for a game. An update that leaves every flag false and nothing
+     * else on the entry deletes it (FEATURES_COMPLETE section 3.1) and returns
+     * {@link UserGameResponse#removed}. Marking a game owned publishes a {@code collection_add}
+     * activity for the feed.
+     */
     @Transactional
     public UserGameResponse updateCollection(UUID userId, UUID gameId, UserGameRequest req) {
+        BigDecimal rating = req.personalRating();
+        if (rating != null && rating.signum() > 0 && rating.compareTo(BigDecimal.ONE) < 0) {
+            throw ApiException.badRequest("INVALID_RATING", "Rating must be between 1 and 10, or 0 to clear it");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("User not found"));
         Game game = gameRepository.findById(gameId)
@@ -364,67 +409,61 @@ public class GameService {
                     newUg.setGame(game);
                     return newUg;
                 });
+        boolean wasOwned = ug.isOwned();
 
         if (req.isOwned() != null)
             ug.setOwned(req.isOwned());
+        if (req.isWishlisted() != null)
+            ug.setWishlisted(req.isWishlisted());
         if (req.isFavorited() != null)
             ug.setFavorited(req.isFavorited());
-        if (req.personalRating() != null)
-            ug.setPersonalRating(req.personalRating());
+        if (rating != null)
+            ug.setPersonalRating(rating.signum() == 0 ? null : rating);
         if (req.notes() != null)
-            ug.setNotes(req.notes());
+            ug.setNotes(req.notes().isBlank() ? null : req.notes());
 
-        UserGameResponse saved = UserGameResponse.from(userGameRepository.save(ug));
+        cacheEvictor.evictCollection(userId);
         recommendationService.invalidateCache(userId);
-        return saved;
+
+        if (ug.isEmpty()) {
+            if (ug.getId() != null) {
+                userGameRepository.delete(ug);
+            }
+            return UserGameResponse.removed(ug);
+        }
+
+        UserGame saved = userGameRepository.save(ug);
+        if (!wasOwned && saved.isOwned()) {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("gameId", game.getId().toString());
+            data.put("gameTitle", game.getNameEn());
+            data.put("thumbnailUrl", game.getThumbnailUrl());
+            eventPublisher.publishEvent(new ActivityRecordedEvent(
+                    userId, ActivityRecordedEvent.COLLECTION_ADD, data, Instant.now()));
+        }
+        return UserGameResponse.from(saved);
     }
 
-    @Transactional
-    public UserGameResponse logPlay(UUID userId, UUID gameId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> ApiException.notFound("User not found"));
-        Game game = gameRepository.findById(gameId)
-                .orElseThrow(() -> ApiException.notFound("GAME_NOT_FOUND", "Game not found"));
-
-        UserGame ug = userGameRepository.findByUserIdAndGameId(userId, gameId)
-                .orElseGet(() -> {
-                    UserGame newUg = new UserGame();
-                    newUg.setUser(user);
-                    newUg.setGame(game);
-                    return newUg;
-                });
-
-        ug.setPlayCount(ug.getPlayCount() + 1);
-        userGameRepository.save(ug);
-
-        PlayLog log = new PlayLog();
-        log.setUser(user);
-        log.setGame(game);
-        playLogRepository.save(log);
-
-        recommendationService.invalidateCache(userId);
-        return UserGameResponse.from(ug);
-    }
-
+    /**
+     * Recent activity of {@code userId} (plays, accepted events, posts), newest first, at most 50.
+     * Another viewer only sees public events, without their location.
+     */
     @Transactional(readOnly = true)
-    public List<PlayLogResponse> getPlays(UUID userId, UUID gameId) {
-        return playLogRepository.findByUserIdAndGameIdOrderByPlayedAtDesc(userId, gameId)
-                .stream().map(PlayLogResponse::from).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ActivityLogResponse> getActivity(UUID userId) {
+    public List<ActivityLogResponse> getActivity(UUID userId, UUID viewerId) {
+        boolean self = userId.equals(viewerId);
         List<ActivityLogResponse> items = new ArrayList<>();
 
         // 1. Plays
         playLogRepository.findByUserIdOrderByPlayedAtDesc(userId, PageRequest.of(0, 50))
                 .stream().map(ActivityLogResponse::fromPlay).forEach(items::add);
 
-        // 2. Events (Accepted only, exclude deleted)
+        // 2. Events (accepted only, not deleted; public only for other viewers)
         eventParticipantRepository.findAcceptedByUserId(userId)
                 .stream()
                 .filter(ep -> ep.getEvent().getDeletedAt() == null)
+                .filter(ep -> self || ep.getEvent().getVisibility() == Event.Visibility.PUBLIC)
                 .map(ActivityLogResponse::fromEvent)
+                .map(item -> self ? item : item.withoutLocation())
                 .forEach(items::add);
 
         // 3. Posts
@@ -432,8 +471,9 @@ public class GameService {
                 .stream().map(ActivityLogResponse::fromPost).forEach(items::add);
 
         // Sort unified timeline (newest first)
-        items.sort(Comparator.comparing(ActivityLogResponse::playedAt).reversed());
-        
+        items.sort(Comparator.comparing(ActivityLogResponse::playedAt,
+                Comparator.nullsLast(Comparator.<Instant>naturalOrder())).reversed());
+
         return items.stream().limit(50).toList();
     }
 
@@ -442,6 +482,8 @@ public class GameService {
         UserGame ug = userGameRepository.findByUserIdAndGameId(userId, gameId)
                 .orElseThrow(() -> ApiException.notFound("COLLECTION_ENTRY_NOT_FOUND", "Game not in collection"));
         userGameRepository.delete(ug);
+        cacheEvictor.evictCollection(userId);
+        recommendationService.invalidateCache(userId);
     }
 
     // -------------------------------------------------------------------------
