@@ -17,6 +17,7 @@ public class AppProperties {
     private Email email = new Email();
     private Ai ai = new Ai();
     private Seed seed = new Seed();
+    private Storage storage = new Storage();
 
     public Jwt getJwt() {
         return jwt;
@@ -200,6 +201,16 @@ public class AppProperties {
         public void setFrom(String from) {
             this.from = from;
         }
+    }
+
+    public Storage getStorage() { return storage; }
+    public void setStorage(Storage s) { this.storage = s; }
+
+    /** Limits for user image uploads (presigned PUT and multipart). */
+    public static class Storage {
+        private long maxUploadBytes = 10L * 1024 * 1024;
+        public long getMaxUploadBytes() { return maxUploadBytes; }
+        public void setMaxUploadBytes(long v) { this.maxUploadBytes = v; }
     }
 
     public Seed getSeed() { return seed; }
