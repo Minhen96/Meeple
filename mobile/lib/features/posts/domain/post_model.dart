@@ -45,8 +45,9 @@ class Post with _$Post {
 /// `{id, authorId, authorUsername, authorDisplayName, authorAvatarUrl, body,
 /// createdAt, editedAt}`).
 ///
-/// Also accepts a nested `author` [UserSummary] and is null-safe for deleted
-/// authors: a missing author id or `deleted: true` marks [authorDeleted].
+/// Also accepts the nested `author` [UserSummary] and is null-safe for deleted
+/// authors: `author.deleted`, a missing author id or the all-zero
+/// placeholder id marks [authorDeleted] (names are then null).
 @freezed
 class Comment with _$Comment {
   const factory Comment({
@@ -102,8 +103,7 @@ Object? _readAuthorDisplayName(Map<dynamic, dynamic> json, String key) =>
 Object? _readAuthorAvatar(Map<dynamic, dynamic> json, String key) =>
     json['authorAvatarUrl'] ?? _nestedAuthor(json)?['avatarUrl'];
 
-Object? _readAuthorDeleted(Map<dynamic, dynamic> json, String key) {
-  final flag = json['authorDeleted'] ?? _nestedAuthor(json)?['deleted'];
-  if (flag is bool) return flag;
-  return _readAuthorId(json, key) == null;
-}
+Object? _readAuthorDeleted(Map<dynamic, dynamic> json, String key) =>
+    json['authorDeleted'] == true ||
+    _nestedAuthor(json)?['deleted'] == true ||
+    isDeletedUserId(_readAuthorId(json, key));

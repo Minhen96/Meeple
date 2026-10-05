@@ -30,8 +30,9 @@ enum FriendshipStatus {
 /// `SuggestedUser` and `UserSummaryWithStatus`.
 ///
 /// Null-safe for deleted accounts: a soft-deleted user arrives as
-/// `{id, deleted: true}` with null names, and a hard-deleted one may have no
-/// `id` at all — it then parses with an empty [id] and [deleted] set.
+/// `{id, deleted: true}` with null names; a hard-deleted one carries the
+/// all-zero [deletedUserId] placeholder (or no `id` at all) — both parse with
+/// [deleted] set.
 @freezed
 class UserSummary with _$UserSummary {
   const factory UserSummary({
@@ -54,8 +55,15 @@ class UserSummary with _$UserSummary {
 Object? readUserOrDeleted(Map<dynamic, dynamic> json, String key) =>
     json[key] ?? const <String, dynamic>{'deleted': true};
 
+/// The id the backend puts on placeholders for hard-deleted accounts.
+const deletedUserId = '00000000-0000-0000-0000-000000000000';
+
+/// Whether [id] cannot name a live account (missing or the placeholder).
+bool isDeletedUserId(Object? id) =>
+    id == null || id == '' || id == deletedUserId;
+
 Object? _readDeleted(Map<dynamic, dynamic> json, String key) =>
-    json['deleted'] ?? (json['id'] == null ? true : null);
+    json['deleted'] == true || isDeletedUserId(json['id']);
 
 Object? _readDisplayName(Map<dynamic, dynamic> json, String key) {
   final name = json['displayName'];

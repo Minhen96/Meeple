@@ -293,6 +293,56 @@ void main() {
       expect(UserSummary.fromJson(const {'username': 'x'}).deleted, isTrue);
     });
 
+    test('hard-deleted placeholders use the all-zero id', () {
+      const zero = '00000000-0000-0000-0000-000000000000';
+      final host = Event.fromJson({
+        ...eventJson(),
+        'host': {'id': zero, 'username': null, 'displayName': null,
+          'avatarUrl': null, 'deleted': false},
+      }).host!;
+      expect(host.deleted, isTrue);
+
+      final comment = Comment.fromJson({
+        'id': 'c9',
+        'authorId': zero,
+        'authorUsername': null,
+        'authorDisplayName': null,
+        'authorAvatarUrl': null,
+        'author': {'id': zero, 'username': null, 'displayName': null,
+          'avatarUrl': null, 'deleted': true},
+        'body': 'x',
+        'createdAt': '2026-01-01T00:00:00Z',
+      });
+      expect(comment.authorDeleted, isTrue);
+      expect(comment.author.deleted, isTrue);
+
+      final softDeleted = Comment.fromJson({
+        'id': 'c10',
+        'authorId': 'u7',
+        'author': {'id': 'u7', 'deleted': true},
+        'body': 'x',
+        'createdAt': '2026-01-01T00:00:00Z',
+      });
+      expect(softDeleted.authorDeleted, isTrue);
+
+      final n = AppNotification.fromJson({
+        ...notificationJson(path: null),
+        'actor': {'id': zero, 'deleted': true},
+      });
+      expect(n.path, isNull);
+      final byRef = AppNotification.fromJson({
+        ...notificationJson(path: null),
+        'actor': null,
+        'referenceId': zero,
+      });
+      expect(byRef.path, isNull);
+      final live = AppNotification.fromJson({
+        ...notificationJson(path: null),
+        'actor': null,
+      });
+      expect(live.path, '/profile/f1');
+    });
+
     test('UserSummaryWithStatus and SuggestedUser parse', () {
       final s = UserSummary.fromJson({
         ...summaryJson('u1', 'Ann'),
