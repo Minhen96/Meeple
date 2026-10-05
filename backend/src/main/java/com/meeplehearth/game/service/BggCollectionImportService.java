@@ -153,6 +153,7 @@ public class BggCollectionImportService {
     /** The import body; runs on the import executor and never throws. */
     void run(UUID userId, String username, UUID importId) {
         Counts counts = new Counts();
+        boolean finished = false;
         try {
             List<CollectionItem> items = client.fetchOwnedCollection(username);
             counts.total = items.size();
@@ -183,20 +184,24 @@ public class BggCollectionImportService {
 
             // Notify before publishing "done", so a client that sees "done" also finds the notification
             notifyCompleted(userId, importId);
-            finish(userId, importId, counts, BggImport.Status.DONE, null);
+            finished = finish(userId, importId, counts, BggImport.Status.DONE, null);
             if (!newGames.isEmpty()) {
                 hydrationService.hydrateImagesQuietly(newGames);
             }
         } catch (BggCollectionClient.BggUserNotFoundException e) {
-            finish(userId, importId, counts, BggImport.Status.FAILED, BGG_USER_NOT_FOUND);
+            finished = finish(userId, importId, counts, BggImport.Status.FAILED, BGG_USER_NOT_FOUND);
         } catch (BggApiClient.BggUnavailableException e) {
             log.warn("BGG import for user {} failed: {}", userId, e.getMessage());
-            finish(userId, importId, counts, BggImport.Status.FAILED, BGG_API_UNAVAILABLE);
+            finished = finish(userId, importId, counts, BggImport.Status.FAILED, BGG_API_UNAVAILABLE);
         } catch (RuntimeException e) {
             log.error("BGG import for user {} failed unexpectedly", userId, e);
-            finish(userId, importId, counts, BggImport.Status.FAILED, BGG_API_UNAVAILABLE);
+            finished = finish(userId, importId, counts, BggImport.Status.FAILED, BGG_API_UNAVAILABLE);
         } finally {
-            progressStore.unlock(userId);
+            // finish() releases the lock before publishing the final status; only clean up here
+            // if it never ran (an Error escaped), otherwise a newer import's lock could be deleted
+            if (!finished) {
+                progressStore.unlock(userId);
+            }
         }
     }
 
@@ -267,16 +272,11 @@ public class BggCollectionImportService {
         return result;
     }
 
-    private void finish(UUID userId, UUID importId, Counts counts, BggImport.Status status, String errorCode) {
+    private boolean finish(UUID userId, UUID importId, Counts counts, BggImport.Status status, String errorCode) {
         String publicStatus = status == BggImport.Status.DONE
                 ? BggImportStatusResponse.DONE : BggImportStatusResponse.FAILED;
         if (status == BggImport.Status.DONE) {
             counts.processed = counts.total;
-        }
-        try {
-            progressStore.save(userId, counts.toStatus(publicStatus, errorCode));
-        } catch (RuntimeException e) {
-            log.warn("Could not publish final BGG import status for user {}", userId, e);
         }
         try {
             tx.executeWithoutResult(s -> importRepository.findById(importId).ifPresent(audit -> {
@@ -296,6 +296,15 @@ public class BggCollectionImportService {
             cacheEvictor.evictCollection(userId);
             recommendationService.invalidateCache(userId);
         }
+        // Release the lock and publish the final status last, so a client that sees "done"/"failed"
+        // can immediately read the persisted result and start a new import
+        progressStore.unlock(userId);
+        try {
+            progressStore.save(userId, counts.toStatus(publicStatus, errorCode));
+        } catch (RuntimeException e) {
+            log.warn("Could not publish final BGG import status for user {}", userId, e);
+        }
+        return true;
     }
 
     private void notifyCompleted(UUID userId, UUID importId) {
