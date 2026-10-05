@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-// Multi-boolean collection model: is_owned / is_favorited (wishlist removed)
+// Multi-boolean collection model (CLAUDE.md): is_owned / is_wishlisted / is_favorited.
+// A row with every flag false and no rating, notes or plays is invalid and is deleted instead.
 @Entity
 @Table(name = "user_games", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "game_id"}))
 @Getter
@@ -33,6 +34,9 @@ public class UserGame {
     @Column(name = "is_owned", nullable = false)
     private boolean isOwned = false;
 
+    @Column(name = "is_wishlisted", nullable = false)
+    private boolean isWishlisted = false;
+
     @Column(name = "is_favorited", nullable = false)
     private boolean isFavorited = false;
 
@@ -54,5 +58,16 @@ public class UserGame {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
+    }
+
+    /**
+     * True when the row carries nothing worth keeping: no flag set and no rating, notes or plays
+     * (FEATURES_COMPLETE section 3.1: such a row is invalid and must be deleted).
+     */
+    public boolean isEmpty() {
+        return !isOwned && !isWishlisted && !isFavorited
+                && playCount <= 0
+                && personalRating == null
+                && (notes == null || notes.isBlank());
     }
 }

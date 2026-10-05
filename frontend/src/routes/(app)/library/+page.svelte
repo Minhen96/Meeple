@@ -1,10 +1,14 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
-	import type { GameSearchResult, UserGame } from "$lib/types";
+	import type { UserGame } from "$lib/types";
 	import { gamesApi } from "$lib/api/games";
 	import { libraryStore, defaultState } from "$lib/stores/library";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
+	import StarRating from "$lib/components/game/StarRating.svelte";
+	import { filterCollection, upsertEntry, type LibraryTab } from "$lib/components/game/collection";
+	import { m, type MessageKey } from "$lib/i18n";
 	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 	import { toast } from "svelte-sonner";
 
 	interface Props {
@@ -29,43 +33,56 @@
 	let selectedGenre = $derived(store.selectedGenre);
 
 	let query = $state("");
-	let searchResults = $state<GameSearchResult[]>([]);
-	let searching = $state(false);
 
 	let showFilters = $state(false);
 	let loadingCatalog = $state(false);
 
-	const collection = $derived(data.collection);
+	// Local copy so inline rating updates show at once
+	let collection = $derived<UserGame[]>(data.collection);
 
-	const filtered = $derived.by(() => {
-		let items: UserGame[];
-		switch (activeTab) {
-			case "owned":
-				items = collection.filter((g) => g.isOwned);
-				break;
-			case "played":
-				items = [...collection.filter((g) => g.playCount > 0)].sort(
-					(a, b) => b.playCount - a.playCount,
-				);
-				break;
-			case "favorites":
-				items = collection.filter((g) => g.isFavorited);
-				break;
-			default:
-				items = collection;
-				break;
+	const filtered = $derived(activeTab === "all" ? [] : filterCollection(collection, activeTab, query));
+
+	// Deep links: /library?tab=wishlist, /library?filter=collection (profile "See all")
+	$effect(() => {
+		const requested = $page.url.searchParams.get("tab") ?? $page.url.searchParams.get("filter");
+		const map: Record<string, LibraryTab> = {
+			collection: "owned",
+			owned: "owned",
+			wishlist: "wishlist",
+			wishlisted: "wishlist",
+			favorites: "favorites",
+			favorited: "favorites",
+		};
+		const tab = requested ? map[requested] : undefined;
+		if (tab && tab !== store.activeTab) {
+			store = { ...store, activeTab: tab };
 		}
-		if (query.length >= 2 && activeTab !== "all") {
-			const q = query.toLowerCase();
-			items = items.filter((ug) =>
-				ug.game.title?.toLowerCase().includes(q),
-			);
-		}
-		return items;
 	});
 
-	// Only show the search-results panel for collection tabs (all-tab uses gamesPage directly)
-	const showSearch = $derived(query.length >= 2 && activeTab !== "all");
+	let ratingSaving = $state<string | null>(null);
+	async function rate(ug: UserGame, rating: number) {
+		ratingSaving = ug.game.id;
+		try {
+			const updated = await gamesApi.updateCollection(ug.game.id, { personalRating: rating });
+			collection = upsertEntry(collection, updated);
+		} catch {
+			toast.error(m("library.rating.saveFailed"));
+		} finally {
+			ratingSaving = null;
+		}
+	}
+
+	function selectTab(tab: LibraryTab) {
+		store = { ...store, activeTab: tab };
+		query = "";
+		if (tab === "all") fetchCatalogPage(0);
+	}
+
+	const EMPTY: Record<Exclude<LibraryTab, "all">, { icon: string; title: MessageKey; body: MessageKey; browse: boolean }> = {
+		owned: { icon: "shelves", title: "library.empty.owned.title", body: "library.empty.owned.body", browse: true },
+		wishlist: { icon: "bookmark", title: "library.empty.wishlist.title", body: "library.empty.wishlist.body", browse: true },
+		favorites: { icon: "favorite", title: "library.empty.favorites.title", body: "library.empty.favorites.body", browse: false },
+	};
 
 	let loadingMore = $state(false);
 	let observerNode = $state<HTMLElement | null>(null);
@@ -184,12 +201,12 @@
 		return null;
 	}
 
-	const tabs = [
-		{ id: "all", label: "All Games" },
-		{ id: "favorites", label: "Favorites" },
-		{ id: "owned", label: "Collection" },
-		{ id: "played", label: "Played" },
-	] as const;
+	const tabs: { id: LibraryTab; label: MessageKey }[] = [
+		{ id: "all", label: "library.tab.all" },
+		{ id: "owned", label: "library.tab.owned" },
+		{ id: "wishlist", label: "library.tab.wishlist" },
+		{ id: "favorites", label: "library.tab.favorites" },
+	];
 
 	// Spotlight data (hardcoded for now as per design)
 	const spotlight = {
@@ -217,7 +234,8 @@
 		if (!hit?.id) return;
 		spotlightSaving = true;
 		try {
-			await gamesApi.updateCollection(hit.id, { isFavorited: true });
+			const updated = await gamesApi.updateCollection(hit.id, { isFavorited: true });
+			collection = upsertEntry(collection, updated);
 			toast.success(`${spotlight.title} added to favorites!`);
 		} catch {
 			toast.error("Could not save");
@@ -239,18 +257,13 @@
 	>
 		{#each tabs as tab (tab.id)}
 			<button
-				onclick={() => {
-					store = { ...store, activeTab: tab.id };
-					query = "";
-					searchResults = [];
-					if (tab.id === "all") fetchCatalogPage(0);
-				}}
+				onclick={() => selectTab(tab.id)}
 				class="relative py-4 whitespace-nowrap font-headline font-bold text-sm transition-colors {activeTab ===
 				tab.id
 					? 'text-primary'
 					: 'text-on-surface-variant hover:text-on-surface'}"
 			>
-				{tab.label}
+				{m(tab.label)}
 				{#if activeTab === tab.id}
 					<div
 						class="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full"
@@ -272,7 +285,7 @@
 			>
 			<input
 				type="search"
-				placeholder="Search catalog..."
+				placeholder={activeTab === "all" ? "Search catalog..." : m("library.search.collection")}
 				bind:value={query}
 				oninput={onQueryInput}
 				class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none py-1"
@@ -629,97 +642,7 @@
 	</div>
 {/if}
 
-<!-- BGG search results -->
-{#if showSearch}
-	{#if searching}
-		<div class="space-y-4 mt-6">
-			{#each { length: 4 } as _, i (i)}
-				<div
-					class="flex gap-4 items-center bg-surface-container-low/50 p-3 rounded-2xl"
-				>
-					<Skeleton class="w-16 h-20 rounded-xl" />
-					<div class="space-y-2 flex-1">
-						<Skeleton class="h-4 w-3/4 rounded-md" />
-						<Skeleton class="h-3 w-1/3 rounded-md" />
-					</div>
-				</div>
-			{/each}
-		</div>
-	{:else if searchResults.length === 0}
-		<div
-			class="text-center py-20 bg-surface-container-lowest rounded-[2rem] mt-6"
-		>
-			<span
-				class="material-symbols-outlined text-6xl text-primary/20 mb-4 block"
-				>search_off</span
-			>
-			<p class="text-on-surface font-bold text-lg">No results found</p>
-			<p class="text-on-surface-variant text-sm mt-1">
-				Try a different title or keyword.
-			</p>
-		</div>
-	{:else}
-		{#if searchResults[0]?.translatedFrom}
-			<div
-				class="px-1 mb-4 flex items-center gap-2 text-primary animate-in fade-in slide-in-from-left-4"
-			>
-				<span class="material-symbols-outlined text-[18px]"
-					>translate</span
-				>
-				<p class="text-xs font-bold uppercase tracking-widest">
-					Showing results for: <span class="italic text-on-surface"
-						>{searchResults[0].title}</span
-					>
-				</p>
-			</div>
-		{/if}
-		<div class="space-y-3 mt-6">
-			{#each searchResults as result (result.bggId)}
-				<a
-					href={result.id ? `/library/${result.id}` : "#"}
-					class="flex items-center gap-4 bg-surface-container-lowest rounded-2xl p-3 shadow-sm hover:bg-surface-container-low transition-all spring-bounce group"
-				>
-					{#if result.thumbnailUrl}
-						<img
-							src={result.thumbnailUrl}
-							alt={result.title}
-							class="w-16 h-20 object-cover rounded-xl flex-shrink-0 group-hover:scale-105 transition-transform"
-						/>
-					{:else}
-						<div
-							class="w-16 h-20 bg-surface-container-high rounded-xl flex items-center justify-center flex-shrink-0"
-						>
-							<span
-								class="material-symbols-outlined text-on-surface-variant"
-								>casino</span
-							>
-						</div>
-					{/if}
-					<div class="flex-1 min-w-0">
-						<p
-							class="font-bold text-on-surface group-hover:text-primary transition-colors truncate"
-						>
-							{result.title}
-						</p>
-						{#if result.yearPublished}
-							<p
-								class="text-xs text-on-surface-variant mt-1 font-label"
-							>
-								{result.yearPublished}
-							</p>
-						{/if}
-					</div>
-					<span
-						class="material-symbols-outlined text-on-surface-variant/40 group-hover:text-primary transition-colors"
-						>chevron_right</span
-					>
-				</a>
-			{/each}
-		</div>
-	{/if}
-
-	<!-- 'All Games' Catalog Grid Header (Cleaned Up) -->
-{:else if activeTab === "all"}
+{#if activeTab === "all"}
 	<div class="flex items-center justify-between mb-6">
 		<div class="flex flex-col">
 			<h2 class="font-headline text-xl font-extrabold text-on-surface">
@@ -892,127 +815,120 @@
 
 	<!-- Collection grid -->
 {:else if filtered.length === 0}
-	<div
-		class="text-center py-24 bg-surface-container-lowest rounded-[3rem] mt-4"
-	>
-		<span
-			class="material-symbols-outlined text-7xl mb-4 block text-primary/10"
-			>library_books</span
-		>
-		<p class="font-bold text-xl">Your collection awaits</p>
-		<p class="text-sm text-on-surface-variant mt-2 max-w-xs mx-auto">
-			Explore and add games to your library to track your tabletop
-			journey.
-		</p>
+	{@const empty = EMPTY[activeTab]}
+	<div class="text-center py-24 bg-surface-container-lowest rounded-[3rem] mt-4 px-6">
+		{#if query.trim().length >= 2 && collection.length > 0}
+			<span class="material-symbols-outlined text-7xl mb-4 block text-primary/10">search_off</span>
+			<p class="text-sm text-on-surface-variant">{m("library.empty.noMatch", { query: query.trim() })}</p>
+		{:else}
+			<span class="material-symbols-outlined text-7xl mb-4 block text-primary/10">{empty.icon}</span>
+			<p class="font-bold text-xl">{m(empty.title)}</p>
+			<p class="text-sm text-on-surface-variant mt-2 max-w-xs mx-auto">{m(empty.body)}</p>
+			{#if empty.browse}
+				<button
+					onclick={() => selectTab("all")}
+					class="mt-6 px-6 py-3 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm"
+				>
+					{m("library.empty.browse")}
+				</button>
+			{/if}
+		{/if}
 	</div>
 {:else}
 	<div class="grid grid-cols-2 gap-6 mt-4">
-		{#each filtered as ug (ug.id)}
-			<a href="/library/{ug.game.id}" class="group space-y-3">
-				<div
-					class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden bg-surface-container-lowest/80 shadow-[0_8px_32px_rgba(0,0,0,0.05)] group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-700"
-				>
-					{#if ug.game.thumbnailUrl}
-						<!-- Ambient Glow Background -->
-						<div
-							class="absolute inset-0 scale-150 opacity-40 blur-3xl group-hover:opacity-60 transition-all duration-700"
-						>
-							<img
-								src={ug.game.thumbnailUrl}
-								alt=""
-								class="w-full h-full object-cover"
-							/>
-						</div>
-
-						<!-- Main Box Art -->
-						<div
-							class="relative w-full h-full p-3 flex items-center justify-center"
-						>
-							<img
-								src={ug.game.thumbnailUrl}
-								alt={ug.game.title}
-								class="max-w-full max-h-full object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.2)] group-hover:scale-[1.03] transition-transform duration-700"
-								loading="lazy"
-							/>
-						</div>
-					{:else}
-						<div
-							class="w-full h-full flex items-center justify-center"
-						>
-							<span
-								class="material-symbols-outlined text-4xl text-on-surface-variant opacity-40"
-								>casino</span
-							>
-						</div>
-					{/if}
-
-					{#if ug.game.bggRating}
-						<div
-							class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full flex items-center gap-1 shadow-md"
-						>
-							<span
-								class="icon-filled material-symbols-outlined text-primary text-[15px]"
-								>star</span
-							>
-							<span class="text-[12px] font-label font-black"
-								>{ug.game.bggRating.toFixed(1)}</span
-							>
-						</div>
-					{/if}
-
-					{#if ug.isOwned}
-						<div
-							class="absolute top-4 left-4 bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-md"
-						>
-							Owned
-						</div>
-					{/if}
-					{#if ug.playCount > 0}
-						<div
-							class="absolute bottom-3 right-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 flex items-center gap-1"
-						>
-							<span
-								class="icon-filled material-symbols-outlined text-[11px] text-primary"
-								>sports_esports</span
-							>
-							<span
-								class="text-[10px] font-extrabold text-on-surface"
-								>{ug.playCount}</span
-							>
-						</div>
-					{/if}
-				</div>
-
-				<div class="px-2">
-					<p
-						class="text-sm font-extrabold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors"
-					>
-						{ug.game.title}
-					</p>
+		{#each filtered as ug (ug.game.id)}
+			<div class="space-y-2">
+				<a href="/library/{ug.game.id}" class="group block space-y-3">
 					<div
-						class="flex items-center gap-4 mt-2 text-[10px] text-on-surface-variant font-black uppercase tracking-widest opacity-70"
+						class="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden bg-surface-container-lowest/80 shadow-[0_8px_32px_rgba(0,0,0,0.05)] group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-700"
 					>
-						{#if playerRange(ug)}
-							<span class="flex items-center gap-1">
+						{#if ug.game.thumbnailUrl}
+							<div
+								class="absolute inset-0 scale-150 opacity-40 blur-3xl group-hover:opacity-60 transition-all duration-700"
+							>
+								<img src={ug.game.thumbnailUrl} alt="" class="w-full h-full object-cover" />
+							</div>
+							<div class="relative w-full h-full p-3 flex items-center justify-center">
+								<img
+									src={ug.game.thumbnailUrl}
+									alt={ug.game.title}
+									class="max-w-full max-h-full object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.2)] group-hover:scale-[1.03] transition-transform duration-700"
+									loading="lazy"
+								/>
+							</div>
+						{:else}
+							<div class="w-full h-full flex items-center justify-center">
+								<span class="material-symbols-outlined text-4xl text-on-surface-variant opacity-40">casino</span>
+							</div>
+						{/if}
+
+						<div class="absolute top-3 left-3 flex flex-col items-start gap-1">
+							{#if ug.isOwned}
 								<span
-									class="material-symbols-outlined text-[15px]"
-									>group</span
+									class="bg-tertiary-container text-on-tertiary-container px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-md"
 								>
-								{playerRange(ug)}
+									{m("library.badge.owned")}
+								</span>
+							{/if}
+							{#if ug.isWishlisted}
+								<span
+									class="bg-secondary-container text-on-secondary-container px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-md flex items-center gap-0.5"
+								>
+									<span class="icon-filled material-symbols-outlined text-[11px]">bookmark</span>
+									{m("library.badge.wishlist")}
+								</span>
+							{/if}
+						</div>
+						{#if ug.isFavorited}
+							<span
+								class="absolute top-3 right-3 w-7 h-7 rounded-full bg-surface-container-lowest/90 flex items-center justify-center shadow-md"
+								aria-label={m("library.badge.favorite")}
+							>
+								<span class="icon-filled material-symbols-outlined text-[16px] text-primary">favorite</span>
 							</span>
 						{/if}
-						{#if playtime(ug)}
-							<span class="flex items-center gap-1">
-								<span
-									class="material-symbols-outlined text-[15px]"
-									>timer</span
-								>
-								{playtime(ug)}
-							</span>
+						{#if ug.playCount > 0}
+							<div
+								class="absolute bottom-3 right-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 flex items-center gap-1"
+							>
+								<span class="icon-filled material-symbols-outlined text-[11px] text-primary">sports_esports</span>
+								<span class="text-[10px] font-extrabold text-on-surface">{ug.playCount}</span>
+							</div>
 						{/if}
 					</div>
+
+					<div class="px-2">
+						<p
+							class="text-sm font-extrabold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+						>
+							{ug.game.title}
+						</p>
+						<div
+							class="flex items-center gap-4 mt-2 text-[10px] text-on-surface-variant font-black uppercase tracking-widest opacity-70"
+						>
+							{#if playerRange(ug)}
+								<span class="flex items-center gap-1">
+									<span class="material-symbols-outlined text-[15px]">group</span>
+									{playerRange(ug)}
+								</span>
+							{/if}
+							{#if playtime(ug)}
+								<span class="flex items-center gap-1">
+									<span class="material-symbols-outlined text-[15px]">timer</span>
+									{playtime(ug)}
+								</span>
+							{/if}
+						</div>
+					</div>
+				</a>
+				<div class="px-2">
+					<StarRating
+						rating={ug.personalRating}
+						disabled={ratingSaving === ug.game.id}
+						onrate={(r) => rate(ug, r)}
+					/>
 				</div>
-			</a>
+			</div>
 		{/each}
 	</div>
 {/if}

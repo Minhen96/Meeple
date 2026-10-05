@@ -5,7 +5,6 @@ import com.meeplehearth.game.client.BggApiClient;
 import com.meeplehearth.game.service.GameHydrationService;
 import com.meeplehearth.support.ai.AiGameIntegrationTestBase;
 import com.meeplehearth.support.ai.FakeOpenAi;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
@@ -423,10 +422,19 @@ class GameCatalogIntegrationTest extends AiGameIntegrationTestBase {
     }
 
     @Test
-    @Disabled("BUG: POST /api/v1/games/import imports from a hardcoded developer path "
-            + "(c:\\Users\\Minhen\\...\\boardgames.csv), so on any server it fails with NoSuchFileException -> 500")
     void adminCatalogImportSucceeds() throws Exception {
-        mvc.perform(post("/api/v1/games/import").cookie(auth(createUser("ADMIN"))))
-                .andExpect(status().isOk());
+        UUID admin = createUser("ADMIN");
+
+        // Not configured (no SEED_CSV_URL): a clear 503, nothing started
+        when(dataSeedRunner.triggerCatalogImport()).thenReturn(false);
+        mvc.perform(post("/api/v1/games/import").cookie(auth(admin)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("SEED_CSV_URL_NOT_CONFIGURED"));
+
+        // Configured: the import starts in the background
+        when(dataSeedRunner.triggerCatalogImport()).thenReturn(true);
+        mvc.perform(post("/api/v1/games/import").cookie(auth(admin)))
+                .andExpect(status().isAccepted());
+        verify(dataSeedRunner, org.mockito.Mockito.times(2)).triggerCatalogImport();
     }
 }

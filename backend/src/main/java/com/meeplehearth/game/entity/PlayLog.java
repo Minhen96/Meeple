@@ -9,6 +9,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.Instant;
 import java.util.UUID;
 
+/** One recorded play of a game by a user (manual log, or a post that tagged the user). */
 @Entity
 @Table(name = "play_logs",
         indexes = @Index(name = "idx_play_logs_user_game", columnList = "user_id, game_id"))
@@ -31,4 +32,17 @@ public class PlayLog {
 
     @Column(name = "played_at", nullable = false)
     private Instant playedAt = Instant.now();
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
+
+    @Column(name = "player_count")
+    private Integer playerCount;
+
+    /** The post that recorded this session; null for manual logs. Plain id: posts belong to the feed package. */
+    @Column(name = "post_id")
+    private UUID postId;
 }
