@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { ApiRequestError } from '$lib/api/client';
+	import { getLocale, m, type MessageKey } from '$lib/i18n';
 	import type { RulebookQueueItem, RulebookQueueStatus, RuleNoteQueueItem } from '$lib/types';
 
 	let activeTab: 'rulebooks' | 'notes' = $state('rulebooks');
@@ -19,16 +20,16 @@
 	let processingId: string | null = $state(null);
 	let statusFilter: RulebookQueueStatus = $state('pending_review');
 
-	const statusFilters: { value: RulebookQueueStatus; label: string }[] = [
-		{ value: 'pending_review', label: 'Pending' },
-		{ value: 'failed', label: 'Failed' },
-		{ value: 'ingesting', label: 'Ingesting' }
+	const statusFilters: { value: RulebookQueueStatus; label: MessageKey }[] = [
+		{ value: 'pending_review', label: 'admin.queue.filter.pending' },
+		{ value: 'failed', label: 'admin.queue.filter.failed' },
+		{ value: 'ingesting', label: 'admin.queue.filter.ingesting' }
 	];
 
-	const emptyMessage: Record<RulebookQueueStatus, string> = {
-		pending_review: 'No pending rulebooks to review.',
-		failed: 'No failed rulebooks.',
-		ingesting: 'No rulebooks are ingesting.'
+	const emptyMessage: Record<RulebookQueueStatus, MessageKey> = {
+		pending_review: 'admin.queue.empty.pending',
+		failed: 'admin.queue.empty.failed',
+		ingesting: 'admin.queue.empty.ingesting'
 	};
 
 	// ── Rule note queue ────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@
 			page = res.number;
 			hasMore = !res.last;
 		} catch {
-			if (status === statusFilter) toast.error('Failed to load queue');
+			if (status === statusFilter) toast.error(m('admin.queue.loadFailed'));
 		} finally {
 			if (status === statusFilter) loading = false;
 		}
@@ -70,9 +71,9 @@
 		try {
 			await adminApi.approveRulebook(id);
 			items = items.filter((i) => i.id !== id);
-			toast.success('Rulebook approved — ingestion started');
+			toast.success(m('admin.queue.approved'));
 		} catch {
-			toast.error('Failed to approve');
+			toast.error(m('admin.queue.approveFailed'));
 		} finally {
 			processingId = null;
 		}
@@ -90,9 +91,9 @@
 		processingId = id;
 		try {
 			await adminApi.retryRulebook(id);
-			toast.success('Retry started — ingestion restarted');
+			toast.success(m('admin.queue.retried'));
 		} catch (e) {
-			toast.error(e instanceof ApiRequestError ? e.message : 'Failed to retry');
+			toast.error(e instanceof ApiRequestError ? e.message : m('admin.queue.retryFailed'));
 		} finally {
 			processingId = null;
 		}
@@ -110,9 +111,9 @@
 		try {
 			await adminApi.rejectRulebook(rejectingId, rejectReason || undefined);
 			items = items.filter((i) => i.id !== rejectingId);
-			toast.success('Rulebook rejected');
+			toast.success(m('admin.queue.rejected'));
 		} catch {
-			toast.error('Failed to reject');
+			toast.error(m('admin.queue.rejectFailed'));
 		} finally {
 			processingId = null;
 			rejectingId = null;
@@ -121,7 +122,7 @@
 	}
 
 	function formatDate(iso: string) {
-		return new Date(iso).toLocaleDateString(undefined, {
+		return new Date(iso).toLocaleDateString(getLocale(), {
 			month: 'short',
 			day: 'numeric',
 			hour: '2-digit',
@@ -137,7 +138,7 @@
 			notesPage = res.number;
 			notesHasMore = !res.last;
 		} catch {
-			toast.error('Failed to load notes queue');
+			toast.error(m('admin.notes.loadFailed'));
 		} finally {
 			notesLoading = false;
 		}
@@ -148,9 +149,9 @@
 		try {
 			await adminApi.approveRuleNote(id);
 			noteItems = noteItems.filter((n) => n.id !== id);
-			toast.success('Note approved');
+			toast.success(m('admin.notes.approved'));
 		} catch {
-			toast.error('Failed to approve note');
+			toast.error(m('admin.notes.approveFailed'));
 		} finally {
 			noteProcessingId = null;
 		}
@@ -167,9 +168,9 @@
 		try {
 			await adminApi.rejectRuleNote(rejectingNoteId, noteRejectReason || undefined);
 			noteItems = noteItems.filter((n) => n.id !== rejectingNoteId);
-			toast.success('Note rejected');
+			toast.success(m('admin.notes.rejected'));
 		} catch {
-			toast.error('Failed to reject note');
+			toast.error(m('admin.notes.rejectFailed'));
 		} finally {
 			noteProcessingId = null;
 			rejectingNoteId = null;
@@ -183,15 +184,17 @@
 		}
 	});
 
-	const sourceLabel: Record<string, string> = {
-		rule_book_org: 'rule-book.org',
-		onj: '1jour1jeu',
-		user: 'User',
-		admin: 'Admin'
-	};
+	// Brand names stay as-is; uploader roles are translated.
+	const sourceLabel = (source: string): string =>
+		({
+			rule_book_org: 'rule-book.org',
+			onj: '1jour1jeu',
+			user: m('admin.queue.source.user'),
+			admin: m('admin.label')
+		})[source] ?? source;
 </script>
 
-<svelte:head><title>Review Queue — Admin</title></svelte:head>
+<svelte:head><title>{m('admin.queue.metaTitle')}</title></svelte:head>
 
 <div class="py-4 space-y-6 pb-24">
 	<!-- Header -->
@@ -199,13 +202,13 @@
 		<button 
 			onclick={() => history.back()}
 			class="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95"
-			aria-label="Back"
+			aria-label={m('common.back')}
 		>
 			<span class="material-symbols-outlined text-[22px]">arrow_back</span>
 		</button>
 		<div class="flex-1">
-			<p class="text-[10px] font-bold uppercase tracking-widest text-primary mb-0.5">Admin</p>
-			<h1 class="text-2xl font-extrabold font-headline">Review Queue</h1>
+			<p class="text-[10px] font-bold uppercase tracking-widest text-primary mb-0.5">{m('admin.label')}</p>
+			<h1 class="text-2xl font-extrabold font-headline">{m('admin.queue.title')}</h1>
 		</div>
 		<div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
 			<span class="material-symbols-outlined text-[22px]">rate_review</span>
@@ -217,23 +220,23 @@
 		<button
 			onclick={() => { activeTab = 'rulebooks'; }}
 			class="flex-1 py-2 rounded-xl text-sm font-bold transition-all {activeTab === 'rulebooks' ? 'bg-surface text-on-surface shadow-sm' : 'text-on-surface-variant'}"
-		>Rulebooks</button>
+		>{m('admin.queue.tab.rulebooks')}</button>
 		<button
 			onclick={() => { activeTab = 'notes'; }}
 			class="flex-1 py-2 rounded-xl text-sm font-bold transition-all {activeTab === 'notes' ? 'bg-surface text-on-surface shadow-sm' : 'text-on-surface-variant'}"
-		>Rule Notes</button>
+		>{m('admin.queue.tab.notes')}</button>
 	</div>
 
 	{#if activeTab === 'rulebooks'}
 	<!-- Status filter -->
-	<div class="flex gap-2" role="tablist" aria-label="Rulebook status">
+	<div class="flex gap-2" role="tablist" aria-label={m('admin.queue.statusLabel')}>
 		{#each statusFilters as f (f.value)}
 			<button
 				role="tab"
 				aria-selected={statusFilter === f.value}
 				onclick={() => selectStatus(f.value)}
 				class="px-4 py-1.5 rounded-full text-xs font-bold transition-colors {statusFilter === f.value ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
-			>{f.label}</button>
+			>{m(f.label)}</button>
 		{/each}
 	</div>
 
@@ -255,8 +258,8 @@
 	{:else if items.length === 0}
 		<div class="bg-surface-container-low rounded-3xl p-10 text-center">
 			<span class="material-symbols-outlined text-4xl text-primary/20 block mb-3">check_circle</span>
-			<p class="font-bold text-on-surface">Queue is empty</p>
-			<p class="text-xs text-on-surface-variant mt-1">{emptyMessage[statusFilter]}</p>
+			<p class="font-bold text-on-surface">{m('admin.queue.emptyTitle')}</p>
+			<p class="text-xs text-on-surface-variant mt-1">{m(emptyMessage[statusFilter])}</p>
 		</div>
 
 	{:else}
@@ -271,10 +274,10 @@
 							</a>
 							<div class="flex items-center gap-2 mt-1 flex-wrap">
 								<span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
-									{sourceLabel[item.source] ?? item.source}
+									{sourceLabel(item.source)}
 								</span>
 								{#if item.uploaderUsername}
-									<span class="text-xs text-on-surface-variant">by @{item.uploaderUsername}</span>
+									<span class="text-xs text-on-surface-variant">{m('admin.queue.by', { username: item.uploaderUsername })}</span>
 								{/if}
 								<span class="text-xs text-on-surface-variant">{formatDate(item.createdAt)}</span>
 							</div>
@@ -295,7 +298,7 @@
 							class="flex items-center gap-2 text-xs text-primary font-medium"
 						>
 							<span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-							View PDF
+							{m('admin.queue.viewPdf')}
 						</a>
 					{/if}
 
@@ -312,7 +315,7 @@
 							{:else}
 								<span class="material-symbols-outlined text-[16px]">check</span>
 							{/if}
-							Approve
+							{m('admin.queue.approve')}
 						</button>
 						<button
 							onclick={() => startReject(item.id)}
@@ -320,7 +323,7 @@
 							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-container text-on-error-container text-sm font-bold disabled:opacity-50 transition-opacity"
 						>
 							<span class="material-symbols-outlined text-[16px]">close</span>
-							Reject
+							{m('admin.queue.reject')}
 						</button>
 					</div>
 					{:else}
@@ -334,7 +337,7 @@
 						{:else}
 							<span class="material-symbols-outlined text-[16px]">refresh</span>
 						{/if}
-						Retry
+						{m('common.retry')}
 					</button>
 					{/if}
 				</div>
@@ -347,7 +350,7 @@
 				disabled={loading}
 				class="w-full py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold disabled:opacity-50"
 			>
-				{loading ? 'Loading…' : 'Load more'}
+				{loading ? m('common.loading') : m('common.loadMore')}
 			</button>
 		{/if}
 	{/if}
@@ -372,8 +375,8 @@
 	{:else if noteItems.length === 0}
 		<div class="bg-surface-container-low rounded-3xl p-10 text-center">
 			<span class="material-symbols-outlined text-4xl text-primary/20 block mb-3">check_circle</span>
-			<p class="font-bold text-on-surface">Queue is empty</p>
-			<p class="text-xs text-on-surface-variant mt-1">No pending rule notes to review.</p>
+			<p class="font-bold text-on-surface">{m('admin.queue.emptyTitle')}</p>
+			<p class="text-xs text-on-surface-variant mt-1">{m('admin.notes.empty')}</p>
 		</div>
 
 	{:else}
@@ -386,7 +389,7 @@
 								{note.gameName}
 							</a>
 							<div class="flex items-center gap-2 mt-1">
-								<span class="text-xs text-on-surface-variant">by @{note.submittedByUsername}</span>
+								<span class="text-xs text-on-surface-variant">{m('admin.queue.by', { username: note.submittedByUsername })}</span>
 								<span class="text-xs text-on-surface-variant">{formatDate(note.createdAt)}</span>
 							</div>
 						</div>
@@ -403,7 +406,7 @@
 							{:else}
 								<span class="material-symbols-outlined text-[16px]">check</span>
 							{/if}
-							Approve
+							{m('admin.queue.approve')}
 						</button>
 						<button
 							onclick={() => startRejectNote(note.id)}
@@ -411,7 +414,7 @@
 							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-container text-on-error-container text-sm font-bold disabled:opacity-50 transition-opacity"
 						>
 							<span class="material-symbols-outlined text-[16px]">close</span>
-							Reject
+							{m('admin.queue.reject')}
 						</button>
 					</div>
 				</div>
@@ -424,7 +427,7 @@
 				disabled={notesLoading}
 				class="w-full py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold disabled:opacity-50"
 			>
-				{notesLoading ? 'Loading…' : 'Load more'}
+				{notesLoading ? m('common.loading') : m('common.loadMore')}
 			</button>
 		{/if}
 	{/if}
@@ -435,13 +438,13 @@
 <!-- Reject reason sheet -->
 {#if rejectingId}
 	<div class="fixed inset-0 z-50 flex items-end">
-		<button aria-label="Close" class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => (rejectingId = null)}></button>
+		<button aria-label={m('common.close')} class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => (rejectingId = null)}></button>
 		<div class="relative w-full bg-surface rounded-t-3xl p-6 space-y-4 max-w-lg mx-auto">
-			<h3 class="font-bold text-on-surface">Reject rulebook</h3>
-			<p class="text-xs text-on-surface-variant">Optional — leave blank to reject without a reason.</p>
+			<h3 class="font-bold text-on-surface">{m('admin.queue.rejectTitle')}</h3>
+			<p class="text-xs text-on-surface-variant">{m('admin.queue.rejectHint')}</p>
 			<textarea
 				bind:value={rejectReason}
-				placeholder="Reason (e.g. wrong game, unreadable scan…)"
+				placeholder={m('admin.queue.rejectPlaceholder')}
 				rows="3"
 				class="w-full bg-surface-container-low rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none focus:ring-1 focus:ring-error"
 			></textarea>
@@ -450,14 +453,14 @@
 					onclick={() => (rejectingId = null)}
 					class="flex-1 py-3 rounded-2xl bg-surface-container-high text-on-surface font-bold text-sm"
 				>
-					Cancel
+					{m('common.cancel')}
 				</button>
 				<button
 					onclick={confirmReject}
 					disabled={processingId !== null}
 					class="flex-1 py-3 rounded-2xl bg-error text-on-error font-bold text-sm disabled:opacity-50"
 				>
-					{processingId ? 'Rejecting…' : 'Confirm Reject'}
+					{processingId ? m('admin.queue.rejecting') : m('admin.queue.confirmReject')}
 				</button>
 			</div>
 		</div>
@@ -467,13 +470,13 @@
 <!-- Reject note sheet -->
 {#if rejectingNoteId}
 	<div class="fixed inset-0 z-50 flex items-end">
-		<button aria-label="Close" class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => (rejectingNoteId = null)}></button>
+		<button aria-label={m('common.close')} class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => (rejectingNoteId = null)}></button>
 		<div class="relative w-full bg-surface rounded-t-3xl p-6 space-y-4 max-w-lg mx-auto">
-			<h3 class="font-bold text-on-surface">Reject rule note</h3>
-			<p class="text-xs text-on-surface-variant">Optional — leave blank to reject without a reason.</p>
+			<h3 class="font-bold text-on-surface">{m('admin.notes.rejectTitle')}</h3>
+			<p class="text-xs text-on-surface-variant">{m('admin.queue.rejectHint')}</p>
 			<textarea
 				bind:value={noteRejectReason}
-				placeholder="Reason (e.g. incorrect, already covered…)"
+				placeholder={m('admin.notes.rejectPlaceholder')}
 				rows="3"
 				class="w-full bg-surface-container-low rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none focus:outline-none focus:ring-1 focus:ring-error"
 			></textarea>
@@ -482,14 +485,14 @@
 					onclick={() => (rejectingNoteId = null)}
 					class="flex-1 py-3 rounded-2xl bg-surface-container-high text-on-surface font-bold text-sm"
 				>
-					Cancel
+					{m('common.cancel')}
 				</button>
 				<button
 					onclick={confirmRejectNote}
 					disabled={noteProcessingId !== null}
 					class="flex-1 py-3 rounded-2xl bg-error text-on-error font-bold text-sm disabled:opacity-50"
 				>
-					{noteProcessingId ? 'Rejecting…' : 'Confirm Reject'}
+					{noteProcessingId ? m('admin.queue.rejecting') : m('admin.queue.confirmReject')}
 				</button>
 			</div>
 		</div>

@@ -7,6 +7,7 @@
 	import StarRating from "$lib/components/game/StarRating.svelte";
 	import { filterCollection, upsertEntry, type LibraryTab } from "$lib/components/game/collection";
 	import { m, type MessageKey } from "$lib/i18n";
+	import { formatNumber } from "$lib/i18n/format";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
 	import { toast } from "svelte-sonner";
@@ -197,7 +198,7 @@
 
 	function playtime(ug: UserGame) {
 		const { playTime } = ug.game;
-		if (playTime) return `${playTime} min`;
+		if (playTime) return m("library.mine.minutes", { count: playTime });
 		return null;
 	}
 
@@ -208,17 +209,29 @@
 		{ id: "favorites", label: "library.tab.favorites" },
 	];
 
-	// Spotlight data (hardcoded for now as per design)
+	// Spotlight data (hardcoded for now as per design); the title is a proper noun.
 	const spotlight = {
 		title: "Gloomhaven",
-		description:
-			"Embark on an epic legacy campaign with over 95 scenarios of tactical combat and character progression.",
-		category: "Game of the Week",
+		description: "library.spotlight.description" as MessageKey,
+		category: "library.spotlight.category" as MessageKey,
 		imageUrl:
 			"https://lh3.googleusercontent.com/aida-public/AB6AXuD9OrJ1s0wkQqNwd_2YHUbBl6iHCyN8nOBpB4M5CCRPcCrAdiFtFi6vdGS7g51uWG11sEi2A5xZ224aDw5sUYAf5hAOBolULCapAp1U2NWzEUAn_m7t1eK_1q4g-mM8sv8KTArVqCvmLHfz1szDbFToCottMw8Y9l99X7PAbtnF4V5WjZEeNd784ek1C-GJ2U_pw2-CzblT4s91OMRI2OG9cn0CVbWT5_Dsc7UUa3uasDGIn6zx5pkZN2v-oEsMxd98qQvrdP7Nqw0",
 	};
 
-	const categories = ["Strategy", "Party", "Family", "2 Player", "Abstract"];
+	// `value` is the genre filter sent to the API; `label` is what the user sees.
+	const categories: { value: string; label: MessageKey }[] = [
+		{ value: "Strategy", label: "library.genre.strategy" },
+		{ value: "Party", label: "library.genre.party" },
+		{ value: "Family", label: "library.genre.family" },
+		{ value: "2 Player", label: "library.genre.twoPlayer" },
+		{ value: "Abstract", label: "library.genre.abstract" },
+	];
+
+	const complexityLevels: { label: MessageKey; min: number; max: number }[] = [
+		{ label: "library.complexity.light", min: 1.0, max: 2.0 },
+		{ label: "library.complexity.medium", min: 2.1, max: 3.5 },
+		{ label: "library.complexity.heavy", min: 3.6, max: 5.0 },
+	];
 
 	let spotlightSaving = $state(false);
 
@@ -236,16 +249,16 @@
 		try {
 			const updated = await gamesApi.updateCollection(hit.id, { isFavorited: true });
 			collection = upsertEntry(collection, updated);
-			toast.success(`${spotlight.title} added to favorites!`);
+			toast.success(m("library.spotlight.saved", { title: spotlight.title }));
 		} catch {
-			toast.error("Could not save");
+			toast.error(m("library.collection.saveFailed"));
 		} finally {
 			spotlightSaving = false;
 		}
 	}
 </script>
 
-<svelte:head><title>Library — Meeple</title></svelte:head>
+<svelte:head><title>{m("common.nav.library")} — Meeple</title></svelte:head>
 
 <!-- Sticky Unified Header -->
 <div
@@ -285,7 +298,7 @@
 			>
 			<input
 				type="search"
-				placeholder={activeTab === "all" ? "Search catalog..." : m("library.search.collection")}
+				placeholder={activeTab === "all" ? m("library.search.catalog") : m("library.search.collection")}
 				bind:value={query}
 				oninput={onQueryInput}
 				class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none py-1"
@@ -295,6 +308,7 @@
 		<!-- Filter Button -->
 		<button
 			onclick={() => (showFilters = !showFilters)}
+			aria-label={m("library.filters.title")}
 			class="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary hover:bg-surface-variant transition-colors"
 		>
 			<span class="material-symbols-outlined">tune</span>
@@ -318,14 +332,15 @@
 					};
 					fetchCatalogPage(0);
 				}}
+				aria-label={m("library.sort.label")}
 				class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
 			>
-				<option value="">Sort</option>
-				<option value="recommended">Recommended ✨</option>
-				<option value="rank,asc">Rank</option>
-				<option value="usersRated,desc">Popularity</option>
-				<option value="yearPublished,desc">Newest</option>
-				<option value="playTime,asc">Shortest</option>
+				<option value="">{m("library.sort.label")}</option>
+				<option value="recommended">{m("library.sort.recommended")}</option>
+				<option value="rank,asc">{m("library.sort.rank")}</option>
+				<option value="usersRated,desc">{m("library.sort.popularity")}</option>
+				<option value="yearPublished,desc">{m("library.sort.newest")}</option>
+				<option value="playTime,asc">{m("library.sort.shortest")}</option>
 			</select>
 			<div
 				class="w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary"
@@ -359,7 +374,7 @@
 							<span
 								class="inline-block px-3 py-0.5 rounded-full bg-primary text-on-primary font-bold text-[9px] uppercase tracking-widest mb-2"
 							>
-								{spotlight.category}
+								{m(spotlight.category)}
 							</span>
 							<h3
 								class="text-white font-headline text-2xl font-extrabold mb-1"
@@ -369,7 +384,7 @@
 							<p
 								class="text-white/70 max-w-md font-body text-xs line-clamp-2"
 							>
-								{spotlight.description}
+								{m(spotlight.description)}
 							</p>
 						</div>
 						<div class="flex items-center gap-2 shrink-0">
@@ -377,11 +392,12 @@
 								onclick={exploreSpotlight}
 								class="bg-white text-on-background px-5 py-2 rounded-full font-bold text-xs hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg"
 							>
-								Explore
+								{m("library.spotlight.explore")}
 							</button>
 							<button
 								onclick={saveSpotlight}
 								disabled={spotlightSaving}
+								aria-label={m("library.spotlight.save")}
 								class="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-50"
 							>
 								<span
@@ -418,10 +434,11 @@
 					<h2
 						class="font-headline text-2xl font-extrabold text-on-surface"
 					>
-						Discovery Filters
+						{m("library.filters.title")}
 					</h2>
 					<button
 						onclick={() => (showFilters = false)}
+						aria-label={m("common.close")}
 						class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
 					>
 						<span class="material-symbols-outlined">close</span>
@@ -435,27 +452,27 @@
 					<div class="space-y-3">
 						<span
 							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-							>Genre</span
+							>{m("library.filters.genre")}</span
 						>
 						<div class="flex flex-wrap gap-2">
-							{#each categories as cat (cat)}
+							{#each categories as cat (cat.value)}
 								<button
 									onclick={() => {
 										store = {
 											...store,
 											selectedGenre:
-												selectedGenre === cat
+												selectedGenre === cat.value
 													? ""
-													: cat,
+													: cat.value,
 										};
 										fetchCatalogPage(0);
 									}}
 									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {selectedGenre ===
-									cat
+									cat.value
 										? 'bg-primary text-on-primary'
 										: 'bg-surface-container-low text-on-surface-variant'}"
 								>
-									{cat}
+									{m(cat.label)}
 								</button>
 							{/each}
 						</div>
@@ -465,10 +482,10 @@
 					<div class="space-y-3">
 						<span
 							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-							>Complexity Level</span
+							>{m("library.filters.complexity")}</span
 						>
 						<div class="flex flex-wrap gap-2">
-							{#each [{ label: "Light", min: 1.0, max: 2.0 }, { label: "Medium", min: 2.1, max: 3.5 }, { label: "Heavy", min: 3.6, max: 5.0 }] as level (level.label)}
+							{#each complexityLevels as level (level.label)}
 								<button
 									onclick={() => {
 										store = {
@@ -484,7 +501,7 @@
 										? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
 										: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
 								>
-									{level.label}
+									{m(level.label)}
 								</button>
 							{/each}
 						</div>
@@ -495,10 +512,10 @@
 						<div class="flex items-center justify-between">
 							<span
 								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>Player Count</span
+								>{m("library.filters.players")}</span
 							>
 							<span class="text-[10px] font-bold text-primary"
-								>Min - Max</span
+								>{m("library.filters.minMax")}</span
 							>
 						</div>
 						<div class="grid grid-cols-2 gap-4">
@@ -506,7 +523,7 @@
 								type="number"
 								min="1"
 								max="10"
-								placeholder="Min"
+								placeholder={m("library.filters.min")}
 								value={minPlayers}
 								oninput={(e) => {
 									store = {
@@ -523,7 +540,7 @@
 								type="number"
 								min="1"
 								max="50"
-								placeholder="Max"
+								placeholder={m("library.filters.max")}
 								value={maxPlayers}
 								oninput={(e) => {
 									store = {
@@ -544,14 +561,14 @@
 						<div class="flex items-center justify-between">
 							<span
 								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>Playtime (Mins)</span
+								>{m("library.filters.playtime")}</span
 							>
 						</div>
 						<div class="grid grid-cols-2 gap-4">
 							<input
 								type="number"
 								min="1"
-								placeholder="Min"
+								placeholder={m("library.filters.min")}
 								value={minPlaytime}
 								oninput={(e) => {
 									store = {
@@ -567,7 +584,7 @@
 							<input
 								type="number"
 								min="1"
-								placeholder="Max"
+								placeholder={m("library.filters.max")}
 								value={maxPlaytime}
 								oninput={(e) => {
 									store = {
@@ -587,7 +604,7 @@
 					<div class="space-y-4">
 						<span
 							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-							>Min Rating</span
+							>{m("library.filters.minRating")}</span
 						>
 						<input
 							type="number"
@@ -628,13 +645,13 @@
 						}}
 						class="flex-1 py-4 rounded-2xl font-bold text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors"
 					>
-						Reset
+						{m("library.filters.reset")}
 					</button>
 					<button
 						onclick={() => (showFilters = false)}
 						class="flex-[2] py-4 rounded-2xl bg-primary text-on-primary font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all"
 					>
-						Apply Results
+						{m("library.filters.apply")}
 					</button>
 				</div>
 			</div>
@@ -646,12 +663,12 @@
 	<div class="flex items-center justify-between mb-6">
 		<div class="flex flex-col">
 			<h2 class="font-headline text-xl font-extrabold text-on-surface">
-				Library Feed
+				{m("library.feed.title")}
 			</h2>
 			<span
 				class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mt-1 opacity-70"
 			>
-				{gamesPage?.totalElements ?? "0"} Results
+				{m("library.feed.results", { count: formatNumber(gamesPage?.totalElements ?? 0) })}
 			</span>
 		</div>
 	</div>
@@ -675,14 +692,14 @@
 				>explore_off</span
 			>
 			{#if store.sortOption === "recommended"}
-				<p class="font-bold text-lg">No recommendations yet</p>
+				<p class="font-bold text-lg">{m("library.feed.noRecommendations")}</p>
 				<p class="text-sm text-on-surface-variant mt-1">
-					Favorite or log some plays to get personalized suggestions.
+					{m("library.feed.noRecommendationsBody")}
 				</p>
 			{:else}
-				<p class="font-bold text-lg">The library feels empty</p>
+				<p class="font-bold text-lg">{m("library.feed.empty")}</p>
 				<p class="text-sm text-on-surface-variant mt-1">
-					Adjust your filters to see more games.
+					{m("library.feed.emptyBody")}
 				</p>
 			{/if}
 		</div>
@@ -778,7 +795,7 @@
 										class="material-symbols-outlined text-[14px]"
 										>timer</span
 									>
-									{game.playTime}M
+									{m("library.mine.minutes", { count: game.playTime })}
 								</span>
 							{/if}
 						</div>
@@ -807,7 +824,7 @@
 				<p
 					class="text-center text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em]"
 				>
-					You've reached the end of the catalog
+					{m("library.feed.end")}
 				</p>
 			{/if}
 		</div>

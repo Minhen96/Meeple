@@ -174,5 +174,29 @@ export default {
 	'error.cannotInviteSelf': "You're already part of your own event.",
 	'error.invalidTransition': 'Leave the event instead of declining it.',
 	'error.notParticipant': "You're not going to this event.",
-	'error.pastDate': 'Please choose a future date.'
+	'error.pastDate': 'Please choose a future date.',
+
+	// Matching (match requests and suggestions)
+	'match.title': 'Match',
+	'match.new': 'New Request',
+	'match.lookingToPlay': 'Looking to play…',
+	'match.searchGame': 'Search for a game',
+	'match.availableFrom': 'Available from',
+	'match.until': 'Until',
+	'match.submitting': 'Submitting…',
+	'match.submit': 'Submit Request',
+	'match.tab.suggestions': 'Suggestions',
+	'match.tab.suggestionsCount': 'Suggestions ({count})',
+	'match.tab.requests': 'My Requests',
+	'match.empty.suggestionsTitle': 'No matches yet',
+	'match.empty.suggestionsBody': "Submit a match request and we'll find friends who want to play the same game.",
+	'match.empty.requestsTitle': 'No active requests',
+	'match.empty.requestsBody': 'Tap "New Request" to find friends to play with.',
+	'match.anyTime': 'Any time',
+	'match.range': '{start} – {end}',
+	'match.window': '{date} · {start} – {end}',
+	'match.windowOpen': '{date} · {start}',
+	'match.cancelRequest': 'Cancel request',
+	'match.found': 'Match Found!',
+	'match.dismiss': 'Dismiss'
 } as const satisfies Messages;
