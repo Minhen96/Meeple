@@ -213,24 +213,55 @@ public class MatchService {
     // Dismiss match
     // -------------------------------------------------------------------------
 
-    @Transactional
+    /**
+     * Dismisses the caller's membership; when every member has dismissed, the group is dismissed
+     * and its requests are reactivated. Reactivation runs in its own transaction after the
+     * dismissal commits, so a unique-index race with a concurrent createRequest can never fail
+     * the dismissal (see {@link #reactivateGroupSafely}).
+     */
     public void dismissMatch(UUID userId, UUID groupId) {
-        MatchGroup group = findPendingGroup(groupId);
-        MatchGroupMember member = assertMember(group, userId);
+        Boolean allDismissed = transactionTemplate.execute(status -> {
+            MatchGroup group = findPendingGroup(groupId);
+            MatchGroupMember member = assertMember(group, userId);
 
-        member.setStatus(MatchGroupMember.MemberStatus.DISMISSED);
-        matchGroupRepository.save(group);
+            member.setStatus(MatchGroupMember.MemberStatus.DISMISSED);
 
-        // If all members dismissed → dismiss group and reactivate requests
-        boolean allDismissed = group.getMembers().stream()
-                .allMatch(m -> m.getStatus() == MatchGroupMember.MemberStatus.DISMISSED);
-
-        if (allDismissed) {
-            group.setStatus(MatchGroup.Status.DISMISSED);
+            // If all members dismissed → dismiss group (requests reactivated below)
+            boolean all = group.getMembers().stream()
+                    .allMatch(m -> m.getStatus() == MatchGroupMember.MemberStatus.DISMISSED);
+            if (all) {
+                group.setStatus(MatchGroup.Status.DISMISSED);
+            }
             matchGroupRepository.save(group);
+            return all;
+        });
 
-            reactivateRequests(List.of(group.getId()));
+        if (Boolean.TRUE.equals(allDismissed)) {
+            reactivateGroupSafely(groupId);
         }
+    }
+
+    /**
+     * Reactivates a dismissed group's requests in a fresh transaction. The UPDATE already skips
+     * (user, game) pairs with an ACTIVE request; if a concurrent createRequest commits while the
+     * statement runs it can still hit the unique index, so retry once (the retry sees the new
+     * ACTIVE row and skips it). A persisting index conflict is logged and skipped, never a 500:
+     * it means the user already has an ACTIVE request for that game.
+     */
+    private void reactivateGroupSafely(UUID groupId) {
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> reactivateRequests(List.of(groupId)));
+                return;
+            } catch (DataIntegrityViolationException e) {
+                if (!isActiveUniqueViolation(e)) {
+                    throw e;
+                }
+                log.info("Reactivation for dismissed group {} raced with a new request (attempt {})",
+                        groupId, attempt);
+            }
+        }
+        log.warn("Skipped reactivating requests of dismissed group {} after repeated index conflicts", groupId);
     }
 
     // -------------------------------------------------------------------------
