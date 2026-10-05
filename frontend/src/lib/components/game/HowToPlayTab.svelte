@@ -294,7 +294,7 @@
 			if (result.status === "pending_review") {
 				// User uploads must be approved by an admin before they go live.
 				rulebookState = "pending_review";
-				myQueuePosition = null;
+				myQueuePosition = result.queuePosition ?? null;
 				toast.success("Submitted for review. Rules will appear once an admin approves it.");
 			} else if (result.status === "ingesting") {
 				rulebookState = "generating";

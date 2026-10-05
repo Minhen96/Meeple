@@ -19,6 +19,8 @@ export interface UploadRulebookResult {
 	/** 'pending_review': user uploads wait for admin approval before ingestion. */
 	status: 'ingesting' | 'already_done' | 'pending_review';
 	rulebookId?: string;
+	/** Position in the admin review queue (set with 'pending_review'). */
+	queuePosition?: number | null;
 }
 
 export const rulebookApi = {
@@ -33,7 +35,8 @@ export const rulebookApi = {
 
 	upload: (gameId: string, file: File): Promise<UploadRulebookResult> => {
 		const form = new FormData();
+		// Field name matches RulebookUserController's @RequestParam("file").
 		form.append('file', file);
-		return api.post<UploadRulebookResult>(`/api/v1/games/${gameId}/rulebook/upload`, form);
+		return api.post<UploadRulebookResult>(`/api/v1/games/${gameId}/rulebook`, form);
 	}
 };
