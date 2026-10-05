@@ -95,9 +95,11 @@ public class PostController {
     @GetMapping("/posts/{id}/comments")
     public ResponseEntity<PageResponse<PostCommentResponse>> getComments(
             @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(postService.getComments(id, page, size));
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(postService.getComments(id, userId, page, size));
     }
 
     /** POST /api/v1/posts/{id}/comments */

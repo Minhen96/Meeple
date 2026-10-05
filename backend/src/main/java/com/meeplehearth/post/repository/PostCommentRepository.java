@@ -13,7 +13,16 @@ import java.util.UUID;
 @Repository
 public interface PostCommentRepository extends JpaRepository<PostComment, UUID> {
 
+    /** Comments visible to the viewer: excludes deleted comments, deleted authors and blocked authors. */
+    String VISIBLE_COMMENTS = """
+            c.post.id = :postId AND c.deletedAt IS NULL AND c.author.deletedAt IS NULL
+            AND NOT EXISTS (SELECT bu FROM BlockedUser bu
+                            WHERE (bu.id.blockerId = :viewerId AND bu.id.blockedId = c.author.id)
+                               OR (bu.id.blockerId = c.author.id AND bu.id.blockedId = :viewerId))
+            """;
+
     @EntityGraph(attributePaths = {"author"})
-    @Query("SELECT c FROM PostComment c WHERE c.post.id = :postId AND c.deletedAt IS NULL ORDER BY c.createdAt ASC")
-    Page<PostComment> findByPostId(UUID postId, Pageable pageable);
+    @Query(value = "SELECT c FROM PostComment c WHERE " + VISIBLE_COMMENTS + " ORDER BY c.createdAt ASC, c.id ASC",
+            countQuery = "SELECT COUNT(c) FROM PostComment c WHERE " + VISIBLE_COMMENTS)
+    Page<PostComment> findVisibleByPostId(UUID postId, UUID viewerId, Pageable pageable);
 }
