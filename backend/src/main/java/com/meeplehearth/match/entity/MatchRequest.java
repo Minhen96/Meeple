@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "match_requests", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "game_id"}))
+@Table(name = "match_requests") // unique (user_id, game_id) only WHERE status = 'ACTIVE' (partial index, V32)
 @Getter
 @Setter
 public class MatchRequest {
