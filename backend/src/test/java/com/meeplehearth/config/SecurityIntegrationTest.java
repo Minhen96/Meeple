@@ -5,7 +5,6 @@ import com.meeplehearth.user.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -147,9 +146,6 @@ class SecurityIntegrationTest extends AuthWebIntegrationTest {
     }
 
     @Test
-    @Disabled("BUG: springdoc-openapi 2.6.0 is incompatible with Spring Framework 6.2 (Spring Boot 3.4.3): "
-            + "GET /v3/api-docs fails with NoSuchMethodError ControllerAdviceBean.<init>(Object) and returns 500; "
-            + "springdoc 2.7.0+ supports Spring Boot 3.4")
     void apiDocsAreServedWhenEnabled() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

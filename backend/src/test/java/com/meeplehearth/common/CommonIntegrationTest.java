@@ -3,7 +3,6 @@ package com.meeplehearth.common;
 import com.meeplehearth.common.ratelimit.RedisRateLimiter;
 import com.meeplehearth.support.auth.AuthWebIntegrationTest;
 import com.meeplehearth.user.entity.User;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -101,11 +100,6 @@ class CommonIntegrationTest extends AuthWebIntegrationTest {
     // ------------------------------------------------------------------ known bugs
 
     @Test
-    @Disabled("BUG: GlobalExceptionHandler's catch-all @ExceptionHandler(Exception.class) turns Spring MVC client "
-            + "errors (MethodArgumentTypeMismatchException, MissingServletRequestParameterException, "
-            + "HttpMessageNotReadableException, HttpRequestMethodNotSupportedException, "
-            + "HttpMediaTypeNotSupportedException) into 500 INTERNAL_ERROR and logs them at ERROR level, "
-            + "instead of 400/405/415")
     void clientErrorsAreNotReportedAsServerErrors() throws Exception {
         User user = persistUser(true);
 

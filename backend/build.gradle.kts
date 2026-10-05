@@ -65,7 +65,7 @@ dependencies {
 	implementation("com.google.http-client:google-http-client-gson:2.2.0")
 
 	// API documentation
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 
 	// CSV parsing (import-time only)
 	implementation("org.apache.commons:commons-csv:1.12.0")
@@ -115,8 +115,8 @@ tasks.jacocoTestReport {
 	}
 }
 
-// Target from CLAUDE.md is 70% line coverage. Run explicitly with
-// `./gradlew jacocoTestCoverageVerification`; not wired into `check` until coverage reaches it.
+// CLAUDE.md requires at least 70% line coverage; the suite sits well above that, so the
+// gate is set higher to catch regressions. Runs as part of `check` (and therefore `build`).
 tasks.jacocoTestCoverageVerification {
 	dependsOn(tasks.test)
 	violationRules {
@@ -124,8 +124,17 @@ tasks.jacocoTestCoverageVerification {
 			limit {
 				counter = "LINE"
 				value = "COVEREDRATIO"
-				minimum = "0.70".toBigDecimal()
+				minimum = "0.85".toBigDecimal()
+			}
+			limit {
+				counter = "BRANCH"
+				value = "COVEREDRATIO"
+				minimum = "0.75".toBigDecimal()
 			}
 		}
 	}
+}
+
+tasks.check {
+	dependsOn(tasks.jacocoTestCoverageVerification)
 }
