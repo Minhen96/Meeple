@@ -80,6 +80,8 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.security:spring-security-test")
+	testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+	testImplementation("org.awaitility:awaitility")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
