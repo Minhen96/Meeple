@@ -1,5 +1,6 @@
 package com.meeplehearth.match;
 
+import com.meeplehearth.common.job.JobLock;
 import com.meeplehearth.match.service.MatchScheduler;
 import com.meeplehearth.match.service.MatchService;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +29,7 @@ class MatchSchedulerTest {
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
     @SuppressWarnings("unchecked")
     private final ValueOperations<String, String> ops = mock(ValueOperations.class);
-    private final MatchScheduler scheduler = new MatchScheduler(matchService, redis);
+    private final MatchScheduler scheduler = new MatchScheduler(matchService, new JobLock(redis));
 
     @BeforeEach
     void setUp() {
