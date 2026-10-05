@@ -61,10 +61,7 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public List<EventResponse> getMyEvents(UUID userId) {
-        List<Event> events = participantRepository.findAcceptedByUserId(userId).stream()
-                .map(EventParticipant::getEvent)
-                .toList();
-        return toResponses(events, userId);
+        return toResponses(eventRepository.findAcceptedVisibleByUserId(userId), userId);
     }
 
     // -------------------------------------------------------------------------
@@ -115,10 +112,7 @@ public class EventService {
 
     @Transactional
     public EventResponse updateEvent(UUID userId, UUID eventId, CreateEventRequest req) {
-        Event event = findActiveEvent(eventId);
-        if (!event.getHost().getId().equals(userId)) {
-            throw ApiException.forbidden("FORBIDDEN", "Only the host can update this event");
-        }
+        Event event = findHostedEvent(userId, eventId, "Only the host can update this event");
 
         if (req.title() != null)       event.setTitle(req.title());
         if (req.description() != null) event.setDescription(req.description());
@@ -136,10 +130,7 @@ public class EventService {
 
     @Transactional
     public void deleteEvent(UUID userId, UUID eventId) {
-        Event event = findActiveEvent(eventId);
-        if (!event.getHost().getId().equals(userId)) {
-            throw ApiException.forbidden("FORBIDDEN", "Only the host can delete this event");
-        }
+        Event event = findHostedEvent(userId, eventId, "Only the host can delete this event");
         event.setDeletedAt(Instant.now());
         event.setStatus(Event.EventStatus.CANCELLED);
         eventRepository.save(event);
@@ -228,6 +219,20 @@ public class EventService {
                 .orElseThrow(() -> ApiException.notFound("EVENT_NOT_FOUND", "Event not found"));
         if (event.getDeletedAt() != null) {
             throw ApiException.notFound("EVENT_NOT_FOUND", "Event not found");
+        }
+        return event;
+    }
+
+    /**
+     * Loads an event for a host-only mutation. Events the caller cannot see (including when
+     * either side has blocked the other) are 404 so their existence is not leaked; 403 is only
+     * returned when the caller can see the event but is not its host.
+     */
+    private Event findHostedEvent(UUID userId, UUID eventId, String forbiddenMessage) {
+        Event event = eventRepository.findVisibleById(eventId, userId)
+                .orElseThrow(() -> ApiException.notFound("EVENT_NOT_FOUND", "Event not found"));
+        if (!event.getHost().getId().equals(userId)) {
+            throw ApiException.forbidden("FORBIDDEN", forbiddenMessage);
         }
         return event;
     }

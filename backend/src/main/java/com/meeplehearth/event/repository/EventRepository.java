@@ -54,6 +54,18 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
             + " WHERE e.id = :eventId AND " + VISIBLE_TO_VIEWER)
     boolean isVisibleTo(UUID eventId, UUID viewerId);
 
+    /**
+     * Events the viewer has ACCEPTED that are still visible to them: excludes events whose host
+     * has blocked the viewer or been blocked by them since the RSVP.
+     */
+    @EntityGraph(attributePaths = {"host", "game"})
+    @Query("SELECT e FROM Event e WHERE e.deletedAt IS NULL AND e.status <> 'CANCELLED'"
+            + " AND EXISTS (SELECT acc FROM EventParticipant acc WHERE acc.id.eventId = e.id"
+            + " AND acc.id.userId = :viewerId AND acc.status = 'ACCEPTED')"
+            + " AND " + VISIBLE_TO_VIEWER
+            + " ORDER BY e.scheduledAt ASC, e.id ASC")
+    List<Event> findAcceptedVisibleByUserId(UUID viewerId);
+
     /** Row-locks the event for the duration of the transaction (serialises RSVPs). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Event e WHERE e.id = :eventId AND e.deletedAt IS NULL")

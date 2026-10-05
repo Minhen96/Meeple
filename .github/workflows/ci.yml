@@ -51,6 +51,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test
         run: ./gradlew build
+      - name: Upload JaCoCo HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/build/reports/jacoco/test/html
+          if-no-files-found: warn
+      - name: Coverage summary
+        if: always()
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import os
+          import xml.etree.ElementTree as ET
+          path = "build/reports/jacoco/test/jacocoTestReport.xml"
+          if not os.path.exists(path):
+              print("No JaCoCo report generated.")
+          else:
+              root = ET.parse(path).getroot()
+              line = next(c for c in root.findall("counter") if c.get("type") == "LINE")
+              covered, missed = int(line.get("covered")), int(line.get("missed"))
+              pct = 100.0 * covered / max(covered + missed, 1)
+              print(f"### Backend line coverage: {pct:.1f}% ({covered}/{covered + missed} lines)")
+          EOF
 
   frontend:
     runs-on: ubuntu-latest
