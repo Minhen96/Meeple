@@ -486,6 +486,23 @@ connectivity failure a cached value younger than its TTL is returned with
 its `cachedAt`, which the screens show as the stale-data banner. When Isar
 cannot be opened the app uses an in-memory store.
 
+Entries are scoped to the signed-in account: `cacheStoreProvider` is a
+`UserScopedCacheStore` that prefixes every key with `u:{userId}|` (the id of
+the stored session), and `readThrough` binds to the account that started the
+request, so a response landing after an account switch is never filed under
+the next account. Signed out, reads miss and writes are dropped. Logout and
+session expiry (rejected refresh token) both run the same local cleanup:
+Google sign-out, analytics reset and a full cache wipe.
+
+**Account switches.** `keepAlive` providers that hold user data
+(`FeedNotifier`, `CollectionNotifier`, `RecentSearches`) watch
+`authUserIdProvider` (`authNotifierProvider.select((s) => s.valueOrNull?.id)`),
+so they rebuild empty for the next account; profile edits keep the id and do
+not reload them. `UnreadCount`, `PushService` and `RealtimeService` follow the
+auth state through listeners. Recent searches are stored per account
+(`recent_searches_{userId}`); the old shared key is deleted on load. The
+biometric lock and locale are device settings and stay.
+
 `cache_entry.g.dart` is generated with `isar_generator 3.1.0+1` in a
 throwaway package (it pins an analyzer that conflicts with
 riverpod_generator/freezed) and excluded from the regular part builder in
@@ -1178,12 +1195,24 @@ body.
   parameter.
 - **Library:** plays via `POST /users/me/games/{id}/plays`; BGG import
   `POST /users/me/bgg-import` + `GET …/status` (409
-  `BGG_IMPORT_IN_PROGRESS` follows the running import).
+  `BGG_IMPORT_IN_PROGRESS` follows the running import). Import (2 s) and
+  How-to-Play (3 s) polling stop on a terminal status or a 401/403/404;
+  other failures keep the last state and retry with exponential backoff
+  (capped at 30 s). A response that arrives after the provider was disposed
+  or rebuilt is dropped.
 - **Account:** `GET /users/me` carries `hasPassword`/`googleLinked`; Google-only
   accounts confirm deletion with `{confirm: "DELETE"}` and have no
   change-email entry (it needs the current password). `/auth/sessions*`
-  identify this device by the refresh-token cookie, so the client sends
-  `Cookie: refresh_token=…` on them; `revoke-others` bumps the token version
-  and its reissued `access_token` cookie is stored. `ACCOUNT_DELETED` (403)
+  are authenticated endpoints: unlike the credential endpoints under
+  `/auth/` they carry the Bearer token and are retried once after a 401
+  refresh. They also identify this device by the refresh-token cookie, so the
+  client sends `Cookie: refresh_token=…` (re-attached with the rotated token
+  on the retry); `revoke-others` requires that live cookie, bumps the token
+  version and its reissued `access_token` cookie is stored. Session ids are
+  opaque strings (URL-encoded in `DELETE /auth/sessions/{id}`).
+- **Realtime:** the app subscribes only to `/user/queue/notifications`. It
+  does not subscribe to `/topic/events/{eventId}` (whose payload is
+  `{eventId, participantCount, status}`); a future subscriber must refetch
+  the event via REST on each message rather than read participants from it. `ACCOUNT_DELETED` (403)
   from password or Google sign-in opens reactivation, which accepts
   `{emailOrUsername, password}` or `{googleIdToken}`.
