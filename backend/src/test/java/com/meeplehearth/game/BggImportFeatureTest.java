@@ -74,6 +74,12 @@ class BggImportFeatureTest extends ApiIntegrationTestBase {
 
     @AfterEach
     void removeImportedGames() {
+        // Imports run asynchronously against the shared fake server; wait until every import from this
+        // test has released its lock so a still-retrying one cannot consume the next test's replies
+        await().atMost(Duration.ofSeconds(30)).until(() -> {
+            java.util.Set<String> locks = redis.keys("bgg:import:*:lock");
+            return locks == null || locks.isEmpty();
+        });
         jdbc.update("DELETE FROM games WHERE bgg_id IN (?, ?, ?)", idA, idB, idC);
     }
 
