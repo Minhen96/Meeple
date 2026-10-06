@@ -585,7 +585,7 @@ public class EventService {
     }
 
     /** OPEN ↔ FULL from the accepted count; returns whether the status changed. */
-    private static boolean refreshCapacityStatus(Event event, int accepted) {
+    static boolean refreshCapacityStatus(Event event, int accepted) {
         Event.EventStatus status = event.getStatus();
         if (status == Event.EventStatus.OPEN && accepted >= event.getMaxParticipants()) {
             event.setStatus(Event.EventStatus.FULL);
