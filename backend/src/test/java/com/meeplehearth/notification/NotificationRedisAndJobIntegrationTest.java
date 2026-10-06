@@ -4,13 +4,15 @@ import com.meeplehearth.common.job.JobLock;
 import com.meeplehearth.notification.job.NotificationCleanupJob;
 import com.meeplehearth.notification.presence.WebSocketPresenceListener;
 import com.meeplehearth.notification.repository.NotificationRepository;
+import com.meeplehearth.notification.service.NotificationAccountListener;
 import com.meeplehearth.notification.service.UnreadCounter;
+import com.meeplehearth.common.event.UserHardDeletedEvent;
 import com.meeplehearth.support.social.ApiIntegrationTestBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageType;
@@ -20,8 +22,10 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +46,7 @@ class NotificationRedisAndJobIntegrationTest extends ApiIntegrationTestBase {
     @Autowired private NotificationRepository notificationRepository;
     @Autowired private NotificationCleanupJob cleanupJob;
     @Autowired private JobLock jobLock;
+    @Autowired private NotificationAccountListener accountListener;
 
     private final List<String> keys = new ArrayList<>();
 
@@ -87,15 +92,78 @@ class NotificationRedisAndJobIntegrationTest extends ApiIntegrationTestBase {
     }
 
     @Test
+    void presenceIsSharedAcrossInstances() {
+        UUID me = UUID.randomUUID();
+        String key = WebSocketPresenceListener.key(me);
+        keys.add(key);
+        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(me.toString(), null);
+        WebSocketPresenceListener instanceA = new WebSocketPresenceListener(redis);
+        WebSocketPresenceListener instanceB = new WebSocketPresenceListener(redis);
+
+        instanceA.onConnected(new SessionConnectedEvent(this, connectedMessage("a-" + me), principal));
+        instanceB.onConnected(new SessionConnectedEvent(this, connectedMessage("b-" + me), principal));
+        assertThat(redis.opsForZSet().size(key)).isEqualTo(2);
+
+        // The user's only session on A closes: B still holds one, so the user stays online
+        instanceA.onDisconnect(new SessionDisconnectEvent(this, connectedMessage("a-" + me), "a-" + me,
+                CloseStatus.NORMAL, principal));
+        assertThat(instanceA.isOnline(me)).isTrue();
+        assertThat(presence.isOnline(me)).isTrue();
+
+        instanceB.onDisconnect(new SessionDisconnectEvent(this, connectedMessage("b-" + me), "b-" + me,
+                CloseStatus.NORMAL, principal));
+        assertThat(instanceA.isOnline(me)).isFalse();
+    }
+
+    @Test
+    void aDeadInstancesClaimExpires() {
+        UUID me = UUID.randomUUID();
+        String key = WebSocketPresenceListener.key(me);
+        keys.add(key);
+        Instant start = Instant.now();
+        WebSocketPresenceListener crashed = new WebSocketPresenceListener(redis, Clock.fixed(start, ZoneOffset.UTC));
+        crashed.onConnected(new SessionConnectedEvent(this, connectedMessage("c-" + me),
+                new UsernamePasswordAuthenticationToken(me.toString(), null)));
+
+        WebSocketPresenceListener later = new WebSocketPresenceListener(redis,
+                Clock.fixed(start.plus(Duration.ofSeconds(31)), ZoneOffset.UTC));
+        assertThat(later.isOnline(me)).isFalse();
+        WebSocketPresenceListener soon = new WebSocketPresenceListener(redis,
+                Clock.fixed(start.plus(Duration.ofSeconds(29)), ZoneOffset.UTC));
+        assertThat(soon.isOnline(me)).isTrue();
+
+        // A heartbeat from another instance prunes the dead member
+        soon.onConnected(new SessionConnectedEvent(this, connectedMessage("s-" + me),
+                new UsernamePasswordAuthenticationToken(me.toString(), null)));
+        later.refresh();
+        WebSocketPresenceListener muchLater = new WebSocketPresenceListener(redis,
+                Clock.fixed(start.plus(Duration.ofSeconds(45)), ZoneOffset.UTC));
+        muchLater.onConnected(new SessionConnectedEvent(this, connectedMessage("m-" + me),
+                new UsernamePasswordAuthenticationToken(me.toString(), null)));
+        assertThat(redis.opsForZSet().score(key, crashed.instanceId())).isNull();
+    }
+
+    @Test
+    void anOldStringPresenceKeyIsReplaced() {
+        UUID me = UUID.randomUUID();
+        String key = WebSocketPresenceListener.key(me);
+        keys.add(key);
+        redis.opsForValue().set(key, "1", Duration.ofSeconds(30));
+        assertThat(presence.isOnline(me)).isFalse();
+        WebSocketPresenceListener listener = new WebSocketPresenceListener(redis);
+        listener.onConnected(new SessionConnectedEvent(this, connectedMessage("o-" + me),
+                new UsernamePasswordAuthenticationToken(me.toString(), null)));
+        assertThat(listener.isOnline(me)).isTrue();
+    }
+
+    @Test
     void presenceTreatsRedisErrorsAsOffline() {
         StringRedisTemplate broken = mock(StringRedisTemplate.class);
-        when(broken.hasKey(anyString())).thenThrow(new IllegalStateException("down"));
         @SuppressWarnings("unchecked")
-        ValueOperations<String, String> ops = mock(ValueOperations.class);
-        when(broken.opsForValue()).thenReturn(ops);
-        org.mockito.Mockito.doThrow(new IllegalStateException("down")).when(ops)
-                .set(anyString(), anyString(), any(Duration.class));
-        when(broken.delete(anyString())).thenThrow(new IllegalStateException("down"));
+        ZSetOperations<String, String> ops = mock(ZSetOperations.class);
+        when(broken.opsForZSet()).thenReturn(ops);
+        when(ops.count(anyString(), any(Double.class), any(Double.class))).thenThrow(new IllegalStateException("down"));
+        when(ops.remove(anyString(), any())).thenThrow(new IllegalStateException("down"));
         WebSocketPresenceListener listener = new WebSocketPresenceListener(broken);
 
         assertThat(listener.isOnline(UUID.randomUUID())).isFalse();
@@ -155,5 +223,43 @@ class NotificationRedisAndJobIntegrationTest extends ApiIntegrationTestBase {
 
         cleanupJob.run();
         assertThat(count("SELECT COUNT(*) FROM notifications WHERE recipient_id = ?", me)).isEqualTo(2);
+    }
+
+    @Test
+    void cleanupEvictsTheUnreadCounterOfRecipientsWhoLostUnreadRows() {
+        UUID me = user();
+        UUID other = user();
+        keys.add("notif:unread:" + me);
+        keys.add("notif:unread:" + other);
+        jdbc.update("INSERT INTO notifications (recipient_id, type, created_at) VALUES (?, 'MATCH_FOUND', ?)",
+                me, ts(Instant.now().minus(Duration.ofDays(91))));
+        jdbc.update("INSERT INTO notifications (recipient_id, type) VALUES (?, 'MATCH_FOUND')", me);
+        jdbc.update("INSERT INTO notifications (recipient_id, type, read, created_at) VALUES (?, 'MATCH_FOUND', true, ?)",
+                other, ts(Instant.now().minus(Duration.ofDays(91))));
+        jdbc.update("INSERT INTO notifications (recipient_id, type) VALUES (?, 'MATCH_FOUND')", other);
+        assertThat(counter.get(me)).isEqualTo(2);
+        assertThat(counter.get(other)).isEqualTo(1);
+
+        cleanupJob.run();
+
+        assertThat(redis.hasKey("notif:unread:" + me)).isFalse();
+        assertThat(counter.get(me)).isEqualTo(1);
+        // A read row does not change the badge: that counter is left alone
+        assertThat(redis.opsForValue().get("notif:unread:" + other)).isEqualTo("1");
+    }
+
+    @Test
+    void hardDeletingAnActorEvictsTheCountersOfTheirRecipients() {
+        UUID actor = user();
+        UUID recipient = user();
+        keys.add("notif:unread:" + recipient);
+        jdbc.update("INSERT INTO notifications (recipient_id, actor_id, type) VALUES (?, ?, 'POST_TAG')", recipient, actor);
+        jdbc.update("INSERT INTO notifications (recipient_id, type) VALUES (?, 'MATCH_FOUND')", recipient);
+        assertThat(counter.get(recipient)).isEqualTo(2);
+
+        accountListener.onHardDeleted(new UserHardDeletedEvent(actor));
+
+        assertThat(redis.hasKey("notif:unread:" + recipient)).isFalse();
+        assertThat(counter.get(recipient)).isEqualTo(1);
     }
 }

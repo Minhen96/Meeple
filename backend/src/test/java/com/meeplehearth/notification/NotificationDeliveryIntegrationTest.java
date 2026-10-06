@@ -127,7 +127,9 @@ class NotificationDeliveryIntegrationTest extends ApiIntegrationTestBase {
     void onlineRecipientGetsNoPush() throws Exception {
         UUID me = recipient();
         device(me, "dev-online-" + me);
-        redis.opsForValue().set(WebSocketPresenceListener.key(me), "1", Duration.ofSeconds(30));
+        // Another instance holds a live session of the recipient
+        redis.opsForZSet().add(WebSocketPresenceListener.key(me), "other-instance",
+                System.currentTimeMillis() + Duration.ofSeconds(30).toMillis());
 
         notificationService.send(me, NotificationType.MATCH_FOUND, null, UUID.randomUUID(), "MATCH_GROUP");
 
