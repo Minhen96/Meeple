@@ -13,6 +13,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -23,10 +24,15 @@ import java.util.Set;
 /**
  * Global API rate limits (FEATURES_COMPLETE section 12.6), fixed one-minute windows in Redis:
  * <ul>
- *   <li>login and account reactivation: {@code loginPerMinute} per client IP;</li>
+ *   <li>login and account reactivation: {@code loginPerMinute} per client IP, signed in or not;</li>
+ *   <li>username / email availability checks (typed into the sign-up form):
+ *       {@code availabilityPerMinute} per client IP, in their own bucket;</li>
  *   <li>authenticated requests: {@code perUserPerMinute} per user;</li>
  *   <li>other unauthenticated requests: {@code perIpPerMinute} per client IP.</li>
  * </ul>
+ * Buckets are chosen on the decoded, normalised path (percent-decoding, {@code ;params}
+ * stripped, duplicate and trailing slashes removed, lower case), so {@code /api/v1/auth/l%6Fgin}
+ * counts as login, exactly like the handler mapping that serves it.
  * Over the limit the request is answered 429 {@code RATE_LIMIT_EXCEEDED} with a
  * {@code Retry-After} header (seconds until the window resets). Runs after the JWT filter so the
  * user is known; the client IP comes from {@code getRemoteAddr()}, which Tomcat's RemoteIpValve
@@ -43,6 +49,8 @@ public class GlobalRateLimitFilter extends OncePerRequestFilter {
     private static final Duration KEY_TTL = Duration.ofMinutes(2);
     private static final Set<String> LOGIN_PATHS = Set.of("/api/v1/auth/login", "/api/v1/auth/reactivate");
     private static final Set<String> IP_EXEMPT_PATHS = Set.of("/api/v1/auth/refresh", "/api/v1/auth/logout");
+    private static final Set<String> AVAILABILITY_PATHS =
+            Set.of("/api/v1/auth/check-username", "/api/v1/auth/check-email");
 
     private final RedisRateLimiter rateLimiter;
     private final AppProperties.RateLimit limits;
@@ -78,6 +86,9 @@ public class GlobalRateLimitFilter extends OncePerRequestFilter {
         if (LOGIN_PATHS.contains(path) && "POST".equalsIgnoreCase(request.getMethod())) {
             key = KEY_PREFIX + "login:" + clientIp(request) + ":" + window;
             limit = limits.getLoginPerMinute();
+        } else if (AVAILABILITY_PATHS.contains(path)) {
+            key = KEY_PREFIX + "availability:" + clientIp(request) + ":" + window;
+            limit = limits.getAvailabilityPerMinute();
         } else {
             String userId = authenticatedUserId();
             if (userId != null) {
@@ -114,12 +125,13 @@ public class GlobalRateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private static String path(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        String context = request.getContextPath();
-        String path = context != null && !context.isEmpty() && uri.startsWith(context)
-                ? uri.substring(context.length())
-                : uri;
+    /**
+     * The decoded path within the application: percent-encoding resolved, {@code ;params}
+     * removed and duplicate slashes collapsed ({@link UrlPathHelper#defaultInstance}), then
+     * trailing slashes trimmed and lower-cased.
+     */
+    static String path(HttpServletRequest request) {
+        String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
         // Normalise trailing slashes so "/login/" counts against the login bucket too
         while (path.length() > 1 && path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
