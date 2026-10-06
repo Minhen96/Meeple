@@ -435,9 +435,9 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
                 .andExpect(jsonPath("$.data.myRsvp").value("ACCEPTED"));
         mvc.perform(delete("/api/v1/events/{id}/rsvp", friendsEvent).with(as(invitedFriend)))
                 .andExpect(status().isNoContent());
-        // Having left, the FRIENDS event is hidden from them (even as a friend of the host)
         mvc.perform(post("/api/v1/events/{id}/rsvp", friendsEvent).with(as(invitedFriend)).param("status", "ACCEPTED"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("NOT_INVITED"));
         assertThat(activities(invitedFriend)).extracting(a -> a.type()).containsExactly("event_joined");
 
         // Invite-only joins are not announced

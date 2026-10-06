@@ -26,12 +26,13 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
      *   <li>PUBLIC;</li>
      *   <li>the viewer is the host;</li>
      *   <li>the viewer is INVITED, ACCEPTED or DECLINED (a LEFT or KICKED row grants nothing);</li>
-     *   <li>FRIENDS, the viewer is an accepted friend of the host and has not LEFT or been KICKED
-     *       from the event.</li>
+     *   <li>FRIENDS, the viewer is an accepted friend of the host and was not KICKED from the
+     *       event (a friend who LEFT voluntarily still sees it like any other friend; only
+     *       re-joining needs a new invite).</li>
      * </ul>
      * INVITE_ONLY therefore resolves to host + invited/accepted/declined participants. Someone
-     * who left or was removed loses the event, its live topic and its memories unless it is
-     * PUBLIC (or they are invited again).
+     * who left an INVITE_ONLY event, or was kicked from an INVITE_ONLY or FRIENDS event, loses
+     * it, its live topic and its memories unless it is PUBLIC (or they are invited again).
      */
     String VISIBLE_TO_VIEWER = """
             (e.visibility = 'PUBLIC'
@@ -48,7 +49,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
                    AND NOT EXISTS (
                       SELECT gone FROM EventParticipant gone
                       WHERE gone.id.eventId = e.id AND gone.id.userId = :viewerId
-                        AND gone.status IN ('LEFT', 'KICKED'))))
+                        AND gone.status = 'KICKED')))
             AND NOT EXISTS (SELECT bu FROM BlockedUser bu
                             WHERE (bu.id.blockerId = :viewerId AND bu.id.blockedId = e.host.id)
                                OR (bu.id.blockerId = e.host.id AND bu.id.blockedId = :viewerId))

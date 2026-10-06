@@ -1239,19 +1239,23 @@ Avatar change: generate new filename with timestamp to bust cache: `avatar-{time
 
 ### 12.6 API Rate Limiting (Global)
 
-All authenticated endpoints: max 200 req/min per user (Redis token bucket)
-All unauthenticated endpoints: max 20 req/min per IP
-Login endpoint: 10 req/min per IP (stricter)
-BGG proxy: 2 req/sec globally (semaphore in BggApiClient)
+Implemented in `GlobalRateLimitFilter` as fixed one-minute windows in Redis
+(`ratelimit:global:*`), configured under `app.rate-limit` (`RATE_LIMIT_ENABLED` turns it off):
 
-Implement with **Bucket4j** library in Spring Boot:
-```java
-@Bean
-public RateLimiter apiRateLimiter() {
-  BandwidthLimit limit = BandwidthLimit.classic(200, Refill.intervally(200, Duration.ofMinutes(1)));
-  return Bucket4j.builder().addLimit(limit).build();
-}
-```
+| Bucket | Limit | Key |
+|--------|-------|-----|
+| Authenticated endpoints | 200 req/min | per user |
+| Unauthenticated endpoints | 60 req/min | per client IP |
+| Login + account reactivation (`POST /auth/login`, `/auth/reactivate`) | 10 req/min | per client IP, signed in or not |
+| Availability checks (`GET /auth/check-username`, `/auth/check-email`) | 60 req/min | per client IP, own bucket |
+| Token refresh and logout | exempt from the per-IP limit | — |
+| BGG proxy | 2 req/sec globally | semaphore in `BggApiClient` |
+
+- The bucket is chosen on the decoded, normalised path (percent-decoding, `;params` stripped,
+  duplicate/trailing slashes removed, case-insensitive), so `/api/v1/auth/l%6Fgin` counts as login.
+- Over the limit: 429 `RATE_LIMIT_EXCEEDED` with `Retry-After` (seconds to the window reset) and
+  `X-RateLimit-Limit` / `X-RateLimit-Remaining` headers.
+- If Redis is unreachable the request is let through (rate limiting never takes the API down).
 
 ### 12.7 Accessibility (WCAG 2.1 AA Targets)
 

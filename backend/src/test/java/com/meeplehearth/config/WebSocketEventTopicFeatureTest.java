@@ -177,19 +177,22 @@ class WebSocketEventTopicFeatureTest {
         UUID declined = user();
         UUID left = user();
         UUID kickedFriend = user();
-        jdbc.update("INSERT INTO friend_requests (sender_id, receiver_id, status) VALUES (?, ?, 'ACCEPTED')",
-                host, kickedFriend);
+        UUID leftFriend = user();
+        jdbc.update("INSERT INTO friend_requests (sender_id, receiver_id, status) VALUES (?, ?, 'ACCEPTED'),"
+                + " (?, ?, 'ACCEPTED')", host, kickedFriend, leftFriend, host);
         UUID inviteOnly = event(host, "INVITE_ONLY");
         participant(inviteOnly, declined, "DECLINED");
         participant(inviteOnly, left, "LEFT");
         UUID friendsOnly = event(host, "FRIENDS");
         participant(friendsOnly, kickedFriend, "KICKED");
+        participant(friendsOnly, leftFriend, "LEFT");
         UUID publicEvent = event(host, "PUBLIC");
         participant(publicEvent, left, "KICKED");
 
         assertThat(canSubscribe(declined, inviteOnly)).isTrue();
         assertThat(canSubscribe(left, inviteOnly)).isFalse();
         assertThat(canSubscribe(kickedFriend, friendsOnly)).isFalse();
+        assertThat(canSubscribe(leftFriend, friendsOnly)).isTrue();
         assertThat(canSubscribe(left, publicEvent)).isTrue();
     }
 
