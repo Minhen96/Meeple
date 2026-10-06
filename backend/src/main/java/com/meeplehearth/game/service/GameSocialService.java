@@ -14,6 +14,7 @@ import com.meeplehearth.post.dto.PostResponse;
 import com.meeplehearth.post.entity.Post;
 import com.meeplehearth.post.entity.PostLikeId;
 import com.meeplehearth.post.repository.PostLikeRepository;
+import com.meeplehearth.social.repository.BlockRepository;
 import com.meeplehearth.post.repository.PostRepository;
 import com.meeplehearth.social.repository.FriendRequestRepository;
 import org.springframework.data.domain.PageRequest;
@@ -55,19 +56,22 @@ public class GameSocialService {
     private final LibraryStatsQueries queries;
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
+    private final BlockRepository blockRepository;
 
     public GameSocialService(GameRepository gameRepository,
                              UserGameRepository userGameRepository,
                              FriendRequestRepository friendRequestRepository,
                              LibraryStatsQueries queries,
                              PostRepository postRepository,
-                             PostLikeRepository postLikeRepository) {
+                             PostLikeRepository postLikeRepository,
+                             BlockRepository blockRepository) {
         this.gameRepository = gameRepository;
         this.userGameRepository = userGameRepository;
         this.friendRequestRepository = friendRequestRepository;
         this.queries = queries;
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
+        this.blockRepository = blockRepository;
     }
 
     /** Adds the viewer's friend average rating and up to 5 friends who own the game. */
@@ -157,11 +161,12 @@ public class GameSocialService {
         postRepository.fetchTagsByIdIn(ids);
         Set<UUID> liked = postLikeRepository.findLikedPostIds(new HashSet<>(ids), viewerId).stream()
                 .map(PostLikeId::getPostId).collect(Collectors.toSet());
+        Set<UUID> hidden = blockRepository.findBlockedEitherWay(viewerId);
 
         List<PostResponse> items = new ArrayList<>(ids.size());
         for (UUID id : ids) {
             Post post = byId.get(id);
-            if (post != null) items.add(PostResponse.from(post, liked.contains(id)));
+            if (post != null) items.add(PostResponse.from(post, liked.contains(id), hidden));
         }
         PostKey last = page.get(page.size() - 1);
         String next = hasMore ? last.createdAt().toString() + "|" + last.id() : null;

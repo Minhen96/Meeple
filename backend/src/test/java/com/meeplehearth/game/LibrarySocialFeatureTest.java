@@ -269,4 +269,33 @@ class LibrarySocialFeatureTest extends ApiIntegrationTestBase {
                         .with(as(me)))
                 .andExpect(jsonPath("$.data.items.length()").value(2));
     }
+
+    @Test
+    void otherUsersCollectionsHideNotesAndShowRatingsToFriendsOnly() throws Exception {
+        UUID owner = user();
+        UUID friend = user();
+        UUID stranger = user();
+        friends(owner, friend);
+        UUID game = game();
+        entry(owner, game, true, 2, 7, "lent to Sam, missing a card");
+
+        JsonNode asStranger = json(mvc.perform(get("/api/v1/users/{id}/games", owner).with(as(stranger)))
+                .andExpect(status().isOk()).andReturn()).get("data").get(0);
+        assertThat(asStranger.path("notes").isMissingNode() || asStranger.get("notes").isNull()).isTrue();
+        assertThat(asStranger.path("personalRating").isMissingNode() || asStranger.get("personalRating").isNull())
+                .isTrue();
+        assertThat(asStranger.get("playCount").asInt()).isEqualTo(2);
+
+        JsonNode asFriend = json(mvc.perform(get("/api/v1/users/{id}/games", owner).with(as(friend)))
+                .andExpect(status().isOk()).andReturn()).get("data").get(0);
+        assertThat(asFriend.path("notes").isMissingNode() || asFriend.get("notes").isNull()).isTrue();
+        assertThat(asFriend.get("personalRating").asInt()).isEqualTo(7);
+
+        JsonNode asOwner = json(mvc.perform(get("/api/v1/users/{id}/games", owner).with(as(owner)))
+                .andExpect(status().isOk()).andReturn()).get("data").get(0);
+        assertThat(asOwner.get("notes").asText()).isEqualTo("lent to Sam, missing a card");
+        assertThat(asOwner.get("personalRating").asInt()).isEqualTo(7);
+        mvc.perform(get("/api/v1/users/me/games").with(as(owner)))
+                .andExpect(jsonPath("$.data[0].notes").value("lent to Sam, missing a card"));
+    }
 }

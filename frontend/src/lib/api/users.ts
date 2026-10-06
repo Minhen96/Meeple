@@ -71,7 +71,7 @@ export const usersApi = {
 		api.post<{ message: string }>('/api/v1/users/me/change-email', { currentPassword, newEmail }),
 
 	/** Starts (or returns the recent) data export; the download link is emailed. */
-	requestExport: (): Promise<DataExport> => api.get<DataExport>('/api/v1/users/me/export'),
+	requestExport: (): Promise<DataExport> => api.post<DataExport>('/api/v1/users/me/export'),
 
 	/**
 	 * People search by username or display name, with my friendship status for each row. The

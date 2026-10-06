@@ -408,6 +408,7 @@ try {
 | `notification_cleanup` | Daily 3am UTC | 1 hour | Delete notifications > 90 days |
 | `post_image_cleanup` | Daily 3am UTC | 1 hour | Delete R2 images of deleted posts > 30 days |
 | `account_hard_delete` | Daily 3am UTC | 1 hour | Hard-delete accounts 30+ days after soft-delete |
+| `data_export_cleanup` | Daily 4:30am UTC | 30 min | Delete data export zips (private bucket) 7+ days old, mark requests `EXPIRED` |
 | `bgg_data_refresh` | Weekly Sun 2am | 2 hours | Refresh cached game data |
 
 ---
@@ -484,6 +485,9 @@ R2_ACCESS_KEY=...
 R2_SECRET_KEY=...
 R2_BUCKET=meeple-hearth-media
 R2_PUBLIC_URL=https://cdn.meeple-hearth.com
+R2_PRIVATE_BUCKET=meeple-hearth-private      # recommended: bucket with NO public domain, holds GDPR data exports
+                                            # (7-day presigned links only). Unset = exports go to R2_BUCKET under
+                                            # private/ and a startup WARN asks you to block /private/* on the CDN domain
 
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
@@ -503,7 +507,7 @@ SENTRY_ENVIRONMENT=production               # optional: defaults to the active S
 SENTRY_TRACES_SAMPLE_RATE=0.0               # optional
 SPRING_PROFILES_ACTIVE=prod                 # required: local | staging | prod (no default)
 SERVER_PORT=8080
-RATE_LIMIT_ENABLED=true                     # optional: global API rate limits (200/min user, 20/min IP, 10/min login)
+RATE_LIMIT_ENABLED=true                     # optional: global API rate limits (200/min user, 60/min IP, 10/min login, 60/min IP for check-username/check-email)
 IOS_APP_ID=<TeamID>.<bundle id>             # optional: /.well-known/apple-app-site-association (empty = no apps)
 ANDROID_PACKAGE_NAME=com.meeplehearth.app   # optional: /.well-known/assetlinks.json
 ANDROID_SHA256_FINGERPRINTS=AA:BB:...       # optional, comma-separated signing cert fingerprints

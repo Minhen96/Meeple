@@ -102,6 +102,16 @@ public class PostQueryRepository {
     }
 
     /** Permanently removes every post the user authored (images, tags, likes, comments cascade). */
+    /**
+     * Takes the user's likes off the like counts (account hard delete, before the user row and
+     * with it the {@code post_likes} rows are deleted); never below zero. Returns the posts updated.
+     */
+    public int releaseLikesOf(UUID userId) {
+        return jdbc.update("UPDATE posts SET like_count = GREATEST(like_count - 1, 0)"
+                        + " WHERE id IN (SELECT pl.post_id FROM post_likes pl WHERE pl.user_id = :userId)",
+                new MapSqlParameterSource("userId", userId));
+    }
+
     public int hardDeletePostsOf(UUID userId) {
         return jdbc.update("DELETE FROM posts WHERE author_id = :userId", new MapSqlParameterSource("userId", userId));
     }

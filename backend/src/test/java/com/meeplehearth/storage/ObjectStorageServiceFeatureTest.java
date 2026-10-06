@@ -3,6 +3,9 @@ package com.meeplehearth.storage;
 import com.meeplehearth.config.AppProperties;
 import com.meeplehearth.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -89,10 +92,60 @@ class ObjectStorageServiceFeatureTest {
 
     @Test
     void presignsDownloadsForAtMostSevenDays() {
-        String url = storage.presignGet("exports/u/e.zip", Duration.ofDays(30));
+        String url = storage.presignPrivateGet("exports/u/e.zip", Duration.ofDays(30));
         assertThat(url).startsWith("https://").contains("exports/u/e.zip").contains("X-Amz-Expires=604800");
-        storage.put("exports/u/e.zip", new byte[]{1, 2}, "application/zip");
-        verify(s3).putObject(any(software.amazon.awssdk.services.s3.model.PutObjectRequest.class),
-                any(software.amazon.awssdk.core.sync.RequestBody.class));
+    }
+
+    @Test
+    void privateObjectsFallBackToAPrefixInTheMediaBucketWithoutAPrivateBucket() {
+        assertThat(storage.hasPrivateBucket()).isFalse();
+        storage.warnIfPrivateBucketMissing();
+
+        storage.putPrivate("exports/u/e.zip", new byte[]{1, 2}, "application/zip");
+        ArgumentCaptor<PutObjectRequest> put = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(s3).putObject(put.capture(), any(RequestBody.class));
+        assertThat(put.getValue().bucket()).isEqualTo("bucket");
+        assertThat(put.getValue().key()).isEqualTo("private/exports/u/e.zip");
+        assertThat(storage.presignPrivateGet("exports/u/e.zip", Duration.ofDays(1)))
+                .contains("bucket").contains("/private/exports/u/e.zip").doesNotContain("cdn.example");
+
+        storage.deletePrivateKeys(List.of("exports/u/e.zip"));
+        ArgumentCaptor<DeleteObjectsRequest> delete = ArgumentCaptor.forClass(DeleteObjectsRequest.class);
+        verify(s3).deleteObjects(delete.capture());
+        assertThat(delete.getValue().bucket()).isEqualTo("bucket");
+        assertThat(delete.getValue().delete().objects().get(0).key()).isEqualTo("private/exports/u/e.zip");
+    }
+
+    @Test
+    void privateObjectsGoToThePrivateBucketWhenConfigured() {
+        props.getR2().setPrivateBucket(" exports-private ");
+        assertThat(storage.hasPrivateBucket()).isTrue();
+        storage.warnIfPrivateBucketMissing();
+
+        storage.putPrivate("exports/u/e.zip", new byte[]{1}, "application/zip");
+        ArgumentCaptor<PutObjectRequest> put = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(s3).putObject(put.capture(), any(RequestBody.class));
+        assertThat(put.getValue().bucket()).isEqualTo("exports-private");
+        assertThat(put.getValue().key()).isEqualTo("exports/u/e.zip");
+        assertThat(storage.presignPrivateGet("exports/u/e.zip", Duration.ofDays(1)))
+                .contains("exports-private").contains("/exports/u/e.zip");
+
+        when(s3.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(ListObjectsV2Response.builder()
+                .contents(S3Object.builder().key("exports/u/e.zip").build()).isTruncated(false).build());
+        assertThat(storage.deletePrivatePrefixQuietly("exports/u/")).isEqualTo(1);
+        ArgumentCaptor<ListObjectsV2Request> list = ArgumentCaptor.forClass(ListObjectsV2Request.class);
+        verify(s3).listObjectsV2(list.capture());
+        assertThat(list.getValue().bucket()).isEqualTo("exports-private");
+        assertThat(list.getValue().prefix()).isEqualTo("exports/u/");
+        assertThat(storage.deletePrivatePrefixQuietly("exports/u")).isZero();
+    }
+
+    @Test
+    void neverBuildsPublicUrlsForPrivateKeys() {
+        assertThat(storage.publicUrl("avatars/u/a.webp")).isEqualTo("https://cdn.example/media/avatars/u/a.webp");
+        assertThatThrownBy(() -> storage.publicUrl("exports/u/e.zip")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> storage.publicUrl("private/exports/u/e.zip"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> storage.publicUrl(null)).isInstanceOf(IllegalArgumentException.class);
     }
 }

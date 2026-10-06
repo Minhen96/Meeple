@@ -1,5 +1,6 @@
 package com.meeplehearth.notification.service;
 
+import com.google.firebase.IncomingHttpResponse;
 import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -42,7 +44,9 @@ import java.util.UUID;
  *   <li>Runs on {@code notificationExecutor} so the request thread never waits on FCM.</li>
  *   <li>Every FCM call goes through the Resilience4j {@code fcm} circuit breaker.</li>
  *   <li>Sends to every registered device of the recipient; tokens FCM reports as
- *       {@code UNREGISTERED}, {@code INVALID_ARGUMENT} or {@code SENDER_ID_MISMATCH} are deleted.</li>
+ *       {@code UNREGISTERED} or {@code SENDER_ID_MISMATCH} are deleted, and so are tokens rejected
+ *       with an {@code INVALID_ARGUMENT} that is about the token itself (see {@link #isStale}).
+ *       Any other error keeps the token.</li>
  *   <li>Sets {@code notifications.is_pushed} once at least one device accepted the message.</li>
  *   <li>A no-op (logged at debug) when {@code FIREBASE_SERVICE_ACCOUNT_JSON} is not set.</li>
  * </ul>
@@ -57,9 +61,9 @@ public class FcmService {
     /** FCM accepts at most 500 messages per sendEach call. */
     static final int MAX_TOKENS_PER_CALL = 500;
 
+    /** Errors that always mean the token is dead or belongs to another sender. */
     private static final Set<MessagingErrorCode> STALE_TOKEN_ERRORS = EnumSet.of(
-            MessagingErrorCode.UNREGISTERED, MessagingErrorCode.INVALID_ARGUMENT,
-            MessagingErrorCode.SENDER_ID_MISMATCH);
+            MessagingErrorCode.UNREGISTERED, MessagingErrorCode.SENDER_ID_MISMATCH);
 
     /** What a push shows and where tapping it leads; a snapshot of the committed notification. */
     public record PushMessage(UUID notificationId, UUID recipientId, String type, String title, String body,
@@ -192,8 +196,31 @@ public class FcmService {
                 .toList();
     }
 
-    private static boolean isStale(FirebaseMessagingException e) {
-        return e != null && e.getMessagingErrorCode() != null && STALE_TOKEN_ERRORS.contains(e.getMessagingErrorCode());
+    /**
+     * Whether FCM's error means the token itself is unusable. INVALID_ARGUMENT is also returned
+     * for a malformed message (payload too big, bad field), which says nothing about the token;
+     * it only counts when the error is about the token: the message names the registration token
+     * ("The registration token is not a valid FCM registration token") or the error details carry
+     * a field violation on {@code message.token}.
+     */
+    static boolean isStale(FirebaseMessagingException e) {
+        if (e == null || e.getMessagingErrorCode() == null) {
+            return false;
+        }
+        if (STALE_TOKEN_ERRORS.contains(e.getMessagingErrorCode())) {
+            return true;
+        }
+        return e.getMessagingErrorCode() == MessagingErrorCode.INVALID_ARGUMENT && isAboutTheToken(e);
+    }
+
+    private static boolean isAboutTheToken(FirebaseMessagingException e) {
+        String message = e.getMessage();
+        if (message != null && message.toLowerCase(Locale.ROOT).contains("registration token")) {
+            return true;
+        }
+        IncomingHttpResponse response = e.getHttpResponse();
+        String content = response == null ? null : response.getContent();
+        return content != null && content.contains("\"message.token\"");
     }
 
     private static String describe(Throwable e) {

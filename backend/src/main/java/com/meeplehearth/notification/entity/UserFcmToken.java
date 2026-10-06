@@ -36,6 +36,10 @@ public class UserFcmToken {
     @Column(length = 20)
     private String platform;
 
+    /** Session (refresh-token family) the device registered from (V62); null when unknown. */
+    @Column(name = "family_id")
+    private UUID familyId;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 }

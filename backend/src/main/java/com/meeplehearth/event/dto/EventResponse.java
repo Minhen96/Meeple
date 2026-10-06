@@ -15,9 +15,11 @@ import java.util.UUID;
  * Event as seen by one viewer (FEATURES section 4.6, GAP_ANALYSIS section 6.1).
  *
  * <ul>
- *   <li>{@code location} is {@code null} for a PUBLIC event the viewer has not joined (and is not
- *       hosting); {@code locationDisplay} is the area/venue shown instead
- *       (ENGINEERING_STANDARDS section 10).</li>
+ *   <li>{@code location} (the full address) is shown to the host and ACCEPTED participants. For
+ *       INVITE_ONLY/FRIENDS events also to INVITED viewers and friends of the host without a
+ *       participant row (ENGINEERING_STANDARDS section 10: "show full location"), but not to
+ *       someone who DECLINED, LEFT or was KICKED. For PUBLIC events it is {@code null} until the
+ *       viewer joins; {@code locationDisplay} is the area/venue shown instead.</li>
  *   <li>{@code participants}: the host sees every participant row with its status; anyone else
  *       sees accepted participants only. Users the viewer blocked, or who blocked the viewer, are
  *       left out. {@code participantCount} is always the full accepted count.</li>
@@ -87,10 +89,17 @@ public record EventResponse(
         );
     }
 
-    /** Full address for INVITE_ONLY/FRIENDS events; for PUBLIC ones only once joined. */
+    /**
+     * Full address: host and ACCEPTED always; for INVITE_ONLY/FRIENDS events also INVITED viewers
+     * and friends without a row, never DECLINED, LEFT or KICKED; for PUBLIC ones only once joined.
+     */
     static boolean canSeeFullLocation(Event event, boolean isHost, String myRsvp) {
-        return event.getVisibility() != Event.Visibility.PUBLIC
-                || isHost
-                || EventParticipant.RsvpStatus.ACCEPTED.name().equals(myRsvp);
+        if (isHost || EventParticipant.RsvpStatus.ACCEPTED.name().equals(myRsvp)) {
+            return true;
+        }
+        if (event.getVisibility() == Event.Visibility.PUBLIC) {
+            return false;
+        }
+        return myRsvp == null || EventParticipant.RsvpStatus.INVITED.name().equals(myRsvp);
     }
 }

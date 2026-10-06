@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -65,10 +66,45 @@ class RateLimitAndWellKnownFeatureTest extends AccountFeatureTestBase {
     @Test
     void unauthenticatedClientsAreLimitedPerIp() throws Exception {
         String ip = freshIp();
-        MvcResult rejected = firstRejected(9, () -> mvc.perform(get("/api/v1/auth/check-username")
-                .param("username", "nobody_here").with(from(ip))).andReturn());
+        MvcResult rejected = firstRejected(9, () -> mvc.perform(get("/api/v1/games")
+                .with(from(ip))).andReturn());
         assertThat(json(rejected).get("code").asText()).isEqualTo("RATE_LIMIT_EXCEEDED");
         assertThat(Integer.parseInt(rejected.getResponse().getHeader("Retry-After"))).isBetween(1, 60);
+    }
+
+    @Test
+    void percentEncodedLoginPathCountsAgainstTheLoginBucket() throws Exception {
+        AppProperties.RateLimit limits = appProperties.getRateLimit();
+        long savedLogin = limits.getLoginPerMinute();
+        limits.setLoginPerMinute(2);
+        // Only the login bucket can reject here: the general per-IP one is out of reach
+        limits.setPerIpPerMinute(1000);
+        try {
+            String ip = freshIp();
+            String body = toJson(java.util.Map.of("emailOrUsername", "nobody_here", "password", "wrong-password"));
+            int limited = 0;
+            for (int i = 0; i < 6; i++) {
+                MvcResult result = mvc.perform(post(java.net.URI.create("/api/v1/auth/l%6Fgin")).with(from(ip))
+                                .contentType("application/json").content(body))
+                        .andReturn();
+                if (result.getResponse().getStatus() == 429
+                        && result.getResponse().getContentAsString().contains("RATE_LIMIT_EXCEEDED")) {
+                    limited++;
+                }
+            }
+            assertThat(limited).isGreaterThanOrEqualTo(2);
+        } finally {
+            limits.setLoginPerMinute(savedLogin);
+        }
+    }
+
+    @Test
+    void availabilityChecksAreNotLimitedByTheGeneralIpBucket() throws Exception {
+        String ip = freshIp();
+        for (int i = 0; i < 6; i++) {
+            mvc.perform(get("/api/v1/auth/check-username").param("username", "nobody_here").with(from(ip)))
+                    .andExpect(status().isOk());
+        }
     }
 
     @Test

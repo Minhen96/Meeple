@@ -127,7 +127,7 @@ public class AccountHardDeleteJob {
         }
         storage.deletePrefixQuietly(StorageKeys.AVATARS_PREFIX + userId + "/");
         storage.deletePrefixQuietly(StorageKeys.userUploadPrefix(userId));
-        storage.deletePrefixQuietly(DataExportService.EXPORT_PREFIX + userId + "/");
+        storage.deletePrivatePrefixQuietly(DataExportService.EXPORT_PREFIX + userId + "/");
         return true;
     }
 }

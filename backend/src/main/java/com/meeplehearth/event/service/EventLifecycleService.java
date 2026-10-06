@@ -146,7 +146,35 @@ public class EventLifecycleService {
     @EventListener
     @Transactional
     public void onUserHardDeleted(UserHardDeletedEvent event) {
-        UUID hostId = event.userId();
+        cancelHostedEvents(event.userId());
+        leaveJoinedEvents(event.userId());
+    }
+
+    /**
+     * The deleted user leaves every live event they had joined (FEATURES_COMPLETE section 1.6):
+     * their ACCEPTED rows become LEFT and each event's OPEN/FULL status is recomputed (a FULL
+     * event re-opens) and broadcast, so the counts stay right once the user row and its
+     * participant rows are deleted. Runs in the hard-delete transaction, before the user delete.
+     */
+    private void leaveJoinedEvents(UUID userId) {
+        List<UUID> joined = participantRepository.findLiveEventIdsJoinedBy(userId);
+        if (joined.isEmpty()) {
+            return;
+        }
+        participantRepository.markLeft(userId, joined);
+        for (UUID eventId : joined) {
+            eventRepository.findActiveByIdForUpdate(eventId).ifPresent(live -> {
+                if (EventService.refreshCapacityStatus(live, participantRepository.countAcceptedByEventId(eventId))) {
+                    eventRepository.save(live);
+                }
+            });
+            eventPublisher.publishEvent(new EventChanged(eventId));
+        }
+        eventRepository.flush();
+        log.info("A permanently deleted account left {} live events", joined.size());
+    }
+
+    private void cancelHostedEvents(UUID hostId) {
         Instant now = Instant.now();
         List<UUID> eventIds = eventRepository.findUpcomingLiveIdsHostedBy(hostId, now);
         if (eventIds.isEmpty()) {

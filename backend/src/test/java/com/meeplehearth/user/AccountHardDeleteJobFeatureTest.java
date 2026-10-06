@@ -61,6 +61,9 @@ class AccountHardDeleteJobFeatureTest extends AccountFeatureTestBase {
                 r.delete().objects().size() == 1 && r.delete().objects().get(0).key().equals(avatarKey)));
         verify(s3Client, atLeastOnce()).listObjectsV2(argThat((ListObjectsV2Request r) ->
                 r.prefix().equals("uploads/" + expired + "/")));
+        // Exports live under the private prefix (no private bucket configured in tests)
+        verify(s3Client, atLeastOnce()).listObjectsV2(argThat((ListObjectsV2Request r) ->
+                r.prefix().equals("private/exports/" + expired + "/")));
         verify(s3Client, never()).listObjectsV2(argThat((ListObjectsV2Request r) ->
                 r.prefix().contains(inGrace.toString())));
     }

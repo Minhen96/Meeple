@@ -207,4 +207,46 @@ class HardDeleteAnonymisationFeatureTest extends AccountFeatureTestBase {
         assertThat(item.get("author").get("deleted").asBoolean()).isTrue();
         assertThat(item.get("authorUsername").isNull()).isTrue();
     }
+
+    @Test
+    void deletedParticipantLeavesLiveEventsAndTheirLikesAreReleased() throws Exception {
+        UUID host = user();
+        UUID leaver = user();
+        UUID other = user();
+        UUID full = event(host, "PUBLIC", "FULL", Instant.now().plus(Duration.ofDays(2)));
+        jdbc.update("UPDATE events SET max_participants = 2 WHERE id = ?", full);
+        participant(full, leaver, "ACCEPTED");
+        UUID open = event(host, "FRIENDS", "OPEN", Instant.now().plus(Duration.ofDays(4)));
+        participant(open, leaver, "ACCEPTED");
+        participant(open, other, "ACCEPTED");
+        UUID completed = event(host, "PUBLIC", "COMPLETED", Instant.now().minus(Duration.ofDays(2)));
+        participant(completed, leaver, "ACCEPTED");
+
+        UUID liked = post(host);
+        jdbc.update("INSERT INTO post_likes (post_id, user_id) VALUES (?, ?), (?, ?)", liked, leaver, liked, other);
+        jdbc.update("UPDATE posts SET like_count = 2 WHERE id = ?", liked);
+        UUID drifted = post(other);
+        jdbc.update("INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)", drifted, leaver);
+        UUID untouched = post(other);
+        jdbc.update("UPDATE posts SET like_count = 5 WHERE id = ?", untouched);
+
+        expire(leaver);
+        stubEmptyListings();
+        assertThat(job.purgeExpiredAccounts()).isGreaterThanOrEqualTo(1);
+
+        assertThat(count("SELECT COUNT(*) FROM users WHERE id = ?", leaver)).isZero();
+        assertThat(string("SELECT status FROM events WHERE id = ?", full)).isEqualTo("OPEN");
+        assertThat(string("SELECT status FROM events WHERE id = ?", open)).isEqualTo("OPEN");
+        assertThat(string("SELECT status FROM events WHERE id = ?", completed)).isEqualTo("COMPLETED");
+        assertThat(count("SELECT COUNT(*) FROM event_participants WHERE event_id = ? AND status = 'ACCEPTED'", full))
+                .isEqualTo(1);
+        assertThat(count("SELECT like_count FROM posts WHERE id = ?", liked)).isEqualTo(1);
+        assertThat(count("SELECT like_count FROM posts WHERE id = ?", drifted)).isZero();
+        assertThat(count("SELECT like_count FROM posts WHERE id = ?", untouched)).isEqualTo(5);
+
+        JsonNode detail = json(mvc.perform(get("/api/v1/events/" + full).with(as(other)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        assertThat(detail.get("participantCount").asInt()).isEqualTo(1);
+        assertThat(detail.get("status").asText()).isEqualTo("OPEN");
+    }
 }

@@ -22,20 +22,33 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     /**
      * Visibility predicate for event alias {@code e} and viewer {@code :viewerId}.
      * Visible when the viewer and host have not blocked each other AND one of:
-     * PUBLIC, viewer is host, viewer has a participant row (any status),
-     * or FRIENDS and viewer is an accepted friend of the host.
-     * INVITE_ONLY therefore resolves to host + participants only.
+     * <ul>
+     *   <li>PUBLIC;</li>
+     *   <li>the viewer is the host;</li>
+     *   <li>the viewer is INVITED, ACCEPTED or DECLINED (a LEFT or KICKED row grants nothing);</li>
+     *   <li>FRIENDS, the viewer is an accepted friend of the host and has not LEFT or been KICKED
+     *       from the event.</li>
+     * </ul>
+     * INVITE_ONLY therefore resolves to host + invited/accepted/declined participants. Someone
+     * who left or was removed loses the event, its live topic and its memories unless it is
+     * PUBLIC (or they are invited again).
      */
     String VISIBLE_TO_VIEWER = """
             (e.visibility = 'PUBLIC'
                OR e.host.id = :viewerId
                OR EXISTS (SELECT ep FROM EventParticipant ep
-                          WHERE ep.id.eventId = e.id AND ep.id.userId = :viewerId)
-               OR (e.visibility = 'FRIENDS' AND EXISTS (
+                          WHERE ep.id.eventId = e.id AND ep.id.userId = :viewerId
+                            AND ep.status IN ('INVITED', 'ACCEPTED', 'DECLINED'))
+               OR (e.visibility = 'FRIENDS'
+                   AND EXISTS (
                       SELECT fr FROM FriendRequest fr
                       WHERE fr.status = 'ACCEPTED'
                         AND ((fr.sender.id = :viewerId AND fr.receiver.id = e.host.id)
-                          OR (fr.receiver.id = :viewerId AND fr.sender.id = e.host.id)))))
+                          OR (fr.receiver.id = :viewerId AND fr.sender.id = e.host.id)))
+                   AND NOT EXISTS (
+                      SELECT gone FROM EventParticipant gone
+                      WHERE gone.id.eventId = e.id AND gone.id.userId = :viewerId
+                        AND gone.status IN ('LEFT', 'KICKED'))))
             AND NOT EXISTS (SELECT bu FROM BlockedUser bu
                             WHERE (bu.id.blockerId = :viewerId AND bu.id.blockedId = e.host.id)
                                OR (bu.id.blockerId = e.host.id AND bu.id.blockedId = :viewerId))

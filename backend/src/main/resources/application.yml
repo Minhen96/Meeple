@@ -77,8 +77,9 @@ app:
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
     per-user-per-minute: 200
-    per-ip-per-minute: 20
+    per-ip-per-minute: 60
     login-per-minute: 10
+    availability-per-minute: 60
   # iOS universal links / Android App Links (/.well-known). Empty: files list no apps.
   deep-links:
     ios-app-id: ${IOS_APP_ID:}

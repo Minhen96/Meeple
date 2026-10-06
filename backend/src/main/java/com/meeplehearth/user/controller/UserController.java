@@ -93,8 +93,11 @@ public class UserController {
         return ResponseEntity.ok(emailChangeService.requestChange(userId(userDetails), request));
     }
 
-    /** GET /api/v1/users/me/export — starts a data export (202); the download link is emailed */
-    @GetMapping("/me/export")
+    /**
+     * POST /api/v1/users/me/export — starts a data export (202); the download link is emailed.
+     * A state-changing request, so not GET (GET answers 405).
+     */
+    @PostMapping("/me/export")
     public ResponseEntity<DataExportResponse> export(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(dataExportService.requestExport(userId(userDetails)));

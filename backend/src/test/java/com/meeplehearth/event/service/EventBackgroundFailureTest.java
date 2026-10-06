@@ -109,7 +109,7 @@ class EventBackgroundFailureTest {
         Event event = new Event();
         event.setId(eventId);
         when(eventRepository.findWithHostAndGameById(eventId)).thenReturn(Optional.of(event));
-        when(participantRepository.findAcceptedWithUsers(eventId)).thenReturn(List.of());
+        when(participantRepository.countAcceptedByEventId(eventId)).thenReturn(1);
         doThrow(new IllegalStateException("broker down")).when(template)
                 .convertAndSend(eq(EventLiveUpdate.destination(eventId)), any(Object.class));
 

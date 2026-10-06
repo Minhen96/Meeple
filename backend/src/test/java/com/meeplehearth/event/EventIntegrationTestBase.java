@@ -76,6 +76,25 @@ abstract class EventIntegrationTestBase extends ApiIntegrationTestBase {
         return out;
     }
 
+    /** The last raw JSON payload broadcast on {@code /topic/events/{eventId}} since the last clear. */
+    protected JsonNode lastLiveUpdateJson(UUID eventId) {
+        String destination = EventLiveUpdate.destination(eventId);
+        JsonNode last = null;
+        for (Message<?> message : brokerMessages) {
+            if (destination.equals(SimpMessageHeaderAccessor.getDestination(message.getHeaders()))) {
+                try {
+                    last = objectMapper.readTree((byte[]) message.getPayload());
+                } catch (java.io.IOException e) {
+                    throw new AssertionError("unreadable live update", e);
+                }
+            }
+        }
+        if (last == null) {
+            throw new AssertionError("no live update for " + eventId);
+        }
+        return last;
+    }
+
     protected static Map<String, Object> eventBody(String title, Instant scheduledAt, String visibility,
                                                    UUID gameId, Integer maxParticipants) {
         Map<String, Object> body = new HashMap<>();

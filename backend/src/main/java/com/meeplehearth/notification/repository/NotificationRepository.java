@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -79,20 +80,31 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     @Query(value = "DELETE FROM notifications WHERE recipient_id = :userId", nativeQuery = true)
     int deleteAllForRecipient(@Param("userId") UUID userId);
 
+    /** Recipients with an unread, visible notification triggered by {@code actorId} (their badge counts it). */
+    @Query(value = "SELECT DISTINCT recipient_id FROM notifications WHERE actor_id = :actorId"
+            + " AND read = false AND deleted_at IS NULL", nativeQuery = true)
+    List<UUID> findUnreadRecipientsByActor(@Param("actorId") UUID actorId);
+
     /** Every notification the user triggered for someone else (account hard delete). */
     @Modifying
     @Query(value = "DELETE FROM notifications WHERE actor_id = :userId", nativeQuery = true)
     int deleteAllByActor(@Param("userId") UUID userId);
 
     /**
-     * Retention: one batch of rows created before {@code createdBefore}, or soft-deleted before
-     * {@code deletedBefore}.
+     * Retention: deletes one batch of rows created before {@code createdBefore}, or soft-deleted
+     * before {@code deletedBefore}. Reports, per deleted row, its recipient when the row was unread
+     * and visible (so it counted in that recipient's badge), else null; the list size is the
+     * number of rows deleted.
      */
-    @Modifying
-    @Query(value = "DELETE FROM notifications WHERE id IN (SELECT id FROM notifications"
-            + " WHERE created_at < :createdBefore OR deleted_at < :deletedBefore LIMIT :batchSize)",
+    @Transactional
+    @Query(value = "WITH doomed AS (SELECT id FROM notifications"
+            + " WHERE created_at < :createdBefore OR deleted_at < :deletedBefore LIMIT :batchSize),"
+            + " removed AS (DELETE FROM notifications n USING doomed WHERE n.id = doomed.id"
+            + " RETURNING n.recipient_id, n.read, n.deleted_at)"
+            + " SELECT CAST(CASE WHEN NOT removed.read AND removed.deleted_at IS NULL"
+            + " THEN removed.recipient_id END AS VARCHAR) FROM removed",
             nativeQuery = true)
-    int deleteExpiredBatch(@Param("createdBefore") Instant createdBefore,
-                           @Param("deletedBefore") Instant deletedBefore,
-                           @Param("batchSize") int batchSize);
+    List<String> deleteExpiredBatchReturningUnreadRecipients(@Param("createdBefore") Instant createdBefore,
+                                                              @Param("deletedBefore") Instant deletedBefore,
+                                                              @Param("batchSize") int batchSize);
 }

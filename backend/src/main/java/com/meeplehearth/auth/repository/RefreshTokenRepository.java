@@ -56,15 +56,30 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
             + "ORDER BY r.lastUsedAt DESC")
     List<RefreshToken> findActiveSessions(@Param("userId") UUID userId, @Param("now") Instant now);
 
-    /** Deletes one session token of a user; returns 0 if it does not exist or belongs to someone else. */
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("DELETE FROM RefreshToken r WHERE r.id = :id AND r.userId = :userId")
-    int deleteByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+    /** Whether the user has a live (unused, unexpired) token in session family {@code familyId}. */
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RefreshToken r"
+            + " WHERE r.userId = :userId AND r.familyId = :familyId AND r.usedAt IS NULL AND r.expiresAt > :now")
+    boolean existsActiveInFamily(@Param("userId") UUID userId, @Param("familyId") UUID familyId,
+                                 @Param("now") Instant now);
 
-    /** Deletes every token of a user except the one with {@code keepHash} (the caller's own session). */
+    /** Deletes every token (live and rotated) of one session family of a user. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("DELETE FROM RefreshToken r WHERE r.userId = :userId AND r.tokenHash <> :keepHash")
-    int deleteByUserIdExceptHash(@Param("userId") UUID userId, @Param("keepHash") String keepHash);
+    @Query("DELETE FROM RefreshToken r WHERE r.userId = :userId AND r.familyId = :familyId")
+    int deleteFamily(@Param("userId") UUID userId, @Param("familyId") UUID familyId);
+
+    /** Live sessions (families) of a user other than {@code keepFamilyId}. */
+    @Query("SELECT COUNT(DISTINCT r.familyId) FROM RefreshToken r WHERE r.userId = :userId"
+            + " AND r.familyId <> :keepFamilyId AND r.usedAt IS NULL AND r.expiresAt > :now")
+    int countOtherActiveFamilies(@Param("userId") UUID userId, @Param("keepFamilyId") UUID keepFamilyId,
+                                 @Param("now") Instant now);
+
+    /**
+     * Deletes every token of a user outside session family {@code keepFamilyId} (the caller's own
+     * session, whose rotated tokens stay for reuse detection).
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM RefreshToken r WHERE r.userId = :userId AND r.familyId <> :keepFamilyId")
+    int deleteByUserIdExceptFamily(@Param("userId") UUID userId, @Param("keepFamilyId") UUID keepFamilyId);
 
     /** Removes expired tokens and rotated tokens older than the reuse-detection window. */
     @Transactional

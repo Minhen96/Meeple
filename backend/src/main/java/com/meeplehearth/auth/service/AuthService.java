@@ -630,6 +630,10 @@ public class AuthService {
         refreshToken.setSessionStartedAt(predecessor != null && predecessor.getSessionStartedAt() != null
                 ? predecessor.getSessionStartedAt()
                 : Instant.now());
+        // The session (family) id survives rotation; a login starts a new family
+        refreshToken.setFamilyId(predecessor != null && predecessor.getFamilyId() != null
+                ? predecessor.getFamilyId()
+                : UUID.randomUUID());
         refreshTokenRepository.save(refreshToken);
         if (predecessor != null) {
             refreshTokenRepository.setReplacedBy(predecessor.getTokenHash(), refreshToken.getId());
@@ -692,6 +696,21 @@ public class AuthService {
     public String currentRefreshTokenHash(HttpServletRequest request) {
         String raw = extractCookie(request, "refresh_token");
         return raw == null || raw.isBlank() ? null : sha256Hex(raw);
+    }
+
+    /**
+     * The caller's own live refresh token: the refresh_token cookie must match an unused,
+     * unexpired token of {@code userId}. Empty for a missing, foreign, rotated or expired cookie.
+     */
+    public Optional<RefreshToken> currentLiveRefreshToken(UUID userId, HttpServletRequest request) {
+        String hash = currentRefreshTokenHash(request);
+        if (hash == null) {
+            return Optional.empty();
+        }
+        Instant now = Instant.now();
+        return refreshTokenRepository.findByTokenHash(hash)
+                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUsedAt() == null && t.getExpiresAt().isAfter(now));
     }
 
     /** Expires both auth cookies (logout, account deletion). */

@@ -76,6 +76,16 @@ public class PostAccountListener {
         }
     }
 
+    /**
+     * Runs inside the hard-delete transaction, before the user row (and its likes, by cascade)
+     * is deleted: the like counts of the posts the user liked drop by one, never below zero.
+     */
+    @EventListener
+    public void releaseLikesOnUserHardDeleted(UserHardDeletedEvent event) {
+        int posts = postQueryRepository.releaseLikesOf(event.userId());
+        log.info("Released likes of user {} on {} posts", event.userId(), posts);
+    }
+
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onUserHardDeleted(UserHardDeletedEvent event) {
