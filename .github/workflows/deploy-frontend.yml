@@ -1,0 +1,130 @@
+name: Deploy Frontend
+
+# Deploys the SvelteKit app (adapter-cloudflare) to Cloudflare Pages after CI passes:
+#   - push to main    → production deployment (branch "main")
+#   - push to develop → preview deployment on the "develop" branch alias (staging)
+#
+# Required secrets: CLOUDFLARE_API_TOKEN (Pages:Edit), CLOUDFLARE_ACCOUNT_ID
+# Required variable: CLOUDFLARE_PAGES_PROJECT (the Pages project name)
+# Build-time variables (repository or environment "production"/"staging" variables): VITE_API_URL,
+# VITE_GOOGLE_CLIENT_ID, VITE_SENTRY_DSN, VITE_SENTRY_ENVIRONMENT, VITE_POSTHOG_KEY,
+# VITE_POSTHOG_HOST, VITE_FIREBASE_*, VITE_TERMS_URL, VITE_PRIVACY_URL, VITE_FEEDBACK_EMAIL.
+# Runtime server variables (e.g. COOKIE_DOMAIN) are set in the Cloudflare Pages dashboard.
+#
+# If the Pages project is instead connected to this repository through Cloudflare's Git
+# integration, leave CLOUDFLARE_PAGES_PROJECT unset so this workflow is a no-op (otherwise
+# every commit would be deployed twice).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    environment: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && 'production' || 'staging' }}
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check deploy configuration
+        id: cfg
+        working-directory: .
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ] || [ -z "$CF_PROJECT" ]; then
+            echo "::warning::Cloudflare Pages deploy is not configured (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_PAGES_PROJECT); skipping."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.enabled == 'true'
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - uses: pnpm/action-setup@v4
+        if: steps.cfg.outputs.enabled == 'true'
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.enabled == 'true'
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install
+        if: steps.cfg.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.cfg.outputs.enabled == 'true'
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          VITE_SENTRY_ENVIRONMENT: ${{ vars.VITE_SENTRY_ENVIRONMENT }}
+          VITE_POSTHOG_KEY: ${{ vars.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_VAPID_KEY: ${{ vars.VITE_FIREBASE_VAPID_KEY }}
+          VITE_TERMS_URL: ${{ vars.VITE_TERMS_URL }}
+          VITE_PRIVACY_URL: ${{ vars.VITE_PRIVACY_URL }}
+          VITE_FEEDBACK_EMAIL: ${{ vars.VITE_FEEDBACK_EMAIL }}
+        run: |
+          if [ -z "$VITE_API_URL" ]; then
+            echo "::error::VITE_API_URL is not set for this environment; the app would call localhost."
+            exit 1
+          fi
+          pnpm run build
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.cfg.outputs.enabled == 'true'
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          pnpm exec wrangler pages deploy .svelte-kit/cloudflare \
+            --project-name "$CF_PROJECT" \
+            --branch "$DEPLOY_BRANCH" \
+            --commit-hash "$DEPLOY_SHA" \
+            --commit-dirty=true | tee deploy.log
+          url=$(grep -oE 'https://[^ ]+\.pages\.dev' deploy.log | tail -1 || true)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        if: steps.cfg.outputs.enabled == 'true'
+        run: |
+          {
+            echo "### Frontend deployed (${DEPLOY_BRANCH})"
+            echo "- Commit: \`${DEPLOY_SHA}\`"
+            echo "- URL: ${{ steps.deploy.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,164 @@
+name: Build Mobile
+
+# Builds release artifacts of the Flutter app after CI passes for a push to main (or by hand).
+# Artifacts are attached to the run; store upload (Play Console / TestFlight) is not automated.
+#
+# Android release signing (optional; without it the APK is debug-signed and NOT store-uploadable):
+#   secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# --dart-define values (repository or "production" environment variables, all optional):
+#   MOBILE_API_BASE_URL, MOBILE_WEB_ORIGIN, GOOGLE_SERVER_CLIENT_ID, GOOGLE_IOS_CLIENT_ID,
+#   FIREBASE_API_KEY, FIREBASE_PROJECT_ID, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_ANDROID_APP_ID,
+#   FIREBASE_IOS_APP_ID, FIREBASE_STORAGE_BUCKET, POSTHOG_API_KEY, POSTHOG_HOST, MOBILE_SENTRY_DSN
+# iOS: set variable ENABLE_IOS_BUILD=true to also run an unsigned iOS build on macOS (compile check).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-mobile-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.35.7'
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    environment: production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    env:
+      BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_SHA }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Write dart-define file
+        env:
+          API_BASE_URL: ${{ vars.MOBILE_API_BASE_URL }}
+          WEB_ORIGIN: ${{ vars.MOBILE_WEB_ORIGIN }}
+          GOOGLE_SERVER_CLIENT_ID: ${{ vars.GOOGLE_SERVER_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.GOOGLE_IOS_CLIENT_ID }}
+          FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          POSTHOG_API_KEY: ${{ vars.POSTHOG_API_KEY }}
+          POSTHOG_HOST: ${{ vars.POSTHOG_HOST }}
+          SENTRY_DSN: ${{ vars.MOBILE_SENTRY_DSN }}
+        run: |
+          # Only non-empty values are passed; every define is optional in the app
+          python3 - <<'PY'
+          import json, os
+          keys = ["API_BASE_URL", "WEB_ORIGIN", "GOOGLE_SERVER_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID",
+                  "FIREBASE_API_KEY", "FIREBASE_PROJECT_ID", "FIREBASE_MESSAGING_SENDER_ID",
+                  "FIREBASE_ANDROID_APP_ID", "FIREBASE_IOS_APP_ID", "FIREBASE_STORAGE_BUCKET",
+                  "POSTHOG_API_KEY", "POSTHOG_HOST", "SENTRY_DSN"]
+          defines = {"ENVIRONMENT": "production"}
+          defines.update({k: os.environ[k] for k in keys if os.environ.get(k)})
+          with open("dart_defines.json", "w") as f:
+              json.dump(defines, f)
+          PY
+
+      - name: Configure release signing
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::No Android release keystore configured; building a debug-signed APK only."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build APK
+        run: >-
+          flutter build apk --release
+          --dart-define-from-file=dart_defines.json
+          --build-number=${{ github.run_number }}
+
+      - name: Build App Bundle
+        if: steps.signing.outputs.signed == 'true'
+        run: >-
+          flutter build appbundle --release
+          --dart-define-from-file=dart_defines.json
+          --build-number=${{ github.run_number }}
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/release.jks dart_defines.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ steps.signing.outputs.signed == 'true' && 'release' || 'debug-signed' }}-${{ github.run_number }}
+          path: |
+            mobile/build/app/outputs/flutter-apk/app-release.apk
+            mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+  ios:
+    runs-on: macos-latest
+    if: >-
+      vars.ENABLE_IOS_BUILD == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Unsigned build: verifies the iOS project compiles. Signing/TestFlight need Apple credentials.
+      - name: Build iOS (no codesign)
+        run: >-
+          flutter build ios --release --no-codesign
+          --dart-define=ENVIRONMENT=production
+          --build-number=${{ github.run_number }}

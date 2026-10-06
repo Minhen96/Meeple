@@ -1,5 +1,15 @@
 name: Deploy Backend
 
+# Production backend deploy: runs only after CI has passed for a push to main (or by hand).
+# Each deploy pushes an immutable image tagged with the commit SHA (plus `latest`) and points
+# Elastic Beanstalk at the SHA tag, so any previous version can be redeployed from the EB console.
+#
+# Required secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ACCOUNT_ID
+# Optional variable: BACKEND_HEALTH_URL (e.g. https://api.example.com/actuator/health) for a
+# post-deploy smoke check.
+# The EB environment itself must set SPRING_PROFILES_ACTIVE=prod and the variables in
+# docs/TECH_STACK_ADDITIONS.md §24; the app refuses to start without a profile.
+
 on:
   workflow_run:
     workflows: [CI]
@@ -7,41 +17,123 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Never run two production deploys at once; a newer one waits for the current one to finish
+concurrency:
+  group: deploy-backend-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: meeple-backend-prod
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Only deploy commits on main whose CI run passed
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
-
+    environment: production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
+      - name: Check deploy credentials
+        id: creds
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_ACCOUNT_ID" ]; then
+            echo "::warning::AWS secrets are not configured; skipping backend deploy."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.creds.outputs.enabled == 'true'
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Configure AWS credentials
+        if: steps.creds.outputs.enabled == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: steps.creds.outputs.enabled == 'true'
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push Docker image
+      - name: Build and push image
+        if: steps.creds.outputs.enabled == 'true'
+        id: image
         working-directory: backend
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com/meeple-backend-prod:latest
-          docker build -t $IMAGE_URI .
-          docker push $IMAGE_URI
+          REPO_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
+          docker build -t "${REPO_URI}:${DEPLOY_SHA}" -t "${REPO_URI}:latest" .
+          docker push "${REPO_URI}:${DEPLOY_SHA}"
+          docker push "${REPO_URI}:latest"
+          echo "uri=${REPO_URI}:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
+
+      # Point this application version at the immutable SHA tag instead of `latest`
+      - name: Write Dockerrun for this version
+        if: steps.creds.outputs.enabled == 'true'
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          path = 'backend/Dockerrun.aws.json'
+          with open(path) as f:
+              doc = json.load(f)
+          doc['Image']['Name'] = os.environ['IMAGE_URI']
+          with open(path, 'w') as f:
+              json.dump(doc, f, indent=2)
+          PY
+          cat backend/Dockerrun.aws.json
 
       - name: Deploy to Elastic Beanstalk
+        if: steps.creds.outputs.enabled == 'true'
         uses: einaregilsson/beanstalk-deploy@v21
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: Meeple-backend
           environment_name: Meeple-backend-env-v2
-          region: ap-southeast-1
-          version_label: ${{ github.event.workflow_run.head_sha || github.sha }}
+          region: ${{ env.AWS_REGION }}
+          version_label: ${{ env.DEPLOY_SHA }}
           deployment_package: backend/Dockerrun.aws.json
+          use_existing_version_if_available: true
+          wait_for_environment_recovery: 300
+
+      - name: Smoke check
+        if: steps.creds.outputs.enabled == 'true' && vars.BACKEND_HEALTH_URL != ''
+        env:
+          HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS --max-time 10 "$HEALTH_URL" | grep -q '"status":"UP"'; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+            echo "Waiting for backend health ($i/20)..."
+            sleep 15
+          done
+          echo "::error::Backend did not report UP at $HEALTH_URL"
+          exit 1
+
+      - name: Summary
+        if: steps.creds.outputs.enabled == 'true'
+        run: |
+          {
+            echo "### Backend deployed"
+            echo "- Commit: \`${DEPLOY_SHA}\`"
+            echo "- Image: \`${{ steps.image.outputs.uri }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
