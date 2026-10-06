@@ -368,7 +368,8 @@ class EventParticipationApiIntegrationTest extends EventIntegrationTestBase {
         EventLiveUpdate update = lastLiveUpdate(eventId);
         assertThat(update.participantCount()).isEqualTo(2);
         assertThat(update.status()).isEqualTo("FULL");
-        assertThat(update.participants()).extracting(p -> p.id()).containsExactlyInAnyOrder(host, a);
+        // No roster in the broadcast (blocks are per viewer): clients refetch the event
+        assertThat(lastLiveUpdateJson(eventId).has("participants")).isFalse();
 
         mvc.perform(post("/api/v1/events/{id}/rsvp", eventId).with(as(b)).param("status", "ACCEPTED"))
                 .andExpect(status().isConflict())

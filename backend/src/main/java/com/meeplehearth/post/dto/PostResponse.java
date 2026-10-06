@@ -5,6 +5,7 @@ import com.meeplehearth.post.entity.Post;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public record PostResponse(
@@ -32,11 +33,19 @@ public record PostResponse(
      * Without the viewer's bookmark state ({@code isBookmarked=false}). Kept for callers outside
      * the posts package that only know the like state; prefer {@code PostService.loadVisible}.
      */
-    public static PostResponse from(Post post, boolean likedByMe) {
-        return from(post, likedByMe, false);
+    public static PostResponse from(Post post, boolean likedByMe, Set<UUID> hiddenUsers) {
+        return from(post, likedByMe, false, hiddenUsers);
     }
 
     public static PostResponse from(Post post, boolean likedByMe, boolean bookmarked) {
+        return from(post, likedByMe, bookmarked, Set.of());
+    }
+
+    /**
+     * @param hiddenUsers users blocked by or blocking the viewer (either way); they are left out
+     *                    of {@code taggedUsers}, like deleted accounts
+     */
+    public static PostResponse from(Post post, boolean likedByMe, boolean bookmarked, Set<UUID> hiddenUsers) {
         AuthorInfo author = new AuthorInfo(
                 post.getAuthor().getId(),
                 post.getAuthor().getUsername(),
@@ -55,6 +64,7 @@ public record PostResponse(
 
         List<TaggedUser> taggedUsers = post.getTags().stream()
                 .filter(tag -> tag.getUser().getDeletedAt() == null)
+                .filter(tag -> !hiddenUsers.contains(tag.getUser().getId()))
                 .map(tag -> new TaggedUser(
                         tag.getUser().getId(),
                         tag.getUser().getUsername(),
