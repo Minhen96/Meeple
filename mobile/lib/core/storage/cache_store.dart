@@ -5,6 +5,7 @@ import 'package:isar/isar.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/storage/cache_entry.dart';
 import 'package:meeple_hearth/core/storage/isar_service.dart';
+import 'package:meeple_hearth/core/storage/secure_storage.dart';
 import 'package:meeple_hearth/core/utils/app_logger.dart';
 
 /// A JSON value read from the offline cache.
@@ -56,9 +57,14 @@ abstract final class CacheTtl {
   static const userProfile = Duration(hours: 1);
 }
 
+/// The offline cache, scoped to the signed-in account (see
+/// [UserScopedCacheStore]).
 final cacheStoreProvider = Provider<CacheStore>((ref) {
   final isar = IsarService.instance.isarOrNull;
-  return isar == null ? MemoryCacheStore() : IsarCacheStore(isar);
+  return UserScopedCacheStore(
+    isar == null ? MemoryCacheStore() : IsarCacheStore(isar),
+    userId: ref.read(secureStorageProvider).getUserId,
+  );
 });
 
 /// Network-first read that falls back to the cache when offline.
@@ -75,17 +81,21 @@ Future<CachedResult<T>> readThrough<T>({
   required Object? Function(T value) encode,
   required T Function(Object? json) decode,
 }) async {
+  // Bind to the account signed in now, so a response landing after a
+  // sign-out/sign-in is never filed (or read) under the next account.
+  final store =
+      cache is UserScopedCacheStore ? await cache.forCurrentUser() : cache;
   try {
     final value = await fetch();
     try {
-      await cache.write(key, encode(value));
+      await store.write(key, encode(value));
     } catch (e) {
       AppLogger.warning('Cache write failed for $key', error: e);
     }
     return CachedResult(value);
   } on ApiException catch (e, st) {
     if (e is! NetworkException && e is! TimeoutException) rethrow;
-    final cached = await cache.read(key);
+    final cached = await store.read(key);
     if (cached == null || cached.isOlderThan(maxAge)) rethrow;
     try {
       return CachedResult(decode(cached.data), cachedAt: cached.cachedAt);
@@ -94,6 +104,77 @@ Future<CachedResult<T>> readThrough<T>({
       Error.throwWithStackTrace(e, st);
     }
   }
+}
+
+/// Prefixes every key with the signed-in user's id, so one account never
+/// reads another's offline data even if the cache was not cleared (e.g. the
+/// app was killed during logout). Signed out, reads miss and writes are
+/// dropped. [clear] wipes every account's entries.
+final class UserScopedCacheStore implements CacheStore {
+  UserScopedCacheStore(this._base, {required Future<String?> Function() userId})
+      : _userId = userId;
+
+  final CacheStore _base;
+  final Future<String?> Function() _userId;
+
+  /// A store bound to the account signed in at the time of the call.
+  Future<CacheStore> forCurrentUser() async {
+    final userId = await _userId();
+    return userId == null
+        ? const _SignedOutCacheStore()
+        : _PrefixedCacheStore(_base, 'u:$userId|');
+  }
+
+  @override
+  Future<CachedValue?> read(String key) async =>
+      (await forCurrentUser()).read(key);
+
+  @override
+  Future<void> write(String key, Object? json) async =>
+      (await forCurrentUser()).write(key, json);
+
+  @override
+  Future<void> remove(String key) async =>
+      (await forCurrentUser()).remove(key);
+
+  @override
+  Future<void> clear() => _base.clear();
+}
+
+final class _PrefixedCacheStore implements CacheStore {
+  const _PrefixedCacheStore(this._base, this._prefix);
+
+  final CacheStore _base;
+  final String _prefix;
+
+  @override
+  Future<CachedValue?> read(String key) => _base.read('$_prefix$key');
+
+  @override
+  Future<void> write(String key, Object? json) =>
+      _base.write('$_prefix$key', json);
+
+  @override
+  Future<void> remove(String key) => _base.remove('$_prefix$key');
+
+  @override
+  Future<void> clear() => _base.clear();
+}
+
+final class _SignedOutCacheStore implements CacheStore {
+  const _SignedOutCacheStore();
+
+  @override
+  Future<CachedValue?> read(String key) async => null;
+
+  @override
+  Future<void> write(String key, Object? json) async {}
+
+  @override
+  Future<void> remove(String key) async {}
+
+  @override
+  Future<void> clear() async {}
 }
 
 /// In-memory store used when Isar is unavailable (and in tests).

@@ -1,4 +1,5 @@
 import 'package:meeple_hearth/core/storage/cache_store.dart';
+import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/home/data/feed_repository.dart';
 import 'package:meeple_hearth/features/home/domain/feed_item_model.dart';
 import 'package:meeple_hearth/features/posts/domain/post_model.dart';
@@ -19,6 +20,8 @@ class FeedNotifier extends _$FeedNotifier {
 
   @override
   Future<PagedState<FeedItem>> build() {
+    // Another account signed in (or out): start over with its feed.
+    ref.watch(authUserIdProvider);
     listenToPostChanges(ref, (change) {
       switch (change) {
         case PostUpdated(:final post):

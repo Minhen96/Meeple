@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:meeple_hearth/core/analytics/analytics_service.dart';
 import 'package:meeple_hearth/core/network/auth_session.dart';
@@ -37,6 +39,16 @@ final class LogoutHooks {
 @Riverpod(keepAlive: true)
 LogoutHooks logoutHooks(Ref ref) => LogoutHooks();
 
+/// The signed-in user's id, or null when signed out (or still restoring).
+///
+/// Long-lived (`keepAlive`) providers holding user-scoped data watch this so
+/// they rebuild — dropping the previous account's data — whenever the
+/// account changes (logout, session expiry, sign-in as someone else). Profile
+/// edits keep the id and therefore do not rebuild them.
+@Riverpod(keepAlive: true)
+String? authUserId(Ref ref) =>
+    ref.watch(authNotifierProvider.select((s) => s.valueOrNull?.id));
+
 @Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
   @override
@@ -46,7 +58,12 @@ class AuthNotifier extends _$AuthNotifier {
     final sub = ref
         .read(authSessionManagerProvider)
         .sessionExpired
-        .listen((_) => state = const AsyncValue.data(null));
+        .listen((_) {
+      state = const AsyncValue.data(null);
+      // Same local cleanup as an explicit logout: the next account to sign
+      // in on this device must not see this one's cached data.
+      unawaited(_clearLocalData());
+    });
     ref.onDispose(sub.cancel);
 
     final user = await ref.read(authRepositoryProvider).currentUser();

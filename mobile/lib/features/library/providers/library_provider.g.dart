@@ -563,7 +563,7 @@ class _GamePlaysProviderElement
 }
 
 String _$collectionNotifierHash() =>
-    r'cb6e2493053dbb8a52bf58b2528c17e05dae3ab6';
+    r'6c6472d7a5711bd59426cff8dab76ba4146f6639';
 
 /// `GET /users/me/games?filter=all`, cached for 24 h (MOBILE_FLUTTER §6).
 /// Tabs are derived client-side from the multi-boolean flags.
@@ -901,7 +901,7 @@ class _GameSessionsProviderElement
   String get gameId => (origin as GameSessionsProvider).gameId;
 }
 
-String _$howToPlayNotifierHash() => r'4ac0603f4152341cc41ab1f9a2a46ccc773f0963';
+String _$howToPlayNotifierHash() => r'b66ba13bf425a710a970cd9be6d0d3cd709c9646';
 
 abstract class _$HowToPlayNotifier
     extends BuildlessAutoDisposeAsyncNotifier<HowToPlay> {
@@ -914,20 +914,32 @@ abstract class _$HowToPlayNotifier
 
 /// How-to-Play guide; polls every 3 s while it is being generated.
 ///
+/// Transient poll failures keep the last guide and retry with backoff; only a
+/// 401/403/404 ends polling with an error.
+///
 /// Copied from [HowToPlayNotifier].
 @ProviderFor(HowToPlayNotifier)
 const howToPlayNotifierProvider = HowToPlayNotifierFamily();
 
 /// How-to-Play guide; polls every 3 s while it is being generated.
 ///
+/// Transient poll failures keep the last guide and retry with backoff; only a
+/// 401/403/404 ends polling with an error.
+///
 /// Copied from [HowToPlayNotifier].
 class HowToPlayNotifierFamily extends Family<AsyncValue<HowToPlay>> {
   /// How-to-Play guide; polls every 3 s while it is being generated.
+  ///
+  /// Transient poll failures keep the last guide and retry with backoff; only a
+  /// 401/403/404 ends polling with an error.
   ///
   /// Copied from [HowToPlayNotifier].
   const HowToPlayNotifierFamily();
 
   /// How-to-Play guide; polls every 3 s while it is being generated.
+  ///
+  /// Transient poll failures keep the last guide and retry with backoff; only a
+  /// 401/403/404 ends polling with an error.
   ///
   /// Copied from [HowToPlayNotifier].
   HowToPlayNotifierProvider call(
@@ -964,10 +976,16 @@ class HowToPlayNotifierFamily extends Family<AsyncValue<HowToPlay>> {
 
 /// How-to-Play guide; polls every 3 s while it is being generated.
 ///
+/// Transient poll failures keep the last guide and retry with backoff; only a
+/// 401/403/404 ends polling with an error.
+///
 /// Copied from [HowToPlayNotifier].
 class HowToPlayNotifierProvider
     extends AutoDisposeAsyncNotifierProviderImpl<HowToPlayNotifier, HowToPlay> {
   /// How-to-Play guide; polls every 3 s while it is being generated.
+  ///
+  /// Transient poll failures keep the last guide and retry with backoff; only a
+  /// 401/403/404 ends polling with an error.
   ///
   /// Copied from [HowToPlayNotifier].
   HowToPlayNotifierProvider(
@@ -1059,9 +1077,13 @@ class _HowToPlayNotifierProviderElement
   String get gameId => (origin as HowToPlayNotifierProvider).gameId;
 }
 
-String _$bggImportHash() => r'96c6e094f03771fab2f9f6641a6aaee7c7b1dc2b';
+String _$bggImportHash() => r'0894bb7bf547b6fca235c8f247bee9c4665607c3';
 
 /// BGG collection import with 2 s progress polling (SCREENS §3.4).
+///
+/// Polling stops on a terminal status (`done`/`failed`/`idle`) or a
+/// 401/403/404; transient failures keep the last status and retry with
+/// backoff.
 ///
 /// Copied from [BggImport].
 @ProviderFor(BggImport)

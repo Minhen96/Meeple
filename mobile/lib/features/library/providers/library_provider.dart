@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/connectivity_service.dart';
 import 'package:meeple_hearth/core/storage/cache_store.dart';
+import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/library/data/collection_repository.dart';
 import 'package:meeple_hearth/features/library/data/game_repository.dart';
 import 'package:meeple_hearth/features/library/domain/game_model.dart';
@@ -58,7 +59,11 @@ final class CollectionState {
 @Riverpod(keepAlive: true)
 class CollectionNotifier extends _$CollectionNotifier {
   @override
-  Future<CollectionState> build() => _load();
+  Future<CollectionState> build() {
+    // Another account signed in (or out): drop the previous collection.
+    ref.watch(authUserIdProvider);
+    return _load();
+  }
 
   Future<CollectionState> _load() async {
     final result = await readThrough<List<UserGame>>(
@@ -253,56 +258,68 @@ class GameSessions extends _$GameSessions {
 }
 
 /// How-to-Play guide; polls every 3 s while it is being generated.
+///
+/// Transient poll failures keep the last guide and retry with backoff; only a
+/// 401/403/404 ends polling with an error.
 @riverpod
 class HowToPlayNotifier extends _$HowToPlayNotifier {
-  Timer? _poll;
+  static const pollInterval = Duration(seconds: 3);
+
+  final _poller = _Poller();
 
   @override
   Future<HowToPlay> build(String gameId) async {
-    ref.onDispose(() => _poll?.cancel());
+    final generation = _poller.attach(ref);
     final guide = await ref.read(gameRepositoryProvider).getHowToPlay(gameId);
-    _schedulePoll(guide);
+    if (_poller.isCurrent(generation)) _schedulePoll(guide);
     return guide;
   }
 
   void _schedulePoll(HowToPlay guide) {
-    _poll?.cancel();
-    if (guide.status != 'generating') return;
-    _poll = Timer(const Duration(seconds: 3), () async {
-      try {
-        final next =
-            await ref.read(gameRepositoryProvider).getHowToPlay(gameId);
+    if (guide.status != 'generating') {
+      _poller.cancel();
+      return;
+    }
+    _poller.schedule(
+      pollInterval,
+      fetch: () => ref.read(gameRepositoryProvider).getHowToPlay(gameId),
+      onData: (HowToPlay next) {
         state = AsyncValue.data(next);
         _schedulePoll(next);
-      } catch (e, st) {
-        state = AsyncValue.error(e, st);
-      }
-    });
+      },
+      onTerminalError: (e, st) => state = AsyncValue.error(e, st),
+    );
   }
 
   Future<void> generate() async {
     ensureOnline(ref);
+    final generation = _poller.generation;
     final guide =
         await ref.read(gameRepositoryProvider).generateHowToPlay(gameId);
+    if (!_poller.isCurrent(generation)) return;
     state = AsyncValue.data(guide);
     _schedulePoll(guide);
   }
 }
 
 /// BGG collection import with 2 s progress polling (SCREENS §3.4).
+///
+/// Polling stops on a terminal status (`done`/`failed`/`idle`) or a
+/// 401/403/404; transient failures keep the last status and retry with
+/// backoff.
 @riverpod
 class BggImport extends _$BggImport {
-  Timer? _poll;
-
   static const pollInterval = Duration(seconds: 2);
+
+  final _poller = _Poller();
 
   @override
   Future<BggImportStatus> build() async {
-    ref.onDispose(() => _poll?.cancel());
+    final generation = _poller.attach(ref);
     try {
       final status =
           await ref.read(collectionRepositoryProvider).getBggImportStatus();
-      if (status.isRunning) _schedulePoll();
+      if (status.isRunning && _poller.isCurrent(generation)) _schedulePoll();
       return status;
     } catch (_) {
       return const BggImportStatus();
@@ -311,11 +328,13 @@ class BggImport extends _$BggImport {
 
   Future<void> start(String bggUsername) async {
     ensureOnline(ref);
+    final generation = _poller.generation;
     state = const AsyncValue.data(BggImportStatus(status: 'running'));
     try {
       await ref.read(collectionRepositoryProvider).startBggImport(bggUsername);
-      _schedulePoll();
+      if (_poller.isCurrent(generation)) _schedulePoll();
     } on ConflictException catch (e, st) {
+      if (!_poller.isCurrent(generation)) return;
       // 409 BGG_IMPORT_IN_PROGRESS: an import is already running — follow it.
       if (e.code == 'BGG_IMPORT_IN_PROGRESS') {
         _schedulePoll();
@@ -323,25 +342,103 @@ class BggImport extends _$BggImport {
         state = AsyncValue.error(e, st);
       }
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (_poller.isCurrent(generation)) state = AsyncValue.error(e, st);
     }
   }
 
-  void _schedulePoll() {
-    _poll?.cancel();
-    _poll = Timer(pollInterval, () async {
+  void _schedulePoll() => _poller.schedule(
+        pollInterval,
+        fetch: () =>
+            ref.read(collectionRepositoryProvider).getBggImportStatus(),
+        onData: (BggImportStatus status) {
+          state = AsyncValue.data(status);
+          if (status.isRunning) {
+            _schedulePoll();
+          } else if (status.isDone) {
+            unawaited(
+              ref.read(collectionNotifierProvider.notifier).refresh(),
+            );
+          }
+        },
+        onTerminalError: (e, st) => state = AsyncValue.error(e, st),
+      );
+}
+
+/// Single-timer poller bound to a notifier's lifetime.
+///
+/// Every dispose (provider disposed or rebuilt) bumps [generation], so a
+/// response that arrives afterwards is dropped instead of writing the state
+/// of a dead notifier. Failures other than 401/403/404 are treated as
+/// transient: the poll is retried with exponential backoff.
+final class _Poller {
+  static const maxBackoff = Duration(seconds: 30);
+
+  Timer? _timer;
+  int generation = 0;
+  int _failures = 0;
+
+  /// Call at the start of `build`; returns the generation of this build.
+  int attach(Ref ref) {
+    ref.onDispose(() {
+      generation++;
+      cancel();
+    });
+    _failures = 0;
+    return generation;
+  }
+
+  bool isCurrent(int gen) => gen == generation;
+
+  void cancel() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void schedule<T>(
+    Duration interval, {
+    required Future<T> Function() fetch,
+    required void Function(T value) onData,
+    required void Function(Object error, StackTrace stackTrace)
+        onTerminalError,
+  }) {
+    cancel();
+    final gen = generation;
+    _timer = Timer(backoff(interval, _failures), () async {
       try {
-        final status =
-            await ref.read(collectionRepositoryProvider).getBggImportStatus();
-        state = AsyncValue.data(status);
-        if (status.isRunning) {
-          _schedulePoll();
-        } else if (status.isDone) {
-          unawaited(ref.read(collectionNotifierProvider.notifier).refresh());
-        }
+        final value = await fetch();
+        if (!isCurrent(gen)) return;
+        _failures = 0;
+        onData(value);
       } catch (e, st) {
-        state = AsyncValue.error(e, st);
+        if (!isCurrent(gen)) return;
+        if (isTerminalPollError(e)) {
+          onTerminalError(e, st);
+          return;
+        }
+        _failures++;
+        schedule(
+          interval,
+          fetch: fetch,
+          onData: onData,
+          onTerminalError: onTerminalError,
+        );
       }
     });
   }
 }
+
+/// Delay before the next poll after [failures] consecutive failures:
+/// [interval] doubled per failure, capped at 30 s.
+Duration backoff(Duration interval, int failures) {
+  var delay = interval;
+  for (var i = 0; i < failures && delay < _Poller.maxBackoff; i++) {
+    delay *= 2;
+  }
+  return delay > _Poller.maxBackoff ? _Poller.maxBackoff : delay;
+}
+
+/// 401/403/404 end a poll; everything else is retried.
+bool isTerminalPollError(Object error) =>
+    error is UnauthorizedException ||
+    error is ForbiddenException ||
+    error is NotFoundException;

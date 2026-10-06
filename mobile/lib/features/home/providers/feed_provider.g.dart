@@ -6,7 +6,7 @@ part of 'feed_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$feedNotifierHash() => r'ca4c8de79702e31865682f9bb0eedb2ccae4ddf6';
+String _$feedNotifierHash() => r'db96ec1fbd3acc691dc3fcf8d021dd2077660b3e';
 
 /// Home feed: cursor pages of posts and friend activity, newest first.
 ///
