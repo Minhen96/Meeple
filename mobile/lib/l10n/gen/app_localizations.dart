@@ -2852,6 +2852,18 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get postDiscard;
 
+  /// No description provided for @postDiscardChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your edits to this post will be lost.'**
+  String get postDiscardChangesMessage;
+
+  /// No description provided for @postDiscardChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get postDiscardChangesTitle;
+
   /// No description provided for @postDiscardMessage.
   ///
   /// In en, this message translates to:

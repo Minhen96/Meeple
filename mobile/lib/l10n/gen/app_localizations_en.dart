@@ -1616,6 +1616,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postDiscard => 'Discard';
 
   @override
+  String get postDiscardChangesMessage =>
+      'Your edits to this post will be lost.';
+
+  @override
+  String get postDiscardChangesTitle => 'Discard changes?';
+
+  @override
   String get postDiscardMessage => 'Your photos and caption will be lost.';
 
   @override

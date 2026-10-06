@@ -55,6 +55,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   Game? _game;
   List<UserSummary> _tagged = [];
   DateTime _playedAt = DateTime.now();
+
+  /// Edit mode: the post as loaded, to tell unsaved edits apart.
+  _EditSnapshot? _original;
+
+  /// Edit mode: whether the user picked a different play date. Only then is
+  /// `playedAt` sent, so saving never rewrites the stored date (or turns a
+  /// missing one into the creation time).
+  bool _playedAtChanged = false;
   bool _submitting = false;
   bool _loading = false;
   bool _compressing = false;
@@ -86,6 +94,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           _game = post.game;
           _tagged = post.taggedUsers;
           _playedAt = post.playedAt ?? post.createdAt;
+          _original = _EditSnapshot.of(
+            caption: post.caption,
+            location: post.location ?? '',
+            gameId: post.game?.id,
+            tagged: post.taggedUsers,
+          );
         });
       } else if (widget.gameId != null) {
         final game = await ref.read(gameDetailProvider(widget.gameId!).future);
@@ -98,12 +112,24 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     }
   }
 
-  bool get _dirty =>
-      !widget.isEdit &&
-      (_caption.text.trim().isNotEmpty ||
+  bool get _dirty {
+    if (!widget.isEdit) {
+      return _caption.text.trim().isNotEmpty ||
           _images.isNotEmpty ||
           _game != null ||
-          _tagged.isNotEmpty);
+          _tagged.isNotEmpty;
+    }
+    final original = _original;
+    if (original == null) return false; // still loading / failed to load
+    return _playedAtChanged ||
+        original !=
+            _EditSnapshot.of(
+              caption: _caption.text,
+              location: _location.text,
+              gameId: _game?.id,
+              tagged: _tagged,
+            );
+  }
 
   Future<void> _addPhotos({required bool camera}) async {
     final remaining = CreatePostScreen.maxImages - _images.length;
@@ -138,7 +164,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
-    if (picked != null) setState(() => _playedAt = picked);
+    if (picked == null || !mounted || DateUtils.isSameDay(picked, _playedAt)) {
+      return;
+    }
+    setState(() {
+      _playedAt = picked;
+      _playedAtChanged = true;
+    });
   }
 
   Future<void> _submit() async {
@@ -157,12 +189,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           PostDraft(
             caption: caption,
             location: _location.text.trim(),
-            playedAt: _playedAt,
+            playedAt: _playedAtChanged ? _playedAt : null,
             gameId: _game?.id,
             taggedUserIds: [for (final u in _tagged) u.id],
           ),
         );
         if (!mounted) return;
+        _original = null; // saved: leaving no longer asks
         showToast(context, l10n.postUpdated, type: ToastType.success);
         context.pop();
         return;
@@ -170,6 +203,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       final uploads = ref.read(uploadRepositoryProvider);
       final keys = <String>[];
       for (var i = 0; i < _images.length; i++) {
+        if (!mounted) return;
         setState(() => _progress = l10n.postUploading(i + 1, _images.length));
         keys.add((await uploads.uploadImage(_images[i])).key);
       }
@@ -207,8 +241,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final l10n = context.l10n;
     final leave = await showConfirmSheet(
       context,
-      title: l10n.postDiscardTitle,
-      message: l10n.postDiscardMessage,
+      title: widget.isEdit
+          ? l10n.postDiscardChangesTitle
+          : l10n.postDiscardTitle,
+      message: widget.isEdit
+          ? l10n.postDiscardChangesMessage
+          : l10n.postDiscardMessage,
       confirmLabel: l10n.postDiscard,
     );
     if (leave && mounted) {
@@ -217,6 +255,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       setState(() {
         _game = null;
         _tagged = [];
+        _original = null;
+        _playedAtChanged = false;
       });
       context.canPop() ? context.pop() : context.go(AppRoutes.home);
     }
@@ -273,7 +313,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     label: _game?.name ?? l10n.postTagGame,
                     onTap: () async {
                       final g = await showGamePicker(context);
-                      if (g != null) setState(() => _game = g);
+                      if (g != null && mounted) setState(() => _game = g);
                     },
                     onClear: _game == null ? null : () => setState(() => _game = null),
                   ),
@@ -288,7 +328,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         title: l10n.postTagFriends,
                         initial: _tagged,
                       );
-                      if (picked != null) setState(() => _tagged = picked);
+                      if (picked != null && mounted) {
+                        setState(() => _tagged = picked);
+                      }
                     },
                     trailing: _tagged.isEmpty
                         ? null
@@ -317,6 +359,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     key: const Key('post-location'),
                     controller: _location,
                     maxLength: 255,
+                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       labelText: l10n.eventFieldLocation,
                       prefixIcon: const Icon(Icons.location_on_outlined),
@@ -474,4 +517,35 @@ class _OptionTile extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// The editable fields of a post, compared to detect unsaved edits.
+@immutable
+final class _EditSnapshot {
+  _EditSnapshot.of({
+    required String caption,
+    required String location,
+    required this.gameId,
+    required List<UserSummary> tagged,
+  })  : caption = caption.trim(),
+        location = location.trim(),
+        taggedIds = {for (final u in tagged) u.id};
+
+  final String caption;
+  final String location;
+  final String? gameId;
+  final Set<String> taggedIds;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _EditSnapshot &&
+      other.caption == caption &&
+      other.location == location &&
+      other.gameId == gameId &&
+      other.taggedIds.length == taggedIds.length &&
+      other.taggedIds.containsAll(taggedIds);
+
+  @override
+  int get hashCode =>
+      Object.hash(caption, location, gameId, Object.hashAllUnordered(taggedIds));
 }

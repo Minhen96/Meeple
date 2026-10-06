@@ -1542,6 +1542,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postDiscard => '放弃';
 
   @override
+  String get postDiscardChangesMessage => '你对这条帖子的修改将会丢失。';
+
+  @override
+  String get postDiscardChangesTitle => '放弃修改？';
+
+  @override
   String get postDiscardMessage => '你的照片和文字将会丢失。';
 
   @override

@@ -137,7 +137,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       firstDate: DateUtils.dateOnly(now),
       lastDate: now.add(const Duration(days: 365 * 2)),
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked == null || !mounted) return;
+    setState(() => _date = picked);
   }
 
   Future<void> _pickTime() async {
@@ -145,7 +146,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       context: context,
       initialTime: _time ?? const TimeOfDay(hour: 19, minute: 0),
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     // 30-minute increments (SCREENS §6.5).
     final minute = picked.minute < 15
         ? 0
@@ -226,7 +227,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       key: const Key('event-pick-game'),
                       onPressed: () async {
                         final g = await showGamePicker(context);
-                        if (g != null) setState(() => _setGame(g));
+                        if (g == null || !mounted) return;
+                        setState(() => _setGame(g));
                       },
                       icon: const Icon(Icons.search_rounded),
                       label: Text(l10n.eventPickGame),
@@ -408,7 +410,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                         title: l10n.eventInviteFriends,
                         initial: _invited,
                       );
-                      if (picked != null) setState(() => _invited = picked);
+                      if (picked == null || !mounted) return;
+                      setState(() => _invited = picked);
                     },
                     icon: const Icon(Icons.person_add_alt_outlined),
                     label: Text(l10n.eventChooseFriends),
