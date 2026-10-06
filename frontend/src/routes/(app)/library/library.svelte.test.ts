@@ -26,7 +26,8 @@ const tab = (key: Parameters<typeof m>[0]) => screen.getByRole('button', { name:
 
 beforeEach(() => {
 	libraryStore.set(defaultState);
-	h.games.browse.mockResolvedValue({ ...defaultState.gamesPage, totalElements: 1, content: [] });
+	// An empty catalog: the case that used to refetch forever.
+	h.games.browse.mockResolvedValue({ ...defaultState.gamesPage, totalElements: 0, content: [] });
 	h.games.search.mockResolvedValue([]);
 	vi.mocked(goto).mockReset();
 	// A real navigation updates $page; the stub does the same.
@@ -85,5 +86,25 @@ describe('library tabs and deep links', () => {
 		await userEvent.click(tab('library.tab.owned'));
 		setUrl('/library?tab=favorites');
 		await waitFor(() => expect(tab('library.tab.favorites')).toHaveAttribute('aria-pressed', 'true'));
+	});
+});
+
+describe('library initial catalog load', () => {
+	it('fetches an empty catalog (totalElements 0) exactly once', async () => {
+		render_();
+		await waitFor(() => expect(h.games.browse).toHaveBeenCalledTimes(1));
+		for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+		expect(h.games.browse).toHaveBeenCalledTimes(1);
+		expect(h.games.browse).toHaveBeenCalledWith(expect.objectContaining({ page: 0 }));
+	});
+
+	it('does not refetch when the catalog is already cached', async () => {
+		libraryStore.set({
+			...defaultState,
+			gamesPage: { ...defaultState.gamesPage, totalElements: 3, content: [] }
+		});
+		render_();
+		await new Promise((r) => setTimeout(r, 0));
+		expect(h.games.browse).not.toHaveBeenCalled();
 	});
 });

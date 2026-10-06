@@ -167,16 +167,20 @@
 		}
 	}
 
-	// Initial load
+	// Initial load: once per visit to the "all" tab with nothing cached. Only the tab is tracked;
+	// the fetched page and loading flag are read untracked, so an empty catalog (totalElements 0)
+	// does not re-trigger the effect after every fetch. Filters, search and tab clicks fetch
+	// explicitly.
+	let initialCatalogRequested = false;
 	$effect(() => {
-		if (
-			activeTab === "all" &&
-			(gamesPage?.number ?? 0) === 0 &&
-			(gamesPage?.totalElements ?? 0) === 0 &&
-			!loadingCatalog
-		) {
+		if (activeTab !== "all") return;
+		untrack(() => {
+			if (initialCatalogRequested || loadingCatalog) return;
+			const cached = store.gamesPage;
+			if ((cached?.number ?? 0) !== 0 || (cached?.totalElements ?? 0) !== 0) return;
+			initialCatalogRequested = true;
 			fetchCatalogPage(0);
-		}
+		});
 	});
 
 	// Infinite scroll observer
