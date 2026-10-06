@@ -6,8 +6,11 @@ import 'package:meeple_hearth/core/network/auth_session.dart';
 ///
 /// On a 401 every concurrent request queues behind ONE refresh owned by
 /// [AuthSessionManager] (refresh tokens are single-use), then retries once with
-/// the new token. Auth endpoints are never retried: their 401s mean bad
-/// credentials, not an expired session.
+/// the new token. Credential endpoints under `/auth/` (login, refresh, ...)
+/// are never retried: their 401s mean bad credentials, not an expired session.
+/// The session-management endpoints (`/auth/sessions*`) are ordinary
+/// authenticated calls: they carry the Bearer token and are retried after a
+/// refresh, with their `refresh_token` cookie updated to the rotated token.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required AuthSessionManager session,
@@ -65,6 +68,11 @@ class AuthInterceptor extends Interceptor {
     try {
       options.extra[_retriedKey] = true;
       options.headers['Authorization'] = 'Bearer $freshToken';
+      if (_sendsSessionCookie(options.headers['Cookie'])) {
+        // The refresh rotated the token the original request identified
+        // this device's session with.
+        options.headers.addAll(await _session.sessionCookieHeader());
+      }
       final response = await _retryClient.fetch<dynamic>(options);
       handler.resolve(response);
     } on DioException catch (retryError) {
@@ -77,6 +85,12 @@ class AuthInterceptor extends Interceptor {
     return header.substring(7);
   }
 
+  static bool _sendsSessionCookie(Object? cookie) =>
+      cookie is String && cookie.contains('refresh_token=');
+
+  /// Credential endpoints that authenticate without a Bearer token.
+  /// `/auth/sessions*` is excluded: it needs the Bearer token.
   static bool _isAuthEndpoint(String path) =>
-      path.contains('${ApiConstants.v1}/auth/');
+      path.contains('${ApiConstants.v1}/auth/') &&
+      !path.contains(ApiConstants.sessions);
 }
