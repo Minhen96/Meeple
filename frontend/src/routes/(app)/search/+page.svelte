@@ -44,6 +44,8 @@
 	function onInput() {
 		clearTimeout(timer);
 		if (!trimmed) {
+			// Invalidate any search still in flight so it cannot repopulate the cleared overlay.
+			seq++;
 			results = null;
 			loading = false;
 			failed = false;

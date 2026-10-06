@@ -48,12 +48,17 @@ export interface Event {
 	createdAt: string;
 }
 
-/** Payload on STOMP `/topic/events/{eventId}` after a roster or status change. */
+/**
+ * Payload on STOMP `/topic/events/{eventId}` after a roster or status change. It is a change
+ * signal only: clients re-fetch the event over REST for the viewer-specific roster. Older backends
+ * also sent `participants`; never read it.
+ */
 export interface EventLiveUpdate {
 	eventId: string;
 	participantCount: number;
 	status: EventStatus;
-	participants: EventParticipant[];
+	/** @deprecated legacy payloads only; no longer sent. */
+	participants?: EventParticipant[];
 }
 
 // ─── Match ─────────────────────────────────────────────────────────────────

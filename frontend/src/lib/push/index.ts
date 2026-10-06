@@ -3,6 +3,8 @@ export {
 	enablePush,
 	disablePush,
 	pushStatus,
+	syncPushUser,
 	isPushConfigured,
-	type PushStatus
+	type PushStatus,
+	type StoredPushToken
 } from './fcm';

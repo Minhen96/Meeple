@@ -302,6 +302,113 @@ describe('error back-off and resume', () => {
 	});
 });
 
+describe('failed-connect back-off', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	it('backoffDelay grows exponentially with jitter and is capped', () => {
+		expect(ws.backoffDelay(0)).toBe(0);
+		expect(ws.backoffDelay(1, () => 0)).toBe(2500);
+		expect(ws.backoffDelay(1, () => 1)).toBe(5000);
+		expect(ws.backoffDelay(2, () => 1)).toBe(10_000);
+		expect(ws.backoffDelay(3, () => 0.5)).toBe(15_000);
+		expect(ws.backoffDelay(10, () => 1)).toBe(55_000);
+		expect(ws.backoffDelay(10, () => 0)).toBe(27_500);
+	});
+
+	/** One attempt that never reaches CONNECTED: beforeConnect (after its back-off), then close. */
+	async function failAttempt(client: InstanceType<typeof h.FakeClient>) {
+		const attempt = client.config.beforeConnect();
+		await vi.runAllTimersAsync();
+		await attempt;
+		client.drop();
+	}
+
+	it('waits longer after each failed connect before refreshing the session again', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(Math, 'random').mockReturnValue(1);
+		ws.connectWS();
+		const client = latest();
+
+		await client.config.beforeConnect();
+		expect(h.ensureSession).toHaveBeenCalledTimes(1);
+		client.drop(); // closed before CONNECTED: failure 1
+
+		const second = client.config.beforeConnect();
+		await vi.advanceTimersByTimeAsync(4999);
+		expect(h.ensureSession).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(1);
+		await second;
+		expect(h.ensureSession).toHaveBeenCalledTimes(2);
+		client.drop(); // failure 2
+
+		const third = client.config.beforeConnect();
+		await vi.advanceTimersByTimeAsync(9999);
+		expect(h.ensureSession).toHaveBeenCalledTimes(2);
+		await vi.advanceTimersByTimeAsync(1);
+		await third;
+		expect(h.ensureSession).toHaveBeenCalledTimes(3);
+	});
+
+	it('pauses after MAX_FAILED_CONNECTS consecutive failed connects; resume resets the count', async () => {
+		vi.useFakeTimers();
+		ws.connectWS();
+		const client = latest();
+		for (let i = 1; i < ws.MAX_FAILED_CONNECTS; i++) {
+			await failAttempt(client);
+			expect(client.deactivate).not.toHaveBeenCalled();
+		}
+		await failAttempt(client);
+		expect(client.deactivate).toHaveBeenCalled();
+		const calls = h.ensureSession.mock.calls.length;
+
+		// browser comes back online: a fresh client, no back-off on its first attempt
+		window.dispatchEvent(new Event('online'));
+		expect(clients()).toHaveLength(2);
+		await latest().config.beforeConnect();
+		expect(h.ensureSession).toHaveBeenCalledTimes(calls + 1);
+	});
+
+	it('a successful CONNECTED resets the failure count; a later drop retries without back-off', async () => {
+		vi.useFakeTimers();
+		ws.connectWS();
+		const client = latest();
+		await failAttempt(client);
+		await failAttempt(client);
+		const third = client.config.beforeConnect();
+		await vi.runAllTimersAsync();
+		await third;
+		client.connect();
+		client.drop();
+		const calls = h.ensureSession.mock.calls.length;
+		await client.config.beforeConnect();
+		expect(h.ensureSession).toHaveBeenCalledTimes(calls + 1);
+	});
+
+	it('a resume (tab visible) cuts a pending back-off short; disconnect abandons it', async () => {
+		vi.useFakeTimers();
+		ws.connectWS();
+		const client = latest();
+		await failAttempt(client);
+		const waiting = client.config.beforeConnect();
+		await vi.advanceTimersByTimeAsync(10);
+		expect(h.ensureSession).toHaveBeenCalledTimes(1);
+		Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+		document.dispatchEvent(new Event('visibilitychange'));
+		await waiting;
+		expect(h.ensureSession).toHaveBeenCalledTimes(2);
+		expect(clients()).toHaveLength(1);
+
+		client.drop();
+		const abandoned = client.config.beforeConnect();
+		ws.disconnectWS();
+		await abandoned;
+		expect(h.ensureSession).toHaveBeenCalledTimes(2);
+	});
+});
+
 describe('subscribeToHowToPlayProgress', () => {
 	it('parses progress frames for the game topic and ignores malformed frames', () => {
 		const onMessage = vi.fn();

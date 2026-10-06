@@ -11,13 +11,24 @@
  * configured and the user opts in, so it adds nothing to the app bundle. Everything here is a
  * no-op without the VITE_FIREBASE_* env (see ./config.ts) or outside a supporting browser.
  */
+import { get } from 'svelte/store';
 import { fcmTokensApi } from '$lib/api/notifications';
+import { currentUser } from '$lib/stores/auth';
 import { readPushConfig, serviceWorkerUrl, type PushConfig } from './config';
 
 const FIREBASE_VERSION = '10.14.1';
 const SDK_BASE = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
-/** localStorage key holding this browser's registered token (needed to unregister on logout). */
+/**
+ * localStorage key holding this browser's registered token and the account it was registered
+ * for, as JSON `{token, userId}` (needed to unregister on logout and to notice an account switch).
+ */
 export const TOKEN_STORAGE_KEY = 'meeple_fcm_token';
+
+/** The token this browser registered, and for which account (null: unknown, legacy entry). */
+export interface StoredPushToken {
+	token: string;
+	userId: string | null;
+}
 
 // Minimal typings for the parts of the modular SDK used here.
 interface FirebaseApp {
@@ -62,21 +73,39 @@ function browserSupportsPush(): boolean {
 	);
 }
 
-function storedToken(): string | null {
+function readStored(): StoredPushToken | null {
+	let raw: string | null;
 	try {
-		return localStorage.getItem(TOKEN_STORAGE_KEY);
+		raw = localStorage.getItem(TOKEN_STORAGE_KEY);
 	} catch {
 		return null;
 	}
+	if (!raw) return null;
+	try {
+		const value: unknown = JSON.parse(raw);
+		if (typeof value === 'object' && value !== null) {
+			const rec = value as Record<string, unknown>;
+			if (typeof rec.token === 'string' && rec.token) {
+				return { token: rec.token, userId: typeof rec.userId === 'string' ? rec.userId : null };
+			}
+		}
+	} catch {
+		// legacy entry: the bare token string, owner unknown
+	}
+	return { token: raw, userId: null };
 }
 
-function storeToken(token: string | null) {
+function storeToken(entry: StoredPushToken | null) {
 	try {
-		if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+		if (entry) localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(entry));
 		else localStorage.removeItem(TOKEN_STORAGE_KEY);
 	} catch {
 		// storage blocked — unregister on logout falls back to a no-op
 	}
+}
+
+function currentUserId(): string | null {
+	return get(currentUser)?.id ?? null;
 }
 
 /** Current state for the settings toggle. */
@@ -84,7 +113,36 @@ export function pushStatus(): PushStatus {
 	if (!isPushConfigured()) return 'unconfigured';
 	if (!browserSupportsPush()) return 'unsupported';
 	if (Notification.permission === 'denied') return 'denied';
-	return Notification.permission === 'granted' && storedToken() ? 'enabled' : 'disabled';
+	const stored = readStored();
+	// A token registered for another account (shared browser) is not this user's push.
+	const mine = stored !== null && stored.userId !== null && stored.userId === currentUserId();
+	return Notification.permission === 'granted' && mine ? 'enabled' : 'disabled';
+}
+
+/**
+ * Reconcile this browser's stored token with the signed-in account (call whenever the user
+ * changes). A token left behind by another account is moved to the current one when the browser
+ * still grants permission (the backend re-assigns a token to whoever registered it last), and is
+ * forgotten otherwise. Never throws.
+ */
+export async function syncPushUser(userId: string | null): Promise<void> {
+	if (!userId) return;
+	const stored = readStored();
+	if (!stored || stored.userId === userId) return;
+	if (
+		!isPushConfigured() ||
+		!browserSupportsPush() ||
+		Notification.permission !== 'granted'
+	) {
+		storeToken(null);
+		return;
+	}
+	try {
+		await fcmTokensApi.register(stored.token, 'web', deviceInfo());
+		storeToken({ token: stored.token, userId });
+	} catch {
+		storeToken(null);
+	}
 }
 
 async function loadMessaging(
@@ -128,11 +186,11 @@ export async function enablePush(): Promise<PushStatus> {
 			serviceWorkerRegistration: registration
 		});
 		if (!token) return 'disabled';
-		const previous = storedToken();
+		const previous = readStored()?.token;
 		await fcmTokensApi.register(token, 'web', deviceInfo());
 		if (previous && previous !== token)
 			await fcmTokensApi.unregister(previous).catch(() => undefined);
-		storeToken(token);
+		storeToken({ token, userId: currentUserId() });
 		return 'enabled';
 	} catch {
 		return 'disabled';
@@ -160,7 +218,7 @@ export const pushApi = {
 	 * session is still valid). No-op when push was never enabled here; never throws.
 	 */
 	async unregister(): Promise<void> {
-		const token = storedToken();
+		const token = readStored()?.token;
 		if (!token) return;
 		storeToken(null);
 		try {

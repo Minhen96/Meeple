@@ -90,5 +90,10 @@ describe('without VITE_FIREBASE_* config', () => {
 
 		await pushApi.unregister();
 		expect(unregister).toHaveBeenCalledTimes(1);
+
+		storage.set(TOKEN_STORAGE_KEY, JSON.stringify({ token: 'tok2', userId: 'u1' }));
+		await pushApi.unregister();
+		expect(unregister).toHaveBeenLastCalledWith('tok2');
+		expect(storage.has(TOKEN_STORAGE_KEY)).toBe(false);
 	});
 });

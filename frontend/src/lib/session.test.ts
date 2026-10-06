@@ -19,6 +19,7 @@ const { currentUser, setUser } = await import('$lib/stores/auth');
 beforeEach(() => {
 	localStorage.clear();
 	for (const fn of Object.values(m)) fn.mockReset();
+	m.unregister.mockResolvedValue(undefined);
 	setUser({ id: 'u1', username: 'u1' } as never);
 });
 
@@ -54,6 +55,21 @@ describe('clearClientSession', () => {
 		expect(m.disconnectWS).toHaveBeenCalled();
 		expect(localStorage.getItem('ai_chat_u1_g1')).toBeNull();
 	});
+
+	it('unregisters push fire-and-forget: never awaited, failures swallowed', async () => {
+		let settle: (() => void) | undefined;
+		m.unregister.mockImplementation(() => new Promise<void>((resolve) => (settle = resolve)));
+		clearClientSession();
+		expect(m.unregister).toHaveBeenCalledTimes(1);
+		// the rest of the teardown ran synchronously while unregister is still pending
+		expect(get(currentUser)).toBeNull();
+		expect(m.disconnectWS).toHaveBeenCalled();
+		settle?.();
+
+		m.unregister.mockRejectedValueOnce(new Error('401'));
+		expect(() => clearClientSession()).not.toThrow();
+		await Promise.resolve();
+	});
 });
 
 describe('logout', () => {
@@ -66,7 +82,8 @@ describe('logout', () => {
 			order.push('logout');
 		});
 		await logout();
-		expect(order).toEqual(['push', 'logout']);
+		// the trailing 'push' is clearClientSession's best-effort call (a no-op once the token is gone)
+		expect(order).toEqual(['push', 'logout', 'push']);
 		expect(get(currentUser)).toBeNull();
 	});
 
