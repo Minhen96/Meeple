@@ -246,8 +246,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         /**
          * {@code /topic/events/{eventId}}: only a well-formed event id, and only for a viewer who
-         * can see that event (host, participant, friend of the host for FRIENDS events, anyone for
-         * PUBLIC events; never across a block).
+         * can see that event (host, invited/accepted/declined participant, friend of the host for
+         * FRIENDS events unless they left or were kicked, anyone for PUBLIC events; never across a
+         * block). See {@code EventRepository.VISIBLE_TO_VIEWER}.
          */
         boolean isEventSubscriptionAllowed(String destination, Principal user) {
             if (destination == null || user == null || !destination.startsWith(EVENT_TOPIC_PREFIX)) {
