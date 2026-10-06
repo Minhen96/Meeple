@@ -57,7 +57,7 @@ public interface UserFcmTokenRepository extends JpaRepository<UserFcmToken, UUID
     @Query("DELETE FROM UserFcmToken t WHERE t.token = :token AND t.userId <> :userId")
     int deleteByTokenForOtherUsers(@Param("token") String token, @Param("userId") UUID userId);
 
-    /** Stale tokens reported by FCM (UNREGISTERED / INVALID_ARGUMENT), under any account. */
+    /** Stale tokens reported by FCM (UNREGISTERED, SENDER_ID_MISMATCH, invalid token), under any account. */
     @Modifying
     @Query("DELETE FROM UserFcmToken t WHERE t.token IN :tokens")
     int deleteByTokenIn(@Param("tokens") Collection<String> tokens);

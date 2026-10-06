@@ -203,7 +203,8 @@ class NotificationDeliveryIntegrationTest extends ApiIntegrationTestBase {
             for (int i = 0; i < messages.size(); i++) {
                 String token = order.get(i);
                 if (token.equals(gone)) responses.add(failure(MessagingErrorCode.UNREGISTERED));
-                else if (token.equals(bad)) responses.add(failure(MessagingErrorCode.INVALID_ARGUMENT));
+                else if (token.equals(bad)) responses.add(failure(MessagingErrorCode.INVALID_ARGUMENT,
+                        "The registration token is not a valid FCM registration token"));
                 else responses.add(success());
             }
             return batch(responses);
@@ -369,8 +370,13 @@ class NotificationDeliveryIntegrationTest extends ApiIntegrationTestBase {
     }
 
     private static SendResponse failure(MessagingErrorCode code) {
+        return failure(code, null);
+    }
+
+    private static SendResponse failure(MessagingErrorCode code, String message) {
         FirebaseMessagingException e = mock(FirebaseMessagingException.class);
         when(e.getMessagingErrorCode()).thenReturn(code);
+        when(e.getMessage()).thenReturn(message);
         SendResponse r = mock(SendResponse.class);
         when(r.isSuccessful()).thenReturn(false);
         when(r.getException()).thenReturn(e);
