@@ -23,7 +23,7 @@ final accountActionsProvider = AutoDisposeProvider<AccountActions>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AccountActionsRef = AutoDisposeProviderRef<AccountActions>;
-String _$activeSessionsHash() => r'd0ee040a1bfa53229aa2a8708acb1816067bdd1c';
+String _$activeSessionsHash() => r'f320f5d795aae792e30baf22f0dce9f1bfbfebf4';
 
 /// Active sessions (refresh tokens) of the account.
 ///

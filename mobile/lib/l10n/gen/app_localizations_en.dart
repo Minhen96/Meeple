@@ -1977,6 +1977,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchRecent => 'Recent searches';
 
   @override
+  String get sessionsInvalid =>
+      'We couldn\'t verify this device\'s session. The list has been refreshed, please try again.';
+
+  @override
   String sessionsLastActive(String time) {
     return 'Last active $time';
   }

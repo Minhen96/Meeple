@@ -127,6 +127,46 @@ void main() {
       );
       expect(find.text('Chrome on Mac'), findsNothing);
     });
+
+    testWidgets('revoke-others SESSION_INVALID shows a friendly message and '
+        'reloads the list', (tester) async {
+      api
+        ..get('/api/v1/auth/sessions', [
+          {'id': 'fam-1', 'deviceInfo': 'Android phone', 'current': true},
+          {'id': 'fam-2', 'deviceInfo': 'Chrome on Mac'},
+        ])
+        ..post(
+          '/api/v1/auth/sessions/revoke-others',
+          const FakeResponse.error(401, 'SESSION_INVALID'),
+        );
+      await pumpApp(tester, api: api, location: '/settings/sessions');
+      final loads = api.calls('GET', '/api/v1/auth/sessions').length;
+
+      await tester.tap(find.byKey(const Key('revoke-others')));
+      await settle(tester);
+
+      expect(find.textContaining("couldn't verify this device"), findsOneWidget);
+      expect(api.calls('GET', '/api/v1/auth/sessions'), hasLength(loads + 1));
+      expect(find.text('Chrome on Mac'), findsOneWidget);
+    });
+
+    testWidgets('other revoke-others errors use the generic toast',
+        (tester) async {
+      api
+        ..get('/api/v1/auth/sessions', [
+          {'id': 'fam-1', 'deviceInfo': 'Android phone', 'current': true},
+          {'id': 'fam-2', 'deviceInfo': 'Chrome on Mac'},
+        ])
+        ..post(
+          '/api/v1/auth/sessions/revoke-others',
+          const FakeResponse.error(500, 'INTERNAL'),
+        );
+      await pumpApp(tester, api: api, location: '/settings/sessions');
+      await tester.tap(find.byKey(const Key('revoke-others')));
+      await settle(tester);
+      expect(find.textContaining("couldn't verify this device"), findsNothing);
+      expect(find.text('Chrome on Mac'), findsOneWidget);
+    });
   });
 
   group('reactivation', () {

@@ -563,6 +563,7 @@
   "searchNoResults": "没有“{query}”的结果",
   "searchPlayers": "玩家",
   "searchRecent": "最近搜索",
+  "sessionsInvalid": "无法验证此设备的会话。列表已刷新，请重试。",
   "sessionsLastActive": "最近活跃：{time}",
   "sessionsRevokeOthers": "退出其他所有设备",
   "sessionsSignOut": "退出",

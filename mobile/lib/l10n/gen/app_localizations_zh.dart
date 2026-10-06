@@ -1872,6 +1872,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchRecent => '最近搜索';
 
   @override
+  String get sessionsInvalid => '无法验证此设备的会话。列表已刷新，请重试。';
+
+  @override
   String sessionsLastActive(String time) {
     return '最近活跃：$time';
   }

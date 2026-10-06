@@ -1209,7 +1209,12 @@ body.
   client sends `Cookie: refresh_token=…` (re-attached with the rotated token
   on the retry); `revoke-others` requires that live cookie, bumps the token
   version and its reissued `access_token` cookie is stored. Session ids are
-  opaque strings (URL-encoded in `DELETE /auth/sessions/{id}`).
+  opaque, stable session-family ids (URL-encoded in
+  `DELETE /auth/sessions/{id}`). A 401 `SESSION_INVALID` from
+  `revoke-others` reloads the list and shows a friendly message. FCM token
+  registration and removal (`/users/me/fcm-tokens`) send the same cookie, so
+  the backend links the token to this device's session family and
+  `revoke-others` keeps this phone's push token.
 - **Realtime:** the app subscribes only to `/user/queue/notifications`. It
   does not subscribe to `/topic/events/{eventId}` (whose payload is
   `{eventId, participantCount, status}`); a future subscriber must refetch

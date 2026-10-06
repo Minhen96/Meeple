@@ -3476,6 +3476,12 @@ abstract class AppLocalizations {
   /// **'Recent searches'**
   String get searchRecent;
 
+  /// No description provided for @sessionsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t verify this device\'s session. The list has been refreshed, please try again.'**
+  String get sessionsInvalid;
+
   /// No description provided for @sessionsLastActive.
   ///
   /// In en, this message translates to:

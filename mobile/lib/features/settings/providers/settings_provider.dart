@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
+import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/connectivity_service.dart';
 import 'package:meeple_hearth/features/auth/domain/user_model.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
@@ -23,9 +24,21 @@ class ActiveSessions extends _$ActiveSessions {
     }
   }
 
+  /// 401 `SESSION_INVALID` from `revoke-others`: the server could not match
+  /// this device's refresh cookie to a live session.
+  static bool isSessionInvalid(Object error) =>
+      error is UnauthorizedException && error.code == 'SESSION_INVALID';
+
+  /// Signs every other device out. On `SESSION_INVALID` the list is reloaded
+  /// (it is likely stale) and the error rethrown for a friendly message.
   Future<void> revokeOthers() async {
     ensureOnline(ref);
-    await ref.read(accountRepositoryProvider).revokeOtherSessions();
+    try {
+      await ref.read(accountRepositoryProvider).revokeOtherSessions();
+    } catch (e) {
+      if (isSessionInvalid(e)) ref.invalidateSelf();
+      rethrow;
+    }
     final current = state.valueOrNull;
     if (current != null) {
       state = AsyncValue.data(current.where((s) => s.current).toList());

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:meeple_hearth/core/constants/api_constants.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
+import 'package:meeple_hearth/core/network/auth_session.dart';
 import 'package:meeple_hearth/core/network/dio_client.dart';
 import 'package:meeple_hearth/features/notifications/domain/notification_model.dart';
 import 'package:meeple_hearth/shared/models/cursor_page.dart';
@@ -11,12 +12,16 @@ part 'notification_repository.g.dart';
 
 @riverpod
 NotificationRepository notificationRepository(Ref ref) =>
-    NotificationRepository(ref.read(dioProvider));
+    NotificationRepository(
+      ref.read(dioProvider),
+      ref.read(authSessionManagerProvider),
+    );
 
 final class NotificationRepository {
-  const NotificationRepository(this._dio);
+  const NotificationRepository(this._dio, this._session);
 
   final Dio _dio;
+  final AuthSessionManager _session;
 
   static const pageSize = 30;
   static const _base = ApiConstants.notifications;
@@ -85,15 +90,22 @@ final class NotificationRepository {
 
   // ── Device tokens (FCM) ───────────────────────────────────────────────────
 
-  /// `POST /users/me/fcm-tokens {token, platform, deviceInfo?}` → 204.
+  /// The backend links a device token to this device's session family by
+  /// the refresh-token cookie, so `revoke-others` keeps this phone's token.
+  Future<Options> _sessionOptions() async =>
+      Options(headers: await _session.sessionCookieHeader());
+
+  /// `POST /users/me/fcm-tokens {token, platform, deviceInfo?}` → 204, with
+  /// the `refresh_token` cookie of this device's session.
   Future<void> registerFcmToken({
     required String token,
     required String platform,
     String? deviceInfo,
   }) =>
       guardApi(
-        () => _dio.post<void>(
+        () async => _dio.post<void>(
           ApiConstants.fcmTokens,
+          options: await _sessionOptions(),
           data: {
             'token': token,
             'platform': platform,
@@ -102,10 +114,11 @@ final class NotificationRepository {
         ),
       );
 
-  /// `DELETE /users/me/fcm-tokens/{token}` → 204.
+  /// `DELETE /users/me/fcm-tokens/{token}` → 204 (with the session cookie).
   Future<void> unregisterFcmToken(String token) => guardApi(
-        () => _dio.delete<void>(
+        () async => _dio.delete<void>(
           '${ApiConstants.fcmTokens}/${Uri.encodeComponent(token)}',
+          options: await _sessionOptions(),
         ),
       );
 }
