@@ -22,7 +22,30 @@ final logoutHooksProvider = Provider<LogoutHooks>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LogoutHooksRef = ProviderRef<LogoutHooks>;
-String _$authNotifierHash() => r'621d86d8a23a9ad16ec776aa408cdd1c60ba71fc';
+String _$authUserIdHash() => r'93ef6e64916a59cf8911651df2a96ff13b51c4a8';
+
+/// The signed-in user's id, or null when signed out (or still restoring).
+///
+/// Long-lived (`keepAlive`) providers holding user-scoped data watch this so
+/// they rebuild — dropping the previous account's data — whenever the
+/// account changes (logout, session expiry, sign-in as someone else). Profile
+/// edits keep the id and therefore do not rebuild them.
+///
+/// Copied from [authUserId].
+@ProviderFor(authUserId)
+final authUserIdProvider = Provider<String?>.internal(
+  authUserId,
+  name: r'authUserIdProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$authUserIdHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AuthUserIdRef = ProviderRef<String?>;
+String _$authNotifierHash() => r'0f875e06c4cd12f94c3a58b83ce14b2ee1c6b880';
 
 /// See also [AuthNotifier].
 @ProviderFor(AuthNotifier)

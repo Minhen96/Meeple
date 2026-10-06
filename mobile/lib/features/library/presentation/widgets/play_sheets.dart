@@ -60,7 +60,8 @@ class _LogPlaySheetState extends ConsumerState<_LogPlaySheet> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
-    if (date != null) setState(() => _playedAt = date);
+    if (date == null || !mounted) return;
+    setState(() => _playedAt = date);
   }
 
   Future<void> _save() async {

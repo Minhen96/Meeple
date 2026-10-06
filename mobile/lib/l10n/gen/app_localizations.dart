@@ -2852,6 +2852,18 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get postDiscard;
 
+  /// No description provided for @postDiscardChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your edits to this post will be lost.'**
+  String get postDiscardChangesMessage;
+
+  /// No description provided for @postDiscardChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get postDiscardChangesTitle;
+
   /// No description provided for @postDiscardMessage.
   ///
   /// In en, this message translates to:
@@ -3463,6 +3475,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent searches'**
   String get searchRecent;
+
+  /// No description provided for @sessionsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t verify this device\'s session. The list has been refreshed, please try again.'**
+  String get sessionsInvalid;
 
   /// No description provided for @sessionsLastActive.
   ///

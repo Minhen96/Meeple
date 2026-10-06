@@ -191,14 +191,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 class ActiveSessionsScreen extends ConsumerWidget {
   const ActiveSessionsScreen({super.key});
 
-  Future<void> _guard(BuildContext context, Future<void> Function() f) async {
-    try {
-      await f();
-    } catch (e) {
-      if (context.mounted) showErrorToast(context, e);
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
@@ -225,10 +217,22 @@ class ActiveSessionsScreen extends ConsumerWidget {
                 child: AppOutlinedButton(
                   key: const Key('revoke-others'),
                   label: l10n.sessionsRevokeOthers,
-                  onPressed: () => _guard(
-                    context,
-                    () => ref.read(activeSessionsProvider.notifier).revokeOthers(),
-                  ),
+                  onPressed: () async {
+                    try {
+                      await ref
+                          .read(activeSessionsProvider.notifier)
+                          .revokeOthers();
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ActiveSessions.isSessionInvalid(e)
+                          ? showToast(
+                              context,
+                              l10n.sessionsInvalid,
+                              type: ToastType.error,
+                            )
+                          : showErrorToast(context, e);
+                    }
+                  },
                 ),
               ),
           ],

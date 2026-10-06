@@ -75,11 +75,12 @@ final class AccountRepository {
             .toList();
       });
 
-  /// `DELETE /auth/sessions/{id}` — signs one other device out (400
+  /// `DELETE /auth/sessions/{id}` — signs one other device out; [sessionId]
+  /// is the opaque id from [getSessions] (400
   /// `CANNOT_REVOKE_CURRENT_SESSION` for this one).
   Future<void> revokeSession(String sessionId) => guardApi(
         () async => _dio.delete<void>(
-          '${ApiConstants.sessions}/$sessionId',
+          '${ApiConstants.sessions}/${Uri.encodeComponent(sessionId)}',
           options: await _sessionOptions(),
         ),
       );

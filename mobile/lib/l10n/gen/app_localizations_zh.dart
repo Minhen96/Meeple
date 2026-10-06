@@ -1542,6 +1542,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postDiscard => '放弃';
 
   @override
+  String get postDiscardChangesMessage => '你对这条帖子的修改将会丢失。';
+
+  @override
+  String get postDiscardChangesTitle => '放弃修改？';
+
+  @override
   String get postDiscardMessage => '你的照片和文字将会丢失。';
 
   @override
@@ -1864,6 +1870,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchRecent => '最近搜索';
+
+  @override
+  String get sessionsInvalid => '无法验证此设备的会话。列表已刷新，请重试。';
 
   @override
   String sessionsLastActive(String time) {

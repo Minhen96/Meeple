@@ -1616,6 +1616,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postDiscard => 'Discard';
 
   @override
+  String get postDiscardChangesMessage =>
+      'Your edits to this post will be lost.';
+
+  @override
+  String get postDiscardChangesTitle => 'Discard changes?';
+
+  @override
   String get postDiscardMessage => 'Your photos and caption will be lost.';
 
   @override
@@ -1968,6 +1975,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchRecent => 'Recent searches';
+
+  @override
+  String get sessionsInvalid =>
+      'We couldn\'t verify this device\'s session. The list has been refreshed, please try again.';
 
   @override
   String sessionsLastActive(String time) {

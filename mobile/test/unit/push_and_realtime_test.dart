@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meeple_hearth/core/network/auth_session.dart';
 import 'package:meeple_hearth/core/push/push_messaging.dart';
 import 'package:meeple_hearth/core/push/push_service.dart';
-import 'package:meeple_hearth/core/network/auth_session.dart';
 import 'package:meeple_hearth/core/storage/secure_storage.dart';
 import 'package:meeple_hearth/features/notifications/data/notification_repository.dart';
 import 'package:meeple_hearth/features/notifications/data/realtime_service.dart';
@@ -91,7 +91,10 @@ void main() {
     service = PushService(
       messaging: messaging,
       local: local,
-      repository: NotificationRepository(api.dio()),
+      repository: NotificationRepository(
+        api.dio(),
+        AuthSessionManager(SecureStorage()),
+      ),
       storage: SecureStorage(),
       platform: 'android',
     );
@@ -102,7 +105,10 @@ void main() {
       final off = PushService(
         messaging: null,
         local: null,
-        repository: NotificationRepository(api.dio()),
+        repository: NotificationRepository(
+        api.dio(),
+        AuthSessionManager(SecureStorage()),
+      ),
         storage: SecureStorage(),
       );
       expect(off.isEnabled, isFalse);

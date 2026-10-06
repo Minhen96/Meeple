@@ -709,7 +709,44 @@ void main() {
 
   group('notifications', () {
     late NotificationRepository repo;
-    setUp(() => repo = NotificationRepository(api.dio()));
+    setUp(() {
+      FlutterSecureStorage.setMockInitialValues({
+        'auth_session':
+            '{"accessToken":"a1","refreshToken":"r1","userId":"me"}',
+      });
+      repo = NotificationRepository(
+        api.dio(),
+        AuthSessionManager(SecureStorage()),
+      );
+    });
+
+    test('FCM register/unregister carry the session refresh cookie',
+        () async {
+      api
+        ..post('/api/v1/users/me/fcm-tokens', const FakeResponse.noContent())
+        ..delete('/api/v1/users/me/fcm-tokens/t%2F1',
+            const FakeResponse.noContent());
+      await repo.registerFcmToken(
+        token: 't/1',
+        platform: 'android',
+        deviceInfo: 'Pixel',
+      );
+      final reg = api.calls('POST', '/api/v1/users/me/fcm-tokens').single;
+      expect(reg.headers['Cookie'], 'refresh_token=r1');
+      expect(reg.data,
+          {'token': 't/1', 'platform': 'android', 'deviceInfo': 'Pixel'});
+      await repo.unregisterFcmToken('t/1');
+      expect(
+        api.requests.last.headers['Cookie'],
+        'refresh_token=r1',
+      );
+      expect(api.requests.last.method, 'DELETE');
+
+      // Signed out: no cookie.
+      FlutterSecureStorage.setMockInitialValues({});
+      await repo.registerFcmToken(token: 't2', platform: 'ios');
+      expect(api.requests.last.headers['Cookie'], isNull);
+    });
 
     test('preferences are completed with defaults; settings parsed', () async {
       api

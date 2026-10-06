@@ -112,7 +112,8 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                       key: const Key('match-pick-game'),
                       onPressed: () async {
                         final g = await showGamePicker(context);
-                        if (g != null) setState(() => _game = g);
+                        if (g == null || !mounted) return;
+                        setState(() => _game = g);
                       },
                       icon: const Icon(Icons.search_rounded),
                       label: Text(l10n.eventPickGame),
@@ -131,7 +132,8 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                     key: const Key('match-from'),
                     onPressed: () async {
                       final v = await _pickDateTime(_from);
-                      if (v != null) setState(() => _from = v);
+                      if (v == null || !mounted) return;
+                      setState(() => _from = v);
                     },
                     icon: const Icon(Icons.schedule_rounded),
                     label: Text(
@@ -145,7 +147,8 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                     key: const Key('match-to'),
                     onPressed: () async {
                       final v = await _pickDateTime(_to ?? _from);
-                      if (v != null) setState(() => _to = v);
+                      if (v == null || !mounted) return;
+                      setState(() => _to = v);
                     },
                     icon: const Icon(Icons.schedule_rounded),
                     label: Text(

@@ -170,9 +170,12 @@ class _SearchResultsProviderElement
   String get query => (origin as SearchResultsProvider).query;
 }
 
-String _$recentSearchesHash() => r'9f87b9454cddc0a3918740f205227873a577a70e';
+String _$recentSearchesHash() => r'9cecbdc588162598628678394ebab626767e0834';
 
-/// The last 8 searches, stored on the device (SCREENS §13).
+/// The last 8 searches, stored on the device per account (SCREENS §13).
+///
+/// Rebuilds when the signed-in account changes, so one account never sees
+/// another's searches; nothing is stored or shown while signed out.
 ///
 /// Copied from [RecentSearches].
 @ProviderFor(RecentSearches)

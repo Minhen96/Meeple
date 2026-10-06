@@ -7,7 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:meeple_hearth/core/constants/api_constants.dart';
 import 'package:meeple_hearth/core/network/auth_interceptor.dart';
 import 'package:meeple_hearth/core/network/auth_session.dart';
+import 'package:meeple_hearth/core/network/dio_client.dart';
 import 'package:meeple_hearth/core/storage/secure_storage.dart';
+import 'package:meeple_hearth/features/settings/data/account_repository.dart';
 
 ResponseBody _json(String body, int status, {List<String>? cookies}) =>
     ResponseBody.fromString(
@@ -247,6 +249,109 @@ void main() {
         hasLength(2),
       );
       expect(await storage.getSession(), isNotNull);
+    });
+  });
+
+  group('/auth/sessions*', () {
+    /// Sessions endpoints accept only the current access token; refresh
+    /// rotates access0/refresh0 → access1/refresh1.
+    /// (Authorization, Cookie) as sent to `/auth/sessions*`, in order
+    /// (Dio reuses the RequestOptions object for the retry).
+    final sent = <(String?, String?)>[];
+
+    setUp(sent.clear);
+
+    _Adapter sessionsServer() => _Adapter((options, n) async {
+          if (options.path == ApiConstants.refresh) return _rotated(1);
+          sent.add((
+            options.headers['Authorization'] as String?,
+            options.headers['Cookie'] as String?,
+          ));
+          if (options.headers['Authorization'] != 'Bearer access1') {
+            return _json('{"code":"UNAUTHORIZED"}', 401);
+          }
+          if (options.path.endsWith('/revoke-others')) {
+            return _json(
+              '{"data":{"revoked":2}}',
+              200,
+              cookies: ['access_token=access2; Path=/; HttpOnly'],
+            );
+          }
+          if (options.method == 'DELETE') return _json('', 204);
+          return _json(
+            '{"data":[{"id":"fam-1","current":true},'
+            '{"id":"fam/2","current":false}]}',
+            200,
+          );
+        });
+
+    AccountRepository repoFor(_Adapter adapter) {
+      final session = manager(adapter);
+      final api = Dio(BaseOptions(baseUrl: 'http://test'))
+        ..httpClientAdapter = adapter;
+      api.interceptors.addAll([
+        AuthInterceptor(session: session, retryClient: api),
+        ApiResponseUnwrapInterceptor(),
+      ]);
+      return AccountRepository(api, session);
+    }
+
+    List<RequestOptions> sessionCalls(_Adapter a) => a.requests
+        .where((r) => r.path.startsWith(ApiConstants.sessions))
+        .toList();
+
+    test('carry the Bearer token and are retried after a refresh with the '
+        'rotated refresh cookie', () async {
+      final adapter = sessionsServer();
+      final repo = repoFor(adapter);
+
+      final sessions = await repo.getSessions();
+
+      expect(sessions.map((s) => s.id), ['fam-1', 'fam/2']);
+      expect(sessionCalls(adapter), hasLength(2));
+      expect(sent, [
+        ('Bearer access0', 'refresh_token=refresh0'),
+        ('Bearer access1', 'refresh_token=refresh1'),
+      ]);
+      expect(adapter.refreshCookies, ['refresh_token=refresh0']);
+    });
+
+    test('revoke one (opaque id) and revoke-others keep the live cookie',
+        () async {
+      final adapter = sessionsServer();
+      final repo = repoFor(adapter);
+
+      await repo.revokeSession('fam/2');
+      final revoke = sessionCalls(adapter).last;
+      expect(revoke.path, '${ApiConstants.sessions}/fam%2F2');
+      expect(revoke.headers['Cookie'], 'refresh_token=refresh1');
+
+      expect(await repo.revokeOtherSessions(), 2);
+      final others = sessionCalls(adapter).last;
+      expect(others.headers['Authorization'], 'Bearer access1');
+      expect(others.headers['Cookie'], 'refresh_token=refresh1');
+      final stored = (await storage.getSession())!;
+      expect(stored.accessToken, 'access2');
+      expect(stored.refreshToken, 'refresh1');
+    });
+
+    test('credential endpoints stay unauthenticated and are not retried',
+        () async {
+      final adapter = _Adapter(
+        (_, __) async => _json('{"code":"INVALID_CREDENTIALS"}', 401),
+      );
+      final session = manager(adapter);
+      final api = Dio(BaseOptions(baseUrl: 'http://test'))
+        ..httpClientAdapter = adapter;
+      api.interceptors.add(AuthInterceptor(session: session, retryClient: api));
+
+      await expectLater(
+        api.post<dynamic>(ApiConstants.login, data: {'x': 1}),
+        throwsA(isA<DioException>()),
+      );
+      expect(adapter.requests, hasLength(1));
+      expect(adapter.requests.single.headers['Authorization'], isNull);
+      expect(adapter.refreshCookies, isEmpty);
     });
   });
 }

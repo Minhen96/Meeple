@@ -977,6 +977,8 @@
   "postDeleteTitle": "Delete this post?",
   "postDeleted": "Post deleted.",
   "postDiscard": "Discard",
+  "postDiscardChangesMessage": "Your edits to this post will be lost.",
+  "postDiscardChangesTitle": "Discard changes?",
   "postDiscardMessage": "Your photos and caption will be lost.",
   "postDiscardTitle": "Discard this post?",
   "postEditTitle": "Edit post",
@@ -1145,6 +1147,7 @@
   },
   "searchPlayers": "Players",
   "searchRecent": "Recent searches",
+  "sessionsInvalid": "We couldn't verify this device's session. The list has been refreshed, please try again.",
   "sessionsLastActive": "Last active {time}",
   "@sessionsLastActive": {
     "placeholders": {
