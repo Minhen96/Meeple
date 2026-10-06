@@ -18,8 +18,7 @@ subprojects {
 
 // isar_flutter_libs 3.1.0+1 predates AGP 8: it declares no `namespace` and compiles against
 // SDK 30, where androidx resources fail to link (`android:attr/lStar not found`). Give legacy
-// plugins a namespace derived from their group and lift their compileSdk after their own build
-// script has run (the hook is registered while the plugin applies, before evaluation finishes).
+// plugins a namespace derived from their group and lift their compileSdk to at least 36.
 val minPluginCompileSdk = 36
 subprojects {
     plugins.withId("com.android.library") {
@@ -27,10 +26,13 @@ subprojects {
         if (android.namespace == null) {
             android.namespace = project.group.toString()
         }
-        afterEvaluate {
-            val current = android.compileSdk ?: 0
-            if (current < minPluginCompileSdk) {
-                android.compileSdk = minPluginCompileSdk
+        // finalizeDsl runs after the plugin's build script and before AGP locks the DSL
+        // (afterEvaluate is too late: "It is too late to set compileSdk")
+        extensions.configure<com.android.build.api.variant.LibraryAndroidComponentsExtension>("androidComponents") {
+            finalizeDsl { ext ->
+                if ((ext.compileSdk ?: 0) < minPluginCompileSdk) {
+                    ext.compileSdk = minPluginCompileSdk
+                }
             }
         }
     }
