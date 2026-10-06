@@ -13,7 +13,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -21,7 +25,8 @@ import java.util.UUID;
  * <ul>
  *   <li>soft delete: the user's notifications and device tokens are removed immediately (no more
  *       pushes to the deleted account's devices) and the unread counter is evicted;</li>
- *   <li>hard delete: additionally the notifications the user triggered for others, and the
+ *   <li>hard delete: additionally the notifications the user triggered for others (the unread
+ *       counters of their recipients are evicted after commit, so badges are recounted), and the
  *       user's preferences and settings (the {@code users} row cascade would remove the latter
  *       too).</li>
  * </ul>
@@ -65,12 +70,32 @@ public class NotificationAccountListener {
     public void onHardDeleted(UserHardDeletedEvent event) {
         UUID userId = event.userId();
         int received = notificationRepository.deleteAllForRecipient(userId);
+        // Their badges counted the unread ones: recount once this transaction commits
+        List<UUID> affected = notificationRepository.findUnreadRecipientsByActor(userId);
         int triggered = notificationRepository.deleteAllByActor(userId);
+        evictAfterCommit(affected);
         tokenRepository.deleteAllForUser(userId);
         preferenceRepository.deleteAllForUser(userId);
         settingsRepository.deleteById(userId);
         unreadCounter.evict(userId);
         log.info("Account {} hard-deleted: removed {} received and {} triggered notification(s)",
                 userId, received, triggered);
+    }
+
+    private void evictAfterCommit(Collection<UUID> recipients) {
+        if (recipients.isEmpty()) {
+            return;
+        }
+        Runnable evict = () -> recipients.forEach(unreadCounter::evict);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    evict.run();
+                }
+            });
+        } else {
+            evict.run();
+        }
     }
 }
