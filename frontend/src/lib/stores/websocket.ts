@@ -26,6 +26,49 @@ let wanted = false;
 const MAX_CONSECUTIVE_STOMP_ERRORS = 3;
 let consecutiveErrors = 0;
 
+/** stompjs' fixed pause between a closed socket and the next attempt. */
+const RECONNECT_DELAY_MS = 5000;
+/** First extra back-off after a failed attempt; doubles per consecutive failure. */
+const BACKOFF_BASE_MS = 5000;
+/** Cap on the extra back-off, so attempts are at most ~60s apart (with RECONNECT_DELAY_MS). */
+const BACKOFF_MAX_MS = 55_000;
+/**
+ * Consecutive failed connects (socket closed without a STOMP CONNECTED) before we pause. Every
+ * attempt refreshes the session first (`ensureSession` → `/users/me`), so an unreachable broker
+ * must not retry forever. Tab visible, browser online and a session refresh resume (reconnectWS).
+ */
+export const MAX_FAILED_CONNECTS = 6;
+let failedConnects = 0;
+/** Wakes a pending back-off sleep early (resume, disconnect). */
+let wakeBackoff: (() => void) | null = null;
+
+/**
+ * Extra wait before the next attempt after `failures` consecutive failed connects: exponential
+ * from BACKOFF_BASE_MS, capped at BACKOFF_MAX_MS, with "equal jitter" (half fixed, half random)
+ * so many tabs/users do not retry in lockstep.
+ */
+export function backoffDelay(failures: number, random: () => number = Math.random): number {
+	if (failures <= 0) return 0;
+	const exp = Math.min(BACKOFF_MAX_MS, BACKOFF_BASE_MS * 2 ** (failures - 1));
+	return Math.round(exp / 2 + random() * (exp / 2));
+}
+
+function sleepBackoff(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		const timer = setTimeout(done, ms);
+		function done() {
+			clearTimeout(timer);
+			if (wakeBackoff === done) wakeBackoff = null;
+			resolve();
+		}
+		wakeBackoff = done;
+	});
+}
+
+function cancelBackoff() {
+	wakeBackoff?.();
+}
+
 // ── Topic registry ───────────────────────────────────────────────────────────
 // Every subscription lives here and is (re)attached in onConnect after each
 // (re)connect, so callers can subscribe before the socket is up and survive
@@ -89,20 +132,30 @@ async function syncUnreadCount() {
 function startClient() {
 	if (stompClient?.active) return;
 
+	// Whether the current attempt reached STOMP CONNECTED (a close before that is a failed connect).
+	let connectedThisAttempt = false;
+
 	const client = new Client({
 		brokerURL: wsUrl(),
-		reconnectDelay: 5000,
-		// Runs before every (re)connect attempt. The access cookie lives 15 min,
-		// so after a long drop the upgrade would be rejected; this refreshes it
-		// first through the API client's single-flight refresh.
+		reconnectDelay: RECONNECT_DELAY_MS,
+		// Runs before every (re)connect attempt. After failed connects it first waits out the
+		// back-off. The access cookie lives 15 min, so after a long drop the upgrade would be
+		// rejected; this refreshes it first through the API client's single-flight refresh.
 		beforeConnect: async () => {
+			if (failedConnects > 0) {
+				await sleepBackoff(backoffDelay(failedConnects));
+				// paused or replaced while waiting: stompjs skips the connect for an inactive client
+				if (stompClient !== client) return;
+			}
 			const session = await ensureSession();
 			// 'expired': the API client already cleared the session (which calls
 			// disconnectWS); make sure this client does not connect regardless.
 			if (session === 'expired' && stompClient === client) disconnectWS();
 		},
 		onConnect: () => {
+			connectedThisAttempt = true;
 			consecutiveErrors = 0;
+			failedConnects = 0;
 			client.subscribe(NOTIFICATIONS_DESTINATION, handleNotification);
 			registry.forEach(attach);
 			void syncUnreadCount();
@@ -118,6 +171,11 @@ function startClient() {
 			registry.forEach((entry) => {
 				entry.live = null;
 			});
+			const failed = !connectedThisAttempt;
+			connectedThisAttempt = false;
+			if (!failed || stompClient !== client) return;
+			failedConnects++;
+			if (failedConnects >= MAX_FAILED_CONNECTS) stopClient();
 		}
 	});
 
@@ -143,6 +201,9 @@ function stopClient() {
 export function reconnectWS() {
 	if (!wanted) return;
 	consecutiveErrors = 0;
+	failedConnects = 0;
+	// An attempt waiting out its back-off goes now.
+	cancelBackoff();
 	if (stompClient?.active) return;
 	startClient();
 }
@@ -183,6 +244,7 @@ let refreshListenerRegistered = false;
 export function connectWS() {
 	wanted = true;
 	consecutiveErrors = 0;
+	failedConnects = 0;
 	if (!refreshListenerRegistered) {
 		refreshListenerRegistered = true;
 		onSessionRefreshed(reconnectWS);
@@ -196,6 +258,7 @@ export function disconnectWS() {
 	wanted = false;
 	setBrowserListeners(false);
 	stopClient();
+	cancelBackoff();
 	resetNotifications();
 }
 

@@ -1,10 +1,13 @@
 package com.meeplehearth.game.service;
 
 import com.meeplehearth.common.exception.ApiException;
+import com.meeplehearth.game.dto.UserGameResponse;
 import com.meeplehearth.social.repository.BlockRepository;
+import com.meeplehearth.social.repository.FriendRequestRepository;
 import com.meeplehearth.user.repository.UserRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,10 +21,26 @@ public class LibraryAccessGuard {
 
     private final UserRepository userRepository;
     private final BlockRepository blockRepository;
+    private final FriendRequestRepository friendRequestRepository;
 
-    public LibraryAccessGuard(UserRepository userRepository, BlockRepository blockRepository) {
+    public LibraryAccessGuard(UserRepository userRepository, BlockRepository blockRepository,
+                              FriendRequestRepository friendRequestRepository) {
         this.userRepository = userRepository;
         this.blockRepository = blockRepository;
+        this.friendRequestRepository = friendRequestRepository;
+    }
+
+    /**
+     * {@code ownerId}'s collection entries as {@code viewerId} may see them: the owner gets
+     * everything; anyone else never gets the private notes, and gets the personal rating only as
+     * an accepted friend (ratings feed the "friend average rating", FEATURES_COMPLETE section 3.3).
+     */
+    public List<UserGameResponse> collectionFor(UUID viewerId, UUID ownerId, List<UserGameResponse> entries) {
+        if (ownerId.equals(viewerId)) {
+            return entries;
+        }
+        boolean friend = friendRequestRepository.areFriends(viewerId, ownerId);
+        return entries.stream().map(entry -> entry.forOtherViewer(friend)).toList();
     }
 
     /** @throws ApiException 404 USER_NOT_FOUND unless {@code viewerId} may see {@code targetId}'s library */

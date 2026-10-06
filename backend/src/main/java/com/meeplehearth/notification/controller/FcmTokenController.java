@@ -1,7 +1,9 @@
 package com.meeplehearth.notification.controller;
 
+import com.meeplehearth.auth.service.SessionService;
 import com.meeplehearth.notification.dto.RegisterFcmTokenRequest;
 import com.meeplehearth.notification.service.FcmTokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,16 +21,24 @@ import java.util.UUID;
 public class FcmTokenController {
 
     private final FcmTokenService fcmTokenService;
+    private final SessionService sessionService;
 
-    public FcmTokenController(FcmTokenService fcmTokenService) {
+    public FcmTokenController(FcmTokenService fcmTokenService, SessionService sessionService) {
         this.fcmTokenService = fcmTokenService;
+        this.sessionService = sessionService;
     }
 
-    /** POST /api/v1/users/me/fcm-tokens {token, platform, deviceInfo?} → 204 */
+    /**
+     * POST /api/v1/users/me/fcm-tokens {token, platform, deviceInfo?} → 204. When the request
+     * carries this device's refresh_token cookie, the registration is linked to that session, so
+     * signing the session out (DELETE /auth/sessions/{id}, revoke-others) stops its pushes.
+     */
     @PostMapping
     public ResponseEntity<Void> register(@AuthenticationPrincipal UserDetails userDetails,
-                                         @Valid @RequestBody RegisterFcmTokenRequest request) {
-        fcmTokenService.register(UUID.fromString(userDetails.getUsername()), request);
+                                         @Valid @RequestBody RegisterFcmTokenRequest request,
+                                         HttpServletRequest httpRequest) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        fcmTokenService.register(userId, request, sessionService.currentFamily(userId, httpRequest).orElse(null));
         return ResponseEntity.noContent().build();
     }
 

@@ -34,13 +34,20 @@ const ENV = {
 };
 for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v);
 
-const { TOKEN_STORAGE_KEY, disablePush, enablePush, isPushConfigured, pushStatus } = await import('./fcm');
+const { TOKEN_STORAGE_KEY, disablePush, enablePush, isPushConfigured, pushStatus, syncPushUser } =
+	await import('./fcm');
+const { setUser } = await import('$lib/stores/auth');
+
+const stored = () => JSON.parse(localStorage.getItem(TOKEN_STORAGE_KEY) ?? 'null');
+const storeFor = (token: string, userId: string | null) =>
+	localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ token, userId }));
 
 let permission: NotificationPermission;
 const swRegister = vi.fn(async (..._a: unknown[]) => ({ scope: '/' }) as unknown as ServiceWorkerRegistration);
 
 beforeEach(() => {
 	localStorage.clear();
+	setUser({ id: 'u1' } as never);
 	permission = 'default';
 	for (const fn of Object.values(h)) fn.mockClear();
 	h.getToken.mockResolvedValue('tok-1');
@@ -79,7 +86,7 @@ describe('with push configured', () => {
 		expect(h.initializeApp).toHaveBeenCalledWith(expect.objectContaining({ apiKey: 'key' }), 'meeple');
 		expect(h.getToken).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ vapidKey: 'vapid' }));
 		expect(h.register).toHaveBeenCalledWith('tok-1', 'web', expect.any(String));
-		expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('tok-1');
+		expect(stored()).toEqual({ token: 'tok-1', userId: 'u1' });
 		expect(pushStatus()).toBe('enabled');
 	});
 
@@ -91,7 +98,7 @@ describe('with push configured', () => {
 		await expect(enablePush()).resolves.toBe('enabled');
 		expect(h.initializeApp).not.toHaveBeenCalled();
 		expect(h.unregister).toHaveBeenCalledWith('old');
-		expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('tok-1');
+		expect(stored()).toEqual({ token: 'tok-1', userId: 'u1' });
 	});
 
 	it.each([
@@ -125,7 +132,7 @@ describe('with push configured', () => {
 
 	it('disable removes the token from the account, deletes it at FCM and reports the new status', async () => {
 		permission = 'granted';
-		localStorage.setItem(TOKEN_STORAGE_KEY, 'tok-1');
+		storeFor('tok-1', 'u1');
 		await expect(disablePush()).resolves.toBe('disabled');
 		expect(h.unregister).toHaveBeenCalledWith('tok-1');
 		expect(h.deleteToken).toHaveBeenCalled();
@@ -136,5 +143,58 @@ describe('with push configured', () => {
 		h.isSupported.mockResolvedValueOnce(false);
 		await expect(disablePush()).resolves.toBe('disabled');
 		expect(h.deleteToken).not.toHaveBeenCalled();
+	});
+
+	it("reports disabled for a token registered by another account or with an unknown owner", () => {
+		permission = 'granted';
+		storeFor('tok-1', 'u1');
+		expect(pushStatus()).toBe('enabled');
+		setUser({ id: 'u2' } as never);
+		expect(pushStatus()).toBe('disabled');
+		localStorage.setItem(TOKEN_STORAGE_KEY, 'legacy-token');
+		expect(pushStatus()).toBe('disabled');
+	});
+});
+
+describe('syncPushUser (account switch on a shared browser)', () => {
+	it('re-registers a token left by another account for the current user', async () => {
+		permission = 'granted';
+		storeFor('tok-a', 'u1');
+		setUser({ id: 'u2' } as never);
+		await syncPushUser('u2');
+		expect(h.register).toHaveBeenCalledWith('tok-a', 'web', expect.any(String));
+		expect(stored()).toEqual({ token: 'tok-a', userId: 'u2' });
+		expect(pushStatus()).toBe('enabled');
+	});
+
+	it('moves a legacy entry (bare token, unknown owner) to the current user', async () => {
+		permission = 'granted';
+		localStorage.setItem(TOKEN_STORAGE_KEY, 'legacy');
+		await syncPushUser('u1');
+		expect(h.register).toHaveBeenCalledWith('legacy', 'web', expect.any(String));
+		expect(stored()).toEqual({ token: 'legacy', userId: 'u1' });
+	});
+
+	it('does nothing for the same user, no user or no stored token', async () => {
+		permission = 'granted';
+		await syncPushUser('u1');
+		storeFor('tok-a', 'u1');
+		await syncPushUser('u1');
+		await syncPushUser(null);
+		expect(h.register).not.toHaveBeenCalled();
+		expect(stored()).toEqual({ token: 'tok-a', userId: 'u1' });
+	});
+
+	it('forgets the foreign token when permission is gone or registering fails', async () => {
+		storeFor('tok-a', 'u1');
+		await syncPushUser('u2');
+		expect(h.register).not.toHaveBeenCalled();
+		expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+
+		permission = 'granted';
+		storeFor('tok-a', 'u1');
+		h.register.mockRejectedValueOnce(new Error('net'));
+		await syncPushUser('u2');
+		expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
 	});
 });

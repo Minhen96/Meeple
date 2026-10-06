@@ -80,6 +80,27 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
     List<EventParticipant> findAcceptedByUserId(UUID userId);
 
     /**
+     * Live (OPEN/FULL, not deleted) events the user has ACCEPTED and does not host, oldest first
+     * (account hard delete: the user leaves them).
+     */
+    @Query("""
+            SELECT ep.id.eventId FROM EventParticipant ep JOIN ep.event e
+            WHERE ep.id.userId = :userId AND ep.status = 'ACCEPTED'
+              AND e.deletedAt IS NULL AND e.status IN ('OPEN', 'FULL')
+              AND (e.host IS NULL OR e.host.id <> :userId)
+            ORDER BY e.scheduledAt ASC
+            """)
+    List<UUID> findLiveEventIdsJoinedBy(UUID userId);
+
+    /** Sets the user's ACCEPTED rows on {@code eventIds} to LEFT; returns how many changed. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            UPDATE EventParticipant ep SET ep.status = 'LEFT'
+            WHERE ep.id.userId = :userId AND ep.status = 'ACCEPTED' AND ep.id.eventId IN :eventIds
+            """)
+    int markLeft(UUID userId, Collection<UUID> eventIds);
+
+    /**
      * Removes the user's still-pending invites to events that have not started yet (account
      * deletion). Returns the number of invites removed.
      */

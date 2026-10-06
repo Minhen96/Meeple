@@ -78,6 +78,7 @@ export class CursorPager<T> {
 	private cursor: string | null = null;
 	private generation = 0;
 	private inFlight: Promise<void> | null = null;
+	private alive = true;
 
 	constructor(
 		private readonly fetchPage: FetchPage<T>,
@@ -102,6 +103,7 @@ export class CursorPager<T> {
 
 	/** Loads the next page unless one is loading or the end was reached. */
 	loadMore(): Promise<void> {
+		if (!this.alive) return Promise.resolve();
 		if (this.inFlight) return this.inFlight;
 		if (this.state.loaded && !this.state.hasMore) return Promise.resolve();
 		return this.run(this.state.loaded ? this.cursor : null, !this.state.loaded);
@@ -109,6 +111,7 @@ export class CursorPager<T> {
 
 	/** Reloads from the first page (pull-to-refresh, retry after an error on the first page). */
 	refresh(): Promise<void> {
+		if (!this.alive) return Promise.resolve();
 		this.generation++;
 		this.inFlight = null;
 		this.cursor = null;
@@ -120,6 +123,21 @@ export class CursorPager<T> {
 			loaded: false
 		});
 		return this.run(null, true);
+	}
+
+	/**
+	 * Retires this pager (its list was replaced or unmounted): requests still in flight resolve
+	 * silently and no later change reaches `onChange`, so it can never overwrite the list of the
+	 * pager that replaced it.
+	 */
+	dispose(): void {
+		this.alive = false;
+		this.generation++;
+		this.inFlight = null;
+	}
+
+	get disposed(): boolean {
+		return !this.alive;
 	}
 
 	/** Applies a local change (optimistic like, delete) to the loaded items. */
@@ -177,6 +195,7 @@ export class CursorPager<T> {
 	}
 
 	private set(state: PagerState<T>): void {
+		if (!this.alive) return;
 		this.state = state;
 		this.onChange(state);
 	}

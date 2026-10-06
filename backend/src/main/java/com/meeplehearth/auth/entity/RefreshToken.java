@@ -48,4 +48,18 @@ public class RefreshToken {
     /** The token issued when this one was rotated (null until rotated, or once that token is deleted). */
     @Column(name = "replaced_by")
     private UUID replacedBy;
+
+    /**
+     * The device session this token belongs to (V62): set at login and carried forward on every
+     * rotation. It is the session id exposed by {@code GET /auth/sessions}.
+     */
+    @Column(name = "family_id", nullable = false, updatable = false)
+    private UUID familyId;
+
+    @PrePersist
+    void defaultFamily() {
+        if (familyId == null) {
+            familyId = UUID.randomUUID();
+        }
+    }
 }

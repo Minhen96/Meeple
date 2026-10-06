@@ -126,6 +126,11 @@ public class AppProperties {
         private String accessKey;
         private String secretKey;
         private String bucket;
+        /**
+         * Private bucket for data exports (R2_PRIVATE_BUCKET); never exposed on a public domain.
+         * When blank, exports fall back to the media bucket under {@code private/}.
+         */
+        private String privateBucket;
         private String publicUrl;
 
         public String getEndpoint() {
@@ -158,6 +163,14 @@ public class AppProperties {
 
         public void setBucket(String bucket) {
             this.bucket = bucket;
+        }
+
+        public String getPrivateBucket() {
+            return privateBucket;
+        }
+
+        public void setPrivateBucket(String privateBucket) {
+            this.privateBucket = privateBucket;
         }
 
         public String getPublicUrl() {
@@ -307,8 +320,10 @@ public class AppProperties {
     public static class RateLimit {
         private boolean enabled = true;
         private long perUserPerMinute = 200;
-        private long perIpPerMinute = 20;
+        private long perIpPerMinute = 60;
         private long loginPerMinute = 10;
+        /** GET /auth/check-username and /auth/check-email, per client IP (own bucket). */
+        private long availabilityPerMinute = 60;
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean v) { this.enabled = v; }
@@ -318,6 +333,8 @@ public class AppProperties {
         public void setPerIpPerMinute(long v) { this.perIpPerMinute = v; }
         public long getLoginPerMinute() { return loginPerMinute; }
         public void setLoginPerMinute(long v) { this.loginPerMinute = v; }
+        public long getAvailabilityPerMinute() { return availabilityPerMinute; }
+        public void setAvailabilityPerMinute(long v) { this.availabilityPerMinute = v; }
     }
 
     /**

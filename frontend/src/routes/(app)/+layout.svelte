@@ -13,7 +13,7 @@
 	} from '$lib/components/layout/navigation';
 	import { getLocale, isLocale, m, setLocale } from '$lib/i18n';
 	import { notificationsApi } from '$lib/api/notifications';
-	import { notifications } from '$lib/stores/notifications';
+	import { setUnreadCount } from '$lib/stores/notifications';
 	import { currentUser } from '$lib/stores/auth';
 
 	interface Props {
@@ -74,12 +74,13 @@
 		else void goto(logicalParent(pathname));
 	}
 
+	// Badge only: the list itself belongs to the notifications screen (and the WebSocket), so a
+	// cold load straight onto /notifications never has its first page overwritten from here.
 	onMount(async () => {
 		try {
-			const res = await notificationsApi.getAll();
-			notifications.set(res?.data ?? []);
+			setUnreadCount(await notificationsApi.getUnreadCount());
 		} catch {
-			// non-critical — badge stays at 0
+			// non-critical — the badge falls back to the loaded items
 		}
 	});
 </script>

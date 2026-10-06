@@ -100,8 +100,8 @@ final class AccountRepository {
         return body is Map ? (body['revoked'] as num?)?.toInt() ?? 0 : 0;
       });
 
-  /// `GET /users/me/export` → 202 `{id, status, createdAt, completedAt}`;
+  /// `POST /users/me/export` → 202 `{id, status, createdAt, completedAt}`;
   /// the archive link is emailed.
   Future<void> requestExport() =>
-      guardApi(() => _dio.get<void>('${ApiConstants.me}/export'));
+      guardApi(() => _dio.post<void>('${ApiConstants.me}/export'));
 }

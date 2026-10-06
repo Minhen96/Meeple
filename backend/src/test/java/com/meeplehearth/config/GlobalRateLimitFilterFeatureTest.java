@@ -71,9 +71,9 @@ class GlobalRateLimitFilterFeatureTest {
 
     @Test
     void overTheLimitAnswers429WithRetryAfter() throws Exception {
-        when(limiter.increment(anyString(), any(Duration.class))).thenReturn(21L);
+        when(limiter.increment(anyString(), any(Duration.class))).thenReturn(61L);
 
-        MockHttpServletResponse response = run(request("GET", "/api/v1/auth/check-username"));
+        MockHttpServletResponse response = run(request("GET", "/api/v1/games"));
 
         verify(limiter).increment(eq("ratelimit:global:ip:203.0.113.9:" + WINDOW), any(Duration.class));
         verify(chain, never()).doFilter(any(), any());
@@ -92,6 +92,45 @@ class GlobalRateLimitFilterFeatureTest {
         assertThat(run(request("POST", "/api/v1/auth/reactivate")).getStatus()).isEqualTo(429);
         verify(limiter, org.mockito.Mockito.times(2))
                 .increment(eq("ratelimit:global:login:203.0.113.9:" + WINDOW), any(Duration.class));
+    }
+
+    @Test
+    void bucketsAreChosenOnTheDecodedNormalisedPath() throws Exception {
+        when(limiter.increment(anyString(), any(Duration.class))).thenReturn(1L);
+
+        run(request("POST", "/api/v1/auth/l%6Fgin"));
+        run(request("POST", "/api/v1/AUTH/Login;jsessionid=abc"));
+        run(request("POST", "/api/v1//auth/login//"));
+        run(request("POST", "/api/v1/auth/re%61ctivate"));
+
+        verify(limiter, org.mockito.Mockito.times(4))
+                .increment(eq("ratelimit:global:login:203.0.113.9:" + WINDOW), any(Duration.class));
+    }
+
+    @Test
+    void loginBucketAppliesToSignedInCallersToo() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "user-1", null, AuthorityUtils.createAuthorityList("ROLE_USER")));
+        when(limiter.increment(anyString(), any(Duration.class))).thenReturn(11L);
+
+        assertThat(run(request("POST", "/api/v1/auth/login")).getStatus()).isEqualTo(429);
+        verify(limiter).increment(eq("ratelimit:global:login:203.0.113.9:" + WINDOW), any(Duration.class));
+        verify(limiter, never()).increment(eq("ratelimit:global:user:user-1:" + WINDOW), any(Duration.class));
+    }
+
+    @Test
+    void availabilityChecksHaveTheirOwnGenerousBucket() throws Exception {
+        when(limiter.increment(anyString(), any(Duration.class))).thenReturn(60L, 61L);
+
+        MockHttpServletResponse ok = run(request("GET", "/api/v1/auth/check-username"));
+        MockHttpServletResponse limited = run(request("GET", "/api/v1/auth/check-%65mail"));
+
+        verify(limiter, org.mockito.Mockito.times(2))
+                .increment(eq("ratelimit:global:availability:203.0.113.9:" + WINDOW), any(Duration.class));
+        assertThat(ok.getStatus()).isEqualTo(200);
+        assertThat(ok.getHeader("X-RateLimit-Limit")).isEqualTo("60");
+        assertThat(limited.getStatus()).isEqualTo(429);
+        assertThat(limits.getPerIpPerMinute()).isEqualTo(60);
     }
 
     @Test

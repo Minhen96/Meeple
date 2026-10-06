@@ -183,14 +183,18 @@ public class GameController {
         return ResponseEntity.noContent().build();
     }
 
-    /** GET /api/v1/users/{userId}/games — another user's collection; 404 if blocked either way */
+    /**
+     * GET /api/v1/users/{userId}/games — another user's collection; 404 if blocked either way.
+     * Notes are the owner's only; the personal rating is shown to the owner's friends only.
+     */
     @GetMapping("/users/{userId}/games")
     public ResponseEntity<List<UserGameResponse>> getUserCollection(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "all") String filter) {
-        accessGuard.requireVisible(userId(userDetails), userId);
-        return ResponseEntity.ok(gameService.getCollection(userId, filter));
+        UUID viewerId = userId(userDetails);
+        accessGuard.requireVisible(viewerId, userId);
+        return ResponseEntity.ok(accessGuard.collectionFor(viewerId, userId, gameService.getCollection(userId, filter)));
     }
 
     /** GET /api/v1/users/{userId}/plays — another user's activity; 404 if blocked either way */

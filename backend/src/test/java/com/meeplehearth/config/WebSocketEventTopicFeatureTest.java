@@ -150,6 +150,49 @@ class WebSocketEventTopicFeatureTest {
         assertThat(session.isConnected()).isFalse();
     }
 
+    private boolean canSubscribe(UUID userId, UUID event) throws Exception {
+        BlockingQueue<String> inbox = new LinkedBlockingQueue<>();
+        Recorder recorder = new Recorder();
+        StompSession session = connect(userId, recorder);
+        session.subscribe("/topic/events/" + event, into(inbox));
+        for (int i = 0; i < 50; i++) {
+            if (recorder.closed.isDone()) {
+                return false;
+            }
+            messagingTemplate.convertAndSend("/topic/events/" + event, "probe-" + i);
+            if (inbox.poll(100, TimeUnit.MILLISECONDS) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void participant(UUID event, UUID userId, String status) {
+        jdbc.update("INSERT INTO event_participants (event_id, user_id, status) VALUES (?, ?, ?)", event, userId, status);
+    }
+
+    @Test
+    void leftAndKickedParticipantsLoseTheLiveTopicOfPrivateEvents() throws Exception {
+        UUID host = user();
+        UUID declined = user();
+        UUID left = user();
+        UUID kickedFriend = user();
+        jdbc.update("INSERT INTO friend_requests (sender_id, receiver_id, status) VALUES (?, ?, 'ACCEPTED')",
+                host, kickedFriend);
+        UUID inviteOnly = event(host, "INVITE_ONLY");
+        participant(inviteOnly, declined, "DECLINED");
+        participant(inviteOnly, left, "LEFT");
+        UUID friendsOnly = event(host, "FRIENDS");
+        participant(friendsOnly, kickedFriend, "KICKED");
+        UUID publicEvent = event(host, "PUBLIC");
+        participant(publicEvent, left, "KICKED");
+
+        assertThat(canSubscribe(declined, inviteOnly)).isTrue();
+        assertThat(canSubscribe(left, inviteOnly)).isFalse();
+        assertThat(canSubscribe(kickedFriend, friendsOnly)).isFalse();
+        assertThat(canSubscribe(left, publicEvent)).isTrue();
+    }
+
     @Test
     void anyoneCanFollowAPublicEvent() throws Exception {
         UUID host = user();

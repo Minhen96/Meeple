@@ -9,6 +9,9 @@ import com.meeplehearth.notification.repository.NotificationRepository;
 import com.meeplehearth.notification.repository.UserFcmTokenRepository;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
+import com.google.firebase.IncomingHttpResponse;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -122,5 +125,37 @@ class FcmServiceTest {
         when(provider.getIfAvailable()).thenReturn(null);
         service.sendAsync(message);
         verifyNoInteractions(tokens);
+    }
+
+    private static FirebaseMessagingException fcmError(MessagingErrorCode code, String message, String body) {
+        FirebaseMessagingException e = mock(FirebaseMessagingException.class);
+        when(e.getMessagingErrorCode()).thenReturn(code);
+        when(e.getMessage()).thenReturn(message);
+        if (body != null) {
+            IncomingHttpResponse response = mock(IncomingHttpResponse.class);
+            when(response.getContent()).thenReturn(body);
+            when(e.getHttpResponse()).thenReturn(response);
+        }
+        return e;
+    }
+
+    @Test
+    void onlyTokenErrorsMarkATokenStale() {
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.UNREGISTERED, "Requested entity was not found.", null)))
+                .isTrue();
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.SENDER_ID_MISMATCH, null, null))).isTrue();
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.INVALID_ARGUMENT,
+                "The registration token is not a valid FCM registration token", null))).isTrue();
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.INVALID_ARGUMENT, "Request contains an invalid argument.",
+                "{\"error\":{\"details\":[{\"fieldViolations\":[{\"field\":\"message.token\"}]}]}}"))).isTrue();
+
+        // A malformed message is not the token's fault
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.INVALID_ARGUMENT, "Request contains an invalid argument.",
+                "{\"error\":{\"details\":[{\"fieldViolations\":[{\"field\":\"message.data\"}]}]}}"))).isFalse();
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.INVALID_ARGUMENT, null, null))).isFalse();
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.UNAVAILABLE, "registration token", null))).isFalse();
+        assertThat(FcmService.isStale(fcmError(MessagingErrorCode.QUOTA_EXCEEDED, null, null))).isFalse();
+        assertThat(FcmService.isStale(fcmError(null, null, null))).isFalse();
+        assertThat(FcmService.isStale(null)).isFalse();
     }
 }

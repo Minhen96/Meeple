@@ -198,7 +198,7 @@ public class PostService {
         Set<UUID> bookmarked = postQueryRepository.findBookmarkedPostIds(viewerId, visibleIds);
         Map<UUID, PostResponse> result = new LinkedHashMap<>();
         for (Post p : visible) {
-            result.put(p.getId(), PostResponse.from(p, liked.contains(p.getId()), bookmarked.contains(p.getId())));
+            result.put(p.getId(), PostResponse.from(p, liked.contains(p.getId()), bookmarked.contains(p.getId()), hidden));
         }
         return result;
     }
@@ -212,7 +212,7 @@ public class PostService {
         Post post = findVisiblePost(postId, currentUserId);
         boolean liked = postLikeRepository.existsById(new PostLikeId(postId, currentUserId));
         boolean bookmarked = !postQueryRepository.findBookmarkedPostIds(currentUserId, List.of(postId)).isEmpty();
-        return PostResponse.from(post, liked, bookmarked);
+        return PostResponse.from(post, liked, bookmarked, blockRepository.findBlockedEitherWay(currentUserId));
     }
 
     // -------------------------------------------------------------------------
@@ -332,7 +332,7 @@ public class PostService {
 
         boolean liked = postLikeRepository.existsById(new PostLikeId(postId, userId));
         boolean bookmarked = !postQueryRepository.findBookmarkedPostIds(userId, List.of(postId)).isEmpty();
-        return PostResponse.from(saved, liked, bookmarked);
+        return PostResponse.from(saved, liked, bookmarked, blockRepository.findBlockedEitherWay(userId));
     }
 
     // -------------------------------------------------------------------------

@@ -462,7 +462,7 @@ void main() {
       api
         ..post('/api/v1/users/me/change-email', {'message': 'sent'})
         ..post('/api/v1/auth/forgot-password', {'message': 'sent'})
-        ..get('/api/v1/users/me/export',
+        ..post('/api/v1/users/me/export',
             const FakeResponse({'data': {'id': 'x', 'status': 'PENDING'}},
                 status: 202));
       await repo.changeEmail(currentPassword: 'pw', newEmail: 'n@x.io');
@@ -470,7 +470,7 @@ void main() {
           {'currentPassword': 'pw', 'newEmail': 'n@x.io'});
       await repo.sendPasswordReset('me@x.io');
       await repo.requestExport();
-      expect(api.called('GET', '/api/v1/users/me/export'), isTrue);
+      expect(api.called('POST', '/api/v1/users/me/export'), isTrue);
     });
 
     test('sessions carry the refresh cookie; revoke-others stores the new '

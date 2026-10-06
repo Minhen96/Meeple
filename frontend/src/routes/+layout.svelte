@@ -5,6 +5,7 @@
 	import OfflineBanner from '$lib/components/layout/OfflineBanner.svelte';
 	import { locale, setLocale, type Locale } from '$lib/i18n';
 	import { identifyUser } from '$lib/observability';
+	import { syncPushUser } from '$lib/push';
 	import { setUser } from '$lib/stores/auth';
 	import { connectWS, disconnectWS } from '$lib/stores/websocket';
 	import type { User } from '$lib/types';
@@ -34,6 +35,11 @@
 	// Error tracking / analytics identity: the user id only, never email (no-op if unconfigured).
 	$effect(() => {
 		identifyUser(userId);
+	});
+
+	// A push token registered by another account on this browser moves to the signed-in one.
+	$effect(() => {
+		void syncPushUser(userId);
 	});
 
 	$effect(() => {

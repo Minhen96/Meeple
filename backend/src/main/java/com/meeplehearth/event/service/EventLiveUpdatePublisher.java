@@ -1,7 +1,6 @@
 package com.meeplehearth.event.service;
 
 import com.meeplehearth.event.dto.EventLiveUpdate;
-import com.meeplehearth.event.dto.EventResponse.ParticipantInfo;
 import com.meeplehearth.event.entity.Event;
 import com.meeplehearth.event.repository.EventParticipantRepository;
 import com.meeplehearth.event.repository.EventRepository;
@@ -14,13 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Broadcasts {@link EventLiveUpdate} on {@code /topic/events/{eventId}} once a change to the
- * event's participants or status has committed, so subscribers never see rolled-back state.
+ * Broadcasts {@link EventLiveUpdate} ({@code eventId, participantCount, status} only, never the
+ * roster) on {@code /topic/events/{eventId}} once a change to the event's participants or status
+ * has committed, so subscribers never see rolled-back state.
  * Who may subscribe is decided by the WebSocket subscribe interceptor (GAP_ANALYSIS section 6.3).
  * A failed broadcast is logged and never affects the change itself.
  */
@@ -60,9 +59,7 @@ public class EventLiveUpdatePublisher {
         if (event.isEmpty()) {
             return Optional.empty();
         }
-        List<ParticipantInfo> accepted = participantRepository.findAcceptedWithUsers(eventId).stream()
-                .map(ParticipantInfo::from)
-                .toList();
-        return Optional.of(new EventLiveUpdate(eventId, accepted.size(), event.get().getStatus().name(), accepted));
+        int accepted = participantRepository.countAcceptedByEventId(eventId);
+        return Optional.of(new EventLiveUpdate(eventId, accepted, event.get().getStatus().name()));
     }
 }

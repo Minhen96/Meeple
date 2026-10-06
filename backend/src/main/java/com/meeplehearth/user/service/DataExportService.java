@@ -33,9 +33,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * GDPR data export (FEATURES_COMPLETE section 1.6): GET /users/me/export answers 202 at once and
- * a background task builds a zip with one JSON document of the user's own data, stores it
- * privately in R2 under {@code exports/<userId>/} and emails a 7-day download link.
+ * GDPR data export (FEATURES_COMPLETE section 1.6): POST /users/me/export answers 202 at once and
+ * a background task builds a zip with one JSON document of the user's own data, stores it in the
+ * private R2 bucket under {@code exports/<userId>/} ({@link ObjectStorageService#putPrivate}) and
+ * emails a 7-day presigned download link. {@code DataExportCleanupJob} deletes the zip and marks the
+ * request EXPIRED once the link has run out.
  *
  * <p>At most one export per user per {@link #COOLDOWN}: asking again returns the existing request.
  * Credentials (password hash, Google id, token version) never leave the server.
@@ -153,8 +155,8 @@ public class DataExportService {
                     .orElseThrow(() -> new IllegalStateException("User is no longer active"));
             byte[] zip = zip(buildExport(user));
             String key = EXPORT_PREFIX + user.getId() + "/" + requestId + ".zip";
-            storage.put(key, zip, "application/zip");
-            String link = storage.presignGet(key, LINK_VALIDITY);
+            storage.putPrivate(key, zip, "application/zip");
+            String link = storage.presignPrivateGet(key, LINK_VALIDITY);
 
             transactionTemplate.executeWithoutResult(status -> {
                 DataExportRequest done = requestRepository.findById(requestId).orElseThrow();

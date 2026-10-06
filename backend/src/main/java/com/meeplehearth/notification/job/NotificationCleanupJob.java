@@ -2,6 +2,7 @@ package com.meeplehearth.notification.job;
 
 import com.meeplehearth.common.job.JobLock;
 import com.meeplehearth.notification.repository.NotificationRepository;
+import com.meeplehearth.notification.service.UnreadCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,12 +15,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * {@code notification_cleanup} (TECH_STACK_ADDITIONS section 21): daily at 03:00 UTC, deletes
  * notifications older than {@link #RETENTION} and rows soft-deleted more than
  * {@link #SOFT_DELETE_GRACE} ago, in batches, under the Redis lock {@code lock:notification_cleanup}.
- * Unread counters may drift by the deleted unread rows until their TTL expires.
+ * The unread counters of recipients who lost an unread row are evicted after each committed
+ * batch, so their badges are recounted from the database.
  *
  * <p>Eagerly created ({@code @Lazy(false)}) so the {@code @Scheduled} method is registered under
  * {@code spring.main.lazy-initialization=true}.
@@ -38,19 +43,21 @@ public class NotificationCleanupJob {
 
     private final JobLock jobLock;
     private final NotificationRepository notificationRepository;
+    private final UnreadCounter unreadCounter;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
     @Autowired
     public NotificationCleanupJob(JobLock jobLock, NotificationRepository notificationRepository,
-                                  PlatformTransactionManager transactionManager) {
-        this(jobLock, notificationRepository, transactionManager, Clock.systemUTC());
+                                  UnreadCounter unreadCounter, PlatformTransactionManager transactionManager) {
+        this(jobLock, notificationRepository, unreadCounter, transactionManager, Clock.systemUTC());
     }
 
     NotificationCleanupJob(JobLock jobLock, NotificationRepository notificationRepository,
-                           PlatformTransactionManager transactionManager, Clock clock) {
+                           UnreadCounter unreadCounter, PlatformTransactionManager transactionManager, Clock clock) {
         this.jobLock = jobLock;
         this.notificationRepository = notificationRepository;
+        this.unreadCounter = unreadCounter;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -74,9 +81,13 @@ public class NotificationCleanupJob {
         Instant deletedBefore = now.minus(SOFT_DELETE_GRACE);
         int total = 0;
         while (true) {
-            Integer deleted = transactionTemplate.execute(status ->
-                    notificationRepository.deleteExpiredBatch(createdBefore, deletedBefore, BATCH_SIZE));
-            int n = deleted == null ? 0 : deleted;
+            List<String> deleted = transactionTemplate.execute(status -> notificationRepository
+                    .deleteExpiredBatchReturningUnreadRecipients(createdBefore, deletedBefore, BATCH_SIZE));
+            int n = deleted == null ? 0 : deleted.size();
+            if (deleted != null) {
+                deleted.stream().filter(Objects::nonNull).distinct()
+                        .forEach(recipient -> unreadCounter.evict(UUID.fromString(recipient)));
+            }
             total += n;
             if (n < BATCH_SIZE) {
                 return total;

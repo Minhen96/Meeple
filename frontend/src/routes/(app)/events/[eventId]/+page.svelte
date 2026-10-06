@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { toast } from 'svelte-sonner';
 	import { eventsApi } from '$lib/api/events';
@@ -20,7 +20,7 @@
 		statusChipClass,
 		statusLabel
 	} from '$lib/components/event/eventState';
-	import type { EventParticipant, Post } from '$lib/types';
+	import type { Event as EventDetail, EventParticipant, Post } from '$lib/types';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -58,21 +58,59 @@
 		event.participants.filter((p) => p.status === 'INVITED' || p.status === 'ACCEPTED').map((p) => p.id)
 	);
 
+	/** The event this page shows; results of requests made for another event are dropped. */
+	const currentId = $derived(data.event.id);
+
+	/** Apply a server response, unless the page has moved on to another event meanwhile. */
+	function apply(next: EventDetail) {
+		if (next.id === currentId) event = next;
+	}
+
 	// ─── Live updates on /topic/events/{id}: refresh the viewer-specific view ──────
 	let unsubscribe: (() => void) | null = null;
 	let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 	let subscribedId: string | null = null;
 
-	$effect(() => {
-		const id = event.id;
+	/** Id named by a live frame, if any (`{eventId, participantCount, status}`; older frames also carried participants). */
+	function frameEventId(body: string): string | null {
+		try {
+			const value: unknown = JSON.parse(body);
+			if (typeof value === 'object' && value !== null) {
+				const id = (value as Record<string, unknown>).eventId;
+				return typeof id === 'string' ? id : null;
+			}
+		} catch {
+			// not JSON: still a change signal
+		}
+		return null;
+	}
+
+	// Switching to another event (same component, new data): drop everything that belonged to
+	// the previous one, then follow the new event's topic.
+	$effect.pre(() => {
+		const id = currentId;
 		if (id === subscribedId) return;
-		unsubscribe?.();
-		subscribedId = id;
-		// The payload is the same for every subscriber; re-fetch so participants, masking and
-		// block filtering stay correct for this viewer. Bursts are coalesced.
-		unsubscribe = subscribeTopic(`/topic/events/${id}`, () => {
+		untrack(() => {
+			unsubscribe?.();
 			clearTimeout(refreshTimer);
-			refreshTimer = setTimeout(refresh, 300);
+			if (subscribedId !== null) {
+				memories = null;
+				memoriesError = false;
+				sheet = null;
+				confirm = null;
+				menuOpen = false;
+				inviteIds = [];
+			}
+			subscribedId = id;
+			// The payload is the same for every subscriber and carries no viewer-specific data;
+			// re-fetch so participants, masking and block filtering stay correct for this viewer.
+			// Bursts are coalesced.
+			unsubscribe = subscribeTopic(`/topic/events/${id}`, (frame) => {
+				const named = frameEventId(frame.body);
+				if (named !== null && named !== id) return;
+				clearTimeout(refreshTimer);
+				refreshTimer = setTimeout(refresh, 300);
+			});
 		});
 	});
 
@@ -82,8 +120,9 @@
 	});
 
 	async function refresh() {
+		const id = currentId;
 		try {
-			event = await eventsApi.getEvent(event.id);
+			apply(await eventsApi.getEvent(id));
 		} catch {
 			// Keep showing the last state; the next update or navigation retries
 		}
@@ -102,7 +141,7 @@
 
 	const rsvp = (status: 'ACCEPTED' | 'DECLINED') =>
 		run(async () => {
-			event = await eventsApi.rsvp(event.id, status);
+			apply(await eventsApi.rsvp(event.id, status));
 			toast.success(status === 'ACCEPTED' ? m('event.toast.joined') : m('event.toast.declined'));
 		});
 
@@ -125,24 +164,27 @@
 	const kick = (participant: EventParticipant) =>
 		run(async () => {
 			confirm = null;
-			event = await eventsApi.kick(event.id, participant.id);
+			apply(await eventsApi.kick(event.id, participant.id));
 			toast.success(m('event.toast.kicked', { name: displayName(participant) }));
 		});
 
 	const sendInvites = () =>
 		run(async () => {
 			if (inviteIds.length === 0) return;
-			event = await eventsApi.invite(event.id, inviteIds);
+			apply(await eventsApi.invite(event.id, inviteIds));
 			inviteIds = [];
 			sheet = null;
 			toast.success(m('event.toast.invited'));
 		});
 
 	async function loadMemories() {
+		const id = currentId;
 		memoriesError = false;
 		try {
-			memories = (await eventsApi.getMemories(event.id)).items;
+			const items = (await eventsApi.getMemories(id)).items;
+			if (id === currentId) memories = items;
 		} catch {
+			if (id !== currentId) return;
 			memories = [];
 			memoriesError = true;
 		}

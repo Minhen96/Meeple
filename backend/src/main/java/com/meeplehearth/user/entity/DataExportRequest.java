@@ -20,7 +20,8 @@ import java.util.UUID;
 @Setter
 public class DataExportRequest {
 
-    public enum Status { PENDING, RUNNING, COMPLETED, FAILED }
+    /** EXPIRED: the 7-day link ran out and the file was deleted (V61). */
+    public enum Status { PENDING, RUNNING, COMPLETED, FAILED, EXPIRED }
 
     @Id
     @UuidGenerator

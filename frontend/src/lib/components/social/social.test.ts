@@ -135,6 +135,27 @@ describe('CursorPager', () => {
 		expect(fetch).toHaveBeenLastCalledWith(null);
 	});
 
+	it('dispose ignores in-flight pages and every later call', async () => {
+		const stale = deferred<CursorPage<Row>>();
+		const fetch = vi.fn<[string | null], Promise<CursorPage<Row>>>().mockReturnValueOnce(stale.promise);
+		const onChange = vi.fn();
+		const pager = new CursorPager(fetch, (r) => r.id, onChange);
+		const pending = pager.loadMore();
+		onChange.mockClear();
+
+		pager.dispose();
+		expect(pager.disposed).toBe(true);
+		stale.resolve(page(['old'], 'c1'));
+		await pending;
+		await pager.loadMore();
+		await pager.refresh();
+		pager.update(() => [{ id: 'x' }]);
+
+		expect(onChange).not.toHaveBeenCalled();
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(pager.snapshot.items).toEqual([]);
+	});
+
 	it('starts from an initial page and supports local updates', async () => {
 		const fetch = vi
 			.fn<[string | null], Promise<CursorPage<Row>>>()
