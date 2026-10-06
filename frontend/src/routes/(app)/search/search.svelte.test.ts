@@ -3,7 +3,8 @@
 import { act, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { page } from '$app/stores';
+// The test stub behind $app/stores (writable here, so tests can simulate navigation).
+import { page } from '../../../test/stubs/app-stores';
 import { m } from '$lib/i18n';
 import type { SearchResults } from '$lib/types';
 import Page from './+page.svelte';

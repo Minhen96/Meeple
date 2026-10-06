@@ -5,7 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { get } from 'svelte/store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
-import { page } from '$app/stores';
+// The test stub behind $app/stores (writable here, so tests can simulate navigation).
+import { page } from '../../../test/stubs/app-stores';
 import { m } from '$lib/i18n';
 import { defaultState, libraryStore } from '$lib/stores/library';
 import Page from './+page.svelte';

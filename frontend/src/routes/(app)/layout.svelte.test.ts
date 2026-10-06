@@ -3,7 +3,8 @@
 import { render, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { page } from '$app/state';
+// The test stub behind $app/state (a plain mutable object here).
+import { page } from '../../test/stubs/app-state';
 import { notifications, resetNotifications, unreadCount } from '$lib/stores/notifications';
 import type { Notification } from '$lib/types';
 import Layout from './+layout.svelte';
