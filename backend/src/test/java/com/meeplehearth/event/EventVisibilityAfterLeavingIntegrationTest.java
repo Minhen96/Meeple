@@ -14,9 +14,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Participant rows only grant visibility while INVITED, ACCEPTED or DECLINED: someone who LEFT or
- * was KICKED loses INVITE_ONLY and FRIENDS events (detail, memories, live topic) while PUBLIC
- * events stay public. The full location is for the host, ACCEPTED and (non-public) INVITED.
+ * Participant rows only grant visibility while INVITED, ACCEPTED or DECLINED: someone who LEFT
+ * loses INVITE_ONLY events and someone KICKED loses INVITE_ONLY and FRIENDS events (detail,
+ * memories, live topic); a friend who LEFT a FRIENDS event still sees it as a friend, and PUBLIC
+ * events stay public. The full location is for the host and ACCEPTED, plus non-public viewers
+ * other than DECLINED.
  */
 class EventVisibilityAfterLeavingIntegrationTest extends EventIntegrationTestBase {
 
@@ -83,7 +85,7 @@ class EventVisibilityAfterLeavingIntegrationTest extends EventIntegrationTestBas
     }
 
     @Test
-    void friendsEventsAreHiddenFromFriendsWhoLeftOrWereKicked() throws Exception {
+    void friendsEventsAreHiddenFromKickedFriendsButNotFromFriendsWhoLeft() throws Exception {
         UUID host = user();
         UUID friend = user();
         UUID friendWhoLeft = user();
@@ -101,7 +103,11 @@ class EventVisibilityAfterLeavingIntegrationTest extends EventIntegrationTestBas
         assertThat(location(detail(friend, event))).isEqualTo(LOCATION);
         assertMemoriesVisible(friend, event);
         assertThat(location(detail(friendDeclined, event))).isNull();
-        assertHidden(friendWhoLeft, event);
+        // Leaving voluntarily: still a friend of the host, so it stays visible like for any friend
+        JsonNode leftView = detail(friendWhoLeft, event);
+        assertThat(location(leftView)).isEqualTo(LOCATION);
+        assertThat(leftView.get("myRsvp").asText()).isEqualTo("LEFT");
+        assertMemoriesVisible(friendWhoLeft, event);
         assertHidden(friendKicked, event);
 
         // Not in their Upcoming list either

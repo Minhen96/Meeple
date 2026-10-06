@@ -4,6 +4,7 @@ import com.meeplehearth.ai.repository.GameRulebookRepository;
 import com.meeplehearth.common.event.ActivityRecordedEvent;
 import com.meeplehearth.config.CacheConfig.CacheNames;
 import com.meeplehearth.event.entity.Event;
+import com.meeplehearth.event.entity.EventParticipant;
 import com.meeplehearth.ai.service.SearchTranslationService;
 import com.meeplehearth.common.exception.ApiException;
 import com.meeplehearth.game.client.BggApiClient;
@@ -47,8 +48,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GameService {
@@ -446,7 +449,9 @@ public class GameService {
 
     /**
      * Recent activity of {@code userId} (plays, accepted events, posts), newest first, at most 50.
-     * Another viewer only sees public events, without their location.
+     * Another viewer only sees public events, and their full address only when they host or
+     * joined the event themselves (the {@code EventResponse} rule); otherwise the public
+     * area/venue ({@code locationDisplay}).
      */
     @Transactional(readOnly = true)
     public List<ActivityLogResponse> getActivity(UUID userId, UUID viewerId) {
@@ -458,13 +463,23 @@ public class GameService {
                 .stream().map(ActivityLogResponse::fromPlay).forEach(items::add);
 
         // 2. Events (accepted only, not deleted; public only for other viewers)
-        eventParticipantRepository.findAcceptedByUserId(userId)
+        List<EventParticipant> attended = eventParticipantRepository.findAcceptedByUserId(userId)
                 .stream()
                 .filter(ep -> ep.getEvent().getDeletedAt() == null)
                 .filter(ep -> self || ep.getEvent().getVisibility() == Event.Visibility.PUBLIC)
-                .map(ActivityLogResponse::fromEvent)
-                .map(item -> self ? item : item.withoutLocation())
-                .forEach(items::add);
+                .toList();
+        Set<UUID> viewerJoined = self || attended.isEmpty() ? Set.of()
+                : eventParticipantRepository.findByUserIdAndEventIds(viewerId,
+                                attended.stream().map(ep -> ep.getId().getEventId()).toList()).stream()
+                        .filter(vp -> vp.getStatus() == EventParticipant.RsvpStatus.ACCEPTED)
+                        .map(vp -> vp.getId().getEventId())
+                        .collect(Collectors.toSet());
+        for (EventParticipant ep : attended) {
+            Event event = ep.getEvent();
+            boolean full = self || viewerId.equals(event.hostIdOrNull())
+                    || viewerJoined.contains(ep.getId().getEventId());
+            items.add(ActivityLogResponse.fromEvent(ep, full ? event.getLocation() : event.getLocationDisplay()));
+        }
 
         // 3. Posts
         postRepository.findByAuthorId(userId, PageRequest.of(0, 50))

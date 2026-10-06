@@ -27,7 +27,16 @@ public record ActivityLogResponse(
                 null, null, null, null, null, null);
     }
 
+    /** The event with its full address (the activity owner's own view). */
     public static ActivityLogResponse fromEvent(EventParticipant ep) {
+        return fromEvent(ep, ep.getEvent().getLocation());
+    }
+
+    /**
+     * @param location what this viewer may see: the full address, or the public area/venue
+     *                 ({@code locationDisplay}) when the viewer neither hosts nor joined the event
+     */
+    public static ActivityLogResponse fromEvent(EventParticipant ep, String location) {
         var event = ep.getEvent();
         GameSummaryResponse game = event.getGame() != null ? GameSummaryResponse.from(event.getGame()) : null;
         return new ActivityLogResponse(
@@ -38,7 +47,7 @@ public record ActivityLogResponse(
                 event.getTitle(), 
                 ep.getId().getEventId(),
                 event.getScheduledAt(),
-                event.getLocation(),
+                location,
                 null, null
         );
     }
@@ -49,12 +58,6 @@ public record ActivityLogResponse(
         return new ActivityLogResponse(
                 p.getId(), "post", game, p.getCreatedAt(), 
                 null, null, null, p.getLocation(), p.getCaption(), images);
-    }
-
-    /** The same item without its location (event locations are private to participants). */
-    public ActivityLogResponse withoutLocation() {
-        return new ActivityLogResponse(id, type, game, playedAt, eventTitle, eventId, scheduledAt,
-                null, caption, imageUrls);
     }
 
     /** Keep backward-compat factory used before events were added. */

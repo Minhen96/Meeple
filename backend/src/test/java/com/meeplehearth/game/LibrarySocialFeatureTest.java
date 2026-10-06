@@ -298,4 +298,38 @@ class LibrarySocialFeatureTest extends ApiIntegrationTestBase {
         mvc.perform(get("/api/v1/users/me/games").with(as(owner)))
                 .andExpect(jsonPath("$.data[0].notes").value("lent to Sam, missing a card"));
     }
+
+    private String activityLocation(UUID owner, UUID viewer, UUID eventId) throws Exception {
+        JsonNode activity = json(mvc.perform(get("/api/v1/users/{id}/plays", owner).with(as(viewer)))
+                .andExpect(status().isOk()).andReturn()).get("data");
+        for (JsonNode item : activity) {
+            if ("event".equals(item.get("type").asText()) && eventId.toString().equals(item.get("eventId").asText())) {
+                JsonNode location = item.get("location");
+                return location == null || location.isNull() ? null : location.asText();
+            }
+        }
+        throw new AssertionError("event " + eventId + " not in activity");
+    }
+
+    @Test
+    void activityShowsTheFullAddressOfAPublicEventOnlyToItsHostAndAttendees() throws Exception {
+        UUID host = user();
+        UUID attendee = user();
+        UUID otherAttendee = user();
+        UUID stranger = user();
+        UUID invited = user();
+        UUID event = UUID.randomUUID();
+        jdbc.update("INSERT INTO events (id, host_id, title, location, location_display, scheduled_at, visibility, status)"
+                + " VALUES (?, ?, 'Open night', '12 Main St, flat 3', 'Downtown', now() + interval '1 day', 'PUBLIC', 'OPEN')",
+                event, host);
+        jdbc.update("INSERT INTO event_participants (event_id, user_id, status) VALUES (?, ?, 'ACCEPTED'),"
+                        + " (?, ?, 'ACCEPTED'), (?, ?, 'ACCEPTED'), (?, ?, 'INVITED')",
+                event, host, event, attendee, event, otherAttendee, event, invited);
+
+        assertThat(activityLocation(attendee, attendee, event)).isEqualTo("12 Main St, flat 3");
+        assertThat(activityLocation(attendee, host, event)).isEqualTo("12 Main St, flat 3");
+        assertThat(activityLocation(attendee, otherAttendee, event)).isEqualTo("12 Main St, flat 3");
+        assertThat(activityLocation(attendee, stranger, event)).isEqualTo("Downtown");
+        assertThat(activityLocation(attendee, invited, event)).isEqualTo("Downtown");
+    }
 }
