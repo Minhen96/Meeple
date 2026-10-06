@@ -6,29 +6,38 @@ checks all pass. Each deploy workflow is a no-op (with a warning) until its secr
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` (CI) | PRs and pushes to `main` / `develop` | Backend: `./gradlew build` against Postgres (pgvector) + Redis, JaCoCo gate 85% line / 75% branch. Frontend: type check, lint, Vitest with coverage gate (85/75), build. Mobile: build_runner, `flutter analyze`, `flutter test --coverage` with an 80% line gate. |
-| `deploy-backend.yml` | CI success on a push to `main`, or manual | Builds the backend image, pushes `:<sha>` and `:latest` to ECR, deploys the SHA-tagged image to Elastic Beanstalk, optional health smoke check. One deploy at a time. |
+| `ci.yml` (CI) | PRs and pushes to `main` / `develop` | Backend: `./gradlew build` against Postgres (pgvector) + Redis, JaCoCo gate 85% line / 75% branch, plus a Docker image build. Frontend: type check, lint, Vitest with coverage gate (85/75), build. Mobile: build_runner, `flutter analyze`, `flutter test --coverage` with an 80% line gate. |
+| `deploy-backend.yml` | CI success on a push to `main` (production) or `develop` (staging), or manual | `railway up` from `backend/`: Railway builds `backend/Dockerfile` and only switches traffic once `/actuator/health` passes (`backend/railway.toml`). Optional external smoke check. One deploy per branch at a time. |
 | `deploy-frontend.yml` | CI success on a push to `main` (production) or `develop` (staging alias), or manual | Builds SvelteKit with adapter-cloudflare and deploys to Cloudflare Pages with `wrangler pages deploy`. |
 | `build-mobile.yml` | CI success on a push to `main`, or manual | Builds a release APK (and AAB when a release keystore is configured) and uploads them as run artifacts. Optional unsigned iOS compile check on macOS. Store upload is not automated. |
 
-Merging a PR into `main` therefore runs: **CI → (backend deploy ‖ frontend deploy ‖ mobile build)**.
+Merging a PR into `main` therefore runs: **CI → (backend deploy ‖ frontend deploy ‖ mobile build)**; merging into `develop` runs CI → (backend + frontend staging deploys).
 
 ## Required configuration
 
 Set these under *Settings → Secrets and variables → Actions*. Workflows use the GitHub
-environments `production` (main) and `staging` (develop, frontend only); environment-level
+environments `production` (main) and `staging` (develop; backend and frontend); environment-level
 values override repository-level ones, and an environment can require reviewer approval.
 
-### Backend (AWS Elastic Beanstalk)
+### Backend (Railway)
 | Kind | Name | Notes |
 |------|------|-------|
-| secret | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID` | ECR push + EB deploy |
+| secret | `RAILWAY_TOKEN` | Railway *project token* scoped to the matching Railway environment (set separately on the `production` and `staging` GitHub environments) |
+| variable | `RAILWAY_SERVICE` | backend service name |
 | variable | `BACKEND_HEALTH_URL` | optional, e.g. `https://api.example.com/actuator/health` |
 
-The EB environment must define `SPRING_PROFILES_ACTIVE=prod`, `JWT_SECRET` (≥ 32 bytes),
-`R2_PRIVATE_BUCKET` and the other variables in `TECH_STACK_ADDITIONS.md` §24. Flyway applies
-pending migrations on startup. To roll back, redeploy an earlier application version (labelled
-with its commit SHA) from the EB console — each points at its own immutable image tag.
+Runtime variables live on the Railway service: `SPRING_PROFILES_ACTIVE=prod` (or `staging`),
+`JWT_SECRET` (≥ 32 bytes), `DB_*`, `REDIS_URL`, `R2_*` incl. `R2_PRIVATE_BUCKET`, and the rest of
+`TECH_STACK_ADDITIONS.md` §24. Railway injects `PORT`. Flyway applies pending migrations on
+startup; to roll back, redeploy a previous deployment from the Railway dashboard.
+
+Client IPs (used for rate limiting) are read from `X-Forwarded-For` only when the connecting proxy
+is in Tomcat's trusted internal ranges. If Railway's edge connects from another range, every
+request would share one IP; check `/actuator/health` logs or a test request, and if needed set
+`SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` to a regex matching the proxy addresses.
+
+If you prefer Railway's own GitHub integration (with "Wait for CI"), leave `RAILWAY_TOKEN` unset so
+the workflow is a no-op.
 
 ### Frontend (Cloudflare Pages)
 | Kind | Name | Notes |

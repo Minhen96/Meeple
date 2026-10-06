@@ -51,6 +51,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test
         run: ./gradlew build
+      # Catch Dockerfile breakage before it reaches the deploy pipeline
+      - name: Build Docker image
+        run: docker build -t meeple-backend:ci .
       - name: Upload JaCoCo HTML report
         if: always()
         uses: actions/upload-artifact@v4

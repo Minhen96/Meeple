@@ -1,6 +1,8 @@
 # No default profile: run with SPRING_PROFILES_ACTIVE=local | staging | prod.
 # Without one, no datasource or JWT secret is configured and startup fails fast.
 server:
+  # Railway (and most PaaS) inject PORT; local profile overrides this with 8081
+  port: ${PORT:8080}
   # Resolve the client IP from X-Forwarded-For via Tomcat's RemoteIpValve, which only trusts
   # entries appended by internal (private-network) proxies, so clients cannot spoof their IP.
   forward-headers-strategy: native
@@ -69,6 +71,11 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    # The platform health check gates deploys and restarts; an email-provider outage must not
+    # take the API down, so SMTP is not part of health
+    mail:
+      enabled: false
 
 app:
   seed:

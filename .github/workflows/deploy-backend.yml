@@ -1,120 +1,84 @@
 name: Deploy Backend
 
-# Production backend deploy: runs only after CI has passed for a push to main (or by hand).
-# Each deploy pushes an immutable image tagged with the commit SHA (plus `latest`) and points
-# Elastic Beanstalk at the SHA tag, so any previous version can be redeployed from the EB console.
+# Deploys the Spring Boot backend to Railway after CI passes (CLAUDE.md branch mapping):
+#   - push to main    → GitHub environment "production" → Railway production environment
+#   - push to develop → GitHub environment "staging"    → Railway staging environment
+# The image is built by Railway from backend/Dockerfile (config in backend/railway.toml, which
+# also sets the /actuator/health health check, so a failing release never receives traffic).
 #
-# Required secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ACCOUNT_ID
-# Optional variable: BACKEND_HEALTH_URL (e.g. https://api.example.com/actuator/health) for a
-# post-deploy smoke check.
-# The EB environment itself must set SPRING_PROFILES_ACTIVE=prod and the variables in
-# docs/TECH_STACK_ADDITIONS.md §24; the app refuses to start without a profile.
+# Per GitHub environment:
+#   secret   RAILWAY_TOKEN      — a Railway *project token* scoped to that Railway environment
+#   variable RAILWAY_SERVICE    — the backend service name in Railway
+#   variable BACKEND_HEALTH_URL — optional, e.g. https://api.example.com/actuator/health
+# Runtime variables (SPRING_PROFILES_ACTIVE=prod|staging, JWT_SECRET, DB_URL, …; see
+# docs/TECH_STACK_ADDITIONS.md §24) are set on the Railway service, not here.
+#
+# If the Railway service is instead connected to this repo with Railway's GitHub integration
+# ("Wait for CI" enabled), leave RAILWAY_TOKEN unset so this workflow is a no-op.
 
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 
-# Never run two production deploys at once; a newer one waits for the current one to finish
 concurrency:
-  group: deploy-backend-production
+  group: deploy-backend-${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
-env:
-  AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY: meeple-backend-prod
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    environment: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && 'production' || 'staging' }}
     env:
       DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
     steps:
-      - name: Check deploy credentials
-        id: creds
+      - name: Check deploy configuration
+        id: cfg
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
         run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_ACCOUNT_ID" ]; then
-            echo "::warning::AWS secrets are not configured; skipping backend deploy."
+          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE" ]; then
+            echo "::warning::Railway deploy is not configured (RAILWAY_TOKEN secret, RAILWAY_SERVICE variable); skipping."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: actions/checkout@v4
-        if: steps.creds.outputs.enabled == 'true'
+        if: steps.cfg.outputs.enabled == 'true'
         with:
           ref: ${{ env.DEPLOY_SHA }}
 
-      - name: Configure AWS credentials
-        if: steps.creds.outputs.enabled == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.enabled == 'true'
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          node-version: '20'
 
-      - name: Login to Amazon ECR
-        if: steps.creds.outputs.enabled == 'true'
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Install Railway CLI
+        if: steps.cfg.outputs.enabled == 'true'
+        run: npm install -g @railway/cli@4
 
-      - name: Build and push image
-        if: steps.creds.outputs.enabled == 'true'
-        id: image
+      - name: Deploy to Railway
+        if: steps.cfg.outputs.enabled == 'true'
         working-directory: backend
         env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: |
-          REPO_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
-          docker build -t "${REPO_URI}:${DEPLOY_SHA}" -t "${REPO_URI}:latest" .
-          docker push "${REPO_URI}:${DEPLOY_SHA}"
-          docker push "${REPO_URI}:latest"
-          echo "uri=${REPO_URI}:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
-
-      # Point this application version at the immutable SHA tag instead of `latest`
-      - name: Write Dockerrun for this version
-        if: steps.creds.outputs.enabled == 'true'
-        env:
-          IMAGE_URI: ${{ steps.image.outputs.uri }}
-        run: |
-          python3 - <<'PY'
-          import json, os
-          path = 'backend/Dockerrun.aws.json'
-          with open(path) as f:
-              doc = json.load(f)
-          doc['Image']['Name'] = os.environ['IMAGE_URI']
-          with open(path, 'w') as f:
-              json.dump(doc, f, indent=2)
-          PY
-          cat backend/Dockerrun.aws.json
-
-      - name: Deploy to Elastic Beanstalk
-        if: steps.creds.outputs.enabled == 'true'
-        uses: einaregilsson/beanstalk-deploy@v21
-        with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: Meeple-backend
-          environment_name: Meeple-backend-env-v2
-          region: ${{ env.AWS_REGION }}
-          version_label: ${{ env.DEPLOY_SHA }}
-          deployment_package: backend/Dockerrun.aws.json
-          use_existing_version_if_available: true
-          wait_for_environment_recovery: 300
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+        # --ci streams the build logs and fails the job if the build or deploy fails
+        run: railway up --ci --service "$RAILWAY_SERVICE"
 
       - name: Smoke check
-        if: steps.creds.outputs.enabled == 'true' && vars.BACKEND_HEALTH_URL != ''
+        if: steps.cfg.outputs.enabled == 'true' && vars.BACKEND_HEALTH_URL != ''
         env:
           HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
         run: |
@@ -130,10 +94,9 @@ jobs:
           exit 1
 
       - name: Summary
-        if: steps.creds.outputs.enabled == 'true'
+        if: steps.cfg.outputs.enabled == 'true'
         run: |
           {
-            echo "### Backend deployed"
+            echo "### Backend deployed to Railway (${DEPLOY_BRANCH})"
             echo "- Commit: \`${DEPLOY_SHA}\`"
-            echo "- Image: \`${{ steps.image.outputs.uri }}\`"
           } >> "$GITHUB_STEP_SUMMARY"

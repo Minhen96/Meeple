@@ -28,7 +28,7 @@ A board game community app for discovering games, tracking your collection, conn
 | Cache    | Upstash Redis                                                                 |
 | Storage  | Cloudflare R2 + CDN                                                           |
 | Auth     | JWT (httpOnly cookies) + Google OAuth                                         |
-| Deploy   | Cloudflare Pages (frontend) + AWS Elastic Beanstalk (backend, ap-southeast-1) |
+| Deploy   | Cloudflare Pages (frontend) + Railway (backend), via GitHub Actions — see docs/CICD.md |
 
 ## Project Structure
 
@@ -238,13 +238,13 @@ For games not covered, users can click **"Generate Rules"** in the How to Play t
 1. Sign up at [resend.com](https://resend.com) and create an API key
 2. Add and verify your sending domain
 
-### 5. AWS Elastic Beanstalk (backend)
+### 5. Railway (backend)
 
-1. Create an ECR repository named `meeple-backend-prod` in `ap-southeast-1`
-2. Create an Elastic Beanstalk application named `Meeple-backend` with environment `Meeple-backend-env-v2`
-3. Use the Docker platform — deployment uses `backend/Dockerrun.aws.json`
-4. Set the environment variables listed below under **Backend env vars** in the EB environment configuration
-5. Lock the instance count to 1 (required for WebSocket sticky sessions)
+1. Create a Railway project with `production` and `staging` environments and a service for the backend
+2. Set the service root directory to `backend/` — `backend/railway.toml` selects the Dockerfile and the `/actuator/health` health check
+3. Set the environment variables listed below under **Backend env vars** on the service (including `SPRING_PROFILES_ACTIVE=prod` / `staging`); Railway injects `PORT`
+4. Keep one replica (WebSocket sessions and presence are per instance)
+5. Create a project token per Railway environment for GitHub Actions (see step 7)
 
 ### 6. Cloudflare Pages (frontend)
 
@@ -252,19 +252,23 @@ For games not covered, users can click **"Generate Rules"** in the How to Play t
 2. Build settings: Framework `SvelteKit`, build command `npm run build`, output `/frontend/.svelte-kit/cloudflare`
 3. Set the environment variables listed below under **Frontend env vars**
 
-### 7. GitHub Secrets (CI/CD)
+### 7. GitHub Actions (CI/CD)
 
-Add these in your repo → Settings → Secrets → Actions:
+Pipelines, required secrets and variables are documented in [`docs/CICD.md`](docs/CICD.md).
+In short, per GitHub environment (`production` for `main`, `staging` for `develop`):
 
 ```
-AWS_ACCESS_KEY_ID      # IAM user with ECR push + EB deploy permissions
-AWS_SECRET_ACCESS_KEY  # IAM user secret
-AWS_ACCOUNT_ID         # Your AWS account ID (used to build the ECR URI)
+RAILWAY_TOKEN            # secret: Railway project token for that environment
+RAILWAY_SERVICE          # variable: backend service name
+CLOUDFLARE_API_TOKEN     # secret
+CLOUDFLARE_ACCOUNT_ID    # secret
+CLOUDFLARE_PAGES_PROJECT # variable (leave unset if Pages uses Cloudflare's Git integration)
+VITE_API_URL             # variable, plus the other VITE_* build variables
 ```
 
 ---
 
-### Backend env vars (Railway / Elastic Beanstalk)
+### Backend env vars (Railway)
 
 ```
 # Database (Neon)

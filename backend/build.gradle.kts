@@ -103,6 +103,12 @@ jacoco {
 	toolVersion = "0.8.12"
 }
 
+// Only the executable Spring Boot jar is needed; the plain jar made `COPY *.jar` in the
+// Dockerfile match two files
+tasks.jar {
+	enabled = false
+}
+
 tasks.test {
 	finalizedBy(tasks.jacocoTestReport)
 }
