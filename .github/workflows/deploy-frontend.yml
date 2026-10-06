@@ -32,9 +32,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Deploys are opt-in: nothing ships until the repository variable DEPLOYMENTS_ENABLED is "true"
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+      vars.DEPLOYMENTS_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
     environment: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && 'production' || 'staging' }}
     env:
       DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}

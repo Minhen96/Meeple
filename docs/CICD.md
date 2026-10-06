@@ -2,7 +2,9 @@
 
 All pipelines live in `.github/workflows/`. Deploy and build workflows are triggered by a
 successful **CI** run (`workflow_run`), so nothing ships unless backend, frontend and mobile
-checks all pass. Each deploy workflow is a no-op (with a warning) until its secrets are set.
+checks all pass. **Deploys are opt-in:** the backend and frontend deploy jobs are skipped unless the
+repository variable `DEPLOYMENTS_ENABLED` is `true` (and their secrets are set), so merging to
+`main` only runs CI and the mobile build until you switch them on.
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
