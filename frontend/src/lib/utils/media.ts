@@ -7,6 +7,8 @@
 export const MD_QUERY = '(min-width: 768px)';
 /** Desktop: full sidebar, toasts top-right. */
 export const LG_QUERY = '(min-width: 1024px)';
+/** Wide desktop: pages show their right rail (TwoColumn) beside the main column. */
+export const XL_QUERY = '(min-width: 1280px)';
 export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 function mediaList(query: string): MediaQueryList | null {

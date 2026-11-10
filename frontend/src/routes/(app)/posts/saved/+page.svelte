@@ -2,13 +2,15 @@
 	import { postsApi } from '$lib/api/posts';
 	import { m } from '$lib/i18n';
 	import PostList from '$lib/components/social/PostList.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 
 	const fetchPage = (cursor: string | null) => postsApi.getBookmarks(cursor, 20);
 </script>
 
 <svelte:head><title>{m('social.saved.title')} — Meeple</title></svelte:head>
 
-<div class="space-y-6 pb-32 pt-6">
+<PageContainer width="wide">
+<div class="space-y-6 pb-32 pt-6 md:pb-12">
 	<div class="flex items-center gap-4">
 		<button
 			type="button"
@@ -28,5 +30,7 @@
 		{fetchPage}
 		emptyText={m('social.saved.empty')}
 		dropWhen={(post) => !post.isBookmarked}
+		layout="grid"
 	/>
 </div>
+</PageContainer>

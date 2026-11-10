@@ -26,6 +26,11 @@ export default {
 	'home.upcomingTitle': 'Upcoming Events',
 	'home.viewCalendar': 'View Calendar',
 	'home.feedTitle': 'Activity Feed',
+	'home.railLabel': 'Events and people',
+	'home.matchesTitle': 'Match Suggestions',
+	'home.requestsTitle': 'Friend Requests',
+	'home.suggestionsTitle': 'People You May Know',
+	'home.seeAll': 'See all',
 
 	// Feed
 	'feed.loadingMore': 'Loading more…',
@@ -93,6 +98,9 @@ export default {
 	'detail.noComments': 'Be the first to comment!',
 	'detail.loadMoreComments': 'Load more comments',
 	'detail.loadCommentsFailed': 'Could not load more comments',
+	'detail.prevImage': 'Previous photo',
+	'detail.nextImage': 'Next photo',
+	'detail.showImage': 'Show photo {index}',
 
 	// Comments
 	'comment.edit': 'Edit',
@@ -118,6 +126,7 @@ export default {
 	'create.addPhotos': 'Add Photos',
 	'create.addMore': 'Add more',
 	'create.pickerHint': 'Optional · up to 10 photos',
+	'create.dropHint': 'Drag photos here or click to browse',
 	'create.maxImages': 'You can add up to 10 photos',
 	'create.notAnImage': '{name} is not an image we can read',
 	'create.compressing': 'Compressing…',
@@ -246,5 +255,6 @@ export default {
 	'search.players': 'Players',
 	'search.events': 'Events',
 	'search.noResults': 'No results for "{query}"',
-	'search.failed': 'Search failed. Try again.'
+	'search.failed': 'Search failed. Try again.',
+	'search.groupEmpty': 'No matches'
 } as const satisfies Messages;

@@ -3,6 +3,7 @@
 	import type { User } from '$lib/types';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import { friendsApi } from '$lib/api/friends';
 	import { ApiRequestError } from '$lib/api/client';
 	import { errorMessage, m } from '$lib/i18n';
@@ -54,13 +55,16 @@
 
 <svelte:head><title>{m('social.friends.title')} — Meeple</title></svelte:head>
 
-<div class="pb-32 pt-6">
+<!-- Phones: rows. From md: a grid of friend cards (two columns, three from xl). The app bar
+     carries the back button from md, so the in-page one is phone-only. -->
+<PageContainer width="wide">
+<div class="pb-32 pt-6 md:pb-12">
 	<div class="mb-8 flex items-center gap-4">
 		<button
 			type="button"
 			onclick={() => history.back()}
 			aria-label={m('social.detail.back')}
-			class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-all hover:text-primary active:scale-95"
+			class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-all hover:text-primary active:scale-95 md:hidden"
 		>
 			<span class="material-symbols-outlined text-[20px]">arrow_back</span>
 		</button>
@@ -77,15 +81,18 @@
 	</div>
 
 	{#if friends.length > 0}
-		<ul class="space-y-3">
+		<ul class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 xl:grid-cols-3">
 			{#each friends as user (user.id)}
 				<li
 					class="flex items-center gap-4 rounded-3xl bg-surface-container-low p-4 shadow-sm transition-colors hover:bg-surface-container"
 				>
-					<a href="/profile/{user.id}"
+					<a href="/profile/{user.id}" tabindex="-1"
 						><Avatar src={user.avatarUrl} name={user.displayName ?? user.username} size="lg" /></a
 					>
-					<a href="/profile/{user.id}" class="min-w-0 flex-1">
+					<a
+						href="/profile/{user.id}"
+						class="min-w-0 flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+					>
 						<p class="truncate text-sm font-extrabold text-on-surface">
 							{user.displayName ?? user.username}
 						</p>
@@ -126,6 +133,7 @@
 		</div>
 	{/if}
 </div>
+</PageContainer>
 
 {#if confirming}
 	<ConfirmDialog

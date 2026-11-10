@@ -50,4 +50,27 @@ describe('search overlay', () => {
 		expect(screen.getByRole('searchbox')).toHaveValue('p');
 		expect(screen.queryByText('STALE_GAME')).toBeNull();
 	});
+
+	it('asks for 6 hits per group on desktop and keeps empty groups as placeholders', async () => {
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn((query: string) => ({
+				matches: query === '(min-width: 1024px)',
+				media: query,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn()
+			}))
+		);
+		try {
+			h.search.mockResolvedValue(hits);
+			setUrl('/search?q=wing');
+			render(Page);
+			expect(h.search).toHaveBeenCalledWith('wing', { limit: 6 });
+			expect(await screen.findByText('STALE_GAME')).toBeInTheDocument();
+			// players and events have no hits: desktop-only placeholders keep the three columns
+			expect(screen.getAllByText(m('social.search.groupEmpty'))).toHaveLength(2);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
 });

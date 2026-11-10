@@ -1,14 +1,19 @@
 // Home feed: after a reload (new page data) the previous CursorPager's late page must not
 // replace the refreshed feed.
-import { render, screen, waitFor } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { m } from '$lib/i18n';
 import type { CursorPage, FeedItem, Post } from '$lib/types';
 import Page from './+page.svelte';
 
-const h = vi.hoisted(() => ({ getFeedPage: vi.fn() }));
+const h = vi.hoisted(() => ({
+	getFeedPage: vi.fn(),
+	friends: { getReceived: vi.fn(), suggestFriends: vi.fn() }
+}));
 vi.mock('svelte-sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('$lib/session', () => ({ clearClientSession: vi.fn() }));
 vi.mock('$lib/api/posts', () => ({ postsApi: { getFeedPage: h.getFeedPage } }));
+vi.mock('$lib/api/friends', () => ({ friendsApi: h.friends }));
 
 function postItem(id: string): FeedItem {
 	const post: Post = {
@@ -57,5 +62,46 @@ describe('home feed', () => {
 
 		expect(screen.queryByText('CAPTION_stale')).toBeNull();
 		expect(screen.getByText('CAPTION_fresh')).toBeInTheDocument();
+	});
+});
+
+describe('home right rail', () => {
+	const page = { items: [postItem('x')], nextCursor: null, hasMore: false };
+	const event = {
+		id: 'e1',
+		title: 'Catan Night',
+		scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+		participants: [],
+		participantCount: 1,
+		maxParticipants: 4,
+		location: null
+	};
+	const withEvents = () => ({ ...(data(page) as object), upcomingEvents: [event] }) as never;
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('puts upcoming events in the rail and loads friend widgets only at xl', async () => {
+		h.friends.getReceived.mockResolvedValue({ data: [], meta: { total: 0 } });
+		h.friends.suggestFriends.mockResolvedValue([]);
+		const { unmount } = render(Page, { data: withEvents() });
+		const rail = screen.getByRole('complementary', { name: m('social.home.railLabel') });
+		expect(within(rail).getByText('Catan Night')).toBeInTheDocument();
+		expect(h.friends.getReceived).not.toHaveBeenCalled();
+		unmount();
+
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn((query: string) => ({
+				matches: true,
+				media: query,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn()
+			}))
+		);
+		render(Page, { data: withEvents() });
+		await waitFor(() => expect(h.friends.getReceived).toHaveBeenCalled());
+		expect(h.friends.suggestFriends).toHaveBeenCalled();
 	});
 });
