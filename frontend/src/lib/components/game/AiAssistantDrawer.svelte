@@ -7,6 +7,7 @@
 	import { currentUser } from "$lib/stores/auth";
 	import { aiChatStorageKey } from "$lib/session";
 	import { m } from "$lib/i18n";
+	import { MD_QUERY, matchesMedia, motionDuration } from "$lib/utils/media";
 
 	interface Message {
 		role: "user" | "assistant";
@@ -38,6 +39,7 @@
 	let inputValue = $state("");
 	let isTyping = $state(false);
 	let scrollContainer = $state<HTMLDivElement>();
+	let inputEl = $state<HTMLInputElement>();
 
 	onMount(() => {
 		if (!STORAGE_KEY) return;
@@ -58,6 +60,8 @@
 		if (show) {
 			tick().then(() => {
 				if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+				// Keyboard users land in the composer; phones skip it so the keyboard does not pop up.
+				if (matchesMedia(MD_QUERY)) inputEl?.focus();
 			});
 		}
 	});
@@ -144,6 +148,13 @@
 		show = false;
 	}
 
+	function onWindowKeydown(e: KeyboardEvent) {
+		if (show && e.key === "Escape") {
+			e.stopPropagation();
+			close();
+		}
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === "Enter") sendMessage();
 	}
@@ -161,20 +172,25 @@
 	}
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 {#if show}
 	<!-- Backdrop -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		transition:fade={{ duration: 200 }}
+		transition:fade={{ duration: motionDuration(200) }}
 		class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
 		onclick={close}
 	></div>
 
-	<!-- Drawer -->
+	<!-- Drawer: full screen on phones; from md a floating right-side panel inset from the edges -->
 	<div
-		transition:fly={{ x: 400, duration: 400, opacity: 1 }}
-		class="fixed right-0 top-0 h-full w-full max-w-[420px] bg-surface z-[101] shadow-2xl flex flex-col"
+		role="dialog"
+		aria-modal="true"
+		aria-label={m("library.ai.title")}
+		transition:fly={{ x: 400, duration: motionDuration(400), opacity: 1 }}
+		class="fixed right-0 top-0 h-full w-full max-w-[420px] bg-surface z-[101] shadow-2xl flex flex-col md:top-4 md:right-4 md:bottom-4 md:h-auto md:max-w-[440px] md:rounded-[2rem] md:overflow-hidden"
 	>
 		<!-- Header -->
 		<div class="p-4 flex items-center justify-between bg-surface-container-lowest">
@@ -271,6 +287,7 @@
 			<div class="relative flex items-center gap-2 bg-surface-container-high rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all shadow-inner">
 				<input
 					type="text"
+					bind:this={inputEl}
 					bind:value={inputValue}
 					onkeydown={handleKeydown}
 					placeholder={m("library.ai.placeholder")}

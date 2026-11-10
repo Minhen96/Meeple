@@ -116,7 +116,7 @@
 {/if}
 
 {#if loading}
-	<div class="grid grid-cols-3 gap-3">
+	<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
 		{#each { length: 9 } as _, i (i)}
 			<div class="space-y-2">
 				<Skeleton class="aspect-[3/4] rounded-xl" />
@@ -131,12 +131,19 @@
 		</p>
 	{/if}
 {:else}
-	<div class="grid grid-cols-3 gap-3">
+	<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
 		{#each shown as game (game.bggId)}
-			<button type="button" onclick={() => (selected = game)} class="text-left space-y-1 group">
-				<div class="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface-container-high">
+			<button type="button" onclick={() => (selected = game)} class="text-left space-y-1 group focus:outline-none">
+				<div
+					class="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface-container-high group-hover:shadow-[0_12px_32px_rgba(25,28,29,0.10)] group-focus-visible:ring-2 group-focus-visible:ring-primary transition-shadow"
+				>
 					{#if game.thumbnailUrl}
-						<img src={game.thumbnailUrl} alt={game.title} class="w-full h-full object-cover" loading="lazy" />
+						<img
+							src={game.thumbnailUrl}
+							alt={game.title}
+							class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+							loading="lazy"
+						/>
 					{:else}
 						<div class="w-full h-full flex items-center justify-center">
 							<span class="material-symbols-outlined text-on-surface-variant">casino</span>
@@ -157,9 +164,9 @@
 	</div>
 {/if}
 
-<div class="pt-8 space-y-3">
+<div class="pt-8 space-y-3 md:max-w-sm md:mx-auto">
 	<Button fullWidth loading={finishing} onclick={finish}>{m('library.addGame.done')}</Button>
-	<button onclick={finish} class="block w-full text-center text-sm text-on-surface-variant">
+	<button onclick={finish} class="block w-full text-center text-sm text-on-surface-variant hover:text-primary transition-colors">
 		{m('library.addGame.skip')}
 	</button>
 </div>

@@ -110,7 +110,7 @@
 <div class="flex items-center gap-3 mb-8 pt-2">
 	<button
 		onclick={() => history.back()}
-		class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface"
+		class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors"
 		aria-label={m('library.logPlay.back')}
 	>
 		<span class="material-symbols-outlined text-[20px]">arrow_back</span>
@@ -191,14 +191,14 @@
 				query = '';
 				results = [];
 			}}
-			class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant flex-shrink-0"
+			class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant flex-shrink-0 hover:bg-surface-container-highest hover:text-on-surface transition-colors"
 			aria-label={m('library.logPlay.clear')}
 		>
 			<span class="material-symbols-outlined text-[16px]">close</span>
 		</button>
 	</div>
 
-	<form onsubmit={logPlay} class="mt-6 space-y-4 pb-48">
+	<form onsubmit={logPlay} class="mt-6 space-y-4 pb-48 md:pb-28">
 		<div class="grid grid-cols-2 gap-3">
 			<label class="col-span-2 space-y-1.5">
 				<span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{m('library.logPlay.date')}</span>
@@ -249,15 +249,21 @@
 			</p>
 		{/if}
 
-		<div class="fixed bottom-28 left-4 right-4 max-w-lg mx-auto">
+		<!-- md+: no bottom nav, so the bar sits near the bottom edge, centred on the content column -->
+		<div
+			class="fixed bottom-28 left-4 right-4 max-w-lg mx-auto md:bottom-8 md:left-rail lg:left-sidebar md:right-0 md:max-w-none md:px-8"
+		>
+			<!-- the shell column minus its px-8 padding: 32rem at md, 38rem at lg -->
+			<div class="md:max-w-lg lg:max-w-[38rem] md:mx-auto">
 			<button
 				type="submit"
 				disabled={logging}
-				class="w-full py-4 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-base shadow-lg shadow-primary/25 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+				class="w-full py-4 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-base shadow-lg shadow-primary/25 md:hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
 			>
 				<span class="icon-filled material-symbols-outlined text-[20px]">sports_esports</span>
 				{logging ? m('library.logPlay.submitting') : m('library.logPlay.submit')}
 			</button>
+			</div>
 		</div>
 	</form>
 {/if}

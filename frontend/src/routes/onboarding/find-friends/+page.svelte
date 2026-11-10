@@ -104,7 +104,7 @@
 		{showingSearch ? m('account.findFriends.noResults', { query: query.trim() }) : m('account.findFriends.empty')}
 	</p>
 {:else}
-	<ul class="space-y-2">
+	<ul class="space-y-2 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
 		{#each list as person (person.id)}
 			<li class="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-low">
 				<Avatar src={person.avatarUrl} name={person.displayName || person.username} size="lg" />
@@ -122,6 +122,6 @@
 	</ul>
 {/if}
 
-<div class="pt-8">
+<div class="pt-8 md:max-w-sm md:mx-auto">
 	<Button fullWidth onclick={() => goto(next)}>{m('common.continue')}</Button>
 </div>

@@ -145,6 +145,7 @@ export default {
 	'settings.privacyPolicy': 'Privacy Policy',
 	'settings.feedback': 'Send Feedback',
 	'settings.logout': 'Log Out',
+	'settings.overviewHint': 'Pick a setting from the menu to view or change it.',
 	'export.requested': "We're preparing your data. We'll email you a download link.",
 
 	// Edit profile

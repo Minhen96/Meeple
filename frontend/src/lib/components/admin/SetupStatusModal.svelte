@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { setupApi, type SetupStatus, type CsvCheckResult } from '$lib/api/setup';
@@ -79,16 +80,9 @@
 	const fmt = (n: number) => formatNumber(n);
 </script>
 
-<!-- Backdrop -->
-<button class="fixed inset-0 bg-black/50 z-40" onclick={onClose} aria-label={m('common.close')}></button>
-
-<!-- Sheet -->
-<div class="fixed inset-x-0 bottom-0 z-50 bg-surface rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
-	<div class="flex justify-center pt-3 pb-1">
-		<div class="w-10 h-1 bg-on-surface/20 rounded-full"></div>
-	</div>
-
-	<div class="px-6 pb-10 pt-2 space-y-4">
+<!-- Shared bottom sheet: a sheet on phones, a centred dialog from md (SCREENS_AND_STATES 16) -->
+<BottomSheet label={m('admin.setup.title')} {onClose}>
+	<div class="space-y-4 pb-4 md:pb-0">
 		<!-- Header -->
 		<div class="flex items-center justify-between">
 			<div>
@@ -251,4 +245,4 @@
 			</div>
 		{/if}
 	</div>
-</div>
+</BottomSheet>

@@ -3,10 +3,13 @@
 	import { adminApi } from '$lib/api/admin';
 	import { currentUser } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
+	import { page as appPage } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { ApiRequestError } from '$lib/api/client';
 	import { getLocale, m, type MessageKey } from '$lib/i18n';
-	import type { RulebookQueueItem, RulebookQueueStatus, RuleNoteQueueItem } from '$lib/types';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
+	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
+	import type { RulebookQueueItem, RulebookQueueStatus, RuleNoteQueueItem, User } from '$lib/types';
 
 	let activeTab: 'rulebooks' | 'notes' = $state('rulebooks');
 
@@ -42,7 +45,10 @@
 	let noteRejectReason = $state('');
 
 	onMount(async () => {
-		if (!$currentUser?.isAdmin) {
+		// The root layout publishes the user to the store in an effect that can run after this
+		// page mounts on a cold load, so fall back to the layout data instead of bouncing an admin.
+		const user = $currentUser ?? (appPage.data.user as User | null | undefined);
+		if (!user?.isAdmin) {
 			goto('/');
 			return;
 		}
@@ -196,7 +202,8 @@
 
 <svelte:head><title>{m('admin.queue.metaTitle')}</title></svelte:head>
 
-<div class="py-4 space-y-6 pb-24">
+<PageContainer width="wide">
+<div class="py-4 space-y-6 pb-24 md:pb-8">
 	<!-- Header -->
 	<div class="flex items-center gap-4">
 		<button 
@@ -216,14 +223,14 @@
 	</div>
 
 	<!-- Tabs -->
-	<div class="flex gap-2 bg-surface-container-low rounded-2xl p-1">
+	<div class="flex gap-2 bg-surface-container-low rounded-2xl p-1 md:max-w-md">
 		<button
 			onclick={() => { activeTab = 'rulebooks'; }}
-			class="flex-1 py-2 rounded-xl text-sm font-bold transition-all {activeTab === 'rulebooks' ? 'bg-surface text-on-surface shadow-sm' : 'text-on-surface-variant'}"
+			class="flex-1 py-2 rounded-xl text-sm font-bold transition-all {activeTab === 'rulebooks' ? 'bg-surface text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}"
 		>{m('admin.queue.tab.rulebooks')}</button>
 		<button
 			onclick={() => { activeTab = 'notes'; }}
-			class="flex-1 py-2 rounded-xl text-sm font-bold transition-all {activeTab === 'notes' ? 'bg-surface text-on-surface shadow-sm' : 'text-on-surface-variant'}"
+			class="flex-1 py-2 rounded-xl text-sm font-bold transition-all {activeTab === 'notes' ? 'bg-surface text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}"
 		>{m('admin.queue.tab.notes')}</button>
 	</div>
 
@@ -242,7 +249,7 @@
 
 	{#if loading && items.length === 0}
 		<!-- Skeleton -->
-		<div class="space-y-3">
+		<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
 			{#each [1, 2, 3] as n (n)}
 				<div class="bg-surface-container-low rounded-2xl p-4 animate-pulse space-y-3">
 					<div class="h-4 w-2/3 rounded-full bg-surface-container-high"></div>
@@ -263,7 +270,7 @@
 		</div>
 
 	{:else}
-		<div class="space-y-3">
+		<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4 md:items-start">
 			{#each items as item (item.id)}
 				<div class="bg-surface-container-low rounded-2xl p-4 space-y-3">
 					<!-- Game info -->
@@ -295,7 +302,7 @@
 							href={item.fileUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="flex items-center gap-2 text-xs text-primary font-medium"
+							class="flex items-center gap-2 text-xs text-primary font-medium hover:underline w-fit"
 						>
 							<span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
 							{m('admin.queue.viewPdf')}
@@ -308,7 +315,7 @@
 						<button
 							onclick={() => approve(item.id)}
 							disabled={processingId === item.id}
-							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
+							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
 						>
 							{#if processingId === item.id}
 								<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
@@ -320,7 +327,7 @@
 						<button
 							onclick={() => startReject(item.id)}
 							disabled={processingId === item.id}
-							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-container text-on-error-container text-sm font-bold disabled:opacity-50 transition-opacity"
+							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-container text-on-error-container text-sm font-bold hover:bg-error-container/80 disabled:opacity-50 transition-colors"
 						>
 							<span class="material-symbols-outlined text-[16px]">close</span>
 							{m('admin.queue.reject')}
@@ -330,7 +337,7 @@
 					<button
 						onclick={() => retry(item.id)}
 						disabled={processingId === item.id}
-						class="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
+						class="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
 					>
 						{#if processingId === item.id}
 							<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
@@ -348,7 +355,7 @@
 			<button
 				onclick={() => loadPage(page + 1)}
 				disabled={loading}
-				class="w-full py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold disabled:opacity-50"
+				class="w-full md:w-auto md:px-10 md:mx-auto md:block py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold hover:bg-surface-container-highest transition-colors disabled:opacity-50"
 			>
 				{loading ? m('common.loading') : m('common.loadMore')}
 			</button>
@@ -359,7 +366,7 @@
 
 	<!-- Rule Notes Tab -->
 	{#if notesLoading && noteItems.length === 0}
-		<div class="space-y-3">
+		<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
 			{#each [1, 2, 3] as n (n)}
 				<div class="bg-surface-container-low rounded-2xl p-4 animate-pulse space-y-3">
 					<div class="h-4 w-2/3 rounded-full bg-surface-container-high"></div>
@@ -380,7 +387,7 @@
 		</div>
 
 	{:else}
-		<div class="space-y-3">
+		<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4 md:items-start">
 			{#each noteItems as note (note.id)}
 				<div class="bg-surface-container-low rounded-2xl p-4 space-y-3">
 					<div class="flex items-start justify-between gap-2">
@@ -399,7 +406,7 @@
 						<button
 							onclick={() => approveNote(note.id)}
 							disabled={noteProcessingId === note.id}
-							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold disabled:opacity-50 transition-opacity"
+							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
 						>
 							{#if noteProcessingId === note.id}
 								<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
@@ -411,7 +418,7 @@
 						<button
 							onclick={() => startRejectNote(note.id)}
 							disabled={noteProcessingId === note.id}
-							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-container text-on-error-container text-sm font-bold disabled:opacity-50 transition-opacity"
+							class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-container text-on-error-container text-sm font-bold hover:bg-error-container/80 disabled:opacity-50 transition-colors"
 						>
 							<span class="material-symbols-outlined text-[16px]">close</span>
 							{m('admin.queue.reject')}
@@ -425,7 +432,7 @@
 			<button
 				onclick={() => loadNotesPage(notesPage + 1)}
 				disabled={notesLoading}
-				class="w-full py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold disabled:opacity-50"
+				class="w-full md:w-auto md:px-10 md:mx-auto md:block py-3 rounded-2xl bg-surface-container-high text-on-surface text-sm font-bold hover:bg-surface-container-highest transition-colors disabled:opacity-50"
 			>
 				{notesLoading ? m('common.loading') : m('common.loadMore')}
 			</button>
@@ -434,13 +441,12 @@
 
 	{/if}
 </div>
+</PageContainer>
 
 <!-- Reject reason sheet -->
 {#if rejectingId}
-	<div class="fixed inset-0 z-50 flex items-end">
-		<button aria-label={m('common.close')} class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => (rejectingId = null)}></button>
-		<div class="relative w-full bg-surface rounded-t-3xl p-6 space-y-4 max-w-lg mx-auto">
-			<h3 class="font-bold text-on-surface">{m('admin.queue.rejectTitle')}</h3>
+	<BottomSheet title={m('admin.queue.rejectTitle')} onClose={() => (rejectingId = null)}>
+		<div class="space-y-4">
 			<p class="text-xs text-on-surface-variant">{m('admin.queue.rejectHint')}</p>
 			<textarea
 				bind:value={rejectReason}
@@ -451,7 +457,7 @@
 			<div class="flex gap-3">
 				<button
 					onclick={() => (rejectingId = null)}
-					class="flex-1 py-3 rounded-2xl bg-surface-container-high text-on-surface font-bold text-sm"
+					class="flex-1 py-3 rounded-2xl bg-surface-container-high text-on-surface font-bold text-sm hover:bg-surface-container-highest transition-colors"
 				>
 					{m('common.cancel')}
 				</button>
@@ -464,15 +470,13 @@
 				</button>
 			</div>
 		</div>
-	</div>
+	</BottomSheet>
 {/if}
 
 <!-- Reject note sheet -->
 {#if rejectingNoteId}
-	<div class="fixed inset-0 z-50 flex items-end">
-		<button aria-label={m('common.close')} class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => (rejectingNoteId = null)}></button>
-		<div class="relative w-full bg-surface rounded-t-3xl p-6 space-y-4 max-w-lg mx-auto">
-			<h3 class="font-bold text-on-surface">{m('admin.notes.rejectTitle')}</h3>
+	<BottomSheet title={m('admin.notes.rejectTitle')} onClose={() => (rejectingNoteId = null)}>
+		<div class="space-y-4">
 			<p class="text-xs text-on-surface-variant">{m('admin.queue.rejectHint')}</p>
 			<textarea
 				bind:value={noteRejectReason}
@@ -483,7 +487,7 @@
 			<div class="flex gap-3">
 				<button
 					onclick={() => (rejectingNoteId = null)}
-					class="flex-1 py-3 rounded-2xl bg-surface-container-high text-on-surface font-bold text-sm"
+					class="flex-1 py-3 rounded-2xl bg-surface-container-high text-on-surface font-bold text-sm hover:bg-surface-container-highest transition-colors"
 				>
 					{m('common.cancel')}
 				</button>
@@ -496,5 +500,5 @@
 				</button>
 			</div>
 		</div>
-	</div>
+	</BottomSheet>
 {/if}

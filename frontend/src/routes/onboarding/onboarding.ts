@@ -22,6 +22,14 @@ export function nextStepPath(pathname: string): string | null {
 	return next ? `/onboarding/${next}` : null;
 }
 
+/** Steps whose content is a grid (games, people): their card is wider from md. */
+const WIDE_STEPS: readonly OnboardingStep[] = ['find-friends', 'add-game'];
+
+/** True when the step at `pathname` gets the wide onboarding card on tablets and desktops. */
+export function isWideStep(pathname: string): boolean {
+	return WIDE_STEPS.some((step) => pathname.startsWith(`/onboarding/${step}`));
+}
+
 const WELCOME_SEEN_PREFIX = 'meeple.onboarding.welcomeSeen.';
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
