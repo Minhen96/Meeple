@@ -8,6 +8,7 @@
 	import { ApiRequestError } from '$lib/api/client';
 	import { errorMessage, getLocale, m } from '$lib/i18n';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ReportSheet from '$lib/components/social/ReportSheet.svelte';
@@ -244,11 +245,34 @@
 		const el = e.currentTarget as HTMLElement;
 		activeImage = Math.round(el.scrollLeft / Math.max(el.clientWidth, 1));
 	}
+
+	const hasImages = $derived(post !== null && post.imageUrls.length > 0);
+
+	/** Desktop gallery: step through the photos with the arrow buttons or the arrow keys. */
+	function stepImage(delta: number) {
+		if (!post) return;
+		const count = post.imageUrls.length;
+		activeImage = (activeImage + delta + count) % count;
+	}
+
+	function onGalleryKeydown(e: KeyboardEvent) {
+		if (e.key === 'ArrowLeft') stepImage(-1);
+		else if (e.key === 'ArrowRight') stepImage(1);
+		else return;
+		e.preventDefault();
+	}
 </script>
 
 <svelte:head><title>{m('social.detail.title')} — Meeple</title></svelte:head>
 
-<div class="pb-32 pt-6">
+<!-- Phones: one column with the comment bar pinned to the viewport. From md the bar sticks to the
+     bottom of the column instead; from lg a post with photos becomes two panes (gallery left,
+     post + comments right, like a desktop photo viewer). -->
+<PageContainer
+	width={hasImages ? 'wide' : 'narrow'}
+	class={hasImages ? 'md:max-w-xl lg:max-w-6xl' : ''}
+>
+<div class="pb-32 pt-6 md:pb-0">
 	<!-- Header -->
 	<div class="mb-8 flex items-center gap-4">
 		<button
@@ -283,6 +307,64 @@
 			>
 		</div>
 	{:else}
+		<div
+			class={hasImages
+				? 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_24rem]'
+				: ''}
+		>
+		{#if hasImages}
+			<!-- Desktop gallery (lg+): the phone carousel below is hidden there -->
+			<div
+				class="relative hidden overflow-hidden rounded-lg bg-surface-container-high lg:sticky lg:top-8 lg:block"
+				role="group"
+				aria-roledescription="carousel"
+				aria-label={m('social.detail.title')}
+			>
+				<div class="aspect-square max-h-[calc(100vh-4rem)] w-full">
+					<img
+						src={post.imageUrls[activeImage]}
+						alt={m('social.post.image', { index: activeImage + 1, count: post.imageUrls.length })}
+						class="h-full w-full object-cover"
+					/>
+				</div>
+				{#if post.imageUrls.length > 1}
+					<button
+						type="button"
+						onclick={() => stepImage(-1)}
+						onkeydown={onGalleryKeydown}
+						aria-label={m('social.detail.prevImage')}
+						class="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-surface/80 text-on-surface shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+					>
+						<span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+					</button>
+					<button
+						type="button"
+						onclick={() => stepImage(1)}
+						onkeydown={onGalleryKeydown}
+						aria-label={m('social.detail.nextImage')}
+						class="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-surface/80 text-on-surface shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+					>
+						<span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+					</button>
+					<div class="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
+						{#each post.imageUrls as _, i (i)}
+							<button
+								type="button"
+								onclick={() => (activeImage = i)}
+								aria-label={m('social.detail.showImage', { index: i + 1 })}
+								aria-current={i === activeImage ? 'true' : undefined}
+								class="h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white {i ===
+								activeImage
+									? 'w-5 bg-white'
+									: 'w-2 bg-white/50 hover:bg-white/80'}"
+							></button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<div class="min-w-0">
 		<!-- Author row -->
 		<div class="mb-4 flex items-center justify-between px-1">
 			<div class="flex items-center gap-3">
@@ -383,7 +465,7 @@
 
 		<div class="mb-6 overflow-hidden rounded-[32px] bg-surface-container-low shadow-sm">
 			{#if post.imageUrls.length > 0}
-				<div class="relative">
+				<div class="relative lg:hidden">
 					<div
 						class="hide-scrollbar flex snap-x snap-mandatory overflow-x-auto"
 						onscroll={onScrollImages}
@@ -639,37 +721,40 @@
 				</div>
 			{/if}
 		</section>
+
+		<!-- Comment bar: pinned to the viewport on phones, sticky at the bottom of the pane from md -->
+			<div
+				class="fixed bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-surface via-surface to-surface/0 p-4 pt-8 md:sticky md:-mx-4 md:mt-4 md:pb-6"
+				transition:fly={{ y: 20 }}
+			>
+				<form
+					onsubmit={submitComment}
+					class="mx-auto flex max-w-2xl items-center gap-3 rounded-full bg-surface-container-highest p-1.5 shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-primary/40"
+				>
+					<input
+						type="text"
+						maxlength={MAX_COMMENT}
+						placeholder={m('social.post.addComment')}
+						aria-label={m('social.post.addComment')}
+						bind:value={commentBody}
+						class="flex-1 bg-transparent px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+					/>
+					<button
+						type="submit"
+						disabled={!commentBody.trim() || submitting}
+						aria-label={m('social.post.postComment')}
+						class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-on-primary shadow-md transition-transform active:scale-95 disabled:opacity-40"
+					>
+						<span class="material-symbols-outlined text-[20px]">send</span>
+					</button>
+				</form>
+			</div>
+		</div>
+		</div>
 	{/if}
 </div>
+</PageContainer>
 
-{#if post}
-	<div
-		class="fixed bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-surface via-surface to-surface/0 p-4 pt-8"
-		transition:fly={{ y: 20 }}
-	>
-		<form
-			onsubmit={submitComment}
-			class="mx-auto flex max-w-2xl items-center gap-3 rounded-full bg-surface-container-highest p-1.5 shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-primary/40"
-		>
-			<input
-				type="text"
-				maxlength={MAX_COMMENT}
-				placeholder={m('social.post.addComment')}
-				aria-label={m('social.post.addComment')}
-				bind:value={commentBody}
-				class="flex-1 bg-transparent px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none"
-			/>
-			<button
-				type="submit"
-				disabled={!commentBody.trim() || submitting}
-				aria-label={m('social.post.postComment')}
-				class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-on-primary shadow-md transition-transform active:scale-95 disabled:opacity-40"
-			>
-				<span class="material-symbols-outlined text-[20px]">send</span>
-			</button>
-		</form>
-	</div>
-{/if}
 
 {#if confirmingDelete}
 	<ConfirmDialog

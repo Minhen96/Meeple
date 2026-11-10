@@ -1,12 +1,13 @@
 <script lang="ts">
 	// Tag a game and friends on a post: the two rows plus their search sheets. Used by post
 	// create and post edit (FEATURES_COMPLETE 5.4); bind `game` and `friends`, then send
-	// them on create, or `tagUpdatePayload(post, { game, friends })` on edit.
-	import { fade, fly } from 'svelte/transition';
+	// them on create, or `tagUpdatePayload(post, { game, friends })` on edit. The pickers use the
+	// shared BottomSheet: a sheet on phones, a centred dialog from md.
 	import { gamesApi } from '$lib/api/games';
 	import { friendsApi } from '$lib/api/friends';
 	import { m } from '$lib/i18n';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import type { GameSearchResult } from '$lib/types';
@@ -130,139 +131,121 @@
 
 <!-- Game search -->
 {#if showGameSearch}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4" transition:fade>
-		<button
-			type="button"
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-			onclick={() => (showGameSearch = false)}
-			aria-label={m('social.create.close')}
-		></button>
-		<div
-			class="relative flex w-full max-w-lg flex-col gap-6 rounded-[2.5rem] bg-surface p-6 shadow-2xl"
-			transition:fly={{ y: 20 }}
-		>
-			<div class="flex items-center justify-between">
-				<h3 class="font-headline text-xl font-black">{m('social.create.gameModalTitle')}</h3>
+	<BottomSheet label={m('social.create.gameModalTitle')} onClose={() => (showGameSearch = false)}>
+		<div class="flex flex-col gap-6">
+		<div class="flex items-center justify-between">
+			<h3 class="font-headline text-xl font-black">{m('social.create.gameModalTitle')}</h3>
+			<button
+				type="button"
+				onclick={() => (showGameSearch = false)}
+				class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container"
+				aria-label={m('social.create.close')}
+			>
+				<span class="material-symbols-outlined text-sm">close</span>
+			</button>
+		</div>
+		<div class="relative">
+			<span
+				class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50"
+				>search</span
+			>
+			<input
+				type="search"
+				placeholder={m('social.create.searchGames')}
+				aria-label={m('social.create.searchGames')}
+				bind:value={gameQuery}
+				oninput={onGameQuery}
+				class="h-12 w-full rounded-2xl bg-surface-container pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+			/>
+		</div>
+		<div class="max-h-64 space-y-2 overflow-y-auto pb-4 pr-1">
+			{#each gameResults as result (result.bggId)}
 				<button
 					type="button"
-					onclick={() => (showGameSearch = false)}
-					class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container"
-					aria-label={m('social.create.close')}
+					onclick={() => pickGame(result)}
+					class="flex w-full items-center gap-3 rounded-xl p-2 transition-colors hover:bg-surface-container"
 				>
-					<span class="material-symbols-outlined text-sm">close</span>
+					{#if result.thumbnailUrl}
+						<img
+							src={result.thumbnailUrl}
+							alt=""
+							class="h-10 w-10 rounded-lg bg-surface-container object-cover"
+						/>
+					{:else}
+						<span
+							class="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container"
+							><span class="material-symbols-outlined">casino</span></span
+						>
+					{/if}
+					<span class="text-left">
+						<span class="block text-sm font-bold leading-tight">{result.title}</span>
+						{#if result.yearPublished}<span class="block text-[10px] text-on-surface-variant"
+								>{result.yearPublished}</span
+							>{/if}
+					</span>
 				</button>
-			</div>
-			<div class="relative">
-				<span
-					class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50"
-					>search</span
-				>
-				<input
-					type="search"
-					placeholder={m('social.create.searchGames')}
-					aria-label={m('social.create.searchGames')}
-					bind:value={gameQuery}
-					oninput={onGameQuery}
-					class="h-12 w-full rounded-2xl bg-surface-container pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-				/>
-			</div>
-			<div class="max-h-64 space-y-2 overflow-y-auto pb-4 pr-1">
-				{#each gameResults as result (result.bggId)}
-					<button
-						type="button"
-						onclick={() => pickGame(result)}
-						class="flex w-full items-center gap-3 rounded-xl p-2 transition-colors hover:bg-surface-container"
-					>
-						{#if result.thumbnailUrl}
-							<img
-								src={result.thumbnailUrl}
-								alt=""
-								class="h-10 w-10 rounded-lg bg-surface-container object-cover"
-							/>
-						{:else}
-							<span
-								class="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container"
-								><span class="material-symbols-outlined">casino</span></span
-							>
-						{/if}
-						<span class="text-left">
-							<span class="block text-sm font-bold leading-tight">{result.title}</span>
-							{#if result.yearPublished}<span class="block text-[10px] text-on-surface-variant"
-									>{result.yearPublished}</span
-								>{/if}
-						</span>
-					</button>
-				{/each}
-			</div>
+			{/each}
 		</div>
-	</div>
+		</div>
+	</BottomSheet>
 {/if}
 
 <!-- Friend tagging -->
 {#if showFriendSearch}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4" transition:fade>
-		<button
-			type="button"
-			class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-			onclick={() => (showFriendSearch = false)}
-			aria-label={m('social.create.close')}
-		></button>
-		<div
-			class="relative flex w-full max-w-lg flex-col gap-6 rounded-[2.5rem] bg-surface p-6 shadow-2xl"
-			transition:fly={{ y: 20 }}
-		>
-			<div class="flex items-center justify-between">
-				<h3 class="font-headline text-xl font-black">{m('social.create.friendsModalTitle')}</h3>
-				<button
-					type="button"
-					onclick={() => (showFriendSearch = false)}
-					class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container"
-					aria-label={m('social.create.close')}
-				>
-					<span class="material-symbols-outlined text-sm">close</span>
-				</button>
-			</div>
-			<div class="max-h-80 space-y-2 overflow-y-auto pb-4 pr-1">
-				{#if friendsList === null}
-					<div class="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
-				{:else if friendsList.length === 0}
-					<p class="py-12 text-center text-sm text-on-surface-variant">
-						{m('social.create.noFriends')}
-					</p>
-				{:else}
-					{#each friendsList as friend (friend.id)}
-						{@const selected = friends.some((f) => f.id === friend.id)}
-						{@const full = !selected && friends.length >= MAX_TAGGED_FRIENDS}
-						<button
-							type="button"
-							onclick={() => (friends = toggleTaggedFriend(friends, friend))}
-							aria-pressed={selected}
-							disabled={full}
-							class="flex w-full items-center justify-between rounded-2xl p-3 transition-colors disabled:opacity-40 {selected
-								? 'bg-secondary/10'
-								: 'hover:bg-surface-container'}"
-						>
-							<span class="flex items-center gap-3">
-								<Avatar
-									src={friend.avatarUrl}
-									name={friend.displayName ?? friend.username}
-									size="sm"
-								/>
-								<span class="text-sm font-bold">{friend.displayName ?? friend.username}</span>
-							</span>
-							<span
-								class="material-symbols-outlined {selected
-									? 'text-secondary'
-									: 'text-on-surface-variant/30'}"
-							>
-								{selected ? 'check_circle' : 'add_circle'}
-							</span>
-						</button>
-					{/each}
-				{/if}
-			</div>
-			<Button fullWidth onclick={() => (showFriendSearch = false)}>{m('social.create.done')}</Button
+	<BottomSheet label={m('social.create.friendsModalTitle')} onClose={() => (showFriendSearch = false)}>
+		<div class="flex flex-col gap-6">
+		<div class="flex items-center justify-between">
+			<h3 class="font-headline text-xl font-black">{m('social.create.friendsModalTitle')}</h3>
+			<button
+				type="button"
+				onclick={() => (showFriendSearch = false)}
+				class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container"
+				aria-label={m('social.create.close')}
 			>
+				<span class="material-symbols-outlined text-sm">close</span>
+			</button>
 		</div>
-	</div>
+		<div class="max-h-80 space-y-2 overflow-y-auto pb-4 pr-1">
+			{#if friendsList === null}
+				<div class="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
+			{:else if friendsList.length === 0}
+				<p class="py-12 text-center text-sm text-on-surface-variant">
+					{m('social.create.noFriends')}
+				</p>
+			{:else}
+				{#each friendsList as friend (friend.id)}
+					{@const selected = friends.some((f) => f.id === friend.id)}
+					{@const full = !selected && friends.length >= MAX_TAGGED_FRIENDS}
+					<button
+						type="button"
+						onclick={() => (friends = toggleTaggedFriend(friends, friend))}
+						aria-pressed={selected}
+						disabled={full}
+						class="flex w-full items-center justify-between rounded-2xl p-3 transition-colors disabled:opacity-40 {selected
+							? 'bg-secondary/10'
+							: 'hover:bg-surface-container'}"
+					>
+						<span class="flex items-center gap-3">
+							<Avatar
+								src={friend.avatarUrl}
+								name={friend.displayName ?? friend.username}
+								size="sm"
+							/>
+							<span class="text-sm font-bold">{friend.displayName ?? friend.username}</span>
+						</span>
+						<span
+							class="material-symbols-outlined {selected
+								? 'text-secondary'
+								: 'text-on-surface-variant/30'}"
+						>
+							{selected ? 'check_circle' : 'add_circle'}
+						</span>
+					</button>
+				{/each}
+			{/if}
+		</div>
+		<Button fullWidth onclick={() => (showFriendSearch = false)}>{m('social.create.done')}</Button
+		>
+		</div>
+	</BottomSheet>
 {/if}

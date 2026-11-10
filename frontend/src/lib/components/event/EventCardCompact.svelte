@@ -10,9 +10,11 @@
 
 	interface Props {
 		event: Event;
+		/** Sizing classes; the default fixed width suits a horizontal scroller. */
+		class?: string;
 	}
 
-	let { event }: Props = $props();
+	let { event, class: sizing = 'flex-shrink-0 w-64' }: Props = $props();
 
 	const locale = getLocale();
 	const place = $derived(locationText(event));
@@ -24,7 +26,7 @@
 
 <a
 	href="/events/{event.id}"
-	class="flex-shrink-0 w-64 block bg-surface-container-low rounded-xl p-4 shadow-sm hover:scale-[1.02] transition-transform spring-bounce"
+	class="{sizing} block bg-surface-container-low rounded-xl p-4 shadow-sm hover:scale-[1.02] hover:bg-surface-container transition motion-reduce:transition-none spring-bounce focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 >
 	<div class="flex justify-between items-start mb-3 gap-2">
 		<span

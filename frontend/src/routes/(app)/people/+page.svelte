@@ -8,6 +8,7 @@
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import FriendButton from '$lib/components/social/FriendButton.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import { peopleSearchHistory, type RecentPerson } from '$lib/stores/peopleSearch';
 	import type {
 		FriendRequest,
@@ -19,6 +20,7 @@
 
 	type Tab = 'discover' | 'requests';
 	const SEARCH_DEBOUNCE_MS = 400;
+	const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
 
 	let tab = $derived<Tab>(
 		$page.url.searchParams.get('tab') === 'requests' ? 'requests' : 'discover'
@@ -139,26 +141,28 @@
 
 <svelte:head><title>{m('social.people.title')} — Meeple</title></svelte:head>
 
-<div class="space-y-6 pb-24">
+<!-- Phones: rows. From md: a grid of person cards (two columns, three from xl). -->
+<PageContainer width="wide">
+<div class="space-y-6 pb-24 md:pb-12">
 	<div class="flex items-center justify-between">
 		<h2 class="font-headline text-2xl font-extrabold">{m('social.people.title')}</h2>
 		<a
 			href="/profile/friends"
-			class="font-label text-xs font-bold uppercase tracking-widest text-primary"
+			class="rounded-full font-label text-xs font-bold uppercase tracking-widest text-primary hover:underline {FOCUS}"
 		>
 			{m('social.people.friendsLink')}
 		</a>
 	</div>
 
 	<!-- Tabs -->
-	<div class="flex gap-2 rounded-full bg-surface-container-low p-1" role="tablist">
+	<div class="flex gap-2 rounded-full bg-surface-container-low p-1 md:max-w-md" role="tablist">
 		{#each [{ id: 'discover', label: m('social.people.tabDiscover') }, { id: 'requests', label: received.length > 0 ? m( 'social.people.tabRequestsCount', { count: received.length } ) : m('social.people.tabRequests') }] as t (t.id)}
 			<button
 				type="button"
 				role="tab"
 				aria-selected={tab === t.id}
 				onclick={() => selectTab(t.id as Tab)}
-				class="flex-1 rounded-full py-2 text-sm font-bold transition-all {tab === t.id
+				class="flex-1 rounded-full py-2 text-sm font-bold transition-all {FOCUS} {tab === t.id
 					? 'bg-surface-container-lowest text-on-surface shadow-sm'
 					: 'text-on-surface-variant hover:text-on-surface'}"
 			>
@@ -168,7 +172,7 @@
 	</div>
 
 	{#if tab === 'discover'}
-		<div class="relative">
+		<div class="relative md:max-w-xl">
 			<span
 				class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-xl text-on-surface-variant"
 				>search</span
@@ -185,7 +189,7 @@
 
 		{#if searchQuery.trim()}
 			{#if searching && searchResults.length === 0}
-				<div class="space-y-3">
+				<div class="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 xl:grid-cols-3">
 					{#each [0, 1, 2] as i (i)}
 						<div class="flex items-center gap-3 p-3">
 							<Skeleton rounded class="h-12 w-12" />
@@ -210,15 +214,13 @@
 					</p>
 				</div>
 			{:else}
-				<ul class="space-y-2">
+				<ul class="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 xl:grid-cols-3">
 					{#each searchResults as user, i (user.id)}
-						<li
-							class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 transition-colors hover:bg-surface-container"
-						>
-							<a href="/profile/{user.id}" onclick={() => remember(user)}>
+						<li class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 transition-colors hover:bg-surface-container md:flex-col md:gap-2 md:rounded-[1.5rem] md:p-5 md:text-center">
+							<a href="/profile/{user.id}" onclick={() => remember(user)} class="rounded-full {FOCUS}" tabindex="-1">
 								<Avatar src={user.avatarUrl} name={user.displayName ?? user.username} size="lg" />
 							</a>
-							<a href="/profile/{user.id}" onclick={() => remember(user)} class="min-w-0 flex-1">
+							<a href="/profile/{user.id}" onclick={() => remember(user)} class="min-w-0 flex-1 rounded-xl md:w-full md:flex-none {FOCUS}">
 								<p class="truncate text-sm font-semibold">{user.displayName ?? user.username}</p>
 								<p class="truncate text-xs text-on-surface-variant">@{user.username}</p>
 							</a>
@@ -280,7 +282,7 @@
 					{m('social.people.suggested')}
 				</h3>
 				{#if suggestionsLoading}
-					<div class="space-y-2">
+					<div class="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 xl:grid-cols-3">
 						{#each [0, 1, 2] as i (i)}
 							<div class="h-16 animate-pulse rounded-xl bg-surface-container-low"></div>
 						{/each}
@@ -290,15 +292,13 @@
 						{m('social.people.noSuggestions')}
 					</p>
 				{:else}
-					<ul class="space-y-2">
+					<ul class="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 xl:grid-cols-3">
 						{#each suggestions as user (user.id)}
-							<li
-								class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 transition-colors hover:bg-surface-container"
-							>
-								<a href="/profile/{user.id}" onclick={() => remember(user)}>
+							<li class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 transition-colors hover:bg-surface-container md:flex-col md:gap-2 md:rounded-[1.5rem] md:p-5 md:text-center">
+								<a href="/profile/{user.id}" onclick={() => remember(user)} class="rounded-full {FOCUS}" tabindex="-1">
 									<Avatar src={user.avatarUrl} name={user.displayName ?? user.username} size="lg" />
 								</a>
-								<a href="/profile/{user.id}" onclick={() => remember(user)} class="min-w-0 flex-1">
+								<a href="/profile/{user.id}" onclick={() => remember(user)} class="min-w-0 flex-1 rounded-xl md:w-full md:flex-none {FOCUS}">
 									<p class="truncate text-sm font-semibold">{user.displayName ?? user.username}</p>
 									<p class="truncate text-xs text-on-surface-variant">
 										{user.sharedGames === 0
@@ -320,7 +320,7 @@
 			</section>
 		{/if}
 	{:else if requestsLoading}
-		<div class="space-y-2">
+		<div class="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 xl:grid-cols-3">
 			{#each [0, 1, 2] as i (i)}
 				<div class="h-16 animate-pulse rounded-xl bg-surface-container-low"></div>
 			{/each}
@@ -333,6 +333,8 @@
 			>
 		</div>
 	{:else}
+		<!-- Received and sent side by side from lg -->
+		<div class="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
 		<section class="space-y-3">
 			<h3
 				class="px-1 font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant"
@@ -348,7 +350,7 @@
 			{:else}
 				<ul class="space-y-2">
 					{#each received as request (request.id)}
-						<li class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3">
+						<li class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 transition-colors hover:bg-surface-container">
 							<a href="/profile/{request.sender.id}">
 								<Avatar
 									src={request.sender.avatarUrl}
@@ -401,7 +403,7 @@
 			{:else}
 				<ul class="space-y-2">
 					{#each sent as request (request.id)}
-						<li class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3">
+						<li class="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 transition-colors hover:bg-surface-container">
 							<a href="/profile/{request.receiver.id}">
 								<Avatar
 									src={request.receiver.avatarUrl}
@@ -428,5 +430,7 @@
 				</ul>
 			{/if}
 		</section>
+		</div>
 	{/if}
 </div>
+</PageContainer>

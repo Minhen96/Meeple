@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import GoogleButton from '$lib/components/ui/GoogleButton.svelte';
+	import { googleSignInConfigured } from '$lib/components/ui/googleSignIn';
 	import { authApi } from '$lib/api/auth';
 	import { errorMessage, m } from '$lib/i18n';
 	import { safeRedirectPath } from '$lib/utils/redirect';
@@ -20,6 +21,8 @@
 	let deletedGoogleCredential = $state<string | null>(null);
 	let reactivating = $state(false);
 	let resent = $state(false);
+	// Without a Google client id there is no button, so no "or" divider either.
+	const googleEnabled = googleSignInConfigured();
 	// Where to go after login (set by the auth guard); only same-origin paths.
 	const redirectTo = $derived(safeRedirectPath(page.url.searchParams.get('redirect')));
 	const justDeleted = $derived(page.url.searchParams.get('deleted') === '1');
@@ -239,25 +242,27 @@
 					</p>
 				</div>
 
-				<div class="relative flex items-center gap-4 py-5">
-					<div class="flex-1 h-px bg-outline-variant/20"></div>
-					<span class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]">
-						{m('account.login.quickConnect')}
-					</span>
-					<div class="flex-1 h-px bg-outline-variant/20"></div>
-				</div>
+				{#if googleEnabled}
+					<div class="relative flex items-center gap-4 py-5" data-testid="google-divider">
+						<div class="flex-1 h-px bg-outline-variant/20"></div>
+						<span class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]">
+							{m('account.login.quickConnect')}
+						</span>
+						<div class="flex-1 h-px bg-outline-variant/20"></div>
+					</div>
 
-				<GoogleButton
-					{redirectTo}
-					onError={(msg) => {
-						reset();
-						googleMessage = msg;
-					}}
-					onAccountDeleted={(credential) => {
-						reset();
-						deletedGoogleCredential = credential;
-					}}
-				/>
+					<GoogleButton
+						{redirectTo}
+						onError={(msg) => {
+							reset();
+							googleMessage = msg;
+						}}
+						onAccountDeleted={(credential) => {
+							reset();
+							deletedGoogleCredential = credential;
+						}}
+					/>
+				{/if}
 			</form>
 		</div>
 	</div>

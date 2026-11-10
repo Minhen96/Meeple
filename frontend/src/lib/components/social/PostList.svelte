@@ -16,8 +16,12 @@
 		emptyText: string;
 		/** Remove a post from the list when this returns true for an updated post (e.g. un-bookmarked). */
 		dropWhen?: (post: Post) => boolean;
+		/** `grid`: two columns from md, three from xl (saved posts); `stack` (default): one column. */
+		layout?: 'stack' | 'grid';
 	}
-	let { fetchPage, emptyText, dropWhen }: Props = $props();
+	let { fetchPage, emptyText, dropWhen, layout = 'stack' }: Props = $props();
+
+	const gridClass = $derived(layout === 'grid' ? 'md:grid md:grid-cols-2 md:items-start md:gap-4 md:space-y-0 xl:grid-cols-3' : '');
 
 	const key = (p: Post) => p.id;
 	let list = $state<PagerState<Post>>({
@@ -66,7 +70,7 @@
 </script>
 
 {#if list.loading && !list.loaded}
-	<PostCardSkeleton count={2} />
+	<PostCardSkeleton count={layout === 'grid' ? 3 : 2} class={gridClass} />
 {:else if list.error && !list.loaded}
 	<div class="space-y-3 rounded-2xl bg-surface-container-low py-12 text-center">
 		<p class="font-semibold text-on-surface">{m('social.feed.loadMoreFailed')}</p>
@@ -81,7 +85,7 @@
 		{emptyText}
 	</p>
 {:else}
-	<div class="space-y-4">
+	<div class="space-y-4 {gridClass}" data-layout={layout}>
 		{#each list.items as post, i (post.id)}
 			{#if !dropWhen || !dropWhen(post)}
 				<PostCard bind:post={list.items[i]} onDeleted={remove} />

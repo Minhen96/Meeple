@@ -22,6 +22,11 @@ export default {
 	'home.upcomingTitle': '即将开始的活动',
 	'home.viewCalendar': '查看日历',
 	'home.feedTitle': '动态',
+	'home.railLabel': '活动与好友',
+	'home.matchesTitle': '匹配推荐',
+	'home.requestsTitle': '好友请求',
+	'home.suggestionsTitle': '你可能认识的人',
+	'home.seeAll': '查看全部',
 
 	'feed.loadingMore': '正在加载更多…',
 	'feed.caughtUp': '你已看完所有动态！',
@@ -85,6 +90,9 @@ export default {
 	'detail.noComments': '来发表第一条评论吧！',
 	'detail.loadMoreComments': '加载更多评论',
 	'detail.loadCommentsFailed': '无法加载更多评论',
+	'detail.prevImage': '上一张照片',
+	'detail.nextImage': '下一张照片',
+	'detail.showImage': '显示第 {index} 张照片',
 
 	'comment.edit': '编辑',
 	'comment.delete': '删除',
@@ -107,6 +115,7 @@ export default {
 	'create.addPhotos': '添加照片',
 	'create.addMore': '继续添加',
 	'create.pickerHint': '可选 · 最多 10 张照片',
+	'create.dropHint': '将照片拖到这里，或点击选择',
 	'create.maxImages': '最多可以添加 10 张照片',
 	'create.notAnImage': '无法读取图片 {name}',
 	'create.compressing': '正在压缩…',
@@ -228,5 +237,6 @@ export default {
 	'search.players': '玩家',
 	'search.events': '活动',
 	'search.noResults': '没有找到“{query}”的结果',
-	'search.failed': '搜索失败，请重试。'
+	'search.failed': '搜索失败，请重试。',
+	'search.groupEmpty': '没有匹配项'
 } satisfies Translation<typeof en>;

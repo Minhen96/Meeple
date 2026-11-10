@@ -15,8 +15,13 @@
 		saveRecentSearches
 	} from '$lib/components/social/recentSearches';
 	import type { SearchResults } from '$lib/types';
+	import { LG_QUERY, matchesMedia } from '$lib/utils/media';
 
-	/** Full-screen search overlay (SCREENS_AND_STATES 13): games, players, events; 400ms debounce. */
+	/**
+	 * Full-screen search overlay (SCREENS_AND_STATES 13): games, players, events; 400ms debounce.
+	 * Phones list the three groups one under another (3 hits each); from lg they sit side by side
+	 * as columns with 6 hits each, games as a cover grid.
+	 */
 	const DEBOUNCE_MS = 400;
 
 	let query = $state($page.url.searchParams.get('q') ?? '');
@@ -59,7 +64,7 @@
 		const mine = ++seq;
 		loading = true;
 		try {
-			const res = await searchApi.search(q, { limit: 3 });
+			const res = await searchApi.search(q, { limit: matchesMedia(LG_QUERY) ? 6 : 3 });
 			if (mine !== seq) return;
 			results = res;
 			failed = false;
@@ -101,6 +106,9 @@
 		if (e.key === 'Escape') close();
 	}
 
+	const focusRing =
+		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+
 	function formatWhen(iso: string) {
 		return new Date(iso).toLocaleDateString(getLocale(), {
 			weekday: 'short',
@@ -110,6 +118,20 @@
 	}
 </script>
 
+{#snippet groupHeading(title: string)}
+	<h3 class="mb-2 font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant lg:mb-3">
+		{title}
+	</h3>
+{/snippet}
+
+<!-- Desktop only: keeps the three columns in place when a group has no hits -->
+{#snippet emptyGroup(title: string)}
+	<section class="hidden lg:block lg:rounded-lg lg:bg-surface-container-low lg:p-5" aria-hidden="true">
+		{@render groupHeading(title)}
+		<p class="py-6 text-center text-sm text-on-surface-variant">{m('social.search.groupEmpty')}</p>
+	</section>
+{/snippet}
+
 <svelte:head><title>{m('social.search.title')} — Meeple</title></svelte:head>
 <svelte:window onkeydown={onKeydown} />
 
@@ -117,7 +139,7 @@
 	class="fixed inset-0 md:left-rail lg:left-sidebar z-[60] overflow-y-auto bg-background"
 	transition:fly={{ y: -24, duration: 200 }}
 >
-	<div class="mx-auto max-w-lg md:max-w-xl lg:max-w-2xl px-4 md:px-8 pb-24 pt-4">
+	<div class="mx-auto max-w-lg md:max-w-xl lg:max-w-6xl px-4 md:px-8 pb-24 pt-4">
 		<!-- Search bar -->
 		<div
 			class="sticky top-0 z-10 -mx-4 md:-mx-8 flex items-center gap-2 bg-background/80 px-4 md:px-8 py-3 backdrop-blur-xl"
@@ -135,7 +157,7 @@
 					enterkeyhint="search"
 					placeholder={m('social.search.placeholder')}
 					aria-label={m('social.search.placeholder')}
-					class="w-full rounded-2xl bg-surface-container-highest py-3 pl-10 pr-10 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/40"
+					class="w-full rounded-2xl bg-surface-container-highest py-3 pl-10 pr-10 text-sm [&::-webkit-search-cancel-button]:appearance-none text-on-surface outline-none focus:ring-2 focus:ring-primary/40"
 				/>
 				{#if query}
 					<button
@@ -164,7 +186,7 @@
 
 		{#if !trimmed}
 			{#if recent.length > 0}
-				<section class="mt-4">
+				<section class="mt-4 lg:max-w-xl">
 					<div class="mb-2 flex items-center justify-between">
 						<h3
 							class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant"
@@ -203,9 +225,9 @@
 			{/if}
 			<p class="mt-12 text-center text-sm text-on-surface-variant">{m('social.search.hint')}</p>
 		{:else if loading && !results}
-			<div class="mt-4 space-y-6" aria-busy="true">
+			<div class="mt-4 space-y-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0" aria-busy="true">
 				{#each [m('social.search.games'), m('social.search.players'), m('social.search.events')] as heading (heading)}
-					<section class="space-y-3">
+					<section class="space-y-3 lg:rounded-lg lg:bg-surface-container-low lg:p-5">
 						<Skeleton class="h-3 w-16" />
 						{#each [0, 1] as i (i)}
 							<div class="flex items-center gap-3">
@@ -225,36 +247,35 @@
 				{m('social.search.noResults', { query: trimmed })}
 			</p>
 		{:else if results}
-			<div class="mt-4 space-y-6" class:opacity-60={loading}>
+			<div
+				class="mt-4 space-y-6 transition-opacity lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0"
+				class:opacity-60={loading}
+			>
 				{#if results.games.length > 0}
-					<section>
-						<h3
-							class="mb-2 font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant"
-						>
-							{m('social.search.games')}
-						</h3>
-						<ul class="space-y-1">
+					<section class="lg:rounded-lg lg:bg-surface-container-low lg:p-5">
+						{@render groupHeading(m('social.search.games'))}
+						<ul class="space-y-1 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
 							{#each results.games as game (game.id)}
 								<li>
 									<a
 										href="/library/{game.id}"
 										onclick={remember}
-										class="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container-low"
+										class="group flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container-low lg:flex-col lg:items-stretch lg:gap-2 lg:rounded-[1.5rem] lg:bg-surface-container-lowest lg:p-2 lg:transition-transform lg:hover:scale-[1.02] lg:hover:bg-surface-container-lowest {focusRing}"
 									>
 										{#if game.thumbnailUrl}
 											<img
 												src={game.thumbnailUrl}
 												alt=""
-												class="h-12 w-12 rounded-xl bg-surface-container object-cover"
+												class="h-12 w-12 rounded-xl bg-surface-container object-cover lg:aspect-square lg:h-auto lg:w-full lg:rounded-2xl"
 											/>
 										{:else}
 											<div
-												class="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant"
+												class="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant lg:aspect-square lg:h-auto lg:w-full lg:rounded-2xl"
 											>
 												<span class="material-symbols-outlined">casino</span>
 											</div>
 										{/if}
-										<div class="min-w-0">
+										<div class="min-w-0 lg:px-1 lg:pb-1">
 											<p class="truncate text-sm font-bold text-on-surface">{game.title}</p>
 											{#if game.yearPublished}
 												<p class="font-label text-xs text-on-surface-variant">
@@ -267,22 +288,22 @@
 							{/each}
 						</ul>
 					</section>
+				{:else}
+					{@render emptyGroup(m('social.search.games'))}
 				{/if}
 
 				{#if results.users.length > 0}
-					<section>
-						<h3
-							class="mb-2 font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant"
-						>
-							{m('social.search.players')}
-						</h3>
+					<section class="lg:rounded-lg lg:bg-surface-container-low lg:p-5">
+						{@render groupHeading(m('social.search.players'))}
 						<ul class="space-y-1">
 							{#each results.users as user, i (user.id)}
-								<li class="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container-low">
+								<li
+									class="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container-low lg:hover:bg-surface-container"
+								>
 									<a
 										href="/profile/{user.id}"
 										onclick={remember}
-										class="flex min-w-0 flex-1 items-center gap-3"
+										class="flex min-w-0 flex-1 items-center gap-3 rounded-xl {focusRing}"
 									>
 										<Avatar
 											src={user.avatarUrl}
@@ -301,22 +322,20 @@
 							{/each}
 						</ul>
 					</section>
+				{:else}
+					{@render emptyGroup(m('social.search.players'))}
 				{/if}
 
 				{#if results.events.length > 0}
-					<section>
-						<h3
-							class="mb-2 font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant"
-						>
-							{m('social.search.events')}
-						</h3>
+					<section class="lg:rounded-lg lg:bg-surface-container-low lg:p-5">
+						{@render groupHeading(m('social.search.events'))}
 						<ul class="space-y-1">
 							{#each results.events as event (event.id)}
 								<li>
 									<a
 										href="/events/{event.id}"
 										onclick={remember}
-										class="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container-low"
+										class="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container-low lg:hover:bg-surface-container {focusRing}"
 									>
 										<div
 											class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-secondary-container text-on-secondary-container"
@@ -334,6 +353,8 @@
 							{/each}
 						</ul>
 					</section>
+				{:else}
+					{@render emptyGroup(m('social.search.events'))}
 				{/if}
 			</div>
 		{/if}

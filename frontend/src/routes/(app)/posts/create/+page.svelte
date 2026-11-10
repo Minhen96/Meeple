@@ -10,6 +10,7 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import PostTagsEditor from '$lib/components/social/PostTagsEditor.svelte';
 	import { moveItem, type TaggedFriend, type TaggedGame } from '$lib/components/social/postTags';
 	import { toast } from 'svelte-sonner';
@@ -40,6 +41,8 @@
 	let submitting = $state(false);
 	let error = $state('');
 	let fileInput = $state<HTMLInputElement>();
+	/** A file drag is over the photo drop zone (desktop). */
+	let dropActive = $state(false);
 
 	// Photo reordering: drag by the handle (pointer events) or the move buttons / arrow keys.
 	// The list itself is re-ordered as the pointer passes over another photo, no transforms.
@@ -83,6 +86,24 @@
 		const target = event.currentTarget as HTMLInputElement;
 		const files = Array.from(target.files ?? []);
 		target.value = '';
+		addFiles(files);
+	}
+
+	/** Desktop: photos dropped onto the photo area (non-images fail compression like a pick). */
+	function onDragOver(event: DragEvent) {
+		if (!event.dataTransfer?.types.includes('Files')) return;
+		event.preventDefault();
+		event.dataTransfer.dropEffect = 'copy';
+		dropActive = true;
+	}
+
+	function onDrop(event: DragEvent) {
+		event.preventDefault();
+		dropActive = false;
+		addFiles(Array.from(event.dataTransfer?.files ?? []));
+	}
+
+	function addFiles(files: File[]) {
 		if (files.length === 0) return;
 		const room = MAX_IMAGES - uploads.length;
 		if (files.length > room) toast.error(m('social.create.maxImages'));
@@ -260,14 +281,16 @@
 
 <svelte:head><title>{m('social.create.title')} — Meeple</title></svelte:head>
 
-<div class="relative min-h-screen overflow-x-hidden pb-24">
+<!-- From lg the photos sit beside the form (photo grid left, details right) -->
+<PageContainer width="wide" class="lg:max-w-5xl">
+<div class="relative min-h-screen overflow-x-hidden pb-24 md:overflow-x-clip md:pb-12">
 	<div class="absolute -left-32 -top-32 -z-10 h-80 w-80 rounded-full bg-tertiary/10 blur-3xl"></div>
 	<div
 		class="absolute -right-32 bottom-1/4 -z-10 h-96 w-96 rounded-full bg-primary/5 blur-3xl"
 	></div>
 
 	<!-- Header -->
-	<div class="sticky top-4 z-20 mb-6 mt-4 flex items-center gap-3 px-4">
+	<div class="sticky top-4 z-20 mb-6 mt-4 flex items-center gap-3 px-4 md:px-0">
 		<button
 			type="button"
 			onclick={() => history.back()}
@@ -288,18 +311,31 @@
 		</div>
 	</div>
 
-	<form onsubmit={handleSubmit} class="mx-auto max-w-2xl space-y-6 px-4" novalidate>
+	<form
+		onsubmit={handleSubmit}
+		class="mx-auto max-w-2xl space-y-6 px-4 md:px-0 lg:grid lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-6 lg:space-y-0"
+		novalidate
+	>
 		{#if error}
 			<div
-				class="rounded-2xl bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container"
+				class="rounded-2xl bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container lg:col-span-2"
 				role="alert"
 			>
 				{error}
 			</div>
 		{/if}
 
-		<!-- Photos (optional) -->
-		<div class="space-y-3">
+		<!-- Photos (optional); a drop target on desktop -->
+		<div
+			class="space-y-3 rounded-[2rem] transition-colors lg:sticky lg:top-24 {dropActive
+				? 'bg-primary/5 ring-2 ring-primary/40'
+				: ''}"
+			role="group"
+			aria-label={m('social.create.photos', { count: uploads.length })}
+			ondragover={onDragOver}
+			ondragleave={() => (dropActive = false)}
+			ondrop={onDrop}
+		>
 			<div class="flex items-center justify-between px-1">
 				<h3
 					class="font-label text-[10px] font-black uppercase tracking-widest text-on-surface-variant/70"
@@ -321,7 +357,7 @@
 				<button
 					type="button"
 					onclick={() => fileInput?.click()}
-					class="flex w-full flex-col items-center justify-center gap-3 rounded-[2rem] bg-surface-container-low py-10 text-on-surface-variant transition-all hover:bg-surface-container active:scale-[0.99]"
+					class="flex w-full flex-col items-center justify-center gap-3 rounded-[2rem] bg-surface-container-low py-10 text-on-surface-variant transition-all hover:bg-surface-container active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:aspect-[4/3] lg:py-0"
 				>
 					<div
 						class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-container-high shadow-inner"
@@ -334,13 +370,17 @@
 						<p class="text-[10px] uppercase tracking-tighter opacity-60">
 							{m('social.create.pickerHint')}
 						</p>
+						<p class="mt-2 hidden text-xs lg:block">{m('social.create.dropHint')}</p>
 					</div>
 				</button>
 			{:else}
-				<div bind:this={photoStrip} class="hide-scrollbar flex gap-3 overflow-x-auto pb-2">
+				<div
+					bind:this={photoStrip}
+					class="hide-scrollbar flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible"
+				>
 					{#each uploads as upload, index (upload.id)}
 						<div
-							class="relative w-32 flex-shrink-0 rounded-2xl transition-opacity {dragId ===
+							class="relative w-32 flex-shrink-0 rounded-2xl transition-opacity lg:w-auto {dragId ===
 							upload.id
 								? 'opacity-60 ring-2 ring-primary'
 								: ''}"
@@ -432,7 +472,7 @@
 							type="button"
 							onclick={() => fileInput?.click()}
 							aria-label={m('social.create.addMore')}
-							class="flex aspect-square w-32 flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-surface-container-low text-on-surface-variant"
+							class="flex aspect-square w-32 flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-surface-container-low text-on-surface-variant transition-colors hover:bg-surface-container lg:w-auto"
 						>
 							<span class="material-symbols-outlined text-xl">add</span>
 						</button>
@@ -464,6 +504,8 @@
 			/>
 		</div>
 
+		<!-- Details column (beside the photos from lg) -->
+		<div class="space-y-6 lg:mt-7">
 		<!-- Caption -->
 		<div class="space-y-2 rounded-[2rem] bg-surface-container-low p-6 shadow-sm">
 			<textarea
@@ -538,8 +580,10 @@
 				{/if}
 			</button>
 		</div>
+		</div>
 	</form>
 </div>
+</PageContainer>
 
 {#if pendingNavigation}
 	<ConfirmDialog

@@ -79,3 +79,58 @@ describe('post detail edit mode', () => {
 		expect(screen.queryByDisplayValue('Original caption')).toBeNull();
 	});
 });
+
+describe('post detail desktop gallery', () => {
+	const withImages = () =>
+		({
+			user: { id: 'other', username: 'other' },
+			post: { ...makePost(), imageUrls: ['/a.jpg', '/b.jpg', '/c.jpg'] },
+			comments: [],
+			commentsCursor: null,
+			editRequested: false
+		}) as never;
+	const shown = () =>
+		screen
+			.getAllByAltText(/Photo \d of 3/)
+			.filter((img) => img.closest('[aria-roledescription="carousel"]'))[0];
+	const button = (name: string) => screen.getByRole('button', { name });
+
+	it('steps through the photos with the arrows, the arrow keys and the dots', async () => {
+		render(Page, { data: withImages() });
+		expect(shown()).toHaveAttribute('src', '/a.jpg');
+
+		await userEvent.click(button(m('social.detail.nextImage')));
+		expect(shown()).toHaveAttribute('src', '/b.jpg');
+
+		await userEvent.click(button(m('social.detail.prevImage')));
+		await userEvent.click(button(m('social.detail.prevImage')));
+		expect(shown()).toHaveAttribute('src', '/c.jpg');
+
+		button(m('social.detail.nextImage')).focus();
+		await userEvent.keyboard('{ArrowRight}');
+		expect(shown()).toHaveAttribute('src', '/a.jpg');
+		await userEvent.keyboard('{ArrowLeft}');
+		expect(shown()).toHaveAttribute('src', '/c.jpg');
+		await userEvent.keyboard('{Enter}');
+		expect(shown()).toHaveAttribute('src', '/a.jpg');
+
+		const second = button(m('social.detail.showImage', { index: 2 }));
+		await userEvent.click(second);
+		expect(shown()).toHaveAttribute('src', '/b.jpg');
+		expect(second).toHaveAttribute('aria-current', 'true');
+	});
+
+	it('has no gallery for a post without photos', () => {
+		render(Page, {
+			data: {
+				user: { id: 'other', username: 'other' },
+				post: makePost(),
+				comments: [],
+				commentsCursor: null,
+				editRequested: false
+			} as never
+		});
+		expect(screen.queryByRole('button', { name: m('social.detail.nextImage') })).toBeNull();
+		expect(screen.getByRole('textbox', { name: m('social.post.addComment') })).toBeInTheDocument();
+	});
+});

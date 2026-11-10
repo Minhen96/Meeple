@@ -4,11 +4,13 @@
 	/** Loading placeholder matching PostCard (SCREENS_AND_STATES 14.6). */
 	interface Props {
 		count?: number;
+		/** Extra classes for the wrapper (e.g. a grid from md). */
+		class?: string;
 	}
-	let { count = 2 }: Props = $props();
+	let { count = 2, class: className = '' }: Props = $props();
 </script>
 
-<div class="space-y-4" aria-hidden="true">
+<div class="space-y-4 {className}" aria-hidden="true">
 	{#each Array.from({ length: count }, (_, i) => i) as i (i)}
 		<div class="overflow-hidden rounded-2xl bg-surface-container-lowest">
 			<div class="flex items-center gap-3 p-4">
