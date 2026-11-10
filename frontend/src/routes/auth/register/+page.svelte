@@ -1,9 +1,13 @@
 <script lang="ts">
 	import Button from "$lib/components/ui/Button.svelte";
 	import GoogleButton from "$lib/components/ui/GoogleButton.svelte";
+	import { googleSignInConfigured } from "$lib/components/ui/googleSignIn";
 	import { api, ApiRequestError } from "$lib/api/client";
 	import { goto } from "$app/navigation";
 	import { errorMessage, m } from "$lib/i18n";
+
+	// Without a Google client id there is no button, so no "or" divider either.
+	const googleEnabled = googleSignInConfigured();
 
 	let email = $state("");
 	let username = $state("");
@@ -419,16 +423,18 @@
 					</p>
 				</div>
 
-				<div class="relative flex items-center gap-4 py-5">
-					<div class="flex-1 h-px bg-outline-variant/20"></div>
-					<span
-						class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]"
-						>{m('account.login.quickConnect')}</span
-					>
-					<div class="flex-1 h-px bg-outline-variant/20"></div>
-				</div>
+				{#if googleEnabled}
+					<div class="relative flex items-center gap-4 py-5" data-testid="google-divider">
+						<div class="flex-1 h-px bg-outline-variant/20"></div>
+						<span
+							class="text-[8px] text-on-surface-variant font-black uppercase tracking-[.3em]"
+							>{m('account.login.quickConnect')}</span
+						>
+						<div class="flex-1 h-px bg-outline-variant/20"></div>
+					</div>
 
-				<GoogleButton onError={(msg) => (error = msg)} />
+					<GoogleButton onError={(msg) => (error = msg)} />
+				{/if}
 			</form>
 		</div>
 	</div>

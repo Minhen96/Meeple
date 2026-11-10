@@ -64,7 +64,7 @@
 			type="button"
 			onclick={() => history.back()}
 			aria-label={m('social.detail.back')}
-			class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-all hover:text-primary active:scale-95 md:hidden"
+			class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-all hover:text-primary active:scale-95"
 		>
 			<span class="material-symbols-outlined text-[20px]">arrow_back</span>
 		</button>

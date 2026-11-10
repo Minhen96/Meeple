@@ -37,6 +37,8 @@
 	const isImmersiveRoute = $derived(
 		/^\/library\/[^/]+\/?$/.test(pathname) ||
 			/^\/events\/[^/]+\/?$/.test(pathname) ||
+			/^\/events\/[^/]+\/edit\/?$/.test(pathname) ||
+			pathname.startsWith('/profile/friends') ||
 			/^\/posts\/[^/]+\/?$/.test(pathname) ||
 			pathname.startsWith('/notifications') ||
 			pathname.startsWith('/settings') ||
