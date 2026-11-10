@@ -2,6 +2,7 @@
 	// Admin only: promote a friend to admin.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page as appPage } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { fade, fly } from 'svelte/transition';
 	import { friendsApi } from '$lib/api/friends';
@@ -31,7 +32,9 @@
 	);
 
 	onMount(async () => {
-		if (!$currentUser?.isAdmin) {
+		// On a cold load the user store may not be filled yet; fall back to the layout's data
+		const user = $currentUser ?? (appPage.data.user as User | null | undefined);
+		if (!user?.isAdmin) {
 			void goto('/');
 			return;
 		}
