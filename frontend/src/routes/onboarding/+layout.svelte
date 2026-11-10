@@ -44,21 +44,31 @@
 	}
 </script>
 
-<div class="min-h-screen bg-background flex flex-col">
-	<header class="flex items-center justify-between px-6 py-4 max-w-lg mx-auto w-full">
-		{#if current !== null}
-			<StepDots total={ONBOARDING_STEPS.length} {current} />
-			<button
-				onclick={handleSkip}
-				disabled={skipping}
-				class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors disabled:opacity-50"
-			>
-				{m('common.skip')}
-			</button>
-		{/if}
-	</header>
+<!-- Phones: full-screen steps. md+ (SCREENS_AND_STATES section 16): the same steps in a centred
+     card on the warm auth backdrop. -->
+<div class="min-h-screen bg-background md:bg-auth-backdrop flex flex-col md:items-center md:justify-center md:px-8 md:py-12">
+	<div
+		class="flex-1 md:flex-none flex flex-col w-full md:max-w-xl md:bg-surface-container-lowest md:rounded-[2rem] md:shadow-[0_12px_32px_rgba(0,0,0,0.06)] md:py-6"
+	>
+		<header
+			class="{current === null
+				? 'md:hidden'
+				: ''} flex items-center justify-between px-6 md:px-10 py-4 max-w-lg md:max-w-none mx-auto w-full"
+		>
+			{#if current !== null}
+				<StepDots total={ONBOARDING_STEPS.length} {current} />
+				<button
+					onclick={handleSkip}
+					disabled={skipping}
+					class="text-sm font-label font-bold text-on-surface-variant hover:text-primary transition-colors disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+				>
+					{m('common.skip')}
+				</button>
+			{/if}
+		</header>
 
-	<main class="flex-1 px-6 pb-12 max-w-lg mx-auto w-full">
-		{@render children?.()}
-	</main>
+		<main class="flex-1 px-6 md:px-10 pb-12 md:pb-6 max-w-lg md:max-w-none mx-auto w-full">
+			{@render children?.()}
+		</main>
+	</div>
 </div>

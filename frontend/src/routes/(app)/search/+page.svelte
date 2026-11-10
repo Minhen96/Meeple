@@ -114,13 +114,13 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div
-	class="fixed inset-0 z-[60] overflow-y-auto bg-background"
+	class="fixed inset-0 md:left-rail lg:left-sidebar z-[60] overflow-y-auto bg-background"
 	transition:fly={{ y: -24, duration: 200 }}
 >
-	<div class="mx-auto max-w-lg px-4 pb-24 pt-4">
+	<div class="mx-auto max-w-lg md:max-w-xl lg:max-w-2xl px-4 md:px-8 pb-24 pt-4">
 		<!-- Search bar -->
 		<div
-			class="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background/80 px-4 py-3 backdrop-blur-xl"
+			class="sticky top-0 z-10 -mx-4 md:-mx-8 flex items-center gap-2 bg-background/80 px-4 md:px-8 py-3 backdrop-blur-xl"
 		>
 			<div class="relative flex-1">
 				<span

@@ -23,17 +23,21 @@
 	}
 </script>
 
+<!-- From md up the Sidebar carries the logo, search and notifications: the bar is then only shown
+     on detail pages, as a slim back + title header beside the rail / sidebar. -->
 <header
-	class="fixed top-0 w-full z-50 transition-all duration-500 {transparent
+	class="fixed top-0 inset-x-0 md:left-rail lg:left-sidebar z-50 transition-all duration-500 motion-reduce:transition-none {showBack
+		? ''
+		: 'md:hidden'} {transparent
 		? 'bg-transparent'
 		: 'bg-surface/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]'}"
 >
-	<div class="flex justify-between items-center px-6 py-4 max-w-lg mx-auto w-full">
+	<div class="flex justify-between items-center px-6 md:px-8 py-4 max-w-lg md:max-w-none mx-auto w-full">
 		{#if showBack}
 			<div class="flex items-center gap-3">
 				<button
 					onclick={goBack}
-					class="text-on-surface-variant hover:text-on-surface transition-colors p-1 -ml-1 rounded-full hover:bg-surface-container-high"
+					class="text-on-surface-variant hover:text-on-surface transition-colors p-1 -ml-1 rounded-full hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 					aria-label={m('common.back')}
 				>
 					<span class="material-symbols-outlined">arrow_back</span>
@@ -55,7 +59,7 @@
 			</div>
 		{/if}
 
-		<div class="flex items-center gap-3">
+		<div class="flex items-center gap-3 md:hidden">
 			{#if !showBack}
 				<a
 					href="/search"

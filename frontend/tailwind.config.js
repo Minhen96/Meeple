@@ -67,6 +67,12 @@ export default {
 				body: ['"Plus Jakarta Sans"', 'sans-serif'],
 				label: ['Manrope', 'sans-serif']
 			},
+			// App shell (SCREENS_AND_STATES section 16): the md icon rail and the lg+ sidebar.
+			// Pages offset fixed bars with `md:left-rail lg:left-sidebar`.
+			spacing: {
+				rail: '5rem',
+				sidebar: '16rem'
+			},
 			borderRadius: {
 				DEFAULT: '1rem',
 				lg: '2rem',

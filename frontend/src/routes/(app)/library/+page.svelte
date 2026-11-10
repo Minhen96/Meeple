@@ -288,7 +288,7 @@
 
 <!-- Sticky Unified Header -->
 <div
-	class="sticky top-14 z-40 bg-background/95 backdrop-blur -mx-4 px-4 pb-3 shadow-sm"
+	class="sticky top-14 md:top-0 z-40 bg-background/95 backdrop-blur -mx-4 px-4 pb-3 shadow-sm"
 >
 	<!-- Tab Bar -->
 	<div

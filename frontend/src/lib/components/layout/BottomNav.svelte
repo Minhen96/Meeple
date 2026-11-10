@@ -1,22 +1,15 @@
 <script lang="ts">
 	// Bottom navigation (SCREENS_AND_STATES section 1): Home, Library, [+], Events, Profile.
-	// The centre "+" opens the create sheet.
+	// The centre "+" opens the create sheet. Mobile only: from md up the Sidebar rail replaces it.
 	import { page } from '$app/state';
-	import { m, type MessageKey } from '$lib/i18n';
+	import { m } from '$lib/i18n';
 	import CreateSheet from './CreateSheet.svelte';
-
-	const navItems: { href: string; icon: string; label: MessageKey }[] = [
-		{ href: '/', icon: 'home', label: 'common.nav.home' },
-		{ href: '/library', icon: 'menu_book', label: 'common.nav.library' },
-		{ href: '/events', icon: 'event', label: 'common.nav.events' },
-		{ href: '/profile', icon: 'person', label: 'common.nav.profile' }
-	];
+	import { BOTTOM_NAV as navItems, isNavActive } from './shell';
 
 	let createOpen = $state(false);
 
 	function isActive(href: string): boolean {
-		if (href === '/') return page.url.pathname === '/';
-		return page.url.pathname.startsWith(href);
+		return isNavActive(page.url.pathname, href);
 	}
 </script>
 
@@ -39,7 +32,7 @@
 
 <nav
 	aria-label={m('common.nav.label')}
-	class="fixed bottom-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]"
+	class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]"
 >
 	<div class="flex justify-around items-center px-4 pb-safe pt-2 max-w-lg mx-auto">
 		{@render navLink(navItems[0])}

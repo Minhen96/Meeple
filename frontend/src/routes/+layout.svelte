@@ -9,6 +9,7 @@
 	import { setUser } from '$lib/stores/auth';
 	import { connectWS, disconnectWS } from '$lib/stores/websocket';
 	import type { User } from '$lib/types';
+	import { LG_QUERY, watchMedia } from '$lib/utils/media';
 
 	interface Props {
 		data: { user: User | null; locale: Locale };
@@ -27,6 +28,10 @@
 	$effect(() => {
 		setUser(data.user);
 	});
+
+	// Toasts (SCREENS_AND_STATES section 14.1): bottom centre on mobile, top right on desktop.
+	let desktop = $state(false);
+	$effect(() => watchMedia(LG_QUERY, (matches) => (desktop = matches)));
 
 	// Depend on the user id only, so profile edits / layout re-runs that
 	// produce a new user object don't tear down and rebuild the socket.
@@ -59,7 +64,7 @@
 {/key}
 
 <Toaster
-	position="bottom-center"
+	position={desktop ? 'top-right' : 'bottom-center'}
 	toastOptions={{
 		classes: {
 			toast: 'font-body rounded-xl',

@@ -2,20 +2,14 @@
 	// The bottom-nav "+" sheet (PLAN section 3.8): Post / Event / Add Game / Find Match.
 	import { goto } from '$app/navigation';
 	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { m, type MessageKey } from '$lib/i18n';
+	import { m } from '$lib/i18n';
+	import { CREATE_ACTIONS as actions } from './shell';
 
 	interface Props {
 		onClose: () => void;
 	}
 
 	let { onClose }: Props = $props();
-
-	const actions: { icon: string; label: MessageKey; hint: MessageKey; href: string }[] = [
-		{ icon: 'add_photo_alternate', label: 'common.create.post', hint: 'common.create.postHint', href: '/posts/create' },
-		{ icon: 'event', label: 'common.create.event', hint: 'common.create.eventHint', href: '/events/create' },
-		{ icon: 'library_add', label: 'common.create.game', hint: 'common.create.gameHint', href: '/library' },
-		{ icon: 'group_add', label: 'common.create.match', hint: 'common.create.matchHint', href: '/match' }
-	];
 
 	function open(href: string) {
 		onClose();

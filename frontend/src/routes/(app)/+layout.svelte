@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import AppBar from '$lib/components/layout/AppBar.svelte';
 	import BottomNav from '$lib/components/layout/BottomNav.svelte';
+	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import {
 		hasInAppHistory,
 		logicalParent,
@@ -85,19 +86,33 @@
 	});
 </script>
 
+<!-- md+: rail / sidebar on every app screen (replaces the bottom nav and the app bar's actions) -->
+<Sidebar />
+
 {#if !isImmersiveRoute}
 	<AppBar showBack={isDetailPage} />
 {/if}
 
-<main class="{isImmersiveRoute ? 'pt-4' : 'pt-16'} px-4 max-w-lg mx-auto pb-32">
-	{@render children?.()}
-</main>
+<!-- Content column (SCREENS_AND_STATES section 16): max-w-lg on phones, max-w-xl beside the md
+     rail, max-w-2xl beside the lg sidebar. A page wrapped in <PageContainer> chooses its own width
+     from md up (the :has() variant drops this default). -->
+<div class="md:pl-rail lg:pl-sidebar">
+	<main
+		class="{isImmersiveRoute
+			? 'pt-4'
+			: isDetailPage
+				? 'pt-16'
+				: 'pt-16 md:pt-8'} px-4 md:px-8 w-full max-w-lg md:max-w-xl lg:max-w-2xl md:[&:has([data-page-container])]:max-w-none mx-auto pb-32 md:pb-12"
+	>
+		{@render children?.()}
+	</main>
+</div>
 
 <!-- Floating back button on the immersive game detail -->
 {#if isGameDetail}
 	<button
 		onclick={back}
-		class="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md text-white flex items-center justify-center shadow-md"
+		class="fixed top-4 left-4 md:ml-rail lg:ml-sidebar z-50 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md text-white flex items-center justify-center shadow-md"
 		aria-label={m('common.back')}
 	>
 		<span class="material-symbols-outlined text-[20px]">arrow_back</span>
