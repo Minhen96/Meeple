@@ -31,3 +31,44 @@ export function typeIcon(type: NotificationType): string {
 	if (type === 'BGG_IMPORT_COMPLETED') return 'library_add';
 	return 'menu_book';
 }
+
+/** Filter chips on wider screens (md+): all, unread, or one category of notification type. */
+export type NotificationCategory = 'events' | 'social' | 'friends' | 'library';
+export type NotificationFilter = 'all' | 'unread' | NotificationCategory;
+
+export const NOTIFICATION_FILTERS: readonly NotificationFilter[] = [
+	'all',
+	'unread',
+	'events',
+	'social',
+	'friends',
+	'library'
+];
+
+/** Category a notification type is filed under by the filter chips. */
+export function notificationCategory(type: NotificationType): NotificationCategory {
+	if (type.startsWith('EVENT_') || type.startsWith('MATCH_')) return 'events';
+	if (type.startsWith('POST_') || type.startsWith('COMMENT_')) return 'social';
+	if (type.startsWith('FRIEND_')) return 'friends';
+	return 'library';
+}
+
+function matchesFilter(n: Notification, filter: NotificationFilter): boolean {
+	if (filter === 'all') return true;
+	if (filter === 'unread') return !n.read;
+	return notificationCategory(n.type) === filter;
+}
+
+/** The loaded notifications that pass `filter`, in their original order. */
+export function filterNotifications(list: readonly Notification[], filter: NotificationFilter): Notification[] {
+	return list.filter((n) => matchesFilter(n, filter));
+}
+
+/** How many loaded notifications each filter would show. */
+export function filterCounts(list: readonly Notification[]): Record<NotificationFilter, number> {
+	const counts = Object.fromEntries(NOTIFICATION_FILTERS.map((f) => [f, 0])) as Record<NotificationFilter, number>;
+	for (const n of list) {
+		for (const f of NOTIFICATION_FILTERS) if (matchesFilter(n, f)) counts[f]++;
+	}
+	return counts;
+}

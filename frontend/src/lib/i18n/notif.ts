@@ -25,6 +25,18 @@ export default {
 	'time.minutes': '{n}m',
 	'time.hours': '{n}h',
 	'time.days': '{n}d',
+	'filter.label': 'Filter notifications',
+	'filter.title': 'Show',
+	'filter.all': 'All',
+	'filter.unread': 'Unread',
+	'filter.events': 'Events & matches',
+	'filter.social': 'Posts & comments',
+	'filter.friends': 'Friends',
+	'filter.library': 'Library & rules',
+	'filter.empty': 'Nothing here for this filter.',
+	'filter.showAll': 'Show all',
+	'rail.unread': '{count} unread',
+	'rail.caughtUp': 'All caught up',
 
 	// Preferences
 	'prefs.title': 'Notification Preferences',

@@ -203,3 +203,62 @@ describe('notifications page', () => {
 		await waitFor(() => expect(h.toast.error).toHaveBeenCalledWith(m('notif.list.loadFailed')));
 	});
 });
+
+describe('notifications page on wide screens', () => {
+	const stubMedia = (minWidth: number) =>
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn((query: string) => ({
+				matches: Number(/min-width:\s*(\d+)px/.exec(query)?.[1] ?? Infinity) <= minWidth,
+				media: query,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn()
+			}))
+		);
+
+	const items = () => [
+		notif('like', HOUR),
+		notif('friend', HOUR, { type: 'FRIEND_REQUEST', read: true }),
+		notif('event', HOUR, { type: 'EVENT_INVITE' })
+	];
+
+	it('filters by category and unread with chips (md)', async () => {
+		stubMedia(800);
+		h.api.list.mockResolvedValue(page(items()));
+		h.api.getUnreadCount.mockResolvedValue(2);
+		render(Page);
+		const chips = await screen.findByRole('group', { name: m('notif.filter.label') });
+		await userEvent.click(within(chips).getByRole('button', { name: new RegExp(m('notif.filter.friends')) }));
+		expect(screen.getByText('TITLE_friend')).toBeInTheDocument();
+		expect(screen.queryByText('TITLE_like')).toBeNull();
+
+		await userEvent.click(within(chips).getByRole('button', { name: new RegExp(m('notif.filter.unread')) }));
+		expect(screen.queryByText('TITLE_friend')).toBeNull();
+		expect(screen.getByText('TITLE_like')).toBeInTheDocument();
+		expect(screen.getByText('TITLE_event')).toBeInTheDocument();
+		// Header keeps "Mark all read" below xl
+		expect(screen.getByRole('button', { name: m('notif.page.markAllRead') })).toBeInTheDocument();
+	});
+
+	it('moves the summary, mark-all and filters into the rail (xl)', async () => {
+		stubMedia(1400);
+		h.api.list.mockResolvedValue(page(items()));
+		h.api.getUnreadCount.mockResolvedValue(2);
+		render(Page);
+		const rail = await screen.findByRole('complementary', { name: m('notif.filter.label') });
+		expect(await within(rail).findByText(m('notif.rail.unread', { count: 2 }))).toBeInTheDocument();
+		expect(screen.getAllByRole('button', { name: m('notif.page.markAllRead') })).toHaveLength(1);
+		await waitFor(() => expect(within(rail).getByRole('button', { name: new RegExp(m('notif.filter.events')) })).toBeInTheDocument());
+		// No library notifications loaded: that chip is left out
+		expect(within(rail).queryByRole('button', { name: new RegExp(m('notif.filter.library')) })).toBeNull();
+
+		// A filter with nothing left offers to show everything again
+		await userEvent.click(within(rail).getByRole('button', { name: new RegExp(m('notif.filter.events')) }));
+		await userEvent.click(screen.getByRole('button', { name: m('notif.item.markRead') }));
+		await userEvent.click(within(rail).getByRole('button', { name: new RegExp(m('notif.filter.unread')) }));
+		await userEvent.click(screen.getAllByRole('button', { name: m('notif.item.markRead') })[0]);
+		expect(await screen.findByText(m('notif.filter.empty'))).toBeInTheDocument();
+		await userEvent.click(screen.getByRole('button', { name: m('notif.filter.showAll') }));
+		expect(screen.getByText('TITLE_friend')).toBeInTheDocument();
+	});
+});
