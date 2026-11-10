@@ -3,7 +3,7 @@ import { DEFAULT_LOCALE, setLocale } from '$lib/i18n';
 import en from '$lib/i18n/notif';
 import zh from '$lib/i18n/zh-CN/notif';
 import type { Notification } from '$lib/types';
-import { actorName, relativeTime, typeIcon } from './format';
+import { actorName, filterCounts, filterNotifications, notificationCategory, relativeTime, typeIcon } from './format';
 
 afterEach(() => setLocale(DEFAULT_LOCALE));
 
@@ -58,6 +58,28 @@ describe('actorName and typeIcon', () => {
 		expect(typeIcon('FRIEND_ACCEPTED')).toBe('person_add');
 		expect(typeIcon('BGG_IMPORT_COMPLETED')).toBe('library_add');
 		expect(typeIcon('RULEBOOK_APPROVED')).toBe('menu_book');
+	});
+
+	it('files types under filter categories', () => {
+		expect(notificationCategory('EVENT_INVITE')).toBe('events');
+		expect(notificationCategory('MATCH_FOUND')).toBe('events');
+		expect(notificationCategory('POST_LIKE')).toBe('social');
+		expect(notificationCategory('COMMENT_MENTION')).toBe('social');
+		expect(notificationCategory('FRIEND_REQUEST')).toBe('friends');
+		expect(notificationCategory('RULEBOOK_APPROVED')).toBe('library');
+		expect(notificationCategory('BGG_IMPORT_COMPLETED')).toBe('library');
+	});
+
+	it('filters and counts the loaded list', () => {
+		const list: Notification[] = [
+			{ ...base, id: 'a', type: 'EVENT_INVITE', read: true },
+			{ ...base, id: 'b', type: 'POST_LIKE' },
+			{ ...base, id: 'c', type: 'FRIEND_REQUEST' }
+		];
+		expect(filterNotifications(list, 'all').map((n) => n.id)).toEqual(['a', 'b', 'c']);
+		expect(filterNotifications(list, 'unread').map((n) => n.id)).toEqual(['b', 'c']);
+		expect(filterNotifications(list, 'events').map((n) => n.id)).toEqual(['a']);
+		expect(filterCounts(list)).toEqual({ all: 3, unread: 2, events: 1, social: 1, friends: 1, library: 0 });
 	});
 });
 

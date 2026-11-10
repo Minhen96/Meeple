@@ -45,7 +45,7 @@
 	}
 </script>
 
-<div class="bg-gradient-to-br from-primary/10 to-primary-container/20 rounded-2xl p-4 space-y-3">
+<div class="bg-gradient-to-br from-primary/10 to-primary-container/20 rounded-2xl p-4 space-y-3 md:space-y-0 md:gap-3 md:h-full md:flex md:flex-col">
 	<div class="flex items-center gap-2">
 		<span class="material-symbols-outlined text-primary text-lg">star</span>
 		<p class="text-xs font-bold uppercase tracking-widest text-primary">{m('event.match.found')}</p>
@@ -76,7 +76,7 @@
 		</span>
 	</div>
 
-	<div class="flex gap-2 pt-1">
+	<div class="flex gap-2 pt-1 md:mt-auto">
 		<button
 			onclick={handleAccept}
 			disabled={loading}

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError } from '$lib/api/client';
 import { m } from '$lib/i18n';
 import type { Event, EventParticipant } from '$lib/types';
@@ -152,5 +152,65 @@ describe('MonthCalendar', () => {
 		await userEvent.click(screen.getByRole('button', { name: m('event.calendar.prev') }));
 		await waitFor(() => expect(getCalendar).toHaveBeenCalledTimes(3));
 		expect(screen.queryByRole('button', { name: m('event.calendar.hasEvents', { date: dayLabel(today), count: 1 }) })).toBeNull();
+	});
+});
+
+describe('MonthCalendar split view (lg+)', () => {
+	const today = new Date();
+	const todayAt = (h: number) => new Date(today.getFullYear(), today.getMonth(), today.getDate(), h).toISOString();
+	const dayLabel = (d: Date) => d.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
+	const monthTitle = new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en', {
+		month: 'long',
+		year: 'numeric'
+	});
+
+	beforeEach(() => {
+		getCalendar.mockReset();
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn((query: string) => ({
+				matches: query.includes('min-width'),
+				media: query,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn()
+			}))
+		);
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('lists the month beside the grid; selecting a day narrows it without a sheet', async () => {
+		getCalendar.mockResolvedValue([makeEvent({ id: 'a', scheduledAt: todayAt(10) }), makeEvent({ id: 'b', title: 'Azul', scheduledAt: todayAt(20) })]);
+		render(MonthCalendar);
+		const agenda = await screen.findByRole('region', { name: m('event.calendar.agendaTitle', { month: monthTitle }) });
+		await waitFor(() => expect(within(agenda).getAllByRole('link')).toHaveLength(2));
+
+		const day = screen.getByRole('button', { name: m('event.calendar.hasEvents', { date: dayLabel(today), count: 2 }) });
+		await userEvent.click(day);
+		expect(day).toHaveAttribute('aria-pressed', 'true');
+		expect(screen.queryByRole('dialog')).toBeNull();
+		const narrowed = screen.getByRole('region', { name: m('event.calendar.eventsOn', { date: dayLabel(today) }) });
+		expect(within(narrowed).getAllByRole('link')).toHaveLength(2);
+
+		await userEvent.click(screen.getByRole('button', { name: m('event.calendar.showMonth') }));
+		expect(screen.getByRole('region', { name: m('event.calendar.agendaTitle', { month: monthTitle }) })).toBeInTheDocument();
+		// Clicking the selected day again also clears it
+		await userEvent.click(day);
+		await userEvent.click(day);
+		expect(day).toHaveAttribute('aria-pressed', 'false');
+	});
+
+	it('shows an empty month message with a create link', async () => {
+		getCalendar.mockResolvedValue([]);
+		render(MonthCalendar);
+		expect(await screen.findByText(m('event.calendar.noEventsMonth'))).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: m('event.action.create') })).toHaveAttribute('href', '/events/create');
+	});
+
+	it('renders the grid tile layout for list grids', () => {
+		render(EventCard, { event: makeEvent({ title: 'Tile night' }), tile: true });
+		expect(screen.getByRole('link')).toHaveClass('md:flex-col');
 	});
 });

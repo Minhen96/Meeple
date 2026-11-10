@@ -9,6 +9,7 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import PostCard from '$lib/components/social/PostCard.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import BottomSheet from '$lib/components/event/BottomSheet.svelte';
 	import FriendPicker from '$lib/components/event/FriendPicker.svelte';
 	import {
@@ -232,9 +233,10 @@
 	/>
 {/if}
 
-<div class="relative min-h-screen pb-40">
+<PageContainer width="wide">
+<div class="relative min-h-screen pb-40 md:pb-28 lg:pb-0 lg:min-h-0">
 	<!-- Hero (DESIGN section 12) -->
-	<div class="relative h-64 w-full overflow-hidden rounded-b-lg">
+	<div class="relative h-64 md:h-80 w-full overflow-hidden rounded-b-lg md:rounded-lg">
 		<div class="absolute inset-0 bg-gradient-to-br from-primary/80 via-secondary/70 to-tertiary/60"></div>
 		{#if event.game?.thumbnailUrl}
 			<img
@@ -253,7 +255,7 @@
 				<span class="material-symbols-outlined text-[24px]" aria-hidden="true">arrow_back</span>
 			</button>
 		</div>
-		<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
+		<div class="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-black/60 to-transparent">
 			<div in:fly={{ y: 20, duration: 400 }}>
 				<div class="flex items-center gap-2 mb-2">
 					<span class="px-3 py-1 rounded-full text-xs font-bold font-label {statusChipClass(event.status)}">
@@ -264,12 +266,16 @@
 						{m(visibilityKey)}
 					</span>
 				</div>
-				<h1 class="text-3xl font-black font-headline text-on-primary leading-tight drop-shadow-md">{event.title}</h1>
+				<h1 class="text-3xl md:text-5xl font-black font-headline text-on-primary leading-tight md:tracking-tight drop-shadow-md">
+					{event.title}
+				</h1>
 			</div>
 		</div>
 	</div>
 
-	<div class="px-1 pt-6 space-y-6">
+	<!-- lg+: details on the left, sticky RSVP / host card on the right -->
+	<div class="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem] lg:gap-8 lg:items-start lg:pt-8">
+	<div class="px-1 pt-6 lg:pt-0 space-y-6 min-w-0">
 		{#if action === 'cancelled'}
 			<p class="rounded-lg bg-error-container text-on-error-container px-4 py-3 text-sm font-bold" role="status">
 				{m('event.detail.cancelledBanner')}
@@ -412,18 +418,73 @@
 				{:else if memories.length === 0}
 					<p class="text-sm text-on-surface-variant px-1">{m('event.detail.noMemories')}</p>
 				{:else}
-					{#each memories as post (post.id)}
-						<PostCard {post} />
-					{/each}
+					<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-start">
+						{#each memories as post (post.id)}
+							<PostCard {post} />
+						{/each}
+					</div>
 				{/if}
 			</section>
 		{/if}
 	</div>
 
-	<!-- Action bar (SCREENS section 6.4) -->
+	<aside
+		aria-label={m('event.detail.summaryLabel')}
+		class="lg:sticky lg:top-8 lg:bg-surface-container-lowest lg:rounded-lg lg:p-6 lg:shadow-[0_12px_32px_rgba(25,28,29,0.06)]"
+	>
+		<!-- Summary (lg+ only; the phone layout shows the same facts in the info cards) -->
+		<div class="hidden lg:block space-y-4 mb-6">
+			<div class="flex items-center gap-4">
+				<div class="w-14 h-14 flex-shrink-0 rounded bg-primary/10 flex flex-col items-center justify-center">
+					<span class="text-[10px] font-label font-bold uppercase text-primary">
+						{new Date(event.scheduledAt).toLocaleDateString(locale, { month: 'short' })}
+					</span>
+					<span class="text-xl font-extrabold font-headline text-primary leading-none">
+						{new Date(event.scheduledAt).getDate()}
+					</span>
+				</div>
+				<p class="text-sm font-bold font-headline text-on-surface leading-snug">
+					{formatEventDateTime(event.scheduledAt, locale)}
+				</p>
+			</div>
+			<div class="space-y-2">
+				<div class="flex items-center justify-between text-xs font-label font-bold">
+					<span class="text-on-surface">{m('event.detail.players')}</span>
+					<span class="text-on-surface-variant">{m('event.detail.spots', { count: event.participantCount, left: spotsLeft })}</span>
+				</div>
+				<ProgressBar
+					value={event.participantCount}
+					max={event.maxParticipants}
+					tone="secondary"
+					track="highest"
+					class="h-2 w-full"
+					label={m('event.detail.spotsFilled')}
+				/>
+				{#if others.length > 0}
+					<div class="flex -space-x-2 pt-1" aria-hidden="true">
+						{#each others.slice(0, 6) as p (p.id)}
+							<Avatar src={p.avatarUrl} name={displayName(p)} size="sm" className="ring-2 ring-surface-container-lowest" />
+						{/each}
+						{#if others.length > 6}
+							<div
+								class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-on-surface"
+							>
+								+{others.length - 6}
+							</div>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		</div>
+
+	<!-- Action bar (SCREENS section 6.4): floating glass bar below lg (above the bottom nav on
+	     phones, at the bottom beside the md rail), part of the sticky card from lg -->
 	{#if action !== 'cancelled' && action !== 'completed' && action !== 'none' && action !== 'kicked'}
-		<div class="fixed bottom-24 left-4 right-4 z-30 max-w-2xl mx-auto">
-			<div class="relative bg-surface/80 backdrop-blur-xl rounded-full p-2 border border-white/10 shadow-lg flex items-center gap-2">
+		<div class="fixed bottom-24 left-4 right-4 z-30 max-w-2xl mx-auto md:bottom-6 md:left-rail md:right-0 lg:static lg:z-auto lg:max-w-none">
+			<div
+				class="relative bg-surface/80 backdrop-blur-xl rounded-full p-2 border border-white/10 shadow-lg flex items-center gap-2
+					lg:bg-transparent lg:backdrop-blur-none lg:border-0 lg:shadow-none lg:p-0"
+			>
 				{#if action === 'host'}
 					<button
 						type="button"
@@ -438,7 +499,8 @@
 					{#if menuOpen}
 						<div
 							role="menu"
-							class="absolute bottom-full mb-2 left-0 right-0 bg-surface/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl p-2"
+							class="absolute bottom-full mb-2 left-0 right-0 z-10 bg-surface/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl p-2
+								lg:bottom-auto lg:top-full lg:mb-0 lg:mt-2"
 							transition:fly={{ y: 10, duration: 150 }}
 						>
 							<a role="menuitem" href="/events/{event.id}/edit" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-surface-container-high text-sm font-bold">
@@ -506,9 +568,12 @@
 			</div>
 		</div>
 	{:else if action === 'none' && event.status !== 'CANCELLED' && event.status !== 'COMPLETED'}
-		<p class="mt-6 text-center text-sm text-on-surface-variant">{m('event.detail.inviteOnlyNotice')}</p>
+		<p class="mt-6 lg:mt-0 text-center text-sm text-on-surface-variant">{m('event.detail.inviteOnlyNotice')}</p>
 	{/if}
+	</aside>
+	</div>
 </div>
+</PageContainer>
 
 {#if sheet === 'participants'}
 	<BottomSheet title={m('event.manage.participantsTitle')} onClose={() => (sheet = null)}>

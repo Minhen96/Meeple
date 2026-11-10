@@ -10,6 +10,7 @@
 	import StatsBento from '$lib/components/layout/profile/StatsBento.svelte';
 	import ProfileContent from '$lib/components/layout/profile/ProfileContent.svelte';
 	import { bentoStats } from '$lib/components/layout/profile/profileStats';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import { logout } from '$lib/session';
 	import { m } from '$lib/i18n';
 	import type { PageData } from './$types';
@@ -46,7 +47,16 @@
 
 <svelte:head><title>{m('common.nav.profile')} — {m('common.appName')}</title></svelte:head>
 
+<PageContainer width="wide">
 <PullToRefresh onRefresh={() => invalidateAll()}>
+	<!-- md+: hero and stats share a tonal banner (side by side from xl) -->
+	<div
+		class="md:relative md:isolate md:overflow-hidden md:bg-surface-container-low md:rounded-lg md:p-8 md:mb-10 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] xl:gap-10 xl:items-center"
+	>
+	<div
+		class="hidden md:block absolute -right-20 -top-24 w-72 h-72 rounded-full bg-primary-container/20 blur-3xl -z-10 pointer-events-none"
+		aria-hidden="true"
+	></div>
 	<ProfileHero user={data.user}>
 		{#snippet actions()}
 			<div class="flex gap-2 w-full max-w-xs">
@@ -70,7 +80,10 @@
 		{/snippet}
 	</ProfileHero>
 
-	<StatsBento {stats} friendsHref="/profile/friends" />
+	<div class="md:mt-8 xl:mt-0">
+		<StatsBento {stats} friendsHref="/profile/friends" />
+	</div>
+	</div>
 
 	<ProfileContent
 		posts={data.posts}
@@ -80,6 +93,7 @@
 		collectionVisible
 	/>
 </PullToRefresh>
+</PageContainer>
 
 {#if menuOpen}
 	<BottomSheet label={m('common.moreOptions')} onClose={() => (menuOpen = false)}>

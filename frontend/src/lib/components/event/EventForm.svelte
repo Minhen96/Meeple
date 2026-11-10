@@ -79,14 +79,22 @@
 		'w-full bg-surface-container-highest rounded-lg px-4 py-3 text-on-surface placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary/30 focus:outline-none font-body text-sm';
 </script>
 
-<form onsubmit={handleSubmit} class="space-y-5 pb-36 max-w-2xl mx-auto" novalidate>
+<!-- Phones / md: one column (details, settings, invites, description). lg+: two columns, details
+     and description on the left, settings, invites and the submit button on the right. The column
+     wrappers are `display: contents` below lg so the sections keep their phone order. -->
+<form
+	onsubmit={handleSubmit}
+	class="flex flex-col gap-5 pb-36 md:pb-28 max-w-2xl mx-auto lg:max-w-none lg:pb-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:gap-6 lg:items-start"
+	novalidate
+>
 	{#if shownError}
-		<p class="text-sm font-semibold text-on-error-container bg-error-container rounded-lg px-4 py-3" role="alert">
+		<p class="text-sm font-semibold text-on-error-container bg-error-container rounded-lg px-4 py-3 lg:col-span-2" role="alert">
 			{shownError}
 		</p>
 	{/if}
 
-	<section class="bg-surface-container-low rounded-lg p-5 space-y-5">
+	<div class="contents lg:flex lg:flex-col lg:gap-6">
+	<section class="bg-surface-container-low rounded-lg p-5 space-y-5 order-1">
 		<div>
 			<span class={labelClass}>{m('event.form.game')}</span>
 			<GamePicker game={values.game} onChange={onGameChange} />
@@ -136,7 +144,24 @@
 		</div>
 	</section>
 
-	<section class="bg-surface-container-low rounded-lg p-5 space-y-5">
+	<section class="bg-surface-container-low rounded-lg p-5 order-4">
+		<label for="event-description" class={labelClass}>{m('event.form.description')}</label>
+		<textarea
+			id="event-description"
+			bind:value={values.description}
+			rows="4"
+			maxlength={DESCRIPTION_MAX}
+			placeholder={m('event.form.descriptionPlaceholder')}
+			class="{inputClass} resize-none lg:min-h-[12rem]"
+		></textarea>
+		<p class="mt-1 px-1 text-right text-[11px] text-on-surface-variant">
+			{m('event.form.charCount', { count: values.description.length, max: DESCRIPTION_MAX })}
+		</p>
+	</section>
+	</div>
+
+	<div class="contents lg:flex lg:flex-col lg:gap-6">
+	<section class="bg-surface-container-low rounded-lg p-5 space-y-5 order-2">
 		<div>
 			<div class="flex items-center justify-between mb-2">
 				<span class={labelClass}>{m('event.form.maxPlayers')}</span>
@@ -219,7 +244,7 @@
 	</section>
 
 	{#if mode === 'create'}
-		<section class="bg-surface-container-low rounded-lg p-5">
+		<section class="bg-surface-container-low rounded-lg p-5 order-3">
 			<span class={labelClass}>{m('event.form.invite')}</span>
 			<FriendPicker
 				bind:selected={values.invitedUserIds}
@@ -232,22 +257,13 @@
 		</section>
 	{/if}
 
-	<section class="bg-surface-container-low rounded-lg p-5">
-		<label for="event-description" class={labelClass}>{m('event.form.description')}</label>
-		<textarea
-			id="event-description"
-			bind:value={values.description}
-			rows="4"
-			maxlength={DESCRIPTION_MAX}
-			placeholder={m('event.form.descriptionPlaceholder')}
-			class="{inputClass} resize-none"
-		></textarea>
-		<p class="mt-1 px-1 text-right text-[11px] text-on-surface-variant">
-			{m('event.form.charCount', { count: values.description.length, max: DESCRIPTION_MAX })}
-		</p>
-	</section>
-
-	<div class="fixed bottom-20 left-0 right-0 z-30 px-4 py-3 bg-surface/80 backdrop-blur-xl">
+	<!-- Submit: glass bar above the bottom nav on phones, at the bottom beside the rail from md,
+	     and the last item of the right column from lg (sticks to the viewport bottom while the
+	     column scrolls). -->
+	<div
+		class="fixed bottom-20 left-0 right-0 z-30 px-4 py-3 bg-surface/80 backdrop-blur-xl order-5
+			md:bottom-0 md:left-rail md:px-8 md:py-4 lg:sticky lg:bottom-6 lg:left-auto lg:right-auto lg:z-auto lg:p-0 lg:bg-transparent lg:backdrop-blur-none"
+	>
 		<button
 			type="submit"
 			disabled={submitting}
@@ -259,5 +275,6 @@
 				{submitting ? m('event.form.saving') : m('event.form.save')}
 			{/if}
 		</button>
+	</div>
 	</div>
 </form>

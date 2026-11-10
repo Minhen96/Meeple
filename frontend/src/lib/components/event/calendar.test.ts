@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Event } from '$lib/types';
-import { addMonths, dayKey, gridRange, groupByDay, monthGrid, monthOf, weekdayLabels } from './calendar';
+import { addMonths, agendaDays, dayKey, gridRange, groupByDay, monthGrid, monthOf, weekdayLabels } from './calendar';
 
 function event(id: string, scheduledAt: Date): Event {
 	return {
@@ -90,5 +90,25 @@ describe('weekdayLabels', () => {
 	it('returns seven labels starting at the requested day', () => {
 		expect(weekdayLabels('en-US')).toEqual(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
 		expect(weekdayLabels('en-US', 1)[0]).toBe('Mon');
+	});
+});
+
+describe('agendaDays', () => {
+	const cells = monthGrid({ year: 2026, month: 9 }, new Date(2026, 9, 5));
+	// 28 Sep is in the grid but not in October
+	const outside = event('outside', new Date(2026, 8, 28, 19, 0));
+	const first = event('first', new Date(2026, 9, 5, 19, 0));
+	const second = event('second', new Date(2026, 9, 20, 19, 0));
+	const byDay = groupByDay([second, outside, first]);
+
+	it('lists the month days with events in date order', () => {
+		const days = agendaDays(cells, byDay, null);
+		expect(days.map((d) => d.key)).toEqual(['2026-10-05', '2026-10-20']);
+		expect(days[0].events.map((e) => e.id)).toEqual(['first']);
+	});
+
+	it('narrows to the selected day, even outside the month', () => {
+		expect(agendaDays(cells, byDay, '2026-09-28').map((d) => d.events[0].id)).toEqual(['outside']);
+		expect(agendaDays(cells, byDay, '2026-10-06')).toEqual([]);
 	});
 });
