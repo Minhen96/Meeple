@@ -3,6 +3,7 @@
 	import { api } from "$lib/api/client";
 	import { fade, fly } from "svelte/transition";
 	import Spinner from "$lib/components/ui/Spinner.svelte";
+	import PageContainer from "$lib/components/layout/PageContainer.svelte";
 	import { m, type MessageKey } from "$lib/i18n";
 
 	interface HealthResponse {
@@ -67,6 +68,8 @@
 
 <svelte:head><title>{m("admin.health.metaTitle")}</title></svelte:head>
 
+<PageContainer width="wide">
+
 <div class="flex items-center gap-3 mb-8 mt-3">
 	<button
 		onclick={() => history.back()}
@@ -84,7 +87,7 @@
 		<p class="text-on-surface-variant font-medium animate-pulse">{m("admin.health.loading")}</p>
 	</div>
 {:else if error && !healthData}
-	<div class="bg-error-container text-on-error-container p-6 rounded-2xl flex flex-col items-center gap-4 text-center shadow-lg" in:fly={{ y: 20 }}>
+	<div class="bg-error-container text-on-error-container p-6 rounded-2xl flex flex-col items-center gap-4 text-center shadow-lg md:max-w-xl md:mx-auto" in:fly={{ y: 20 }}>
 		<span class="material-symbols-outlined text-4xl">error</span>
 		<div>
 			<h3 class="font-bold text-lg">{m("admin.health.connectionFailure")}</h3>
@@ -98,7 +101,11 @@
 		</button>
 	</div>
 {:else}
-	<div class="space-y-6" in:fade>
+	<!-- lg: status card on the left, component checks stacked on the right -->
+	<div
+		class="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start"
+		in:fade
+	>
 		<!-- Status Card -->
 		<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] relative overflow-hidden">
 			<div class="flex items-start justify-between relative z-10">
@@ -131,7 +138,7 @@
 		</div>
 
 		<!-- Components Grid -->
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
 			<div class="bg-surface-container-lowest p-5 rounded-2xl flex items-center gap-4 group hover:bg-surface-container-low transition-colors">
 				<div class="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
 					<span class="material-symbols-outlined">database</span>
@@ -159,8 +166,9 @@
 			</div>
 		</div>
 
-		<p class="text-center text-[11px] text-on-surface-variant italic pt-4">
+		<p class="text-center text-[11px] text-on-surface-variant italic pt-4 lg:col-span-2">
 			{m("admin.health.source")}
 		</p>
 	</div>
 {/if}
+</PageContainer>

@@ -105,7 +105,7 @@
 
 <PageHeader title={m('account.profile.editTitle')} />
 
-<form onsubmit={handleSubmit} class="space-y-5 pb-24" novalidate>
+<form onsubmit={handleSubmit} class="space-y-5 pb-24 md:pb-0" novalidate>
 	{#if error}
 		<p class="text-sm text-error bg-error-container rounded-xl px-4 py-3" role="alert">{error}</p>
 	{/if}
@@ -214,8 +214,12 @@
 		/>
 	</div>
 
-	<div class="fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-		<div class="max-w-lg mx-auto">
+	<!-- Phones: fixed to the bottom edge. md+: sticks to the bottom of the content column (beside
+	     the rail / sidebar and, at lg, the settings menu) instead of spanning the window. -->
+	<div
+		class="fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:sticky md:inset-x-auto md:px-0 md:pt-4 md:pb-6 md:bg-background/90"
+	>
+		<div class="max-w-lg mx-auto md:max-w-none">
 			<Button type="submit" {loading} fullWidth disabled={!!displayNameError || !!usernameError}>
 				{m('common.save')}
 			</Button>

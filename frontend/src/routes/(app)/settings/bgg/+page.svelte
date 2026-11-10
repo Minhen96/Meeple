@@ -5,8 +5,8 @@
 
 <svelte:head><title>{m('library.bgg.settingsTitle')} — Meeple</title></svelte:head>
 
-<div class="flex items-center gap-3 mb-6">
-	<button onclick={() => history.back()} class="text-on-surface-variant" aria-label={m('library.bgg.back')}>
+<div class="flex items-center gap-3 mb-6 lg:mt-3 lg:min-h-10">
+	<button data-settings-back onclick={() => history.back()} class="text-on-surface-variant" aria-label={m('library.bgg.back')}>
 		<span class="material-symbols-outlined">arrow_back</span>
 	</button>
 	<h2 class="text-xl font-extrabold font-headline">{m('library.bgg.settingsTitle')}</h2>

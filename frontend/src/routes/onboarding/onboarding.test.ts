@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { browserTimezone, hasSeenWelcome, markWelcomeSeen, nextStepPath, stepNumber } from './onboarding';
+import {
+	browserTimezone,
+	hasSeenWelcome,
+	isWideStep,
+	markWelcomeSeen,
+	nextStepPath,
+	stepNumber
+} from './onboarding';
 
 function memoryStore() {
 	const data = new Map<string, string>();
@@ -10,6 +17,14 @@ function memoryStore() {
 }
 
 describe('onboarding flow', () => {
+	it('widens the card only for the grid steps', () => {
+		expect(isWideStep('/onboarding/add-game')).toBe(true);
+		expect(isWideStep('/onboarding/find-friends')).toBe(true);
+		expect(isWideStep('/onboarding/profile')).toBe(false);
+		expect(isWideStep('/onboarding/bgg-import')).toBe(false);
+		expect(isWideStep('/onboarding/welcome')).toBe(false);
+	});
+
 	it('numbers steps 2–5 as dots 1–4', () => {
 		expect(stepNumber('/onboarding/welcome')).toBeNull();
 		expect(stepNumber('/onboarding/profile')).toBe(1);

@@ -152,8 +152,9 @@
 
 <svelte:head><title>{m('notif.prefs.title')} — Meeple</title></svelte:head>
 
-<div class="flex items-center gap-3 mb-6">
+<div class="flex items-center gap-3 mb-6 lg:mt-3 lg:min-h-10">
 	<button
+		data-settings-back
 		onclick={() => history.back()}
 		class="text-on-surface-variant"
 		aria-label={m('notif.page.back')}

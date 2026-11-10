@@ -133,6 +133,7 @@ export default {
 	'settings.privacyPolicy': '隐私政策',
 	'settings.feedback': '发送反馈',
 	'settings.logout': '退出登录',
+	'settings.overviewHint': '从左侧菜单中选择一项设置进行查看或修改。',
 	'export.requested': '正在准备你的数据，完成后我们会通过邮件发送下载链接。',
 
 	'profile.editTitle': '编辑资料',

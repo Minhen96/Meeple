@@ -7,7 +7,7 @@
 	import { usersApi } from '$lib/api/users';
 	import { m } from '$lib/i18n';
 	import { setUser } from '$lib/stores/auth';
-	import { ONBOARDING_STEPS, nextStepPath, stepNumber } from './onboarding';
+	import { ONBOARDING_STEPS, isWideStep, nextStepPath, stepNumber } from './onboarding';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -15,6 +15,7 @@
 	let { children }: Props = $props();
 
 	const current = $derived(stepNumber(page.url.pathname));
+	const wide = $derived(isWideStep(page.url.pathname));
 	let skipping = $state(false);
 
 	async function finish() {
@@ -48,7 +49,9 @@
      card on the warm auth backdrop. -->
 <div class="min-h-screen bg-background md:bg-auth-backdrop flex flex-col md:items-center md:justify-center md:px-8 md:py-12">
 	<div
-		class="flex-1 md:flex-none flex flex-col w-full md:max-w-xl md:bg-surface-container-lowest md:rounded-[2rem] md:shadow-[0_12px_32px_rgba(0,0,0,0.06)] md:py-6"
+		class="flex-1 md:flex-none flex flex-col w-full {wide
+			? 'md:max-w-3xl lg:max-w-4xl'
+			: 'md:max-w-xl'} md:bg-surface-container-lowest md:rounded-[2rem] md:shadow-[0_12px_32px_rgba(0,0,0,0.06)] md:py-6"
 	>
 		<header
 			class="{current === null

@@ -8,6 +8,7 @@
 	import StarRating from "$lib/components/game/StarRating.svelte";
 	import Avatar from "$lib/components/ui/Avatar.svelte";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
+	import PageContainer from "$lib/components/layout/PageContainer.svelte";
 	import { getLocale, m, type MessageKey } from "$lib/i18n";
 	import { formatNumber } from "$lib/i18n/format";
 
@@ -205,6 +206,8 @@
 		},
 	]);
 
+	const hasCover = $derived(Boolean(game.imageUrl || game.thumbnailUrl));
+
 	function playsLabel(count: number) {
 		return count === 1 ? m("library.plays.one") : m("library.plays.count", { count });
 	}
@@ -230,18 +233,25 @@
 
 <svelte:head><title>{game.title} — Meeple</title></svelte:head>
 
+<PageContainer width="wide">
+<!-- md+: clear the floating back button; lg: cover on the left, title / stats / actions on the right -->
+<div
+	class="md:pt-12 {hasCover
+		? 'lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10 lg:items-start'
+		: ''}"
+>
 <!-- Hero cover image -->
-{#if game.imageUrl || game.thumbnailUrl}
-	<div class="relative -mx-4 mb-6">
+{#if hasCover}
+	<div class="relative -mx-4 mb-6 md:mx-0 md:rounded-[2rem] md:overflow-hidden lg:mb-0 lg:sticky lg:top-8">
 		<img
 			src={game.imageUrl ?? game.thumbnailUrl ?? ""}
 			alt={game.title}
-			class="w-full h-[320px] object-cover"
+			class="w-full h-[320px] md:h-[360px] lg:h-auto lg:aspect-[4/3] object-cover"
 		/>
 		<div
-			class="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent"
+			class="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent lg:hidden"
 		></div>
-		<div class="absolute bottom-4 left-4 right-4">
+		<div class="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 lg:hidden">
 			{#if game.families && game.families.length > 0}
 				<span
 					class="inline-block text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-2"
@@ -299,10 +309,32 @@
 	{/if}
 {/snippet}
 
+<div class="min-w-0">
+{#if hasCover}
+	<!-- lg: the title sits beside the cover instead of over it -->
+	<div class="hidden lg:block mb-6">
+		{#if game.families && game.families.length > 0}
+			<span
+				class="inline-block text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-3"
+				>{game.families[0]}</span
+			>
+		{/if}
+		<h1 class="text-4xl font-extrabold font-headline tracking-tight text-on-surface leading-tight">
+			{game.title}
+		</h1>
+		{#if game.designers && game.designers.length > 0}
+			<p class="text-sm text-on-surface-variant mt-1">
+				{m("library.detail.by", { names: listFormat(game.designers.slice(0, 2)) })}
+			</p>
+		{/if}
+		{@render ownedByFriends()}
+	</div>
+{/if}
+
 <!-- Stats bar -->
 <div class="grid grid-cols-3 gap-2 mb-5">
 	{#each stats as stat (stat.label)}
-		<div class="bg-surface-container-low rounded-xl p-3 text-center">
+		<div class="bg-surface-container-low rounded-xl p-3 lg:py-4 text-center">
 			<span
 				class="material-symbols-outlined text-on-surface-variant text-[16px]"
 				>{stat.icon}</span
@@ -373,7 +405,9 @@
 			disabled={saving}
 			aria-pressed={active}
 			class="flex flex-col items-center gap-1 py-3 rounded-xl transition-colors
-				{active ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}
+				{active
+					? 'bg-primary text-on-primary hover:bg-primary/90'
+					: 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface'}
 				disabled:opacity-50"
 		>
 			<span class="material-symbols-outlined text-[20px]" class:icon-filled={active}>{action.icon}</span>
@@ -382,7 +416,7 @@
 	{/each}
 	<button
 		onclick={() => (showAssistant = true)}
-		class="flex flex-col items-center gap-1 py-3 rounded-xl transition-colors bg-tertiary-container text-on-tertiary-container"
+		class="flex flex-col items-center gap-1 py-3 rounded-xl transition-colors bg-tertiary-container text-on-tertiary-container hover:bg-tertiary-container/80"
 	>
 		<span class="material-symbols-outlined text-[20px]">smart_toy</span>
 		<span class="text-[11px] font-bold">{m("library.action.askAi")}</span>
@@ -390,21 +424,23 @@
 </div>
 <a
 	href="/log-play?gameId={game.id}"
-	class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold"
+	class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold hover:bg-surface-container transition-colors"
 >
 	<span class="icon-filled material-symbols-outlined text-[18px]">sports_esports</span>
 	{m("library.action.logPlay")}
 </a>
+</div>
+</div>
 
 <!-- Tabs -->
-<div class="mt-6 flex gap-6 mb-4 overflow-x-auto hide-scrollbar">
+<div class="mt-6 lg:mt-10 flex gap-6 mb-4 lg:mb-6 overflow-x-auto hide-scrollbar">
 	{#each detailTabs as tab (tab.id)}
 		<button
 			onclick={() => (activeTab = tab.id)}
 			class="relative pb-3 text-sm font-bold whitespace-nowrap transition-colors {activeTab ===
 			tab.id
 				? 'text-primary'
-				: 'text-on-surface-variant'}"
+				: 'text-on-surface-variant hover:text-on-surface'}"
 		>
 			{m(tab.label)}
 			{#if activeTab === tab.id}
@@ -418,6 +454,8 @@
 
 <!-- Overview tab -->
 {#if activeTab === "overview"}
+	<div class="lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-10 lg:items-start">
+	<div class="min-w-0">
 	<!-- Description -->
 	{#if game.description}
 		<div class="mb-5">
@@ -581,7 +619,7 @@
 			href={game.bggUrl}
 			target="_blank"
 			rel="noopener noreferrer"
-			class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-surface-container-high text-on-surface text-sm font-bold"
+			class="flex items-center justify-center gap-2 w-full lg:w-auto lg:px-8 py-3 rounded-xl bg-surface-container-high text-on-surface text-sm font-bold hover:bg-surface-container-highest transition-colors"
 		>
 			<span class="material-symbols-outlined text-[18px]"
 				>open_in_new</span
@@ -590,8 +628,10 @@
 		</a>
 	{/if}
 
+	</div>
+
 	<!-- My plays, rating and notes -->
-	<div class="mt-6 bg-surface-container-low rounded-2xl p-4 space-y-5">
+	<div class="mt-6 lg:mt-0 bg-surface-container-low rounded-2xl p-4 lg:p-6 space-y-5 lg:sticky lg:top-8">
 		<div>
 			<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">
 				{m("library.rating.label")}
@@ -665,8 +705,11 @@
 			{/if}
 		</div>
 	</div>
+	</div>
 {:else if activeTab === "howtoplay"}
-	<HowToPlayTab gameId={game.id} />
+	<div class="lg:max-w-3xl">
+		<HowToPlayTab gameId={game.id} />
+	</div>
 {:else if tabLoading}
 	<div class="space-y-3">
 		{#each { length: 3 } as _, i (i)}
@@ -688,7 +731,7 @@
 	{#if !reviews || reviews.length === 0}
 		<p class="text-sm text-on-surface-variant text-center py-10">{m("library.reviews.empty")}</p>
 	{:else}
-		<ul class="space-y-3">
+		<ul class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
 			{#each reviews as review (review.user.id)}
 				<li class="bg-surface-container-low rounded-2xl p-4">
 					<a href="/profile/{review.user.id}" class="flex items-center gap-3">
@@ -712,12 +755,12 @@
 	{#if !friends || friends.length === 0}
 		<p class="text-sm text-on-surface-variant text-center py-10">{m("library.friends.empty")}</p>
 	{:else}
-		<ul class="space-y-2">
+		<ul class="space-y-2 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
 			{#each friends as friend (friend.user.id)}
 				<li>
 					<a
 						href="/profile/{friend.user.id}"
-						class="flex items-center gap-3 bg-surface-container-low rounded-2xl px-4 py-3"
+						class="flex items-center gap-3 bg-surface-container-low rounded-2xl px-4 py-3 hover:bg-surface-container transition-colors"
 					>
 						<Avatar src={friend.user.avatarUrl} name={friend.user.displayName ?? friend.user.username} />
 						<div class="flex-1 min-w-0">
@@ -736,10 +779,10 @@
 	{#if !sessions || sessions.length === 0}
 		<p class="text-sm text-on-surface-variant text-center py-10">{m("library.sessions.empty")}</p>
 	{:else}
-		<ul class="space-y-3">
+		<ul class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
 			{#each sessions as post (post.id)}
 				<li>
-					<a href="/posts/{post.id}" class="flex gap-3 bg-surface-container-low rounded-2xl p-3">
+					<a href="/posts/{post.id}" class="flex gap-3 bg-surface-container-low rounded-2xl p-3 hover:bg-surface-container transition-colors">
 						{#if post.imageUrls.length > 0}
 							<img
 								src={post.imageUrls[0]}
@@ -793,6 +836,8 @@
 		{/if}
 	{/if}
 {/if}
+
+</PageContainer>
 
 <AiAssistantDrawer
 	bind:show={showAssistant}

@@ -5,6 +5,7 @@
 	import { untrack } from "svelte";
 	import { libraryStore, defaultState } from "$lib/stores/library";
 	import Skeleton from "$lib/components/ui/Skeleton.svelte";
+	import PageContainer from "$lib/components/layout/PageContainer.svelte";
 	import StarRating from "$lib/components/game/StarRating.svelte";
 	import { filterCollection, upsertEntry, type LibraryTab } from "$lib/components/game/collection";
 	import { m, type MessageKey } from "$lib/i18n";
@@ -259,6 +260,21 @@
 		{ label: "library.complexity.heavy", min: 3.6, max: 5.0 },
 	];
 
+	function resetFilters() {
+		store = {
+			...store,
+			selectedGenre: "",
+			minPlayers: undefined,
+			maxPlayers: undefined,
+			minPlaytime: undefined,
+			maxPlaytime: undefined,
+			minComplexity: undefined,
+			maxComplexity: undefined,
+			minRating: undefined,
+		};
+		fetchCatalogPage(0);
+	}
+
 	let spotlightSaving = $state(false);
 
 	async function exploreSpotlight() {
@@ -286,9 +302,192 @@
 
 <svelte:head><title>{m("common.nav.library")} — Meeple</title></svelte:head>
 
+<!-- Filter controls: the bottom sheet on phones, an inline panel from md -->
+{#snippet filterFields()}
+	<!-- Genre -->
+	<div class="space-y-3">
+		<span
+			class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+			>{m("library.filters.genre")}</span
+		>
+		<div class="flex flex-wrap gap-2">
+			{#each categories as cat (cat.value)}
+				<button
+					onclick={() => {
+						store = {
+							...store,
+							selectedGenre:
+								selectedGenre === cat.value
+									? ""
+									: cat.value,
+						};
+						fetchCatalogPage(0);
+					}}
+					class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {selectedGenre ===
+					cat.value
+						? 'bg-primary text-on-primary'
+						: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
+				>
+					{m(cat.label)}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Complexity Level -->
+	<div class="space-y-3">
+		<span
+			class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+			>{m("library.filters.complexity")}</span
+		>
+		<div class="flex flex-wrap gap-2">
+			{#each complexityLevels as level (level.label)}
+				<button
+					onclick={() => {
+						store = {
+							...store,
+							minComplexity: level.min,
+							maxComplexity: level.max,
+						};
+						fetchCatalogPage(0);
+					}}
+					class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {store.minComplexity ===
+						level.min &&
+					store.maxComplexity === level.max
+						? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
+						: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
+				>
+					{m(level.label)}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Player Count -->
+	<div class="space-y-4">
+		<div class="flex items-center justify-between">
+			<span
+				class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+				>{m("library.filters.players")}</span
+			>
+			<span class="text-[10px] font-bold text-primary"
+				>{m("library.filters.minMax")}</span
+			>
+		</div>
+		<div class="grid grid-cols-2 gap-4">
+			<input
+				type="number"
+				min="1"
+				max="10"
+				placeholder={m("library.filters.min")}
+				value={minPlayers}
+				oninput={(e) => {
+					store = {
+						...store,
+						minPlayers:
+							+(e.target as HTMLInputElement)
+								.value || undefined,
+					};
+					fetchCatalogPage(0);
+				}}
+				class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+			/>
+			<input
+				type="number"
+				min="1"
+				max="50"
+				placeholder={m("library.filters.max")}
+				value={maxPlayers}
+				oninput={(e) => {
+					store = {
+						...store,
+						maxPlayers:
+							+(e.target as HTMLInputElement)
+								.value || undefined,
+					};
+					fetchCatalogPage(0);
+				}}
+				class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+			/>
+		</div>
+	</div>
+
+	<!-- Playtime -->
+	<div class="space-y-4">
+		<div class="flex items-center justify-between">
+			<span
+				class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+				>{m("library.filters.playtime")}</span
+			>
+		</div>
+		<div class="grid grid-cols-2 gap-4">
+			<input
+				type="number"
+				min="1"
+				placeholder={m("library.filters.min")}
+				value={minPlaytime}
+				oninput={(e) => {
+					store = {
+						...store,
+						minPlaytime:
+							+(e.target as HTMLInputElement)
+								.value || undefined,
+					};
+					fetchCatalogPage(0);
+				}}
+				class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+			/>
+			<input
+				type="number"
+				min="1"
+				placeholder={m("library.filters.max")}
+				value={maxPlaytime}
+				oninput={(e) => {
+					store = {
+						...store,
+						maxPlaytime:
+							+(e.target as HTMLInputElement)
+								.value || undefined,
+					};
+					fetchCatalogPage(0);
+				}}
+				class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+			/>
+		</div>
+	</div>
+
+	<!-- Rating -->
+	<div class="space-y-4">
+		<span
+			class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
+			>{m("library.filters.minRating")}</span
+		>
+		<input
+			type="number"
+			step="0.1"
+			min="0"
+			max="10"
+			placeholder="0.0"
+			value={minRating}
+			oninput={(e) => {
+				store = {
+					...store,
+					minRating:
+						+(e.target as HTMLInputElement).value ||
+						undefined,
+				};
+				fetchCatalogPage(0);
+			}}
+			class="w-full bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+		/>
+	</div>
+{/snippet}
+
+<PageContainer width="wide">
+
 <!-- Sticky Unified Header -->
 <div
-	class="sticky top-14 md:top-0 z-40 bg-background/95 backdrop-blur -mx-4 px-4 pb-3 shadow-sm"
+	class="sticky top-14 md:top-0 z-40 bg-background/95 backdrop-blur -mx-4 px-4 pb-3 shadow-sm md:mx-0 md:px-0 md:pb-4 md:shadow-none"
 >
 	<!-- Tab Bar -->
 	<div
@@ -336,7 +535,10 @@
 		<button
 			onclick={() => (showFilters = !showFilters)}
 			aria-label={m("library.filters.title")}
-			class="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary hover:bg-surface-variant transition-colors"
+			aria-expanded={showFilters && activeTab === "all"}
+			class="relative w-11 h-11 flex items-center justify-center rounded-2xl text-primary transition-colors {showFilters && activeTab === 'all'
+				? 'bg-surface-container-high md:bg-primary-fixed'
+				: 'bg-surface-container-high hover:bg-surface-variant'}"
 		>
 			<span class="material-symbols-outlined">tune</span>
 			{#if activeFilterCount > 0}
@@ -370,13 +572,46 @@
 				<option value="playTime,asc">{m("library.sort.shortest")}</option>
 			</select>
 			<div
-				class="w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary"
+				class="w-11 h-11 flex items-center justify-center rounded-2xl bg-surface-container-high text-primary group-hover:bg-surface-variant group-focus-within:ring-2 group-focus-within:ring-primary/40 transition-colors"
 			>
 				<span class="material-symbols-outlined">sort</span>
 			</div>
 		</div>
 	</div>
 </div>
+
+{#if showFilters && activeTab === "all"}
+	<!-- md+: filters open as an inline panel under the toolbar instead of the bottom sheet -->
+	<section
+		aria-label={m("library.filters.title")}
+		class="hidden md:block mt-2 rounded-[2rem] bg-surface-container-lowest shadow-[0_12px_32px_rgba(25,28,29,0.06)] p-6 lg:p-8 animate-in fade-in slide-in-from-top-2 duration-300"
+	>
+		<div class="flex items-center justify-between mb-6">
+			<h2 class="font-headline text-xl font-extrabold text-on-surface">
+				{m("library.filters.title")}
+			</h2>
+			<div class="flex items-center gap-2">
+				<button
+					onclick={resetFilters}
+					disabled={activeFilterCount === 0}
+					class="px-4 py-2 rounded-full font-bold text-sm text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+				>
+					{m("library.filters.reset")}
+				</button>
+				<button
+					onclick={() => (showFilters = false)}
+					aria-label={m("common.close")}
+					class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+				>
+					<span class="material-symbols-outlined">close</span>
+				</button>
+			</div>
+		</div>
+		<div class="grid grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+			{@render filterFields()}
+		</div>
+	</section>
+{/if}
 
 <div class="mt-4 mb-6">
 	{#if activeTab === "all" && !query}
@@ -385,7 +620,7 @@
 			class="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700"
 		>
 			<div
-				class="relative h-[240px] rounded-[2rem] overflow-hidden group shadow-xl shadow-primary/5"
+				class="relative h-[240px] lg:h-[220px] rounded-[2rem] overflow-hidden group shadow-xl shadow-primary/5"
 			>
 				<img
 					src={spotlight.imageUrl}
@@ -395,7 +630,7 @@
 				<div
 					class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"
 				></div>
-				<div class="absolute bottom-0 left-0 p-6 w-full">
+				<div class="absolute bottom-0 left-0 p-6 lg:p-8 w-full">
 					<div class="flex justify-between items-end gap-4">
 						<div class="flex-1">
 							<span
@@ -404,12 +639,12 @@
 								{m(spotlight.category)}
 							</span>
 							<h3
-								class="text-white font-headline text-2xl font-extrabold mb-1"
+								class="text-white font-headline text-2xl lg:text-3xl font-extrabold lg:tracking-tight mb-1"
 							>
 								{spotlight.title}
 							</h3>
 							<p
-								class="text-white/70 max-w-md font-body text-xs line-clamp-2"
+								class="text-white/70 max-w-md lg:max-w-xl font-body text-xs lg:text-sm line-clamp-2"
 							>
 								{m(spotlight.description)}
 							</p>
@@ -440,9 +675,10 @@
 	{/if}
 </div>
 
+
 {#if showFilters && activeTab === "all"}
 	<div
-		class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
+		class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 md:hidden"
 	>
 		<!-- Backdrop -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -475,201 +711,12 @@
 				<div
 					class="space-y-8 max-h-[60vh] overflow-y-auto pr-2 hide-scrollbar"
 				>
-					<!-- Genre -->
-					<div class="space-y-3">
-						<span
-							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-							>{m("library.filters.genre")}</span
-						>
-						<div class="flex flex-wrap gap-2">
-							{#each categories as cat (cat.value)}
-								<button
-									onclick={() => {
-										store = {
-											...store,
-											selectedGenre:
-												selectedGenre === cat.value
-													? ""
-													: cat.value,
-										};
-										fetchCatalogPage(0);
-									}}
-									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {selectedGenre ===
-									cat.value
-										? 'bg-primary text-on-primary'
-										: 'bg-surface-container-low text-on-surface-variant'}"
-								>
-									{m(cat.label)}
-								</button>
-							{/each}
-						</div>
-					</div>
-
-					<!-- Complexity Level -->
-					<div class="space-y-3">
-						<span
-							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-							>{m("library.filters.complexity")}</span
-						>
-						<div class="flex flex-wrap gap-2">
-							{#each complexityLevels as level (level.label)}
-								<button
-									onclick={() => {
-										store = {
-											...store,
-											minComplexity: level.min,
-											maxComplexity: level.max,
-										};
-										fetchCatalogPage(0);
-									}}
-									class="px-4 py-2 rounded-2xl text-sm font-bold transition-all {store.minComplexity ===
-										level.min &&
-									store.maxComplexity === level.max
-										? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
-										: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}"
-								>
-									{m(level.label)}
-								</button>
-							{/each}
-						</div>
-					</div>
-
-					<!-- Player Count -->
-					<div class="space-y-4">
-						<div class="flex items-center justify-between">
-							<span
-								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>{m("library.filters.players")}</span
-							>
-							<span class="text-[10px] font-bold text-primary"
-								>{m("library.filters.minMax")}</span
-							>
-						</div>
-						<div class="grid grid-cols-2 gap-4">
-							<input
-								type="number"
-								min="1"
-								max="10"
-								placeholder={m("library.filters.min")}
-								value={minPlayers}
-								oninput={(e) => {
-									store = {
-										...store,
-										minPlayers:
-											+(e.target as HTMLInputElement)
-												.value || undefined,
-									};
-									fetchCatalogPage(0);
-								}}
-								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-							/>
-							<input
-								type="number"
-								min="1"
-								max="50"
-								placeholder={m("library.filters.max")}
-								value={maxPlayers}
-								oninput={(e) => {
-									store = {
-										...store,
-										maxPlayers:
-											+(e.target as HTMLInputElement)
-												.value || undefined,
-									};
-									fetchCatalogPage(0);
-								}}
-								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-							/>
-						</div>
-					</div>
-
-					<!-- Playtime -->
-					<div class="space-y-4">
-						<div class="flex items-center justify-between">
-							<span
-								class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-								>{m("library.filters.playtime")}</span
-							>
-						</div>
-						<div class="grid grid-cols-2 gap-4">
-							<input
-								type="number"
-								min="1"
-								placeholder={m("library.filters.min")}
-								value={minPlaytime}
-								oninput={(e) => {
-									store = {
-										...store,
-										minPlaytime:
-											+(e.target as HTMLInputElement)
-												.value || undefined,
-									};
-									fetchCatalogPage(0);
-								}}
-								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-							/>
-							<input
-								type="number"
-								min="1"
-								placeholder={m("library.filters.max")}
-								value={maxPlaytime}
-								oninput={(e) => {
-									store = {
-										...store,
-										maxPlaytime:
-											+(e.target as HTMLInputElement)
-												.value || undefined,
-									};
-									fetchCatalogPage(0);
-								}}
-								class="bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-							/>
-						</div>
-					</div>
-
-					<!-- Rating -->
-					<div class="space-y-4">
-						<span
-							class="text-xs font-black uppercase tracking-widest text-on-surface-variant"
-							>{m("library.filters.minRating")}</span
-						>
-						<input
-							type="number"
-							step="0.1"
-							min="0"
-							max="10"
-							placeholder="0.0"
-							value={minRating}
-							oninput={(e) => {
-								store = {
-									...store,
-									minRating:
-										+(e.target as HTMLInputElement).value ||
-										undefined,
-								};
-								fetchCatalogPage(0);
-							}}
-							class="w-full bg-surface-container-high rounded-2xl p-4 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-						/>
-					</div>
+					{@render filterFields()}
 				</div>
 
 				<div class="mt-10 flex gap-4">
 					<button
-						onclick={() => {
-							store = {
-								...store,
-								selectedGenre: "",
-								minPlayers: undefined,
-								maxPlayers: undefined,
-								minPlaytime: undefined,
-								maxPlaytime: undefined,
-								minComplexity: undefined,
-								maxComplexity: undefined,
-								minRating: undefined,
-							};
-							fetchCatalogPage(0);
-						}}
+						onclick={resetFilters}
 						class="flex-1 py-4 rounded-2xl font-bold text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors"
 					>
 						{m("library.filters.reset")}
@@ -701,7 +748,7 @@
 	</div>
 
 	{#if loadingCatalog && (gamesPage?.content?.length ?? 0) === 0}
-		<div class="grid grid-cols-2 gap-5">
+		<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 lg:gap-6">
 			{#each { length: 6 } as _, i (i)}
 				<div class="space-y-3">
 					<Skeleton class="aspect-[3/4] rounded-[2rem]" />
@@ -731,7 +778,7 @@
 			{/if}
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-5">
+		<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 lg:gap-6">
 			{#each gamesPage?.content ?? [] as game (game.id)}
 				<a href="/library/{game.id}" class="group space-y-3">
 					<div
@@ -835,7 +882,7 @@
 		<div bind:this={observerNode} class="py-10">
 			{#if loadingMore}
 				<div
-					class="grid grid-cols-2 gap-5 animate-in fade-in duration-500"
+					class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 lg:gap-6 animate-in fade-in duration-500"
 				>
 					{#each { length: 2 } as _, i (i)}
 						<div class="space-y-3">
@@ -879,7 +926,7 @@
 		{/if}
 	</div>
 {:else}
-	<div class="grid grid-cols-2 gap-6 mt-4">
+	<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-4">
 		{#each filtered as ug (ug.game.id)}
 			<div class="space-y-2">
 				<a href="/library/{ug.game.id}" class="group block space-y-3">
@@ -976,3 +1023,4 @@
 		{/each}
 	</div>
 {/if}
+</PageContainer>

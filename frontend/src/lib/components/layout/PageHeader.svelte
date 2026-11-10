@@ -19,9 +19,10 @@
 	}
 </script>
 
-<div class="flex items-center gap-3 mb-6 mt-3">
+<div class="flex items-center gap-3 mb-6 mt-3 min-h-10">
 	<button
 		type="button"
+		data-settings-back
 		onclick={back}
 		class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95"
 		aria-label={m('common.back')}
