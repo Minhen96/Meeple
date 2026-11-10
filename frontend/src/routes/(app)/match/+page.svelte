@@ -5,6 +5,7 @@
 	import { api } from '$lib/api/client';
 	import type { GameDetail } from '$lib/types';
 	import MatchSuggestionCard from '$lib/components/match/MatchSuggestionCard.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import type { MatchRequest, MatchGroup, GameSearchResult } from '$lib/types';
 	import { getLocale, m } from '$lib/i18n';
 
@@ -92,11 +93,13 @@
 
 <svelte:head><title>{m('event.match.title')} — Meeple</title></svelte:head>
 
-<div class="flex items-center justify-between mb-4">
-	<h2 class="text-2xl font-extrabold font-headline">{m('event.match.title')}</h2>
+<PageContainer width="wide">
+<div class="flex items-center justify-between mb-4 md:mb-6">
+	<h2 class="text-2xl md:text-4xl md:tracking-tight font-extrabold font-headline">{m('event.match.title')}</h2>
 	<button
 		onclick={() => showForm = !showForm}
-		class="flex items-center gap-1 text-sm font-semibold text-primary"
+		aria-expanded={showForm}
+		class="flex items-center gap-1 text-sm font-semibold text-primary md:px-4 md:py-2 md:rounded-full md:bg-primary/10 md:hover:bg-primary/20 md:transition-colors spring-bounce"
 	>
 		<span class="material-symbols-outlined text-lg">{showForm ? 'close' : 'add'}</span>
 		{showForm ? m('common.cancel') : m('event.match.new')}
@@ -104,7 +107,7 @@
 </div>
 
 {#if showForm}
-	<div class="bg-surface-container-low rounded-2xl p-4 mb-5 space-y-3">
+	<div class="bg-surface-container-low rounded-2xl p-4 mb-5 space-y-3 md:p-6 md:max-w-2xl">
 		<p class="font-semibold text-sm">{m('event.match.lookingToPlay')}</p>
 
 		<!-- Game search -->
@@ -161,11 +164,12 @@
 {/if}
 
 <!-- Tabs -->
-<div class="flex gap-1 bg-surface-container-low p-1 rounded-xl mb-5">
+<div class="flex gap-1 bg-surface-container-low p-1 rounded-xl mb-5 md:max-w-md md:mb-6">
 	{#each [['suggestions', suggestions.length ? m('event.match.tab.suggestionsCount', { count: suggestions.length }) : m('event.match.tab.suggestions')], ['requests', m('event.match.tab.requests')]] as [value, label] (value)}
 		<button
 			onclick={() => tab = value as typeof tab}
-			class="flex-1 text-sm font-semibold py-2 rounded-lg transition-colors {tab === value ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}"
+			aria-pressed={tab === value}
+			class="flex-1 text-sm font-semibold py-2 rounded-lg transition-colors {tab === value ? 'bg-primary text-on-primary' : 'text-on-surface-variant md:hover:bg-surface-container-high md:hover:text-on-surface'}"
 		>
 			{label}
 		</button>
@@ -173,7 +177,7 @@
 </div>
 
 {#if loading}
-	<div class="space-y-3">
+	<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
 		{#each Array(2) as _, i (i)}
 			<div class="h-36 bg-surface-container-low rounded-2xl animate-pulse"></div>
 		{/each}
@@ -181,13 +185,9 @@
 
 {:else if tab === 'suggestions'}
 	{#if suggestions.length === 0}
-		<div class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant">
-			<span class="material-symbols-outlined text-5xl">groups</span>
-			<p class="font-semibold">{m('event.match.empty.suggestionsTitle')}</p>
-			<p class="text-sm">{m('event.match.empty.suggestionsBody')}</p>
-		</div>
+		{@render emptyState('groups', m('event.match.empty.suggestionsTitle'), m('event.match.empty.suggestionsBody'))}
 	{:else}
-		<div class="space-y-3">
+		<div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4 md:items-stretch">
 			{#each suggestions as group (group.id)}
 				<MatchSuggestionCard {group} onDismiss={onGroupDismiss} />
 			{/each}
@@ -196,15 +196,11 @@
 
 {:else}
 	{#if myRequests.length === 0}
-		<div class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant">
-			<span class="material-symbols-outlined text-5xl">sports_esports</span>
-			<p class="font-semibold">{m('event.match.empty.requestsTitle')}</p>
-			<p class="text-sm">{m('event.match.empty.requestsBody')}</p>
-		</div>
+		{@render emptyState('sports_esports', m('event.match.empty.requestsTitle'), m('event.match.empty.requestsBody'))}
 	{:else}
-		<div class="space-y-2">
+		<div class="space-y-2 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-3">
 			{#each myRequests as req (req.id)}
-				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl">
+				<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl md:p-4 md:hover:bg-surface-container md:transition-colors">
 					{#if req.game.thumbnailUrl}
 						<img src={req.game.thumbnailUrl} alt={req.game.title}
 							class="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
@@ -223,7 +219,7 @@
 					</div>
 					<button
 						onclick={() => cancelRequest(req.id)}
-						class="text-on-surface-variant hover:text-error p-1 transition-colors"
+						class="text-on-surface-variant hover:text-error p-1 transition-colors md:rounded-full md:hover:bg-error/10"
 						aria-label={m('event.match.cancelRequest')}
 					>
 						<span class="material-symbols-outlined text-lg">close</span>
@@ -233,3 +229,25 @@
 		</div>
 	{/if}
 {/if}
+</PageContainer>
+
+<!-- Empty state: plain on phones; from md a tonal panel with an icon badge and a CTA -->
+{#snippet emptyState(icon: string, title: string, body: string)}
+	<div
+		class="flex flex-col items-center gap-3 py-16 text-center text-on-surface-variant md:bg-surface-container-low md:rounded-lg md:px-8 md:py-20"
+	>
+		<span class="material-symbols-outlined text-5xl md:w-20 md:h-20 md:rounded-full md:bg-primary/10 md:text-primary md:flex md:items-center md:justify-center md:text-4xl md:mb-2" aria-hidden="true">{icon}</span>
+		<p class="font-semibold md:text-lg md:font-headline md:font-bold md:text-on-surface">{title}</p>
+		<p class="text-sm md:max-w-sm">{body}</p>
+		{#if !showForm}
+			<button
+				type="button"
+				onclick={() => (showForm = true)}
+				class="hidden md:inline-flex items-center gap-1 mt-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-label font-bold shadow-[0_8px_24px_rgba(137,81,0,0.20)] hover:scale-[1.02] transition-transform spring-bounce"
+			>
+				<span class="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+				{m('event.match.new')}
+			</button>
+		{/if}
+	</div>
+{/snippet}
