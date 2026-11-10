@@ -7,6 +7,7 @@
 	import { matchesApi } from '$lib/api/matches';
 	import { m } from '$lib/i18n';
 	import EventForm from '$lib/components/event/EventForm.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import { emptyForm, toCreatePayload, toDateInput, toTimeInput, type EventFormValues } from '$lib/components/event/eventForm';
 	import { eventErrorMessage } from '$lib/components/event/eventState';
 
@@ -55,7 +56,9 @@
 
 <svelte:head><title>{m('event.form.createTitle')} — Meeple</title></svelte:head>
 
-<div class="flex items-center gap-3 mb-6 mt-3">
+<PageContainer width="wide">
+<div class="md:max-w-2xl lg:max-w-5xl mx-auto">
+<div class="flex items-center gap-3 mb-6 mt-3 md:mb-8">
 	<button
 		type="button"
 		onclick={() => history.back()}
@@ -73,3 +76,5 @@
 </div>
 
 <EventForm bind:values mode="create" {error} {submitting} onSubmit={submit} />
+</div>
+</PageContainer>

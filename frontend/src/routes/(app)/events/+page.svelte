@@ -3,6 +3,7 @@
 	import { m } from '$lib/i18n';
 	import EventCard from '$lib/components/event/EventCard.svelte';
 	import MonthCalendar from '$lib/components/event/MonthCalendar.svelte';
+	import PageContainer from '$lib/components/layout/PageContainer.svelte';
 	import { eventErrorMessage } from '$lib/components/event/eventState';
 	import { eventsViewHref, type EventsTab } from '$lib/components/event/eventsView';
 	import type { MessageKey } from '$lib/i18n';
@@ -51,9 +52,10 @@
 
 <svelte:head><title>{m('event.page.metaTitle')} — Meeple</title></svelte:head>
 
-<section class="mb-5 flex items-end justify-between gap-3">
+<PageContainer width="wide">
+<section class="mb-5 md:mb-6 flex items-end justify-between gap-3">
 	<div class="space-y-1">
-		<h2 class="text-3xl font-headline font-extrabold tracking-tight">{m('event.page.title')}</h2>
+		<h2 class="text-3xl md:text-4xl font-headline font-extrabold tracking-tight">{m('event.page.title')}</h2>
 		<p class="text-on-surface-variant text-sm">{m('event.page.subtitle')}</p>
 	</div>
 	<a
@@ -65,39 +67,44 @@
 	</a>
 </section>
 
+<!-- Toolbar: from md the tabs (left) and the list / calendar toggle (right) share one row -->
+<div class="md:flex md:flex-row-reverse md:items-center md:justify-between md:gap-4 md:mb-6">
 <!-- List / Calendar toggle (SCREENS section 6.1) -->
-<div class="flex gap-1 bg-surface-container-low p-1 rounded-full mb-4 w-fit" role="group" aria-label={m('event.view.label')}>
+<div class="flex gap-1 bg-surface-container-low p-1 rounded-full mb-4 md:mb-0 w-fit" role="group" aria-label={m('event.view.label')}>
 	{#each [{ value: 'list', icon: 'view_agenda', label: m('event.view.list') }, { value: 'calendar', icon: 'calendar_month', label: m('event.view.calendar') }] as opt (opt.value)}
 		<a
 			href={eventsViewHref(data.tab, opt.value === 'calendar' ? 'calendar' : 'list')}
 			aria-current={data.view === opt.value ? 'page' : undefined}
 			class="flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-label font-bold transition-colors
-				{data.view === opt.value ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}"
+				{data.view === opt.value ? 'bg-primary text-on-primary' : 'text-on-surface-variant md:hover:text-on-surface md:hover:bg-surface-container-high'}"
 		>
 			<span class="material-symbols-outlined text-[18px]" aria-hidden="true">{opt.icon}</span>
 			{opt.label}
 		</a>
 	{/each}
 </div>
-
-{#if data.view === 'calendar'}
-	<MonthCalendar />
-{:else}
-	<nav class="flex gap-2 mb-5" aria-label={m('event.page.metaTitle')}>
+{#if data.view !== 'calendar'}
+	<nav class="flex gap-2 mb-5 md:mb-0" aria-label={m('event.page.metaTitle')}>
 		{#each tabs as t (t.value)}
 			<a
 				href={eventsViewHref(t.value, 'list')}
 				aria-current={data.tab === t.value ? 'page' : undefined}
 				class="px-4 py-2 rounded-full text-sm font-label font-bold transition-colors
-					{data.tab === t.value ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}"
+					{data.tab === t.value ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant md:hover:bg-surface-container-highest md:hover:text-on-surface'}"
 			>
 				{m(t.label)}
 			</a>
 		{/each}
 	</nav>
+{/if}
+</div>
+
+{#if data.view === 'calendar'}
+	<MonthCalendar />
+{:else}
 
 	{#if data.loadFailed}
-		<div class="text-center py-16 text-on-surface-variant" role="alert">
+		<div class="text-center py-16 text-on-surface-variant md:bg-surface-container-low md:rounded-lg" role="alert">
 			<span class="material-symbols-outlined text-5xl mb-3 block opacity-40" aria-hidden="true">cloud_off</span>
 			<p class="font-semibold">{m('event.list.loadError')}</p>
 			<a href={eventsViewHref(data.tab, 'list')} class="inline-block mt-3 text-sm font-bold text-primary">
@@ -105,7 +112,7 @@
 			</a>
 		</div>
 	{:else if events.length === 0}
-		<div class="text-center py-16 text-on-surface-variant">
+		<div class="text-center py-16 text-on-surface-variant md:bg-surface-container-low md:rounded-lg">
 			<span class="material-symbols-outlined text-5xl mb-3 block opacity-40" aria-hidden="true">event</span>
 			<p class="font-semibold">{empty.title}</p>
 			<p class="text-sm mt-1">{empty.body}</p>
@@ -119,9 +126,9 @@
 			{/if}
 		</div>
 	{:else}
-		<div class="space-y-4">
+		<div class="space-y-4 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
 			{#each events as event (event.id)}
-				<EventCard {event} muted={data.tab === 'past'} />
+				<EventCard {event} muted={data.tab === 'past'} tile />
 			{/each}
 		</div>
 		{#if data.tab === 'community' && nextCursor}
@@ -141,3 +148,4 @@
 		{/if}
 	{/if}
 {/if}
+</PageContainer>

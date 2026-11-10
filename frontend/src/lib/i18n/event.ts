@@ -32,6 +32,9 @@ export default {
 	'calendar.noEvents': 'No events on this day.',
 	'calendar.hasEvents': '{date}, {count} events',
 	'calendar.close': 'Close',
+	'calendar.agendaTitle': 'Events in {month}',
+	'calendar.showMonth': 'Show whole month',
+	'calendar.noEventsMonth': 'No events this month.',
 
 	// Card
 	'card.hostedBy': 'Hosted by {name}',
@@ -53,6 +56,7 @@ export default {
 	// Detail
 	deletedUser: 'Deleted User',
 	'detail.back': 'Back',
+	'detail.summaryLabel': 'Event summary',
 	'detail.when': 'When',
 	'detail.where': 'Where',
 	'detail.locationHidden': 'Exact location shared after you join',

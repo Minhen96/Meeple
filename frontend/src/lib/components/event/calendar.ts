@@ -97,3 +97,24 @@ export function weekdayLabels(locale: string, weekStartsOn = 0): string[] {
 		new Date(2023, 0, 1 + ((weekStartsOn + i) % 7)).toLocaleDateString(locale, { weekday: 'short' })
 	);
 }
+
+export interface AgendaDay {
+	key: string;
+	date: Date;
+	events: Event[];
+}
+
+/**
+ * Agenda beside the calendar (desktop split view): the selected day only, or else every day of
+ * the visible month that has events, in date order. Days without events are left out.
+ */
+export function agendaDays(
+	cells: readonly CalendarCell[],
+	byDay: ReadonlyMap<string, Event[]>,
+	selectedKey: string | null
+): AgendaDay[] {
+	return cells
+		.filter((c) => (selectedKey ? c.key === selectedKey : c.inMonth))
+		.map((c) => ({ key: c.key, date: c.date, events: byDay.get(c.key) ?? [] }))
+		.filter((d) => d.events.length > 0);
+}

@@ -28,6 +28,9 @@ export default {
 	'calendar.noEvents': '这一天没有活动。',
 	'calendar.hasEvents': '{date}，{count} 个活动',
 	'calendar.close': '关闭',
+	'calendar.agendaTitle': '{month}的活动',
+	'calendar.showMonth': '显示整月',
+	'calendar.noEventsMonth': '本月没有活动。',
 
 	'card.hostedBy': '由 {name} 主持',
 	'card.players': '{count}/{max}',
@@ -46,6 +49,7 @@ export default {
 
 	deletedUser: '已注销用户',
 	'detail.back': '返回',
+	'detail.summaryLabel': '活动概要',
 	'detail.when': '时间',
 	'detail.where': '地点',
 	'detail.locationHidden': '加入后可查看详细地址',
