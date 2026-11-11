@@ -100,13 +100,22 @@ void main() {
     api
       ..get('/api/v1/events/e2', {
         ...eventJson(id: 'e2', myRsvp: null),
+        'visibility': 'PUBLIC',
         'maxParticipants': 2,
         'participantCount': 2,
       })
-      ..get('/api/v1/events/e3', eventJson(id: 'e3', myRsvp: null))
+      ..get('/api/v1/events/e3', {
+        ...eventJson(id: 'e3', myRsvp: null),
+        'visibility': 'PUBLIC',
+      })
+      ..get('/api/v1/events/e4', eventJson(id: 'e4', myRsvp: null))
       ..post('/api/v1/events/e3/rsvp', eventJson(id: 'e3'));
     await push(tester, c, '/events/e2');
     expect(find.text('Event is Full'), findsOneWidget);
+    // Not invited to a friends-only event: a notice instead of Join.
+    await push(tester, c, '/events/e4');
+    expect(find.text('You need an invite to join this event.'), findsOneWidget);
+    expect(find.byKey(const Key('rsvp-join')), findsNothing);
     await push(tester, c, '/events/e3');
     await tester.tap(find.byKey(const Key('rsvp-join')));
     await settle(tester);

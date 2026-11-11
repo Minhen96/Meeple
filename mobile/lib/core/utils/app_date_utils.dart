@@ -43,16 +43,31 @@ abstract final class AppDateUtils {
   static String formatHhMm(int hour, int minute) =>
       '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
-  /// Relative time: "just now" / "2m ago" / "3h ago" / "yesterday" /
-  /// "4d ago" / "Mar 28".
+  /// Relative time, as the web `timeAgo` (posts, comments): "Just now" /
+  /// "5m ago" / "3h ago" / "2d ago", then a short date ("Nov 3") after a
+  /// week.
   static String timeAgo(DateTime date, AppLocalizations l10n, {DateTime? now}) {
     final diff = (now ?? DateTime.now()).difference(date);
-    if (diff.inSeconds < 60) return l10n.timeJustNow;
+    if (diff.inSeconds < 60) return l10n.timeJustNowSocial;
     if (diff.inMinutes < 60) return l10n.timeMinutesAgo(diff.inMinutes);
     if (diff.inHours < 24) return l10n.timeHoursAgo(diff.inHours);
-    if (diff.inDays == 1) return l10n.timeYesterday;
     if (diff.inDays < 7) return l10n.timeDaysAgo(diff.inDays);
-    return formatDate(date);
+    return formatDayMonth(date);
+  }
+
+  /// Compact relative time, as the web notification list: "just now" /
+  /// "5m" / "3h" / "2d", then a short date ("Nov 3").
+  static String timeAgoCompact(
+    DateTime date,
+    AppLocalizations l10n, {
+    DateTime? now,
+  }) {
+    final diff = (now ?? DateTime.now()).difference(date);
+    if (diff.inSeconds < 60) return l10n.timeJustNow;
+    if (diff.inMinutes < 60) return l10n.timeCompactMinutes(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.timeCompactHours(diff.inHours);
+    if (diff.inDays < 7) return l10n.timeCompactDays(diff.inDays);
+    return formatDayMonth(date);
   }
 
   /// Whether [a] and [b] fall on the same local calendar day.

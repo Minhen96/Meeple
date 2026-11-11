@@ -678,10 +678,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eventCancelMessage =>
-      'Everyone who joined or was invited will be notified.';
+      'Everyone going will be notified. This cannot be undone.';
 
   @override
-  String get eventCancelTitle => 'Cancel this event?';
+  String get eventCancelTitle => 'Cancel event?';
 
   @override
   String get eventCancelledBanner => 'This event has been cancelled.';
@@ -767,7 +767,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get eventInvitesSent => 'Invites sent.';
+  String get eventInvitesSent => 'Invites sent';
 
   @override
   String get eventJoin => 'Join';
@@ -780,11 +780,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String eventKickMessage(String name) {
-    return '$name will be removed from this event.';
+    return 'Remove $name from this event? They will be notified.';
   }
 
   @override
-  String get eventKickTitle => 'Remove participant?';
+  String get eventKickTitle => 'Remove player?';
 
   @override
   String get eventLeave => 'Leave Event';
@@ -793,7 +793,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventLeaveMessage => 'Your spot will open up for someone else.';
 
   @override
-  String get eventLeaveTitle => 'Leave this event?';
+  String get eventLeaveTitle => 'Leave event?';
 
   @override
   String get eventLocationHint => 'Address, venue name, or \'Online\'';
@@ -1580,7 +1580,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postAddPhotos => 'Add Photos';
 
   @override
-  String get postCaptionHint => 'What happened at the table?';
+  String get postCaptionHint => 'Share the story behind this session…';
 
   @override
   String get postComment => 'Comment';
@@ -1655,7 +1655,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get postNewTitle => 'New post';
+  String get postNewTitle => 'New Post';
 
   @override
   String postPlayedOn(String date) {
@@ -1678,10 +1678,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postSave => 'Save';
 
   @override
-  String get postTagFriends => 'Tag friends';
+  String get postTagFriends => 'Tag Friends';
 
   @override
-  String get postTagGame => 'Tag a game';
+  String get postTagGame => 'Tag Game';
 
   @override
   String postTaggedCount(int count) {
@@ -2198,4 +2198,294 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPasswordHint => 'Your password';
+
+  @override
+  String get eventsPageTitle => 'Game Nights';
+
+  @override
+  String get eventsPageSubtitle =>
+      'Find your next adventure at a table near you.';
+
+  @override
+  String get eventsTabCommunity => 'Community';
+
+  @override
+  String get eventsViewList => 'List';
+
+  @override
+  String get eventsViewCalendar => 'Calendar';
+
+  @override
+  String get eventsEmptyCommunityTitle => 'No public events yet.';
+
+  @override
+  String get eventsEmptyCommunityBody =>
+      'Public game nights will show up here.';
+
+  @override
+  String get eventsLoadMore => 'Load more';
+
+  @override
+  String get eventCreateCta => 'Create Event';
+
+  @override
+  String get eventCardInvited => 'You\'re invited';
+
+  @override
+  String get eventCardGoing => 'You\'re going';
+
+  @override
+  String eventCardPlayers(int count, int max) {
+    return '$count/$max';
+  }
+
+  @override
+  String get calendarPrevMonth => 'Previous month';
+
+  @override
+  String get calendarNextMonth => 'Next month';
+
+  @override
+  String get calendarToday => 'Today';
+
+  @override
+  String calendarEventsOn(String date) {
+    return 'Events on $date';
+  }
+
+  @override
+  String get calendarNoEventsDay => 'No events on this day.';
+
+  @override
+  String get eventDetailHost => 'Host';
+
+  @override
+  String get eventDetailWhen => 'When';
+
+  @override
+  String get eventDetailWhere => 'Where';
+
+  @override
+  String get eventLocationHidden => 'Exact location shared after you join';
+
+  @override
+  String get eventLocationTbd => 'To be decided';
+
+  @override
+  String get eventDetailPlaying => 'Playing';
+
+  @override
+  String get eventDetailPlayers => 'Players';
+
+  @override
+  String eventDetailSpots(int count, int left) {
+    return '$count going · $left spots left';
+  }
+
+  @override
+  String get eventDetailNoOneYet => 'No one else yet. Invite some friends!';
+
+  @override
+  String get eventVisPublicEvent => 'Public event';
+
+  @override
+  String get eventVisFriendsOnly => 'Friends only';
+
+  @override
+  String get eventInviteOnlyNotice => 'You need an invite to join this event.';
+
+  @override
+  String get eventManageParticipants => 'View participants';
+
+  @override
+  String get eventParticipantsTitle => 'Participants';
+
+  @override
+  String get eventMemoriesTitle => 'Memories';
+
+  @override
+  String get eventShareMemory => 'Share a memory';
+
+  @override
+  String get eventKeep => 'Keep event';
+
+  @override
+  String get eventStay => 'Stay';
+
+  @override
+  String get eventLeaveConfirm => 'Leave';
+
+  @override
+  String get eventInviteSend => 'Send invites';
+
+  @override
+  String get eventRsvpInvited => 'Invited';
+
+  @override
+  String get eventRsvpAccepted => 'Going';
+
+  @override
+  String get eventRsvpDeclined => 'Declined';
+
+  @override
+  String get eventRsvpLeft => 'Left';
+
+  @override
+  String get eventRsvpKicked => 'Removed';
+
+  @override
+  String get eventFormCreateTitle => 'New Event';
+
+  @override
+  String get eventFormEditTitle => 'Edit Event';
+
+  @override
+  String get eventFormSubtitle => 'Gather your party';
+
+  @override
+  String get eventFormFromMatch => 'Pre-filled from your match';
+
+  @override
+  String get eventFieldDate => 'Date';
+
+  @override
+  String get eventFieldTime => 'Time';
+
+  @override
+  String get eventTitleHint => 'e.g. Heavy Euro Night';
+
+  @override
+  String eventPlayersLabel(int count) {
+    return '$count players';
+  }
+
+  @override
+  String get eventVisPublicDesc => 'Anyone can see and join';
+
+  @override
+  String get eventVisFriendsDesc =>
+      'Friends can see it; invited friends can join';
+
+  @override
+  String get eventVisInviteOnlyDesc => 'Only people you invite';
+
+  @override
+  String get eventInviteSearch => 'Search friends';
+
+  @override
+  String eventSelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get eventFieldDescriptionLabel => 'Description';
+
+  @override
+  String get eventDescriptionHint => 'Rules, food plan, or what to bring…';
+
+  @override
+  String eventCharCount(int count, int max) {
+    return '$count/$max';
+  }
+
+  @override
+  String get eventSaveChanges => 'Save Changes';
+
+  @override
+  String get postCommentsLabel => 'Comments';
+
+  @override
+  String get postBackHome => 'Back to Home';
+
+  @override
+  String postPhotosCount(int count) {
+    return 'Photos ($count/10)';
+  }
+
+  @override
+  String get postPickerHint => 'Optional · up to 10 photos';
+
+  @override
+  String get postAddMore => 'Add more';
+
+  @override
+  String postCaptionCount(int count) {
+    return '$count/2000';
+  }
+
+  @override
+  String get postWhichGame => 'Which board game?';
+
+  @override
+  String get postWhoPlayed => 'Who played with you?';
+
+  @override
+  String get postLocationLabel => 'Location';
+
+  @override
+  String get postLocationHint => 'Where did you play?';
+
+  @override
+  String get postDatePlayed => 'Date played';
+
+  @override
+  String get postShare => 'Share Post';
+
+  @override
+  String get postForEvent => 'Sharing memories from an event';
+
+  @override
+  String get savedEmpty =>
+      'No saved posts yet. Tap the bookmark on a post to keep it here.';
+
+  @override
+  String get notificationsDelete => 'Delete';
+
+  @override
+  String get timeJustNowSocial => 'Just now';
+
+  @override
+  String timeCompactMinutes(int n) {
+    return '${n}m';
+  }
+
+  @override
+  String timeCompactHours(int n) {
+    return '${n}h';
+  }
+
+  @override
+  String timeCompactDays(int n) {
+    return '${n}d';
+  }
+
+  @override
+  String get createSheetPost => 'Post';
+
+  @override
+  String get createSheetPostHint => 'Share a game night memory';
+
+  @override
+  String get createSheetEvent => 'Event';
+
+  @override
+  String get createSheetEventHint => 'Organize a game night';
+
+  @override
+  String get createSheetGame => 'Add Game';
+
+  @override
+  String get createSheetGameHint => 'Add a game to your collection';
+
+  @override
+  String get createSheetMatch => 'Find Match';
+
+  @override
+  String get createSheetMatchHint => 'Find friends to play with';
+
+  @override
+  String get postWithLabel => 'With';
+
+  @override
+  String get commentReportShort => 'Report';
 }

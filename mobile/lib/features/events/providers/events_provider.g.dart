@@ -338,6 +338,24 @@ final eventActionsProvider = AutoDisposeProvider<EventActions>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef EventActionsRef = AutoDisposeProviderRef<EventActions>;
+String _$communityEventsHash() => r'cab12c30da13f8eaab59fa1fa6b9f29857c69452';
+
+/// Public community events (web "Community" tab) with "Load more" paging.
+///
+/// Copied from [CommunityEvents].
+@ProviderFor(CommunityEvents)
+final communityEventsProvider = AutoDisposeAsyncNotifierProvider<
+    CommunityEvents, PagedState<Event>>.internal(
+  CommunityEvents.new,
+  name: r'communityEventsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$communityEventsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$CommunityEvents = AutoDisposeAsyncNotifier<PagedState<Event>>;
 String _$eventDetailHash() => r'4d1ecf709ce44c7c4c7fabe237f0bd875c04f2d3';
 
 abstract class _$EventDetail extends BuildlessAutoDisposeAsyncNotifier<Event> {

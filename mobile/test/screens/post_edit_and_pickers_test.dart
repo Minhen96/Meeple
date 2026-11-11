@@ -43,7 +43,7 @@ void main() {
       final c = await pumpApp(tester, api: api, location: '/posts/p9');
       await push(tester, c, '/posts/p9/edit');
 
-      await tester.tap(find.textContaining('Played on'));
+      await tester.tap(find.byKey(const Key('post-played-at')));
       await settle(tester);
       await tester.tap(find.text('15'));
       await tester.tap(find.text('OK'));
@@ -60,7 +60,7 @@ void main() {
       final c = await pumpApp(tester, api: api, location: '/posts/p9');
       await push(tester, c, '/posts/p9/edit');
 
-      await tester.tap(find.textContaining('Played on'));
+      await tester.tap(find.byKey(const Key('post-played-at')));
       await settle(tester);
       await tester.tap(find.text('OK'));
       await settle(tester);

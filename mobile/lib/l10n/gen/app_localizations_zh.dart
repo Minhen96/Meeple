@@ -541,7 +541,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bookmarksEmptyTitle => '还没有收藏的帖子';
 
   @override
-  String get bookmarksTitle => '已收藏的帖子';
+  String get bookmarksTitle => '收藏的动态';
 
   @override
   String get changeEmailBody => '我们会向新邮箱发送验证链接，确认后邮箱才会更改。';
@@ -646,13 +646,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventCancelConfirm => '取消活动';
 
   @override
-  String get eventCancelMessage => '已参加或受邀的所有人都会收到通知。';
+  String get eventCancelMessage => '所有参加者都会收到通知。此操作无法撤销。';
 
   @override
-  String get eventCancelTitle => '取消此活动？';
+  String get eventCancelTitle => '取消活动？';
 
   @override
-  String get eventCancelledBanner => '该活动已取消。';
+  String get eventCancelledBanner => '此活动已取消。';
 
   @override
   String get eventChangeToGoing => '改为参加';
@@ -684,7 +684,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventEdit => '编辑活动';
 
   @override
-  String get eventEndedBanner => '该活动已结束。';
+  String get eventEndedBanner => '此活动已结束。';
 
   @override
   String get eventFieldDateTime => '日期和时间';
@@ -699,7 +699,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventFieldLocation => '地点';
 
   @override
-  String get eventFieldMaxPlayers => '人数上限';
+  String get eventFieldMaxPlayers => '最多玩家数';
 
   @override
   String get eventFieldTitle => '活动标题';
@@ -708,7 +708,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventFieldVisibility => '谁可以看到';
 
   @override
-  String get eventFull => '活动已满员';
+  String get eventFull => '活动已满';
 
   @override
   String eventGoingCount(int count) {
@@ -717,7 +717,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String eventHostedBy(String name) {
-    return '由 $name 主办';
+    return '由 $name 主持';
   }
 
   @override
@@ -732,30 +732,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventInvitesSent => '邀请已发送。';
 
   @override
-  String get eventJoin => '参加';
+  String get eventJoin => '加入';
 
   @override
   String get eventJoined => '你已报名参加！';
 
   @override
-  String get eventKick => '移出';
+  String get eventKick => '移除';
 
   @override
   String eventKickMessage(String name) {
-    return '$name 将被移出此活动。';
+    return '要将 $name 移出此活动吗？对方会收到通知。';
   }
 
   @override
-  String get eventKickTitle => '移出参与者？';
+  String get eventKickTitle => '移除玩家？';
 
   @override
   String get eventLeave => '退出活动';
 
   @override
-  String get eventLeaveMessage => '你的名额将空出给其他人。';
+  String get eventLeaveMessage => '你的名额将开放给其他人。';
 
   @override
-  String get eventLeaveTitle => '退出此活动？';
+  String get eventLeaveTitle => '退出活动？';
 
   @override
   String get eventLocationHint => '地址、场地名称或“线上”';
@@ -764,7 +764,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventManage => '管理活动';
 
   @override
-  String get eventNoMemories => '还没有分享回忆。';
+  String get eventNoMemories => '还没有人分享回忆。';
 
   @override
   String get eventNotFound => '该活动不存在或已被删除。';
@@ -793,10 +793,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventStatusCompleted => '已结束';
 
   @override
-  String get eventStatusFull => '已满员';
+  String get eventStatusFull => '已满';
 
   @override
-  String get eventStatusOpen => '开放中';
+  String get eventStatusOpen => '开放';
 
   @override
   String get eventTitleTooShort => '标题至少需要 3 个字符';
@@ -808,7 +808,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventViewMemories => '查看回忆';
 
   @override
-  String get eventYouWereRemoved => '主办人已将你移出此活动。';
+  String get eventYouWereRemoved => '主持人已将你移出此活动。';
 
   @override
   String get eventsCalendarView => '日历视图';
@@ -817,10 +817,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventsEmptyPastBody => '你的游戏之夜记录会显示在这里。';
 
   @override
-  String get eventsEmptyPastTitle => '没有过往活动。';
+  String get eventsEmptyPastTitle => '暂无已结束的活动。';
 
   @override
-  String get eventsEmptyUpcomingBody => '来举办下一场游戏之夜吧！';
+  String get eventsEmptyUpcomingBody => '来组织你的下一场游戏之夜吧！';
 
   @override
   String get eventsEmptyUpcomingTitle => '暂无即将开始的活动。';
@@ -835,7 +835,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get eventsTabMine => '我的';
 
   @override
-  String get eventsTabPast => '过往';
+  String get eventsTabPast => '已结束';
 
   @override
   String get eventsTabUpcoming => '即将开始';
@@ -1425,7 +1425,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notificationsEmptyBody => '通知会显示在这里。';
 
   @override
-  String get notificationsMarkAllRead => '全部已读';
+  String get notificationsMarkAllRead => '全部标为已读';
 
   @override
   String get notificationsMarkRead => '标为已读';
@@ -1507,7 +1507,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postAddPhotos => '添加照片';
 
   @override
-  String get postCaptionHint => '桌上发生了什么？';
+  String get postCaptionHint => '分享这局游戏背后的故事…';
 
   @override
   String get postComment => '评论';
@@ -1574,7 +1574,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get postNewTitle => '新帖子';
+  String get postNewTitle => '新动态';
 
   @override
   String postPlayedOn(String date) {
@@ -1591,7 +1591,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postRemovePhoto => '移除照片';
 
   @override
-  String get postRemoved => '该帖子已被删除。';
+  String get postRemoved => '这条动态已被删除。';
 
   @override
   String get postSave => '收藏';
@@ -1611,7 +1611,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postTakePhoto => '拍照';
 
   @override
-  String get postTitle => '帖子';
+  String get postTitle => '动态';
 
   @override
   String get postUnlike => '取消点赞';
@@ -2083,4 +2083,290 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authPasswordHint => '你的密码';
+
+  @override
+  String get eventsPageTitle => '游戏之夜';
+
+  @override
+  String get eventsPageSubtitle => '在附近的桌边开启你的下一场冒险。';
+
+  @override
+  String get eventsTabCommunity => '社区';
+
+  @override
+  String get eventsViewList => '列表';
+
+  @override
+  String get eventsViewCalendar => '日历';
+
+  @override
+  String get eventsEmptyCommunityTitle => '暂无公开活动。';
+
+  @override
+  String get eventsEmptyCommunityBody => '公开的游戏之夜会显示在这里。';
+
+  @override
+  String get eventsLoadMore => '加载更多';
+
+  @override
+  String get eventCreateCta => '创建活动';
+
+  @override
+  String get eventCardInvited => '你已受邀';
+
+  @override
+  String get eventCardGoing => '你会参加';
+
+  @override
+  String eventCardPlayers(int count, int max) {
+    return '$count/$max';
+  }
+
+  @override
+  String get calendarPrevMonth => '上个月';
+
+  @override
+  String get calendarNextMonth => '下个月';
+
+  @override
+  String get calendarToday => '今天';
+
+  @override
+  String calendarEventsOn(String date) {
+    return '$date 的活动';
+  }
+
+  @override
+  String get calendarNoEventsDay => '这一天没有活动。';
+
+  @override
+  String get eventDetailHost => '主持人';
+
+  @override
+  String get eventDetailWhen => '时间';
+
+  @override
+  String get eventDetailWhere => '地点';
+
+  @override
+  String get eventLocationHidden => '加入后可查看详细地址';
+
+  @override
+  String get eventLocationTbd => '待定';
+
+  @override
+  String get eventDetailPlaying => '游戏';
+
+  @override
+  String get eventDetailPlayers => '玩家';
+
+  @override
+  String eventDetailSpots(int count, int left) {
+    return '$count 人参加 · 剩余 $left 个名额';
+  }
+
+  @override
+  String get eventDetailNoOneYet => '还没有其他人，快邀请朋友吧！';
+
+  @override
+  String get eventVisPublicEvent => '公开活动';
+
+  @override
+  String get eventVisFriendsOnly => '仅好友';
+
+  @override
+  String get eventInviteOnlyNotice => '你需要邀请才能加入此活动。';
+
+  @override
+  String get eventManageParticipants => '查看参与者';
+
+  @override
+  String get eventParticipantsTitle => '参与者';
+
+  @override
+  String get eventMemoriesTitle => '回忆';
+
+  @override
+  String get eventShareMemory => '分享回忆';
+
+  @override
+  String get eventKeep => '保留活动';
+
+  @override
+  String get eventStay => '留下';
+
+  @override
+  String get eventLeaveConfirm => '退出';
+
+  @override
+  String get eventInviteSend => '发送邀请';
+
+  @override
+  String get eventRsvpInvited => '已邀请';
+
+  @override
+  String get eventRsvpAccepted => '参加';
+
+  @override
+  String get eventRsvpDeclined => '已拒绝';
+
+  @override
+  String get eventRsvpLeft => '已退出';
+
+  @override
+  String get eventRsvpKicked => '已移除';
+
+  @override
+  String get eventFormCreateTitle => '新活动';
+
+  @override
+  String get eventFormEditTitle => '编辑活动';
+
+  @override
+  String get eventFormSubtitle => '召集你的队伍';
+
+  @override
+  String get eventFormFromMatch => '已根据你的匹配预填';
+
+  @override
+  String get eventFieldDate => '日期';
+
+  @override
+  String get eventFieldTime => '时间';
+
+  @override
+  String get eventTitleHint => '例如：重度策略之夜';
+
+  @override
+  String eventPlayersLabel(int count) {
+    return '$count 名玩家';
+  }
+
+  @override
+  String get eventVisPublicDesc => '任何人都可以查看和加入';
+
+  @override
+  String get eventVisFriendsDesc => '好友可见，受邀好友可加入';
+
+  @override
+  String get eventVisInviteOnlyDesc => '只有你邀请的人';
+
+  @override
+  String get eventInviteSearch => '搜索好友';
+
+  @override
+  String eventSelectedCount(int count) {
+    return '已选择 $count 人';
+  }
+
+  @override
+  String get eventFieldDescriptionLabel => '描述';
+
+  @override
+  String get eventDescriptionHint => '规则、餐饮安排或需要携带的物品…';
+
+  @override
+  String eventCharCount(int count, int max) {
+    return '$count/$max';
+  }
+
+  @override
+  String get eventSaveChanges => '保存更改';
+
+  @override
+  String get postCommentsLabel => '评论';
+
+  @override
+  String get postBackHome => '返回首页';
+
+  @override
+  String postPhotosCount(int count) {
+    return '照片（$count/10）';
+  }
+
+  @override
+  String get postPickerHint => '可选 · 最多 10 张照片';
+
+  @override
+  String get postAddMore => '继续添加';
+
+  @override
+  String postCaptionCount(int count) {
+    return '$count/2000';
+  }
+
+  @override
+  String get postWhichGame => '玩的是哪款桌游？';
+
+  @override
+  String get postWhoPlayed => '和谁一起玩的？';
+
+  @override
+  String get postLocationLabel => '地点';
+
+  @override
+  String get postLocationHint => '在哪里玩的？';
+
+  @override
+  String get postDatePlayed => '游戏日期';
+
+  @override
+  String get postShare => '发布动态';
+
+  @override
+  String get postForEvent => '分享活动回忆';
+
+  @override
+  String get savedEmpty => '还没有收藏的动态。点击动态上的书签即可收藏。';
+
+  @override
+  String get notificationsDelete => '删除';
+
+  @override
+  String get timeJustNowSocial => '刚刚';
+
+  @override
+  String timeCompactMinutes(int n) {
+    return '$n 分钟前';
+  }
+
+  @override
+  String timeCompactHours(int n) {
+    return '$n 小时前';
+  }
+
+  @override
+  String timeCompactDays(int n) {
+    return '$n 天前';
+  }
+
+  @override
+  String get createSheetPost => '帖子';
+
+  @override
+  String get createSheetPostHint => '分享游戏之夜的回忆';
+
+  @override
+  String get createSheetEvent => '活动';
+
+  @override
+  String get createSheetEventHint => '组织一场游戏之夜';
+
+  @override
+  String get createSheetGame => '添加游戏';
+
+  @override
+  String get createSheetGameHint => '把游戏加入你的收藏';
+
+  @override
+  String get createSheetMatch => '寻找匹配';
+
+  @override
+  String get createSheetMatchHint => '寻找一起玩的好友';
+
+  @override
+  String get postWithLabel => '同玩';
+
+  @override
+  String get commentReportShort => '举报';
 }

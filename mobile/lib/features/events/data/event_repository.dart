@@ -4,6 +4,7 @@ import 'package:meeple_hearth/core/constants/api_constants.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/network/dio_client.dart';
 import 'package:meeple_hearth/features/events/domain/event_model.dart';
+import 'package:meeple_hearth/shared/models/cursor_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'event_repository.g.dart';
@@ -25,11 +26,11 @@ final class EventRepository {
   Event _event(Response<Object?> res) =>
       Event.fromJson(res.data! as Map<String, dynamic>);
 
-  static List<Event> _parseEvents(Object? data) => (data as List<dynamic>? ??
-          const [])
-      .whereType<Map<String, dynamic>>()
-      .map(Event.fromJson)
-      .toList();
+  static List<Event> _parseEvents(Object? data) =>
+      (data as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(Event.fromJson)
+          .toList();
 
   /// `GET /events?scope=upcoming|past|mine&limit=` (limit ≤ 100). `past`
   /// is newest first; `mine` is the events the viewer hosts or joined.
@@ -40,6 +41,20 @@ final class EventRepository {
           queryParameters: {'scope': scope.wire, 'limit': limit},
         );
         return _parseEvents(res.data);
+      });
+
+  /// `GET /events/community?cursor=&limit=` — public events anyone can
+  /// join (web "Community" tab), newest cursor page first.
+  Future<CursorPage<Event>> getCommunity({String? cursor, int limit = 20}) =>
+      guardApi(() async {
+        final res = await _dio.get<Object?>(
+          '$_events/community',
+          queryParameters: {
+            'limit': limit,
+            if (cursor != null) 'cursor': cursor,
+          },
+        );
+        return CursorPage.fromJson(res.data, Event.fromJson);
       });
 
   /// `GET /events/calendar?from=&to=` — events in the viewer's circle
@@ -58,8 +73,8 @@ final class EventRepository {
       });
 
   /// Throws [NotFoundException] for events the caller may not see.
-  Future<Event> getEvent(String eventId) =>
-      guardApi(() async => _event(await _dio.get<Object?>('$_events/$eventId')));
+  Future<Event> getEvent(String eventId) => guardApi(
+      () async => _event(await _dio.get<Object?>('$_events/$eventId')));
 
   /// `POST /events` incl. `invitedUserIds`.
   Future<Event> createEvent(EventDraft draft) => guardApi(

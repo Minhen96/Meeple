@@ -40,11 +40,9 @@ void main() {
       expect(find.textContaining('Deleted User', findRichText: true),
           findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('comment-menu-c5')));
-      await settle(tester);
-      expect(find.byKey(const Key('comment-edit')), findsNothing);
-      expect(find.byKey(const Key('comment-report')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('comment-delete')));
+      expect(find.byKey(const ValueKey('comment-edit-c5')), findsNothing);
+      expect(find.byKey(const ValueKey('comment-report-c5')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('comment-delete-c5')));
       await settle(tester);
       await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
       await settle(tester);
@@ -59,9 +57,8 @@ void main() {
             cursor([commentJson(id: 'c2', authorId: 'f1')]));
       await pumpApp(tester, api: api, location: '/posts/p1');
 
-      await tester.tap(find.byKey(const ValueKey('comment-menu-c2')));
-      await settle(tester);
-      expect(find.byKey(const Key('comment-delete')), findsNothing);
+      expect(find.byKey(const ValueKey('comment-delete-c2')), findsNothing);
+      expect(find.byKey(const ValueKey('comment-report-c2')), findsOneWidget);
     });
   });
 

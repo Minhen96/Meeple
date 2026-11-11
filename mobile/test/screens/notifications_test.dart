@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meeple_hearth/features/notifications/presentation/notifications_screen.dart';
 
 import '../helpers/fake_api.dart';
 import '../helpers/fixtures.dart';
@@ -125,5 +126,39 @@ void main() {
     expect(settings['quietHoursStart'], '22:00');
     expect(settings['quietHoursEnd'], '08:00');
     expect(settings['timezone'], 'Asia/Kuala_Lumpur');
+  });
+
+  testWidgets('card buttons mark read and delete; title over body; '
+      'actor-less rows show a type icon', (tester) async {
+    api.get('/api/v1/notifications', cursor([
+      {
+        ...notificationJson(at: DateTime.now().subtract(const Duration(hours: 3))),
+        'title': 'Game Night Invite',
+        'body': 'Bob invited you',
+      },
+      {...notificationJson(id: 'n4', type: 'EVENT_REMINDER'), 'actor': null},
+    ]));
+    await pumpApp(tester, api: api, location: '/notifications');
+
+    expect(find.text('Game Night Invite'), findsOneWidget);
+    expect(find.text('Bob invited you'), findsOneWidget);
+    expect(find.text('3h'), findsOneWidget);
+    expect(find.byIcon(Icons.event_outlined), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('mark-read-n1')));
+    await settle(tester);
+    expect(api.called('PUT', '/api/v1/notifications/n1/read'), isTrue);
+    await tester.tap(find.byKey(const ValueKey('delete-n1')));
+    await settle(tester);
+    expect(api.called('DELETE', '/api/v1/notifications/n1'), isTrue);
+  });
+
+  test('type icons cover every notification family', () {
+    for (final t in [
+      'MATCH_FOUND', 'POST_LIKE', 'POST_COMMENT', 'POST_TAG',
+      'FRIEND_REQUEST', 'BGG_IMPORT_COMPLETED', 'RULEBOOK_APPROVED',
+    ]) {
+      expect(notificationTypeIcon(t), isA<IconData>());
+    }
   });
 }

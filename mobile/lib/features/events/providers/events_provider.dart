@@ -3,6 +3,7 @@ import 'package:meeple_hearth/core/network/connectivity_service.dart';
 import 'package:meeple_hearth/core/storage/cache_store.dart';
 import 'package:meeple_hearth/features/events/data/event_repository.dart';
 import 'package:meeple_hearth/features/events/domain/event_model.dart';
+import 'package:meeple_hearth/shared/models/paged_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'events_provider.g.dart';
@@ -28,6 +29,23 @@ Future<CachedResult<List<Event>>> eventsList(Ref ref, EventScope scope) {
   );
 }
 
+/// Public community events (web "Community" tab) with "Load more" paging.
+@riverpod
+class CommunityEvents extends _$CommunityEvents {
+  @override
+  Future<PagedState<Event>> build() async => PagedState.fromPage(
+        await ref.read(eventRepositoryProvider).getCommunity(),
+      );
+
+  Future<void> loadMore() => loadNextPage<Event>(
+        current: state.valueOrNull,
+        read: () => state.valueOrNull,
+        emit: (s) => state = AsyncValue.data(s),
+        fetch: (cursor) =>
+            ref.read(eventRepositoryProvider).getCommunity(cursor: cursor),
+      );
+}
+
 /// Events of one calendar month (first day of [month] → first day of the
 /// next month, within the 62-day API limit).
 @riverpod
@@ -41,6 +59,7 @@ Future<List<Event>> calendarEvents(Ref ref, DateTime month) {
 void _invalidateLists(Ref ref) {
   ref
     ..invalidate(eventsListProvider)
+    ..invalidate(communityEventsProvider)
     ..invalidate(calendarEventsProvider);
 }
 

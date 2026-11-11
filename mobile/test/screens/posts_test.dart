@@ -28,7 +28,7 @@ void main() {
     await pumpApp(tester, api: api, location: '/posts/p1');
 
     expect(find.textContaining('Great game night'), findsOneWidget);
-    expect(find.text('With:'), findsOneWidget);
+    expect(find.text('WITH'), findsOneWidget);
     expect(find.textContaining('Nice!', findRichText: true), findsNWidgets(2));
   });
 
@@ -37,28 +37,25 @@ void main() {
     await pumpApp(tester, api: api, location: '/posts/p1');
 
     await tester.enterText(find.byKey(const Key('comment-input')), 'Fun!');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('comment-send')));
     await settle(tester);
 
     expect((api.calls('POST', '/api/v1/posts/p1/comments').single.data as Map)['body'], 'Fun!');
-    expect(find.text('2 comments'), findsOneWidget);
+    expect(find.text('2'), findsWidgets);
   });
 
   testWidgets('own comment can be edited and deleted', (tester) async {
     await pumpApp(tester, api: api, location: '/posts/p1');
 
-    await tester.tap(find.byKey(const ValueKey('comment-menu-c1')));
-    await settle(tester);
-    await tester.tap(find.byKey(const Key('comment-edit')));
+    await tester.tap(find.byKey(const ValueKey('comment-edit-c1')));
     await settle(tester);
     await tester.enterText(find.byKey(const Key('comment-edit-field')), 'Edited!');
     await tester.tap(find.byKey(const Key('comment-edit-save')));
     await settle(tester);
     expect(find.textContaining('Edited!', findRichText: true), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('comment-menu-c1')));
-    await settle(tester);
-    await tester.tap(find.byKey(const Key('comment-delete')));
+    await tester.tap(find.byKey(const ValueKey('comment-delete-c1')));
     await settle(tester);
     await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
     await settle(tester);
@@ -68,9 +65,7 @@ void main() {
   testWidgets("others' comments can be reported", (tester) async {
     await pumpApp(tester, api: api, location: '/posts/p1');
 
-    await tester.tap(find.byKey(const ValueKey('comment-menu-c2')));
-    await settle(tester);
-    await tester.tap(find.byKey(const Key('comment-report')));
+    await tester.tap(find.byKey(const ValueKey('comment-report-c2')));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('report-spam')));
     await settle(tester);
@@ -148,5 +143,15 @@ void main() {
     api.get('/api/v1/users/me/bookmarks', cursor([postJson()]));
     await pumpApp(tester, api: api, location: '/bookmarks');
     expect(find.textContaining('Great game night'), findsOneWidget);
+  });
+
+  testWidgets('empty saved posts show the boxed note', (tester) async {
+    api.get('/api/v1/users/me/bookmarks', cursor([]));
+    await pumpApp(tester, api: api, location: '/bookmarks');
+    expect(find.byKey(const Key('saved-empty')), findsOneWidget);
+    expect(
+      find.text('No saved posts yet. Tap the bookmark on a post to keep it here.'),
+      findsOneWidget,
+    );
   });
 }

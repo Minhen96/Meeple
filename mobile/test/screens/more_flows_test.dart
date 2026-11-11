@@ -188,16 +188,13 @@ void main() {
       await settle(tester);
       expect(find.text('No past events.'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('events-toggle-view')));
+      await tester.tap(find.text('Calendar'));
       await settle(tester);
       expect(find.byKey(const Key('events-calendar')), findsOneWidget);
       final today = DateTime.now().add(const Duration(hours: 1));
-      await tester.tap(find
-          .descendant(
-            of: find.byKey(const Key('events-calendar')),
-            matching: find.text('${today.day}'),
-          )
-          .first);
+      await tester.tap(
+        find.byKey(ValueKey('calendar-day-${today.month}-${today.day}')),
+      );
       await settle(tester);
       expect(find.text('Catan Night'), findsWidgets);
       expect(api.called('GET', '/api/v1/events/calendar'), isTrue);
@@ -208,7 +205,11 @@ void main() {
           const FakeResponse.error(400, 'INVALID_RANGE', 'Bad range'));
       await pumpApp(tester, api: api, location: '/events?view=calendar');
       expect(find.text('Bad range'), findsOneWidget);
-      expect(find.text('No events this month.'), findsOneWidget);
+      // Days without events are not tappable.
+      final month = DateTime.now().month;
+      await tester.tap(find.byKey(ValueKey('calendar-day-$month-15')));
+      await settle(tester);
+      expect(find.textContaining('Events on'), findsNothing);
     });
   });
 
