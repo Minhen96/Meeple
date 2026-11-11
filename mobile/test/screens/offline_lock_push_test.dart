@@ -47,7 +47,7 @@ void main() {
       overrides: [cacheStoreProvider.overrideWithValue(cache)],
     );
     expect(find.text('No internet connection'), findsOneWidget);
-    expect(find.text('Great game night'), findsOneWidget);
+    expect(find.textContaining('Great game night'), findsOneWidget);
     expect(find.textContaining('Showing cached data'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('like-p1')));

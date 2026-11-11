@@ -103,6 +103,14 @@ final class PostActions {
     }
   }
 
+  /// Quick comment from a feed card (web PostCard): posts the comment and
+  /// bumps the post's counter everywhere it is shown.
+  Future<void> addComment(Post post, String body) async {
+    ensureOnline(_ref);
+    await _repo.addComment(post.id, body);
+    _emit(PostUpdated(post.copyWith(commentCount: post.commentCount + 1)));
+  }
+
   Future<Post> create(PostDraft draft) async {
     ensureOnline(_ref);
     final post = await _repo.createPost(draft);

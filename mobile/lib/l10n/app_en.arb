@@ -613,7 +613,7 @@
   "homeEmptyNoFriendsTitle": "Your feed is quiet.",
   "homeEmptyTitle": "Nothing new yet.",
   "homeFeedError": "Couldn't load your feed.",
-  "homeFeedTitle": "Activity",
+  "homeFeedTitle": "Activity Feed",
   "homeFindFriends": "Find Friends",
   "homeMatchesTitle": "Match suggestions",
   "homeMoreMatches": "+{count} more",
@@ -624,7 +624,7 @@
       }
     }
   },
-  "homeUpcomingTitle": "Upcoming",
+  "homeUpcomingTitle": "Upcoming Events",
   "homeViewCalendar": "View Calendar",
   "htpActions": "Actions",
   "htpEnd": "End of game",
@@ -1224,5 +1224,21 @@
   "errorUnsupportedImage": "Only JPEG, PNG, WebP and GIF images are allowed.",
   "errorEmailNotVerified": "Please verify your email address before logging in.",
   "errorCannotInviteSelf": "You can't invite yourself.",
-  "errorBggImportInProgress": "An import is already running."
+  "errorBggImportInProgress": "An import is already running.",
+  "postPlayed": "Played {game}",
+  "@postPlayed": {
+    "description": "Tagged-game line on a post card",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "postCommentPosted": "Comment posted",
+  "activityFromLibrary": "From Library",
+  "activityFromEvents": "From Events",
+  "authHeroTitle": "Board game app",
+  "authHeroBody": "Welcome back to your board game community. Discover, track and play.",
+  "authNewPlayer": "New player?",
+  "authPasswordHint": "Your password"
 }

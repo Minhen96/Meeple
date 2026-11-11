@@ -54,7 +54,7 @@ abstract final class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: AppTypography.titleLarge,
+        titleTextStyle: AppTypography.headlineSmall,
         iconTheme: const IconThemeData(color: AppColors.onSurface, size: 24),
         actionsIconTheme: const IconThemeData(
           color: AppColors.onSurfaceVariant,
@@ -73,12 +73,14 @@ abstract final class AppTheme {
       ),
 
       // ── Input ─────────────────────────────────────────────────────────────────
+      // Web form input: filled surface-container-highest/60, rounded-2xl, no
+      // outline; a 2px primary/40 ring on focus (see appFieldDecoration).
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceContainerHighest,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+        fillColor: AppColors.inputFill,
+            contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusLg,
@@ -88,9 +90,16 @@ abstract final class AppTheme {
           borderRadius: AppSpacing.borderRadiusLg,
           borderSide: BorderSide.none,
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: AppSpacing.borderRadiusLg,
+          borderSide: BorderSide.none,
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusLg,
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.4),
+            width: 2,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusLg,
@@ -104,7 +113,7 @@ abstract final class AppTheme {
           color: AppColors.onSurfaceVariant,
         ),
         hintStyle: AppTypography.bodyMedium.copyWith(
-          color: AppColors.onSurfaceVariant,
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
         ),
         errorStyle: AppTypography.bodySmall.copyWith(color: AppColors.error),
         floatingLabelStyle: AppTypography.bodySmall.copyWith(
@@ -113,34 +122,42 @@ abstract final class AppTheme {
         ),
       ),
 
-      // ── Elevated button ───────────────────────────────────────────────────────
+      // ── Buttons ───────────────────────────────────────────────────────────────
+      // Pills only, no outlines (No-Line Rule). Prefer AppButton for CTAs.
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
           disabledBackgroundColor: AppColors.surfaceContainerHighest,
           disabledForegroundColor: AppColors.onSurfaceVariant,
-          minimumSize: const Size(64, 52),
-          shape: const RoundedRectangleBorder(
-            borderRadius: AppSpacing.borderRadiusPill,
-          ),
+          minimumSize: const Size(64, 48),
+          shape: const StadiumBorder(),
           elevation: 0,
-          textStyle: AppTypography.labelLarge,
+          textStyle: AppTypography.button(fontSize: 14),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
             vertical: AppSpacing.md,
           ),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          shape: const StadiumBorder(),
+          textStyle: AppTypography.labelLarge,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
+        ),
+      ),
 
-      // ── Text button ───────────────────────────────────────────────────────────
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           textStyle: AppTypography.labelLarge,
-          shape: const RoundedRectangleBorder(
-            borderRadius: AppSpacing.borderRadiusLg,
-          ),
+          shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
@@ -148,37 +165,56 @@ abstract final class AppTheme {
         ),
       ),
 
-      // ── Outlined button ───────────────────────────────────────────────────────
+      // Outlined buttons render as filled secondary pills (web secondary).
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          minimumSize: const Size(64, 48),
-          side: const BorderSide(
-            color: AppColors.outlineVariant,
-            width: 1.5,
-          ),
-          shape: const RoundedRectangleBorder(
-            borderRadius: AppSpacing.borderRadiusPill,
-          ),
+          foregroundColor: AppColors.onSurfaceVariant,
+          backgroundColor: AppColors.surfaceContainerHigh,
+          minimumSize: const Size(64, 40),
+          side: BorderSide.none,
+          shape: const StadiumBorder(),
           textStyle: AppTypography.labelLarge,
         ),
       ),
 
-      // ── Chip ─────────────────────────────────────────────────────────────────
-      chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surfaceContainerLow,
-        selectedColor: AppColors.primaryFixed,
-        labelStyle: AppTypography.labelMedium,
-        side: BorderSide.none,
-        shape: const RoundedRectangleBorder(
+      // ── Tabs ──────────────────────────────────────────────────────────────────
+      // Web underline tabs: on-surface label, bold; primary 3px rounded bar.
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.onSurface,
+        unselectedLabelColor: AppColors.onSurfaceVariant,
+        labelStyle: AppTypography.titleSmall,
+        unselectedLabelStyle: AppTypography.bodyMedium.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
+        indicatorSize: TabBarIndicatorSize.label,
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(color: AppColors.primary, width: 3),
           borderRadius: AppSpacing.borderRadiusFull,
         ),
+        dividerColor: AppColors.transparent,
+        overlayColor: const WidgetStatePropertyAll(AppColors.transparent),
+      ),
+
+      // ── Chip ─────────────────────────────────────────────────────────────────
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceContainerHigh,
+        selectedColor: AppColors.primary,
+        secondarySelectedColor: AppColors.primary,
+        labelStyle: AppTypography.labelLarge.copyWith(
+          color: AppColors.onSurfaceVariant,
+        ),
+        secondaryLabelStyle: AppTypography.labelLarge.copyWith(
+          color: AppColors.onPrimary,
+        ),
+        checkmarkColor: AppColors.onPrimary,
+        side: BorderSide.none,
+        shape: const StadiumBorder(),
         padding: AppSpacing.chipPadding,
       ),
 
       // ── Divider ───────────────────────────────────────────────────────────────
-      dividerTheme: const DividerThemeData(
-        color: AppColors.outlineVariant,
+      dividerTheme: DividerThemeData(
+        color: AppColors.outlineVariant.withValues(alpha: 0.2),
         thickness: 0.5,
         space: 0,
       ),
@@ -227,7 +263,9 @@ abstract final class AppTheme {
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.xs,
         ),
-        titleTextStyle: AppTypography.bodyLarge,
+        titleTextStyle: AppTypography.bodyMedium.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
         subtitleTextStyle: AppTypography.bodySmall,
         iconColor: AppColors.onSurfaceVariant,
         shape: const RoundedRectangleBorder(

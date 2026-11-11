@@ -68,15 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final state = feed.valueOrNull;
 
     return Scaffold(
-      appBar: MeepleBrandBar(
-        leading: IconButton(
-          key: const Key('home-search'),
-          tooltip: l10n.commonSearch,
-          icon: const Icon(Icons.search_rounded),
-          onPressed: () => context.push(AppRoutes.search),
-        ),
-        actions: const [NotificationBell()],
-      ),
+      appBar: const MeepleBrandBar(),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(
@@ -134,7 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ];
               },
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 96)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
           ],
         ),
       ),
@@ -166,12 +158,13 @@ class _Greeting extends ConsumerWidget {
           .inDays;
       subtitle = l10n.greetingNextSession(days);
     }
+    // Web: `text-3xl font-extrabold tracking-tight` + `text-sm font-medium`.
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
         AppSpacing.sm,
+        AppSpacing.lg,
+        0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,8 +173,9 @@ class _Greeting extends ConsumerWidget {
           AppSpacing.vGapXs,
           Text(
             subtitle,
-            style: AppTypography.bodyLarge.copyWith(
+            style: AppTypography.bodyMedium.copyWith(
               color: AppColors.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -292,6 +286,7 @@ class _EmptyFeed extends ConsumerWidget {
         : ref.watch(userStatsProvider(me.id)).valueOrNull?.friends;
     if (friends == 0) {
       return EmptyState(
+        boxed: true,
         icon: Icons.waving_hand_outlined,
         title: l10n.homeEmptyNoFriendsTitle,
         subtitle: l10n.homeEmptyNoFriendsBody,
@@ -300,7 +295,8 @@ class _EmptyFeed extends ConsumerWidget {
       );
     }
     return EmptyState(
-      icon: Icons.local_cafe_outlined,
+      boxed: true,
+      icon: Icons.dynamic_feed_outlined,
       title: l10n.homeEmptyTitle,
       subtitle: l10n.homeEmptyBody,
       actionLabel: l10n.homeCreatePost,

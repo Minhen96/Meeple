@@ -2123,7 +2123,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeFeedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Activity'**
+  /// **'Activity Feed'**
   String get homeFeedTitle;
 
   /// No description provided for @homeFindFriends.
@@ -2147,7 +2147,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeUpcomingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Upcoming'**
+  /// **'Upcoming Events'**
   String get homeUpcomingTitle;
 
   /// No description provided for @homeViewCalendar.
@@ -3841,6 +3841,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An import is already running.'**
   String get errorBggImportInProgress;
+
+  /// Tagged-game line on a post card
+  ///
+  /// In en, this message translates to:
+  /// **'Played {game}'**
+  String postPlayed(String game);
+
+  /// No description provided for @postCommentPosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment posted'**
+  String get postCommentPosted;
+
+  /// No description provided for @activityFromLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'From Library'**
+  String get activityFromLibrary;
+
+  /// No description provided for @activityFromEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'From Events'**
+  String get activityFromEvents;
+
+  /// No description provided for @authHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Board game app'**
+  String get authHeroTitle;
+
+  /// No description provided for @authHeroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back to your board game community. Discover, track and play.'**
+  String get authHeroBody;
+
+  /// No description provided for @authNewPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'New player?'**
+  String get authNewPlayer;
+
+  /// No description provided for @authPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password'**
+  String get authPasswordHint;
 }
 
 class _AppLocalizationsDelegate

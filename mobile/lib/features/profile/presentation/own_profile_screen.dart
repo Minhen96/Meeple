@@ -6,7 +6,6 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
-import 'package:meeple_hearth/features/home/presentation/widgets/home_widgets.dart';
 import 'package:meeple_hearth/features/posts/providers/post_provider.dart';
 import 'package:meeple_hearth/features/profile/presentation/profile_view.dart';
 import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
@@ -77,14 +76,12 @@ class OwnProfileScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final user = ref.watch(authNotifierProvider).valueOrNull;
     return Scaffold(
-      appBar: MeepleAppBar(
-        title: l10n.navProfile,
+      appBar: MeepleBrandBar(
         actions: [
-          const NotificationBell(),
-          IconButton(
+          BarIconButton(
             key: const Key('profile-settings'),
             tooltip: l10n.settingsTitle,
-            icon: const Icon(Icons.settings_outlined),
+            icon: Icons.settings_outlined,
             onPressed: () => context.push(AppRoutes.settings),
           ),
         ],

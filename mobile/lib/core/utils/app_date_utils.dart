@@ -19,6 +19,10 @@ abstract final class AppDateUtils {
   static String formatDateTime(DateTime date) =>
       '${DateFormat.MMMEd().format(date.toLocal())} · ${formatTime(date)}';
 
+  /// "Saturday · 2:30 PM" (web compact event card badge)
+  static String formatWeekdayTime(DateTime date) =>
+      '${DateFormat.EEEE().format(date.toLocal())} · ${formatTime(date)}';
+
   /// "Saturday, March 28, 2026"
   static String formatFullDate(DateTime date) =>
       DateFormat.yMMMMEEEEd().format(date.toLocal());

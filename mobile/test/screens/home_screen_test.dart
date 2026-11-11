@@ -20,7 +20,7 @@ void main() {
     expect(find.textContaining('Mia Meeple'), findsWidgets);
     expect(find.text('Match suggestions'), findsOneWidget);
     expect(find.text('Catan Night'), findsOneWidget);
-    expect(find.text('Great game night'), findsOneWidget);
+    expect(find.textContaining('Great game night'), findsOneWidget);
     expect(find.textContaining('to their collection'), findsOneWidget);
     // Unread badge.
     expect(find.text('2'), findsWidgets);
@@ -96,5 +96,63 @@ void main() {
     expect(find.byKey(const ValueKey('create-/events/create')), findsOneWidget);
     expect(find.text('Add a game'), findsOneWidget);
     expect(find.text('Find players'), findsOneWidget);
+  });
+
+  testWidgets('feed card shows the web post layout: played game, tagged '
+      'friends and activity source', (tester) async {
+    await pumpApp(tester, api: api);
+
+    expect(find.text('Played Catan'), findsOneWidget);
+    expect(find.textContaining('Tina'), findsWidgets);
+    expect(find.textContaining('From Library'), findsOneWidget);
+    expect(find.text('Upcoming Events'), findsOneWidget);
+    expect(find.text('VIEW CALENDAR'), findsOneWidget);
+    expect(find.text('Meeple'), findsOneWidget);
+  });
+
+  testWidgets('quick comment posts from the feed card and bumps the count',
+      (tester) async {
+    api.post('/api/v1/posts/p1/comments', commentJson());
+    await pumpApp(tester, api: api);
+
+    // The POST action only appears once something is typed.
+    expect(find.byKey(const ValueKey('quick-comment-send-p1')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('quick-comment-p1')),
+      'See you there',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('quick-comment-send-p1')));
+    await settle(tester);
+
+    expect(api.called('POST', '/api/v1/posts/p1/comments'), isTrue);
+    expect(find.text('Comment posted'), findsOneWidget);
+    expect(find.text('View 2 comments'), findsOneWidget);
+  });
+
+  testWidgets('a failed quick comment is reported and kept', (tester) async {
+    api.post(
+      '/api/v1/posts/p1/comments',
+      const FakeResponse.error(500, 'INTERNAL'),
+    );
+    await pumpApp(tester, api: api);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('quick-comment-p1')),
+      'Hmm',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await settle(tester);
+
+    expect(find.textContaining('Something went wrong'), findsOneWidget);
+    expect(find.text('Hmm'), findsOneWidget);
+  });
+
+  testWidgets('top bar search opens search', (tester) async {
+    await pumpApp(tester, api: api);
+
+    await tester.tap(find.byKey(const Key('top-bar-search')));
+    await settle(tester);
+    expect(find.byKey(const Key('search-input')), findsOneWidget);
   });
 }

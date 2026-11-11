@@ -104,8 +104,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       NotificationGroup.today => l10n.notificationsToday,
                       NotificationGroup.thisWeek => l10n.notificationsThisWeek,
                       NotificationGroup.earlier => l10n.notificationsEarlier,
-                    },
-                    style: AppTypography.labelMedium,
+                    }
+                        .toUpperCase(),
+                    style: AppTypography.overline,
                   ),
                 ),
               );

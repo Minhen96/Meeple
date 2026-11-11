@@ -8,6 +8,7 @@ import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/network/connectivity_service.dart';
 import 'package:meeple_hearth/core/utils/app_date_utils.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/widgets/app_button.dart';
 
 /// Slim "No internet connection" bar (SCREENS §14.4) with a brief
 /// "Back online" flash when the connection returns.
@@ -168,33 +169,42 @@ class ListFooter extends StatelessWidget {
   }
 }
 
-/// Section title used on scrolling pages.
+/// Section title used on scrolling pages — web `font-headline text-lg
+/// font-bold` with an optional uppercase tracked primary link on the right
+/// ("VIEW CALENDAR").
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
     required this.title,
     this.actionLabel,
     this.onAction,
+    this.padding = const EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      AppSpacing.xxl,
+      AppSpacing.lg,
+      AppSpacing.lg,
+    ),
   });
 
   final String title;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.xl,
-        AppSpacing.sm,
-        AppSpacing.sm,
-      ),
+      padding: padding,
       child: Row(
         children: [
-          Expanded(child: Text(title, style: AppTypography.titleLarge)),
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(title, style: AppTypography.titleLarge),
+            ),
+          ),
           if (actionLabel != null)
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            AppLinkButton(label: actionLabel!, onPressed: onAction),
         ],
       ),
     );

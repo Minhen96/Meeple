@@ -119,3 +119,16 @@ abstract final class AppSpacing {
   // Private constructor.
   const AppSpacing._();
 }
+
+/// Web card radii (Tailwind config: `rounded-2xl` 16, `rounded-lg` 32,
+/// `rounded-xl` 48).
+abstract final class AppRadius {
+  /// `rounded-2xl` — feed cards, activity rows, inputs.
+  static const double card = 16;
+
+  /// `rounded-lg` — panels, list tiles, sheets.
+  static const double panel = 32;
+
+  /// `rounded-xl` — compact event cards, big rounded tiles.
+  static const double tile = 48;
+}

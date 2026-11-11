@@ -225,7 +225,7 @@ class _Section extends StatelessWidget {
           AppSpacing.lg,
           AppSpacing.xs,
         ),
-        child: Text(title.toUpperCase(), style: AppTypography.labelMedium),
+        child: Text(title.toUpperCase(), style: AppTypography.overline),
       );
 }
 

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:meeple_hearth/core/constants/app_colors.dart';
-import 'package:meeple_hearth/l10n/l10n.dart';
+import 'package:meeple_hearth/shared/widgets/app_text_field.dart';
 
-/// Reusable text field for all auth forms.
-///
-/// Handles password visibility toggle internally.
-/// Forwards all standard [TextFormField] configuration.
-class AuthTextField extends StatefulWidget {
+/// Text field for all auth forms — the shared [AppTextField] (web form
+/// input with the uppercase tracked label above it), with the password
+/// visibility toggle, autofill and no autocorrect.
+class AuthTextField extends StatelessWidget {
   const AuthTextField({
     super.key,
     required this.label,
@@ -22,6 +20,7 @@ class AuthTextField extends StatefulWidget {
     this.autofillHints,
     this.enabled = true,
     this.focusNode,
+    this.labelAction,
   });
 
   final String label;
@@ -38,50 +37,27 @@ class AuthTextField extends StatefulWidget {
   final bool enabled;
   final FocusNode? focusNode;
 
-  @override
-  State<AuthTextField> createState() => _AuthTextFieldState();
-}
-
-class _AuthTextFieldState extends State<AuthTextField> {
-  bool _obscureText = true;
+  /// Trailing link on the label row (e.g. "FORGOT PASSWORD?").
+  final Widget? labelAction;
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: widget.controller,
-      keyboardType: widget.keyboardType,
-      textInputAction: widget.textInputAction,
-      obscureText: widget.isPassword && _obscureText,
-      validator: widget.validator,
-      onChanged: widget.onChanged,
-      onFieldSubmitted: widget.onFieldSubmitted,
-      autofillHints: widget.autofillHints,
-      enabled: widget.enabled,
-      focusNode: widget.focusNode,
+    return AppTextField(
+      label: label,
+      labelAction: labelAction,
+      hint: hint,
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      isPassword: isPassword,
+      prefixIcon: prefixIcon,
+      validator: validator,
+      onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
+      autofillHints: autofillHints,
+      enabled: enabled,
       autocorrect: false,
-      enableSuggestions: !widget.isPassword,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        hintText: widget.hint,
-        prefixIcon: widget.prefixIcon != null
-            ? Icon(widget.prefixIcon, size: 20, color: AppColors.onSurfaceVariant)
-            : null,
-        suffixIcon: widget.isPassword
-            ? IconButton(
-                tooltip: _obscureText
-                    ? context.l10n.authShowPassword
-                    : context.l10n.authHidePassword,
-                icon: Icon(
-                  _obscureText
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 20,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                onPressed: () => setState(() => _obscureText = !_obscureText),
-              )
-            : null,
-      ),
     );
   }
 }

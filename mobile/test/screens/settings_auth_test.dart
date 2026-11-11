@@ -108,7 +108,7 @@ void main() {
 
       final del = api.calls('DELETE', '/api/v1/users/me').single.data as Map;
       expect(del, {'password': 'secret123'});
-      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Board game app'), findsOneWidget);
     });
 
     testWidgets('BGG import polls progress until done', (tester) async {
@@ -188,7 +188,7 @@ void main() {
       await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
       await settle(tester);
       expect(api.called('POST', '/api/v1/auth/logout'), isTrue);
-      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Board game app'), findsOneWidget);
     });
   });
 
@@ -196,8 +196,33 @@ void main() {
     testWidgets('signed-out users land on login; Google hidden without config',
         (tester) async {
       await pumpApp(tester, api: api, signedIn: false);
-      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Board game app'), findsOneWidget);
       expect(find.byKey(const Key('google-sign-in')), findsNothing);
+    });
+
+    testWidgets('login links open forgot password and registration',
+        (tester) async {
+      await pumpApp(tester, api: api, signedIn: false);
+      expect(find.text('EMAIL OR USERNAME'), findsOneWidget);
+      expect(find.text('New player?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('forgot-password')));
+      await settle(tester);
+      expect(find.text('Reset your password'), findsOneWidget);
+      await tester.pageBack();
+      await settle(tester);
+
+      await tester.tap(find.byKey(const Key('login-register')));
+      await settle(tester);
+      expect(find.text('Create your account'), findsOneWidget);
+    });
+
+    testWidgets('empty login shows the field errors', (tester) async {
+      await pumpApp(tester, api: api, signedIn: false);
+      await tester.tap(find.text('Log In'));
+      await settle(tester);
+      expect(find.text('Please enter your email or username'), findsOneWidget);
+      expect(find.text('Please enter your password'), findsOneWidget);
     });
 
     testWidgets('ACCOUNT_DELETED on login opens reactivation', (tester) async {
@@ -294,7 +319,7 @@ void main() {
 
       final last = api.calls('PUT', '/api/v1/users/me').last.data as Map;
       expect(last['onboardingCompleted'], isTrue);
-      expect(find.text('Great game night'), findsOneWidget);
+      expect(find.textContaining('Great game night'), findsOneWidget);
     });
   });
 }
