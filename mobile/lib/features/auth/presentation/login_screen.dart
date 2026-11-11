@@ -6,6 +6,7 @@ import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/auth/presentation/widgets/auth_layout.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/data/google_auth_client.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
@@ -95,192 +96,99 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          const _AuthBackground(),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: AppSpacing.pagePadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AppSpacing.vGapXxxl,
-                  _BrandHeader(subtitle: context.l10n.authSignInSubtitle),
-                  const SizedBox(height: 48),
-                  _FormCard(
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AuthTextField(
-                            label: context.l10n.authEmailOrUsername,
-                            hint: context.l10n.authEmailHint,
-                            controller: _emailController,
-                            focusNode: _emailFocus,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            prefixIcon: Icons.person_outline_rounded,
-                            autofillHints: const [
-                              AutofillHints.email,
-                              AutofillHints.username,
-                            ],
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? context.l10n.authEmailOrUsernameRequired
-                                : null,
-                            onFieldSubmitted: (_) => FocusScope.of(context)
-                                .requestFocus(_passwordFocus),
-                          ),
-                          AppSpacing.vGapMd,
-                          AuthTextField(
-                            label: context.l10n.authPassword,
-                            controller: _passwordController,
-                            focusNode: _passwordFocus,
-                            isPassword: true,
-                            textInputAction: TextInputAction.done,
-                            prefixIcon: Icons.lock_outline_rounded,
-                            autofillHints: const [AutofillHints.password],
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? context.l10n.authPasswordRequired
-                                : null,
-                            onFieldSubmitted: (_) => _submit(),
-                          ),
-                          AppSpacing.vGapSm,
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () =>
-                                  context.push(AppRoutes.forgotPassword),
-                              child: Text(
-                                context.l10n.authForgotPassword,
-                                style: AppTypography.labelMedium.copyWith(
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ),
-                          AppSpacing.vGapLg,
-                          AppButton(
-                            label: context.l10n.authSignIn,
-                            onPressed: _isLoading ? null : _submit,
-                            isLoading: _isLoading,
-                          ),
-                        ],
+    final l10n = context.l10n;
+    // Web login on phones: hero on top (flex-1), the form at the bottom.
+    return AuthScaffold(
+      fill: true,
+      children: [
+        Expanded(
+          child: AuthHero(title: l10n.authHeroTitle, body: l10n.authHeroBody),
+        ),
+        AppSpacing.vGapXxl,
+        Form(
+          key: _formKey,
+          child: AutofillGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AuthTextField(
+                  label: l10n.authEmailOrUsername,
+                  controller: _emailController,
+                  focusNode: _emailFocus,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [
+                    AutofillHints.email,
+                    AutofillHints.username,
+                  ],
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l10n.authEmailOrUsernameRequired
+                      : null,
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_passwordFocus),
+                ),
+                const SizedBox(height: 20),
+                AuthTextField(
+                  label: l10n.authPassword,
+                  hint: l10n.authPasswordHint,
+                  controller: _passwordController,
+                  focusNode: _passwordFocus,
+                  isPassword: true,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
+                  validator: (v) => (v == null || v.isEmpty)
+                      ? l10n.authPasswordRequired
+                      : null,
+                  onFieldSubmitted: (_) => _submit(),
+                  labelAction: AppLinkButton(
+                    key: const Key('forgot-password'),
+                    label: l10n.authForgotPassword,
+                    small: true,
+                    onPressed: () => context.push(AppRoutes.forgotPassword),
+                  ),
+                ),
+                const SizedBox(height: 44),
+                AppButton(
+                  label: l10n.authSignIn,
+                  onPressed: _isLoading ? null : _submit,
+                  isLoading: _isLoading,
+                  size: AppButtonSize.lg,
+                ),
+                const SizedBox(height: 44),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      l10n.authNewPlayer,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                  // Without a Google client id there is no button, so no
-                  // "or" divider either.
-                  if (ref.watch(googleAuthClientProvider).isAvailable) ...[
-                    AppSpacing.vGapXl,
-                    const _OrDivider(),
-                    AppSpacing.vGapXl,
-                    _GoogleSignInButton(
-                        isLoading: _isLoading, onPressed: _google),
-                  ],
-                  AppSpacing.vGapXxxl,
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        context.l10n.authNoAccount,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => context.push(AppRoutes.register),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    InkWell(
+                      key: const Key('login-register'),
+                      onTap: () => context.push(AppRoutes.register),
+                      borderRadius: AppSpacing.borderRadiusSm,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: 2,
                         ),
                         child: Text(
-                          context.l10n.authSignUp,
-                          style: AppTypography.labelLarge.copyWith(
+                          l10n.authSignUp,
+                          style: AppTypography.bodyMedium.copyWith(
                             color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  AppSpacing.vGapXl,
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                _GoogleSignIn(isLoading: _isLoading, onPressed: _google),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Private sub-widgets
-// ---------------------------------------------------------------------------
-
-class _AuthBackground extends StatelessWidget {
-  const _AuthBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.background,
-              AppColors.primaryContainer.withValues(alpha: 0.3),
-              AppColors.background,
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.subtitle});
-
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: AppSpacing.borderRadiusXl,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.games_rounded,
-            color: AppColors.onPrimary,
-            size: 36,
-          ),
-        ),
-        AppSpacing.vGapLg,
-        Text(context.l10n.appName, style: AppTypography.brandLarge),
-        AppSpacing.vGapXs,
-        Text(
-          subtitle,
-          style: AppTypography.bodyLarge.copyWith(
-            color: AppColors.onSurfaceVariant,
           ),
         ),
       ],
@@ -288,73 +196,53 @@ class _BrandHeader extends StatelessWidget {
   }
 }
 
-class _FormCard extends StatelessWidget {
-  const _FormCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: AppSpacing.borderRadiusXl,
-      ),
-      child: child,
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppColors.outlineVariant)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Text(
-            context.l10n.authOr,
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppColors.outlineVariant)),
-      ],
-    );
-  }
-}
-
-class _GoogleSignInButton extends ConsumerWidget {
-  const _GoogleSignInButton({required this.isLoading, required this.onPressed});
+/// "OR" divider + Google button; hidden when no Google client id was
+/// provided at build time.
+class _GoogleSignIn extends ConsumerWidget {
+  const _GoogleSignIn({required this.isLoading, required this.onPressed});
 
   final bool isLoading;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Hidden when no Google client id was provided at build time.
     if (!ref.watch(googleAuthClientProvider).isAvailable) {
       return const SizedBox.shrink();
     }
-    return OutlinedButton.icon(
-      key: const Key('google-sign-in'),
-      onPressed: isLoading ? null : onPressed,
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        shape: const StadiumBorder(),
-        foregroundColor: AppColors.onSurface,
-      ),
-      icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
-      label: Text(
-        context.l10n.authContinueWithGoogle,
-        style: AppTypography.labelLarge,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AuthOrDivider(),
+        Material(
+          color: AppColors.surfaceContainerLowest,
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: const Key('google-sign-in'),
+            onTap: isLoading ? null : onPressed,
+            child: SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.g_mobiledata_rounded,
+                    size: 28,
+                    color: AppColors.onSurface,
+                  ),
+                  AppSpacing.hGapXs,
+                  Text(
+                    context.l10n.authContinueWithGoogle,
+                    style: AppTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

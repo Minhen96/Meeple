@@ -1120,7 +1120,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get homeUpcomingTitle => '即将开始';
+  String get homeUpcomingTitle => '即将开始的活动';
 
   @override
   String get homeViewCalendar => '查看日历';
@@ -2057,4 +2057,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorBggImportInProgress => '已有导入正在进行。';
+
+  @override
+  String postPlayed(String game) {
+    return '玩了 $game';
+  }
+
+  @override
+  String get postCommentPosted => '评论已发布';
+
+  @override
+  String get activityFromLibrary => '来自游戏库';
+
+  @override
+  String get activityFromEvents => '来自活动';
+
+  @override
+  String get authHeroTitle => '桌游应用';
+
+  @override
+  String get authHeroBody => '欢迎回到你的桌游社区。发现、记录、开玩。';
+
+  @override
+  String get authNewPlayer => '新玩家？';
+
+  @override
+  String get authPasswordHint => '你的密码';
 }

@@ -55,7 +55,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
     await settle(tester);
-    expect(find.text('Great game night'), findsOneWidget);
+    expect(find.textContaining('Great game night'), findsOneWidget);
   });
 
   testWidgets('ended event shows memories (empty) ', (tester) async {
@@ -84,7 +84,7 @@ void main() {
     await pumpApp(tester, api: api, location: '/events/e1');
     await tester.tap(find.byKey(const Key('event-memories')));
     await settle(tester);
-    expect(find.text('Memory!'), findsOneWidget);
+    expect(find.textContaining('Memory!'), findsOneWidget);
   });
 
   testWidgets('kicked, full and joinable events; deleted host', (tester) async {

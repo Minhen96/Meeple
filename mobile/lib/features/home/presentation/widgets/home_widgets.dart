@@ -10,32 +10,11 @@ import 'package:meeple_hearth/core/utils/app_date_utils.dart';
 import 'package:meeple_hearth/features/home/domain/feed_item_model.dart';
 import 'package:meeple_hearth/features/matching/domain/match_model.dart';
 import 'package:meeple_hearth/features/matching/providers/matching_provider.dart';
-import 'package:meeple_hearth/features/notifications/providers/notifications_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
+import 'package:meeple_hearth/shared/widgets/app_card.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/user_widgets.dart';
-
-/// Bell with the unread badge (hidden when 0) → notifications.
-class NotificationBell extends ConsumerWidget {
-  const NotificationBell({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(unreadCountProvider);
-    return IconButton(
-      key: const Key('notification-bell'),
-      tooltip: context.l10n.notificationsTitle,
-      onPressed: () => context.push(AppRoutes.notifications),
-      icon: Badge(
-        isLabelVisible: count > 0,
-        label: Text(count > 99 ? '99+' : '$count'),
-        backgroundColor: AppColors.error,
-        child: const Icon(Icons.notifications_outlined),
-      ),
-    );
-  }
-}
 
 /// "[Avatar] Name added *Game* to their collection." (SCREENS §7.3).
 class ActivityCard extends StatelessWidget {
@@ -77,57 +56,88 @@ class ActivityCard extends StatelessWidget {
       _ => (l10n.activityGeneric(name), null, null),
     };
     final parts = sentence.split(marker);
-    return InkWell(
+    final source = a.type == 'collection_add'
+        ? l10n.activityFromLibrary
+        : l10n.activityFromEvents;
+    final thumb = a.gameThumbnailUrl;
+    // Web ActivityItem: rounded-2xl surface-container-low row.
+    return AppCard(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppAvatar(
-              imageUrl: a.user.deleted ? null : a.user.avatarUrl,
-              displayName: name,
-              onTap: a.user.deleted
-                  ? null
-                  : () => context.push(AppRoutes.userProfile(a.user.id)),
-            ),
-            AppSpacing.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      style: AppTypography.bodyMedium,
-                      children: [
-                        TextSpan(text: parts.first),
-                        if (target != null && parts.length > 1) ...[
-                          TextSpan(
-                            text: target,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.primary,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w600,
-                            ),
+      radius: AppRadius.card,
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppAvatar(
+            imageUrl: a.user.deleted ? null : a.user.avatarUrl,
+            displayName: name,
+            onTap: a.user.deleted
+                ? null
+                : () => context.push(AppRoutes.userProfile(a.user.id)),
+          ),
+          AppSpacing.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    style: AppTypography.bodyMedium.copyWith(height: 1.375),
+                    children: [
+                      TextSpan(text: parts.first),
+                      if (target != null && parts.length > 1) ...[
+                        TextSpan(
+                          text: target,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w600,
                           ),
-                          TextSpan(text: parts.sublist(1).join()),
-                        ],
+                        ),
+                        TextSpan(text: parts.sublist(1).join()),
                       ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${AppDateUtils.timeAgo(item.createdAt, l10n)} · $source',
+                  style: AppTypography.labelSmall,
+                ),
+              ],
+            ),
+          ),
+          if (thumb != null && thumb.isNotEmpty) ...[
+            AppSpacing.hGapMd,
+            ClipOval(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: CachedNetworkImage(
+                  imageUrl: thumb,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => const ColoredBox(
+                    color: AppColors.surfaceContainerHigh,
+                    child: Icon(
+                      Icons.casino_outlined,
+                      size: 20,
+                      color: AppColors.onSurfaceVariant,
                     ),
                   ),
-                  AppSpacing.vGapXs,
-                  Text(
-                    AppDateUtils.timeAgo(item.createdAt, l10n),
-                    style: AppTypography.labelSmall,
-                  ),
-                ],
+                ),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

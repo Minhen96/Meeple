@@ -6,6 +6,7 @@ import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/auth/presentation/widgets/auth_layout.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
@@ -75,7 +76,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          const _AuthBackground(),
+          const AuthBackground(),
           SafeArea(
             child: SingleChildScrollView(
               padding: AppSpacing.pagePadding,
@@ -249,30 +250,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AuthBackground extends StatelessWidget {
-  const _AuthBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.background,
-              AppColors.primaryContainer.withValues(alpha: 0.3),
-              AppColors.background,
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
       ),
     );
   }

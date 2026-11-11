@@ -117,7 +117,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return Scaffold(
-      appBar: MeepleAppBar(title: l10n.libraryTitle),
+      appBar: const MeepleBrandBar(),
       body: Column(
         children: [
           Padding(

@@ -341,7 +341,7 @@
   "homeFindFriends": "寻找好友",
   "homeMatchesTitle": "匹配推荐",
   "homeMoreMatches": "还有 {count} 个",
-  "homeUpcomingTitle": "即将开始",
+  "homeUpcomingTitle": "即将开始的活动",
   "homeViewCalendar": "查看日历",
   "htpActions": "行动",
   "htpEnd": "游戏结束",
@@ -623,5 +623,13 @@
   "errorUnsupportedImage": "仅支持 JPEG、PNG、WebP 和 GIF 图片。",
   "errorEmailNotVerified": "登录前请先验证邮箱。",
   "errorCannotInviteSelf": "不能邀请你自己。",
-  "errorBggImportInProgress": "已有导入正在进行。"
+  "errorBggImportInProgress": "已有导入正在进行。",
+  "postPlayed": "玩了 {game}",
+  "postCommentPosted": "评论已发布",
+  "activityFromLibrary": "来自游戏库",
+  "activityFromEvents": "来自活动",
+  "authHeroTitle": "桌游应用",
+  "authHeroBody": "欢迎回到你的桌游社区。发现、记录、开玩。",
+  "authNewPlayer": "新玩家？",
+  "authPasswordHint": "你的密码"
 }

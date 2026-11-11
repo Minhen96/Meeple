@@ -27,7 +27,7 @@ void main() {
   testWidgets('post detail shows caption, tags, comments', (tester) async {
     await pumpApp(tester, api: api, location: '/posts/p1');
 
-    expect(find.text('Great game night'), findsOneWidget);
+    expect(find.textContaining('Great game night'), findsOneWidget);
     expect(find.text('With:'), findsOneWidget);
     expect(find.textContaining('Nice!', findRichText: true), findsNWidgets(2));
   });
@@ -134,7 +134,7 @@ void main() {
     final body = api.calls('POST', '/api/v1/posts').single.data as Map;
     expect(body['caption'], 'Hello');
     expect(find.text('Posted!'), findsOneWidget);
-    expect(find.text('Hello'), findsOneWidget);
+    expect(find.textContaining('Hello'), findsOneWidget);
   });
 
   testWidgets('empty post is rejected', (tester) async {
@@ -147,6 +147,6 @@ void main() {
   testWidgets('bookmarks screen lists saved posts', (tester) async {
     api.get('/api/v1/users/me/bookmarks', cursor([postJson()]));
     await pumpApp(tester, api: api, location: '/bookmarks');
-    expect(find.text('Great game night'), findsOneWidget);
+    expect(find.textContaining('Great game night'), findsOneWidget);
   });
 }

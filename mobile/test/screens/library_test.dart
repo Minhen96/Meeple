@@ -117,7 +117,7 @@ void main() {
 
     await tester.tap(find.text('Sessions'));
     await settle(tester);
-    expect(find.text('Great game night'), findsOneWidget);
+    expect(find.textContaining('Great game night'), findsOneWidget);
 
     await tester.tap(find.text('Friends').last);
     await settle(tester);

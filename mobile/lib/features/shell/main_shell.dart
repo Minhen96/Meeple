@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/core/constants/app_shadows.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/push/push_providers.dart';
@@ -49,18 +50,11 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final tabs = [
-      _TabItem(l10n.navHome, Icons.home_outlined, Icons.home_rounded),
-      _TabItem(
-        l10n.navLibrary,
-        Icons.library_books_outlined,
-        Icons.library_books_rounded,
-      ),
-      _TabItem(l10n.navEvents, Icons.event_outlined, Icons.event_rounded),
-      _TabItem(
-        l10n.navProfile,
-        Icons.person_outline_rounded,
-        Icons.person_rounded,
-      ),
+      // Material Symbols names of the web nav: home, menu_book, event, person.
+      _TabItem(l10n.navHome, Icons.home_outlined, Icons.home),
+      _TabItem(l10n.navLibrary, Icons.menu_book_outlined, Icons.menu_book),
+      _TabItem(l10n.navEvents, Icons.event_outlined, Icons.event),
+      _TabItem(l10n.navProfile, Icons.person_outline, Icons.person),
     ];
     return Scaffold(
       body: Column(
@@ -70,7 +64,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         ],
       ),
       floatingActionButton: _CreateFab(onPressed: () => showCreateSheet(context)),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: const _CreateFabLocation(),
       bottomNavigationBar: _GlassBottomBar(
         currentIndex: widget.shell.currentIndex,
         tabs: tabs,
@@ -131,6 +125,9 @@ Future<void> showCreateSheet(BuildContext context) {
   );
 }
 
+/// Bottom navigation (web `BottomNav.svelte`): frosted surface with a
+/// rounded top (`rounded-t-[2rem]`), a soft upward shadow, and pill tabs —
+/// the active tab gets a primary-container/20 pill and a filled icon.
 class _GlassBottomBar extends StatelessWidget {
   const _GlassBottomBar({
     required this.currentIndex,
@@ -142,32 +139,46 @@ class _GlassBottomBar extends StatelessWidget {
   final List<_TabItem> tabs;
   final ValueChanged<int> onTap;
 
+  static const _radius = BorderRadius.vertical(
+    top: Radius.circular(AppRadius.panel),
+  );
+
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    Widget tab(int i) => Expanded(
-          child: _TabButton(
-            tab: tabs[i],
-            isActive: currentIndex == i,
-            onTap: () => onTap(i),
-          ),
+    Widget tab(int i) => _TabButton(
+          tab: tabs[i],
+          isActive: currentIndex == i,
+          onTap: () => onTap(i),
         );
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          height: 64 + bottomPadding,
-          padding: EdgeInsets.only(bottom: bottomPadding),
-          color: AppColors.glassBackground,
-          child: Row(
-            children: [
-              tab(0),
-              tab(1),
-              // Dock for the FAB.
-              const SizedBox(width: 72),
-              tab(2),
-              tab(3),
-            ],
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        borderRadius: _radius,
+        boxShadow: AppShadows.nav,
+      ),
+      child: ClipRRect(
+        borderRadius: _radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            color: AppColors.glassBackground,
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              bottomPadding,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                tab(0),
+                tab(1),
+                // Room for the create button, which floats above the bar.
+                const SizedBox(width: 56),
+                tab(2),
+                tab(3),
+              ],
+            ),
           ),
         ),
       ),
@@ -193,30 +204,50 @@ class _TabButton extends StatelessWidget {
       selected: isActive,
       button: true,
       label: tab.label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppSpacing.borderRadiusMd,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(isActive ? tab.activeIcon : tab.icon, size: 24, color: color),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                tab.label,
-                maxLines: 1,
-                style: AppTypography.labelSmall.copyWith(
-                  color: color,
-                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+      excludeSemantics: true,
+      child: Material(
+        color: isActive
+            ? AppColors.primaryContainer.withValues(alpha: 0.2)
+            : AppColors.transparent,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(isActive ? tab.activeIcon : tab.icon, size: 24, color: color),
+                const SizedBox(height: 2),
+                Text(
+                  tab.label,
+                  maxLines: 1,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Places the create button like the web (`-mt-8` inside the nav row): its
+/// centre sits 25px below the top edge of the bottom bar, so it pokes out
+/// above the bar by about half its height.
+class _CreateFabLocation extends FloatingActionButtonLocation {
+  const _CreateFabLocation();
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry g) => Offset(
+        (g.scaffoldSize.width - g.floatingActionButtonSize.width) / 2,
+        g.contentBottom + 25 - g.floatingActionButtonSize.height / 2,
+      );
 }
 
 class _CreateFab extends StatelessWidget {
@@ -227,16 +258,10 @@ class _CreateFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+      decoration: const BoxDecoration(
+        gradient: AppColors.primaryGradientDiagonal,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: AppShadows.primaryGlow,
       ),
       child: SizedBox(
         width: 56,
@@ -253,7 +278,7 @@ class _CreateFab extends StatelessWidget {
               child: const Icon(
                 Icons.add_rounded,
                 color: AppColors.onPrimary,
-                size: 28,
+                size: 24,
               ),
             ),
           ),

@@ -167,7 +167,7 @@ void main() {
       await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
       await settle(tester);
       expect(api.called('POST', '/api/v1/auth/logout'), isTrue);
-      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Board game app'), findsOneWidget);
     });
   });
 

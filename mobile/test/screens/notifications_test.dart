@@ -37,9 +37,9 @@ void main() {
   testWidgets('groups notifications and prefers server text', (tester) async {
     await pumpApp(tester, api: api, location: '/notifications');
 
-    expect(find.text('Today'), findsOneWidget);
-    expect(find.text('This Week'), findsOneWidget);
-    expect(find.text('Earlier'), findsOneWidget);
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(find.text('THIS WEEK'), findsOneWidget);
+    expect(find.text('EARLIER'), findsOneWidget);
     expect(find.text('Fred sent you a friend request'), findsOneWidget);
     expect(find.text('Fred liked your post'), findsOneWidget);
     expect(find.text('an event starts soon'), findsOneWidget);

@@ -44,23 +44,20 @@ class _EventsScreenState extends State<EventsScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: MeepleAppBar(
-          title: l10n.eventsTitle,
+        appBar: MeepleBrandBar(
           actions: [
-            IconButton(
+            BarIconButton(
               key: const Key('events-toggle-view'),
               tooltip: _calendar ? l10n.eventsListView : l10n.eventsCalendarView,
-              icon: Icon(
-                _calendar
-                    ? Icons.view_list_rounded
-                    : Icons.calendar_month_outlined,
-              ),
+              icon: _calendar
+                  ? Icons.view_list_rounded
+                  : Icons.calendar_month_outlined,
               onPressed: () => setState(() => _calendar = !_calendar),
             ),
-            IconButton(
+            BarIconButton(
               key: const Key('events-create'),
               tooltip: l10n.createEvent,
-              icon: const Icon(Icons.add_circle_outline_rounded),
+              icon: Icons.add_circle_outline_rounded,
               onPressed: () => context.push(AppRoutes.createEvent),
             ),
           ],

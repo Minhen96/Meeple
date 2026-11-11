@@ -66,8 +66,8 @@ class NotificationPrefsScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      l10n.prefTypeHeader,
-                      style: AppTypography.labelMedium,
+                      l10n.prefTypeHeader.toUpperCase(),
+                      style: AppTypography.overline,
                     ),
                   ),
                   SizedBox(

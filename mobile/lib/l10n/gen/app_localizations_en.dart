@@ -1166,7 +1166,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeFeedError => 'Couldn\'t load your feed.';
 
   @override
-  String get homeFeedTitle => 'Activity';
+  String get homeFeedTitle => 'Activity Feed';
 
   @override
   String get homeFindFriends => 'Find Friends';
@@ -1180,7 +1180,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get homeUpcomingTitle => 'Upcoming';
+  String get homeUpcomingTitle => 'Upcoming Events';
 
   @override
   String get homeViewCalendar => 'View Calendar';
@@ -2171,4 +2171,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorBggImportInProgress => 'An import is already running.';
+
+  @override
+  String postPlayed(String game) {
+    return 'Played $game';
+  }
+
+  @override
+  String get postCommentPosted => 'Comment posted';
+
+  @override
+  String get activityFromLibrary => 'From Library';
+
+  @override
+  String get activityFromEvents => 'From Events';
+
+  @override
+  String get authHeroTitle => 'Board game app';
+
+  @override
+  String get authHeroBody =>
+      'Welcome back to your board game community. Discover, track and play.';
+
+  @override
+  String get authNewPlayer => 'New player?';
+
+  @override
+  String get authPasswordHint => 'Your password';
 }

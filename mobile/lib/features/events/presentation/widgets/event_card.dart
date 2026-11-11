@@ -9,6 +9,8 @@ import 'package:meeple_hearth/core/utils/app_date_utils.dart';
 import 'package:meeple_hearth/features/events/domain/event_model.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
+import 'package:meeple_hearth/shared/widgets/app_card.dart';
+import 'package:meeple_hearth/shared/widgets/app_chip.dart';
 import 'package:meeple_hearth/shared/widgets/user_widgets.dart';
 
 /// Localised status label + colours (Open / Full / Completed / Cancelled).
@@ -175,65 +177,69 @@ class EventCard extends StatelessWidget {
   }
 }
 
-/// Compact card for the horizontal "Upcoming" row (DESIGN event card).
+/// Compact card for the horizontal "Upcoming" row — web
+/// `EventCardCompact`: 256px wide, surface-container-low, `rounded-xl`
+/// (48px), weekday/time badge, player count, title, place and avatars.
 class EventMiniCard extends StatelessWidget {
-  const EventMiniCard({super.key, required this.event});
+  const EventMiniCard({super.key, required this.event, this.width = 256});
 
   final Event event;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     final e = event;
-    return SizedBox(
-      width: 240,
-      child: Material(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: AppSpacing.borderRadiusXl,
-        child: InkWell(
-          borderRadius: AppSpacing.borderRadiusXl,
-          onTap: () => context.push(AppRoutes.eventDetail(e.id)),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: AppColors.secondaryContainer,
-                    borderRadius: AppSpacing.borderRadiusSm,
-                  ),
-                  child: Text(
-                    AppDateUtils.formatDateTime(e.scheduledAt),
-                    style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.onSecondaryContainer,
-                    ),
+    return AppCard(
+      width: width,
+      radius: AppRadius.tile,
+      onTap: () => context.push(AppRoutes.eventDetail(e.id)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AppChip(
+                    label: AppDateUtils.formatWeekdayTime(e.scheduledAt),
+                    variant: AppChipVariant.secondary,
+                    uppercase: true,
+                    dense: true,
                   ),
                 ),
-                AppSpacing.vGapSm,
-                Text(
-                  e.title,
-                  style: AppTypography.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+              AppSpacing.hGapSm,
+              Text(
+                '${e.participantCount}/${e.maxParticipants}',
+                style: AppTypography.labelSmall.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                if (e.displayLocation != null)
-                  _Meta(
-                    icon: Icons.location_on_outlined,
-                    text: e.displayLocation!,
-                  ),
-                AppSpacing.vGapSm,
-                AvatarStack(
-                  users: [for (final p in e.acceptedParticipants) p.asUser],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          AppSpacing.vGapMd,
+          Text(
+            e.title,
+            style: AppTypography.titleMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (e.displayLocation != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: _Meta(
+                icon: Icons.location_on_outlined,
+                text: e.displayLocation!,
+              ),
+            ),
+          AppSpacing.vGapMd,
+          AvatarStack(
+            users: [for (final p in e.acceptedParticipants) p.asUser],
+          ),
+        ],
       ),
     );
   }

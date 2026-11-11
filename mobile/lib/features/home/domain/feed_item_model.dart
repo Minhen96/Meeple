@@ -52,6 +52,7 @@ class FeedActivity with _$FeedActivity {
   String? get gameId => data['gameId'] as String?;
   String? get gameName =>
       (data['gameName'] ?? data['gameTitle'] ?? data['title']) as String?;
+  String? get gameThumbnailUrl => data['gameThumbnailUrl'] as String?;
   String? get eventId => data['eventId'] as String?;
   String? get eventTitle => (data['eventTitle'] ?? data['title']) as String?;
 }
