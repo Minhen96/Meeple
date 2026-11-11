@@ -21,8 +21,8 @@ void main() {
       await push(tester, c, '/auth/register');
 
       final fields = find.byType(TextFormField);
-      await tester.enterText(fields.at(0), 'NewUser');
-      await tester.enterText(fields.at(1), 'new@example.com');
+      await tester.enterText(fields.at(0), 'new@example.com');
+      await tester.enterText(fields.at(1), 'NewUser');
       await tester.enterText(fields.at(2), 'secret123');
       await tester.enterText(fields.at(3), 'secret123');
       await tester.tap(find.text('Create Account').last);
@@ -48,8 +48,8 @@ void main() {
       expect(api.called('POST', '/api/v1/auth/register'), isFalse);
 
       final fields = find.byType(TextFormField);
-      await tester.enterText(fields.at(0), 'taken');
-      await tester.enterText(fields.at(1), 'x@example.com');
+      await tester.enterText(fields.at(0), 'x@example.com');
+      await tester.enterText(fields.at(1), 'taken');
       await tester.enterText(fields.at(2), 'secret123');
       await tester.enterText(fields.at(3), 'secret123');
       await tester.tap(find.text('Create Account').last);
@@ -86,8 +86,8 @@ void main() {
       fail = false;
       await tester.tap(find.text('Send Reset Link'));
       await settle(tester);
-      expect(find.text('Check your inbox'), findsOneWidget);
-      await tester.tap(find.text('Back to Sign In'));
+      expect(find.textContaining('If me@example.com is registered'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('forgot-back-to-login')));
       await settle(tester);
     });
 
@@ -106,17 +106,17 @@ void main() {
       final fields = find.byType(TextFormField);
       await tester.enterText(fields.at(0), 'newsecret1');
       await tester.enterText(fields.at(1), 'different1');
-      await tester.tap(find.text('Reset Password').last);
+      await tester.tap(find.byKey(const Key('reset-submit')));
       await settle(tester);
       expect(api.called('POST', '/api/v1/auth/reset-password'), isFalse);
 
       await tester.enterText(fields.at(1), 'newsecret1');
-      await tester.tap(find.text('Reset Password').last);
+      await tester.tap(find.byKey(const Key('reset-submit')));
       await settle(tester);
       expect(find.byType(SnackBar), findsOneWidget);
 
       fail = false;
-      await tester.tap(find.text('Reset Password').last);
+      await tester.tap(find.byKey(const Key('reset-submit')));
       await settle(tester);
       expect(api.calls('POST', '/api/v1/auth/reset-password').last.data,
           {'token': 't1', 'newPassword': 'newsecret1'});
@@ -241,9 +241,9 @@ void main() {
           'meta': {'page': 1, 'limit': 10, 'total': 0, 'hasMore': false},
         });
       await pumpApp(tester, api: api, location: '/friends');
-      expect(find.text('No friends yet'), findsOneWidget);
+      expect(find.text('No friends yet.'), findsOneWidget);
 
-      await tester.tap(find.text('Requests'));
+      await tester.tap(find.text('Requests (1)'));
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('request-decline-fr8')));
       await settle(tester);

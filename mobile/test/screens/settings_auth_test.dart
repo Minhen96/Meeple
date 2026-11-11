@@ -25,8 +25,7 @@ void main() {
       await pumpApp(tester, api: api, location: '/settings');
 
       expect(find.text('ACCOUNT'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('language-setting')));
-      await settle(tester);
+      expect(find.byKey(const Key('language-setting')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('language-zh-CN')));
       await settle(tester);
 
@@ -54,6 +53,7 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('change-email-new')), 'new@example.com');
       await tester.enterText(find.byKey(const Key('change-email-password')), 'secret123');
+      await tester.pump();
       await tester.tap(find.byKey(const Key('change-email-submit')));
       await settle(tester);
 
@@ -65,7 +65,7 @@ void main() {
       await pumpApp(tester, api: api, location: '/settings/change-password');
       await tester.tap(find.byKey(const Key('change-password-send')));
       await settle(tester);
-      expect(find.text('Reset link sent'), findsOneWidget);
+      expect(find.text('Reset link sent!'), findsOneWidget);
     });
 
     testWidgets('sessions: revoke one and all others', (tester) async {
@@ -79,7 +79,7 @@ void main() {
         ..post('/api/v1/auth/sessions/revoke-others', const FakeResponse.noContent());
       await pumpApp(tester, api: api, location: '/settings/sessions');
 
-      expect(find.textContaining('This device'), findsOneWidget);
+      expect(find.textContaining('THIS DEVICE'), findsOneWidget);
       await tester.tap(find.descendant(
         of: find.byKey(const ValueKey('session-s2')),
         matching: find.text('Sign Out'),
@@ -88,6 +88,8 @@ void main() {
       expect(api.called('DELETE', '/api/v1/auth/sessions/s2'), isTrue);
 
       await tester.tap(find.byKey(const Key('revoke-others')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
       await settle(tester);
       expect(api.called('POST', '/api/v1/auth/sessions/revoke-others'), isTrue);
     });
@@ -101,6 +103,7 @@ void main() {
       await pumpApp(tester, api: api, location: '/settings/delete-account');
 
       await tester.enterText(find.byKey(const Key('delete-password')), 'secret123');
+      await tester.pump();
       await tester.tap(find.byKey(const Key('delete-submit')));
       await settle(tester);
       await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
@@ -136,6 +139,7 @@ void main() {
       await pumpApp(tester, api: api, location: '/settings/bgg-import');
 
       await tester.enterText(find.byKey(const Key('bgg-username')), 'meeplefan');
+      await tester.pump();
       await tester.tap(find.byKey(const Key('bgg-import')));
       await tester.pump();
       await tester.pump(const Duration(seconds: 2));
@@ -168,7 +172,12 @@ void main() {
       await tester.tap(find.byKey(const Key('biometric-toggle')));
       await settle(tester);
       expect(
-        tester.widget<SwitchListTile>(find.byKey(const Key('biometric-toggle'))).value,
+        tester
+            .widget<Switch>(find.descendant(
+              of: find.byKey(const Key('biometric-toggle')),
+              matching: find.byType(Switch),
+            ))
+            .value,
         isTrue,
       );
 
@@ -209,12 +218,12 @@ void main() {
       await tester.tap(find.byKey(const Key('forgot-password')));
       await settle(tester);
       expect(find.text('Reset your password'), findsOneWidget);
-      await tester.pageBack();
+      await tester.tap(find.byKey(const Key('auth-back')));
       await settle(tester);
 
       await tester.tap(find.byKey(const Key('login-register')));
       await settle(tester);
-      expect(find.text('Create your account'), findsOneWidget);
+      expect(find.text('Join the'), findsOneWidget);
     });
 
     testWidgets('empty login shows the field errors', (tester) async {
@@ -272,11 +281,11 @@ void main() {
         (tester) async {
       final c = await pumpApp(tester, api: api, signedIn: false);
       await push(tester, c, '/auth/register');
-      expect(find.text('Create your account'), findsOneWidget);
+      expect(find.text('Join the'), findsOneWidget);
       await push(tester, c, '/auth/forgot-password');
       expect(find.text('Reset your password'), findsOneWidget);
       await push(tester, c, '/auth/reset-password?token=t');
-      expect(find.text('Create a new password'), findsOneWidget);
+      expect(find.text('Set new password'), findsOneWidget);
       await push(tester, c, '/auth/verify-email');
       expect(find.text('Check your inbox'), findsOneWidget);
     });
@@ -304,7 +313,7 @@ void main() {
       await tester.tap(find.byKey(const Key('onboarding-profile-continue')));
       await settle(tester);
 
-      expect(find.text('Import from BoardGameGeek'), findsOneWidget);
+      expect(find.text('Import your collection'), findsOneWidget);
       await tester.tap(find.byKey(const Key('onboarding-skip')));
       await settle(tester);
 
