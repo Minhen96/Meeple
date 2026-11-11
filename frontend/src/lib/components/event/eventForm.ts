@@ -71,7 +71,7 @@ export function emptyForm(now: Date = new Date()): EventFormValues {
 		date: toDateInput(start),
 		time: toTimeInput(start),
 		maxParticipants: DEFAULT_PLAYERS,
-		visibility: 'FRIENDS',
+		visibility: 'INVITE_ONLY',
 		game: null,
 		invitedUserIds: []
 	};

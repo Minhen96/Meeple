@@ -42,9 +42,9 @@ function event(overrides: Partial<Event> = {}): Event {
 }
 
 describe('emptyForm', () => {
-	it('defaults to tomorrow 7pm, 8 players, friends-only', () => {
+	it('defaults to tomorrow 7pm, 8 players, invite-only', () => {
 		const form = emptyForm(now);
-		expect(form).toMatchObject({ date: '2026-10-06', time: '19:00', maxParticipants: 8, visibility: 'FRIENDS' });
+		expect(form).toMatchObject({ date: '2026-10-06', time: '19:00', maxParticipants: 8, visibility: 'INVITE_ONLY' });
 	});
 });
 
@@ -95,7 +95,7 @@ describe('toCreatePayload', () => {
 		expect(payload).toEqual({
 			title: 'Catan Night',
 			scheduledAt: new Date(2026, 9, 6, 19, 0).toISOString(),
-			visibility: 'FRIENDS',
+			visibility: 'INVITE_ONLY',
 			maxParticipants: 50,
 			location: 'Cafe',
 			gameId: 'g1',

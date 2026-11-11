@@ -76,10 +76,11 @@ class Event with _$Event {
       status == 'FULL' ||
       (maxParticipants > 0 && participantCount >= maxParticipants);
 
-  /// Location as shown to the viewer (`locationDisplay` may hide the exact
-  /// address from non-participants).
+  /// Location as shown to the viewer. The API already masks `location` for
+  /// viewers who may not see the exact address, so it wins over the
+  /// `locationDisplay` label (hosts and participants see the full address).
   String? get displayLocation {
-    final shown = locationDisplay ?? location;
+    final shown = (location?.isNotEmpty ?? false) ? location : locationDisplay;
     return shown == null || shown.isEmpty ? null : shown;
   }
 

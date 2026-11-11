@@ -170,10 +170,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  AppSpacing.vGapXl,
-                  const _OrDivider(),
-                  AppSpacing.vGapXl,
-                  _GoogleSignInButton(isLoading: _isLoading, onPressed: _google),
+                  // Without a Google client id there is no button, so no
+                  // "or" divider either.
+                  if (ref.watch(googleAuthClientProvider).isAvailable) ...[
+                    AppSpacing.vGapXl,
+                    const _OrDivider(),
+                    AppSpacing.vGapXl,
+                    _GoogleSignInButton(
+                        isLoading: _isLoading, onPressed: _google),
+                  ],
                   AppSpacing.vGapXxxl,
                   Wrap(
                     alignment: WrapAlignment.center,

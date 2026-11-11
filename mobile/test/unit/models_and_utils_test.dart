@@ -188,6 +188,19 @@ void main() {
       expect(e.isAttending, isTrue);
       expect(e.isFull, isFalse);
       expect(e.displayLocation, 'Cafe');
+      expect(
+        Event.fromJson({...eventJson(status: 'OPEN'), 'locationDisplay': 'KL'})
+            .displayLocation,
+        'Cafe',
+      );
+      expect(
+        Event.fromJson({
+          ...eventJson(status: 'OPEN'),
+          'location': null,
+          'locationDisplay': 'KL',
+        }).displayLocation,
+        'KL',
+      );
       expect(e.visibilityValue, EventVisibility.friends);
       expect(e.acceptedParticipants.single.asUser.id, 'f1');
       expect(EventVisibility.parse('nope'), EventVisibility.inviteOnly);
