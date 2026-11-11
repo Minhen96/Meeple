@@ -343,6 +343,20 @@ void main() {
       expect(container.read(search).value!.content.map((g) => g.id),
           ['g0', 'g1']);
 
+      final browse =
+          libraryBrowseProvider(const GameBrowseQuery(genre: 'Party'));
+      keep(browse);
+      await container.read(browse.future);
+      expect(container.read(browse.notifier).isLoadingMore, isFalse);
+      await container.read(browse.notifier).loadMore();
+      await container.read(browse.notifier).loadMore(); // last page: no-op
+      expect(container.read(browse).value!.content.map((g) => g.id),
+          ['g0', 'g1']);
+      expect(
+        api.calls('GET', '/api/v1/games').last.queryParameters['genre'],
+        'Party',
+      );
+
       keep(gameSessionsProvider('g1'));
       await container.read(gameSessionsProvider('g1').future);
       api.get('/api/v1/games/g1/sessions', cursor([postJson(id: 'p2')]));

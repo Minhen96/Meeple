@@ -7,61 +7,22 @@ import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/library/data/game_repository.dart';
 import 'package:meeple_hearth/features/library/domain/game_model.dart';
 import 'package:meeple_hearth/features/library/domain/user_game_model.dart';
-import 'package:meeple_hearth/features/library/presentation/widgets/game_card.dart';
+import 'package:meeple_hearth/features/library/presentation/widgets/library_sheets.dart';
+import 'package:meeple_hearth/features/library/presentation/widgets/library_widgets.dart';
 import 'package:meeple_hearth/features/library/providers/library_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
-import 'package:meeple_hearth/shared/widgets/empty_state.dart';
+import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/error_state.dart';
 import 'package:meeple_hearth/shared/widgets/meeple_app_bar.dart';
 import 'package:meeple_hearth/shared/widgets/skeleton_widget.dart';
 import 'package:meeple_hearth/shared/widgets/status_banners.dart';
 
-/// Client-side filters of the All Games tab (SCREENS §5.2, MVP).
-enum PlayerFilter { two, three, four, five }
-
-enum DurationFilter { under30, from30to60, from1to2h, over2h }
-
-enum WeightFilter { light, medium, heavy }
-
-/// Whether [game] passes the selected filters (null = no filter).
-bool gameMatchesFilters(
-  Game game, {
-  PlayerFilter? players,
-  DurationFilter? duration,
-  WeightFilter? weight,
-}) {
-  if (players != null) {
-    final need = PlayerFilter.values.indexOf(players) + 2;
-    final max = game.maxPlayers ?? game.minPlayers;
-    if (max == null || max < need) return false;
-  }
-  if (duration != null) {
-    final t = game.minPlayTimeMinutes;
-    if (t == null) return false;
-    final ok = switch (duration) {
-      DurationFilter.under30 => t < 30,
-      DurationFilter.from30to60 => t >= 30 && t <= 60,
-      DurationFilter.from1to2h => t > 60 && t <= 120,
-      DurationFilter.over2h => t > 120,
-    };
-    if (!ok) return false;
-  }
-  if (weight != null) {
-    final w = game.complexity;
-    if (w == null) return false;
-    final ok = switch (weight) {
-      WeightFilter.light => w < 2,
-      WeightFilter.medium => w >= 2 && w < 3.5,
-      WeightFilter.heavy => w >= 3.5,
-    };
-    if (!ok) return false;
-  }
-  return true;
-}
-
-/// Library (SCREENS §5): All Games | My Collection | Wishlist | Favorites.
+/// Library (web `/library`): All Games | My Collection | Wishlist |
+/// Favorites tabs over a search ribbon with filter and sort buttons; the
+/// All Games tab shows the Game of the Week and the catalogue feed.
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key, this.initialTab});
 
@@ -85,10 +46,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     length: 4,
     vsync: this,
     initialIndex: LibraryScreen.tabIndexOf(widget.initialTab),
-  );
+  )..addListener(_onTabChanged);
   final _search = TextEditingController();
   Timer? _debounce;
   String _query = '';
+  int _lastTab = LibraryScreen.tabIndexOf(null);
+
+  /// Filters and sort of the catalogue feed (search text is [_query]).
+  GameBrowseQuery _browse = const GameBrowseQuery();
+
+  @override
+  void initState() {
+    super.initState();
+    _lastTab = _tabs.index;
+  }
 
   @override
   void didUpdateWidget(covariant LibraryScreen oldWidget) {
@@ -106,80 +77,130 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     super.dispose();
   }
 
+  /// Switching tabs clears the search, like the web.
+  void _onTabChanged() {
+    if (_tabs.index == _lastTab) return;
+    _lastTab = _tabs.index;
+    _debounce?.cancel();
+    if (_search.text.isEmpty && _query.isEmpty) {
+      setState(() {});
+      return;
+    }
+    _search.clear();
+    setState(() => _query = '');
+  }
+
   void _onQueryChanged(String value) {
     _debounce?.cancel();
+    setState(() {});
     _debounce = Timer(const Duration(milliseconds: 400), () {
       if (mounted) setState(() => _query = value.trim());
     });
   }
 
+  Future<void> _openFilters() async {
+    if (_tabs.index != 0) _tabs.animateTo(0);
+    final next = await showLibraryFilterSheet(context, _browse);
+    if (next != null && mounted) setState(() => _browse = next);
+  }
+
+  Future<void> _openSort() async {
+    if (_tabs.index != 0) _tabs.animateTo(0);
+    final picked = await showLibrarySortSheet(context, _browse.sort);
+    if (picked != null && mounted) {
+      setState(() => _browse = _browse.copyWith(sort: () => picked.$1));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final onAll = _tabs.index == 0;
     return Scaffold(
       appBar: const MeepleBrandBar(),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              0,
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.background.withValues(alpha: 0.95),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
             ),
-            child: TextField(
-              key: const Key('library-search'),
-              controller: _search,
-              onChanged: _onQueryChanged,
-              onTap: () {
-                if (_tabs.index != 0) _tabs.animateTo(0);
-              },
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: l10n.librarySearchHint,
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _search.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: l10n.commonClose,
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () {
-                          _search.clear();
-                          _onQueryChanged('');
-                        },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: Column(
+                children: [
+                  _UnderlineTabs(
+                    controller: _tabs,
+                    labels: [
+                      l10n.libraryTabAll,
+                      l10n.libraryTabCollection,
+                      l10n.libraryTabWishlist,
+                      l10n.libraryTabFavorites,
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SearchRibbonField(
+                          controller: _search,
+                          hint: onAll
+                              ? l10n.librarySearchCatalog
+                              : l10n.librarySearchCollection,
+                          onChanged: _onQueryChanged,
+                          onClear: () {
+                            _search.clear();
+                            _onQueryChanged('');
+                          },
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.md),
+                      _RibbonButton(
+                        key: const Key('library-filters'),
+                        icon: Icons.tune_rounded,
+                        tooltip: l10n.libraryFiltersTitle,
+                        badge: _browse.activeFilterCount,
+                        onTap: _openFilters,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      _RibbonButton(
+                        key: const Key('library-sort'),
+                        icon: Icons.sort_rounded,
+                        tooltip: l10n.librarySortLabel,
+                        onTap: _openSort,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-          TabBar(
-            controller: _tabs,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            dividerColor: AppColors.transparent,
-            tabs: [
-              Tab(text: l10n.libraryTabAll),
-              Tab(text: l10n.libraryTabCollection),
-              Tab(text: l10n.libraryTabWishlist),
-              Tab(text: l10n.libraryTabFavorites),
-            ],
           ),
           Expanded(
             child: TabBarView(
               controller: _tabs,
               children: [
-                _AllGamesTab(query: _query),
-                _CollectionTab(
-                  filter: CollectionFilter.owned,
-                  onBrowse: () => _tabs.animateTo(0),
-                ),
-                _CollectionTab(
-                  filter: CollectionFilter.wishlisted,
-                  onBrowse: () => _tabs.animateTo(0),
-                ),
-                _CollectionTab(
-                  filter: CollectionFilter.favorited,
-                  onBrowse: () => _tabs.animateTo(0),
-                ),
+                _AllGamesTab(browse: _browse.copyWith(query: _query)),
+                for (final filter in const [
+                  CollectionFilter.owned,
+                  CollectionFilter.wishlisted,
+                  CollectionFilter.favorited,
+                ])
+                  _CollectionTab(
+                    filter: filter,
+                    query: _query,
+                    onBrowse: () => _tabs.animateTo(0),
+                  ),
               ],
             ),
           ),
@@ -189,33 +210,181 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 }
 
-const _gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: 3,
-  crossAxisSpacing: AppSpacing.md,
-  mainAxisSpacing: AppSpacing.lg,
-  childAspectRatio: 0.62,
-);
+/// Web library tab bar: bold text-sm labels, `gap-6`, the active one
+/// primary with a 4px rounded-top underline.
+class _UnderlineTabs extends StatelessWidget {
+  const _UnderlineTabs({required this.controller, required this.labels});
 
-class _GridSkeleton extends StatelessWidget {
-  const _GridSkeleton({this.count = 9});
-
-  final int count;
+  final TabController controller;
+  final List<String> labels;
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      gridDelegate: _gridDelegate,
-      itemCount: count,
-      itemBuilder: (_, __) => const GameCardSkeleton(),
+    return TabBar(
+      controller: controller,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      dividerColor: AppColors.transparent,
+      padding: EdgeInsets.zero,
+      labelPadding: const EdgeInsets.only(right: AppSpacing.xl),
+      indicatorSize: TabBarIndicatorSize.label,
+      indicator: const UnderlineTabIndicator(
+        borderSide: BorderSide(width: 4, color: AppColors.primary),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      labelColor: AppColors.primary,
+      unselectedLabelColor: AppColors.onSurfaceVariant,
+      labelStyle: AppTypography.titleSmall,
+      unselectedLabelStyle: AppTypography.titleSmall,
+      overlayColor: const WidgetStatePropertyAll(AppColors.transparent),
+      tabs: [
+        for (final l in labels) Tab(height: 52, text: l),
+      ],
     );
   }
 }
 
-class _AllGamesTab extends ConsumerStatefulWidget {
-  const _AllGamesTab({required this.query});
+/// `bg-surface-container-low rounded-2xl` search input of the ribbon.
+class _SearchRibbonField extends StatelessWidget {
+  const _SearchRibbonField({
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+    required this.onClear,
+  });
 
-  final String query;
+  final TextEditingController controller;
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      borderSide: BorderSide.none,
+    );
+    return SizedBox(
+      height: 44,
+      child: TextField(
+        key: const Key('library-search'),
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: AppTypography.bodyMedium,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: AppTypography.bodyMedium.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
+          filled: true,
+          fillColor: AppColors.surfaceContainerLow,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: AppColors.onSurfaceVariant,
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 44),
+          suffixIcon: controller.text.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: context.l10n.commonClose,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: onClear,
+                ),
+          border: shape,
+          enabledBorder: shape,
+          focusedBorder: shape.copyWith(
+            borderSide: BorderSide(
+              color: AppColors.primary.withValues(alpha: 0.4),
+              width: 2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 44px `rounded-2xl bg-surface-container-high` primary icon button with
+/// an optional count badge.
+class _RibbonButton extends StatelessWidget {
+  const _RibbonButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: AppColors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+              onTap: onTap,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(icon, color: AppColors.primary),
+              ),
+            ),
+          ),
+          if (badge > 0)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background, width: 2),
+                ),
+                child: Text(
+                  '$badge',
+                  style: AppTypography.labelSmall.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    color: AppColors.onPrimary,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Grid padding: `mt-4` + page gutter, clear of the bottom nav.
+const _gridPadding = EdgeInsets.fromLTRB(
+  AppSpacing.lg,
+  AppSpacing.lg,
+  AppSpacing.lg,
+  120,
+);
+
+class _AllGamesTab extends ConsumerStatefulWidget {
+  const _AllGamesTab({required this.browse});
+
+  final GameBrowseQuery browse;
 
   @override
   ConsumerState<_AllGamesTab> createState() => _AllGamesTabState();
@@ -223,16 +392,19 @@ class _AllGamesTab extends ConsumerStatefulWidget {
 
 class _AllGamesTabState extends ConsumerState<_AllGamesTab>
     with AutomaticKeepAliveClientMixin {
-  PlayerFilter? _players;
-  DurationFilter? _duration;
-  WeightFilter? _weight;
-
   @override
   bool get wantKeepAlive => true;
 
   bool _onScroll(ScrollNotification n) {
-    if (n.metrics.pixels >= n.metrics.maxScrollExtent * 0.8) {
-      ref.read(gameSearchNotifierProvider(widget.query).notifier).loadMore();
+    if (n.metrics.axis == Axis.vertical &&
+        n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
+      final notifier = ref.read(libraryBrowseProvider(widget.browse).notifier);
+      if (!notifier.isLoadingMore) {
+        notifier.loadMore().then((_) {
+          if (mounted) setState(() {});
+        });
+        setState(() {});
+      }
     }
     return false;
   }
@@ -241,137 +413,507 @@ class _AllGamesTabState extends ConsumerState<_AllGamesTab>
   Widget build(BuildContext context) {
     super.build(context);
     final l10n = context.l10n;
-    final results = ref.watch(gameSearchNotifierProvider(widget.query));
-    final chips = <Widget>[
-      for (final p in PlayerFilter.values)
-        _FilterChip(
-          label: l10n.filterPlayers(PlayerFilter.values.indexOf(p) + 2),
-          selected: _players == p,
-          onTap: () => setState(() => _players = _players == p ? null : p),
-        ),
-      for (final d in DurationFilter.values)
-        _FilterChip(
-          label: switch (d) {
-            DurationFilter.under30 => l10n.filterUnder30,
-            DurationFilter.from30to60 => l10n.filter30to60,
-            DurationFilter.from1to2h => l10n.filter1to2h,
-            DurationFilter.over2h => l10n.filterOver2h,
-          },
-          selected: _duration == d,
-          onTap: () => setState(() => _duration = _duration == d ? null : d),
-        ),
-      for (final w in WeightFilter.values)
-        _FilterChip(
-          label: switch (w) {
-            WeightFilter.light => l10n.filterLight,
-            WeightFilter.medium => l10n.filterMedium,
-            WeightFilter.heavy => l10n.filterHeavy,
-          },
-          selected: _weight == w,
-          onTap: () => setState(() => _weight = _weight == w ? null : w),
-        ),
-    ];
-    return Column(
-      children: [
-        SizedBox(
-          height: 48,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            scrollDirection: Axis.horizontal,
-            itemCount: chips.length,
-            separatorBuilder: (_, __) => AppSpacing.hGapSm,
-            itemBuilder: (_, i) => Center(child: chips[i]),
-          ),
-        ),
-        Expanded(
-          child: results.when(
-            loading: () => const _GridSkeleton(),
-            error: (e, _) => ErrorState(
-              error: e,
-              title: l10n.libraryDatabaseUnavailable,
-              onRetry: () =>
-                  ref.invalidate(gameSearchNotifierProvider(widget.query)),
-            ),
-            data: (page) {
-              final games = page.content
-                  .where(
-                    (g) => gameMatchesFilters(
-                      g,
-                      players: _players,
-                      duration: _duration,
-                      weight: _weight,
-                    ),
-                  )
-                  .toList();
-              if (games.isEmpty) {
-                return EmptyState(
-                  icon: Icons.search_off_rounded,
-                  title: widget.query.isEmpty
-                      ? l10n.libraryNoGames
-                      : l10n.libraryNoResults(widget.query),
-                  subtitle: l10n.libraryNoResultsHint,
-                );
-              }
-              return NotificationListener<ScrollNotification>(
-                onNotification: _onScroll,
-                child: GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.sm,
-                    AppSpacing.lg,
-                    96,
-                  ),
-                  gridDelegate: _gridDelegate,
-                  itemCount: games.length,
-                  itemBuilder: (_, i) => _OwnedBadgeCard(game: games[i]),
+    final provider = libraryBrowseProvider(widget.browse);
+    final results = ref.watch(provider);
+    final loadingMore = ref.read(provider.notifier).isLoadingMore;
+    final page = results.valueOrNull;
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(provider),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            if (widget.browse.query.isEmpty)
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  0,
                 ),
-              );
-            },
-          ),
+                sliver: SliverToBoxAdapter(child: SpotlightHero()),
+              ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                widget.browse.query.isEmpty ? AppSpacing.xxl : AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.xl,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.libraryFeedTitle,
+                        style: AppTypography.headlineSmall),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      l10n
+                          .libraryFeedResults('${page?.totalElements ?? 0}')
+                          .toUpperCase(),
+                      key: const Key('library-feed-count'),
+                      style: AppTypography.eyebrow.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                        color:
+                            AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            ...results.when(
+              loading: () => [_gridSkeleton(6)],
+              error: (e, _) => [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: ErrorState(
+                    error: e,
+                    title: l10n.libraryDatabaseUnavailable,
+                    onRetry: () => ref.invalidate(provider),
+                  ),
+                ),
+              ],
+              data: (page) => page.content.isEmpty
+                  ? [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          0,
+                          AppSpacing.lg,
+                          120,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: _FeedEmpty(
+                            recommended: widget.browse.sort == 'recommended',
+                          ),
+                        ),
+                      ),
+                    ]
+                  : [
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        sliver: SliverLayoutBuilder(
+                          builder: (context, constraints) => SliverGrid.builder(
+                            gridDelegate: libraryGridDelegate(
+                              constraints.crossAxisExtent,
+                            ),
+                            itemCount: page.content.length,
+                            itemBuilder: (_, i) {
+                              final game = page.content[i];
+                              return LibraryGameTile(
+                                game: game,
+                                onTap: () =>
+                                    context.push(AppRoutes.gameDetail(game.id)),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      if (loadingMore && page.hasMore)
+                        _gridSkeleton(2, top: AppSpacing.xxl + 8)
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.lg,
+                            40,
+                            AppSpacing.lg,
+                            120,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: page.last
+                                ? Text(
+                                    l10n.libraryFeedEnd.toUpperCase(),
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.eyebrow.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.onSurfaceVariant
+                                          .withValues(alpha: 0.4),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ),
+                    ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
+
+  Widget _gridSkeleton(int count, {double top = 0}) => SliverPadding(
+        padding: EdgeInsets.fromLTRB(AppSpacing.lg, top, AppSpacing.lg, 120),
+        sliver: SliverLayoutBuilder(
+          builder: (context, constraints) => SliverGrid.builder(
+            gridDelegate: libraryGridDelegate(constraints.crossAxisExtent),
+            itemCount: count,
+            itemBuilder: (_, __) =>
+                const SkeletonShimmer(child: LibraryTileSkeleton()),
+          ),
+        ),
+      );
 }
 
-/// Game card with the viewer's collection badges overlaid.
-class _OwnedBadgeCard extends ConsumerWidget {
-  const _OwnedBadgeCard({required this.game});
+/// Web `text-center py-20 bg-surface-container-lowest rounded-[2rem]` panel.
+class _FeedEmpty extends StatelessWidget {
+  const _FeedEmpty({required this.recommended});
 
-  final Game game;
+  final bool recommended;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entry =
-        ref.watch(collectionNotifierProvider).valueOrNull?.entryFor(game.id);
-    return GameCard(
-      game: game,
-      trailing: entry == null ? null : CollectionBadges(entry: entry),
-      onTap: () => context.push(AppRoutes.gameDetail(game.id)),
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return _EmptyPanel(
+      radius: 32,
+      icon: Icons.explore_off_outlined,
+      iconSize: 60,
+      iconAlpha: 0.2,
+      title: recommended
+          ? l10n.libraryFeedNoRecommendations
+          : l10n.libraryFeedEmpty,
+      body: recommended
+          ? l10n.libraryFeedNoRecommendationsBody
+          : l10n.libraryFeedEmptyBody,
+      titleStyle: AppTypography.titleLarge,
     );
   }
 }
 
-class _CollectionTab extends ConsumerWidget {
-  const _CollectionTab({required this.filter, required this.onBrowse});
+class _EmptyPanel extends StatelessWidget {
+  const _EmptyPanel({
+    required this.icon,
+    required this.title,
+    required this.radius,
+    required this.titleStyle,
+    this.body,
+    this.iconSize = 72,
+    this.iconAlpha = 0.1,
+    this.action,
+    this.vertical = 80,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? body;
+  final double radius;
+  final double iconSize;
+  final double iconAlpha;
+  final TextStyle titleStyle;
+  final Widget? action;
+  final double vertical;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: vertical,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: iconSize,
+            color: AppColors.primary.withValues(alpha: iconAlpha),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(title, style: titleStyle, textAlign: TextAlign.center),
+          if (body != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Text(
+                body!,
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+          if (action != null) ...[
+            const SizedBox(height: AppSpacing.xl),
+            action!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Game of the Week hero (web spotlight; the game is a fixed pick).
+class SpotlightHero extends ConsumerStatefulWidget {
+  const SpotlightHero({super.key});
+
+  static const title = 'Gloomhaven';
+  static const imageUrl =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuD9OrJ1s0wkQqNwd_2YHUbBl6iHCyN8nOBpB4M5CCRPcCrAdiFtFi6vdGS7g51uWG11sEi2A5xZ224aDw5sUYAf5hAOBolULCapAp1U2NWzEUAn_m7t1eK_1q4g-mM8sv8KTArVqCvmLHfz1szDbFToCottMw8Y9l99X7PAbtnF4V5WjZEeNd784ek1C-GJ2U_pw2-CzblT4s91OMRI2OG9cn0CVbWT5_Dsc7UUa3uasDGIn6zx5pkZN2v-oEsMxd98qQvrdP7Nqw0';
+
+  @override
+  ConsumerState<SpotlightHero> createState() => _SpotlightHeroState();
+}
+
+class _SpotlightHeroState extends ConsumerState<SpotlightHero> {
+  bool _saving = false;
+
+  Future<Game?> _find() async {
+    final page = await ref
+        .read(gameRepositoryProvider)
+        .searchGames(query: SpotlightHero.title);
+    return page.content.isEmpty ? null : page.content.first;
+  }
+
+  Future<void> _explore() async {
+    try {
+      final game = await _find();
+      if (game != null && mounted) {
+        await context.push(AppRoutes.gameDetail(game.id));
+      }
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
+    }
+  }
+
+  Future<void> _save() async {
+    final l10n = context.l10n;
+    setState(() => _saving = true);
+    try {
+      final game = await _find();
+      if (game == null) return;
+      await ref
+          .read(collectionNotifierProvider.notifier)
+          .setFlags(game, isFavorited: true);
+      if (mounted) {
+        showToast(
+          context,
+          l10n.librarySpotlightSaved(SpotlightHero.title),
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) showErrorToast(context, e);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Container(
+      key: const Key('library-spotlight'),
+      height: 240,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 25,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const SafeNetworkImage(
+              url: SpotlightHero.imageUrl,
+              fallback: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF3B2A1A), Color(0xFF1B1410)],
+                  ),
+                ),
+              ),
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color(0xE6000000),
+                    Color(0x4D000000),
+                    Color(0x00000000),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: AppSpacing.xl,
+              right: AppSpacing.xl,
+              bottom: AppSpacing.xl,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: 2,
+                          ),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: AppSpacing.borderRadiusFull,
+                          ),
+                          child: Text(
+                            l10n.librarySpotlightCategory.toUpperCase(),
+                            style: AppTypography.labelSmall.copyWith(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                              color: AppColors.onPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          SpotlightHero.title,
+                          style: AppTypography.headlineMedium.copyWith(
+                            color: AppColors.onPrimary,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                        Text(
+                          l10n.librarySpotlightDescription,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.onPrimary.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
+                  Material(
+                    color: AppColors.surfaceContainerLowest,
+                    shape: const StadiumBorder(),
+                    elevation: 4,
+                    shadowColor: AppColors.shadow.withValues(alpha: 0.3),
+                    child: InkWell(
+                      key: const Key('spotlight-explore'),
+                      customBorder: const StadiumBorder(),
+                      onTap: _explore,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: AppSpacing.sm,
+                        ),
+                        child: Text(
+                          l10n.librarySpotlightExplore,
+                          style: AppTypography.labelMedium.copyWith(
+                            color: AppColors.onBackground,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  CircleIconButton(
+                    key: const Key('spotlight-save'),
+                    icon: Icons.bookmark_border_rounded,
+                    iconSize: 20,
+                    size: 36,
+                    tooltip: l10n.librarySpotlightSave,
+                    color: AppColors.onPrimary.withValues(alpha: 0.1),
+                    iconColor: AppColors.onPrimary,
+                    onPressed: _saving ? null : _save,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionTab extends ConsumerStatefulWidget {
+  const _CollectionTab({
+    required this.filter,
+    required this.query,
+    required this.onBrowse,
+  });
 
   final CollectionFilter filter;
+  final String query;
   final VoidCallback onBrowse;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CollectionTab> createState() => _CollectionTabState();
+}
+
+class _CollectionTabState extends ConsumerState<_CollectionTab> {
+  String? _rating;
+
+  Future<void> _rate(UserGame entry, double rating) async {
+    final l10n = context.l10n;
+    setState(() => _rating = entry.gameId);
+    try {
+      await ref
+          .read(collectionNotifierProvider.notifier)
+          .rate(entry.game, rating: rating);
+    } catch (_) {
+      if (mounted) {
+        showToast(context, l10n.libraryRatingSaveFailed, type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _rating = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final collection = ref.watch(collectionNotifierProvider);
     return collection.when(
-      loading: () => const _GridSkeleton(count: 6),
+      loading: () => CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: _gridPadding,
+            sliver: SliverLayoutBuilder(
+              builder: (context, constraints) => SliverGrid.builder(
+                gridDelegate: libraryGridDelegate(constraints.crossAxisExtent),
+                itemCount: 6,
+                itemBuilder: (_, __) =>
+                    const SkeletonShimmer(child: LibraryTileSkeleton()),
+              ),
+            ),
+          ),
+        ],
+      ),
       error: (e, _) => ErrorState(
         error: e,
         onRetry: () => ref.invalidate(collectionNotifierProvider),
       ),
       data: (state) {
-        final entries = state.filtered(filter);
+        final q = widget.query.toLowerCase();
+        final all = state.filtered(widget.filter);
+        final entries = q.isEmpty
+            ? all
+            : all.where((g) => g.game.name.toLowerCase().contains(q)).toList();
         return RefreshIndicator(
-          onRefresh: () => ref.read(collectionNotifierProvider.notifier).refresh(),
+          onRefresh: () =>
+              ref.read(collectionNotifierProvider.notifier).refresh(),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -380,46 +922,48 @@ class _CollectionTab extends ConsumerWidget {
                   child: StaleDataBanner(cachedAt: state.cachedAt!),
                 ),
               if (entries.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: switch (filter) {
-                    CollectionFilter.wishlisted => EmptyState(
-                        icon: Icons.bookmark_border_rounded,
-                        title: l10n.libraryEmptyWishlistTitle,
-                        subtitle: l10n.libraryEmptyWishlistBody,
-                        actionLabel: l10n.libraryBrowseGames,
-                        onAction: onBrowse,
-                      ),
-                    CollectionFilter.favorited => EmptyState(
-                        icon: Icons.star_border_rounded,
-                        title: l10n.libraryEmptyFavoritesTitle,
-                        subtitle: l10n.libraryEmptyFavoritesBody,
-                      ),
-                    _ => EmptyState(
-                        icon: Icons.shelves,
-                        title: l10n.libraryEmptyCollectionTitle,
-                        subtitle: l10n.libraryEmptyCollectionBody,
-                        actionLabel: l10n.libraryBrowseGames,
-                        onAction: onBrowse,
-                      ),
-                  },
-                )
-              else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.lg,
+                    AppSpacing.xl,
                     AppSpacing.lg,
-                    AppSpacing.lg,
-                    96,
+                    120,
                   ),
-                  sliver: SliverGrid.builder(
-                    gridDelegate: _gridDelegate,
-                    itemCount: entries.length,
-                    itemBuilder: (_, i) => GameCard(
-                      game: entries[i].game,
-                      trailing: CollectionBadges(entry: entries[i]),
-                      onTap: () =>
-                          context.push(AppRoutes.gameDetail(entries[i].gameId)),
+                  sliver: SliverToBoxAdapter(
+                    child: q.length >= 2 && state.items.isNotEmpty
+                        ? _EmptyPanel(
+                            radius: 48,
+                            vertical: 96,
+                            icon: Icons.search_off_rounded,
+                            title: l10n.libraryNoMatch(widget.query),
+                            titleStyle: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          )
+                        : _shelfEmpty(l10n),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: _gridPadding,
+                  sliver: SliverLayoutBuilder(
+                    builder: (context, constraints) => SliverGrid.builder(
+                      gridDelegate: libraryGridDelegate(
+                        constraints.crossAxisExtent,
+                        textExtent: collectionTileTextExtent,
+                        spacing: AppSpacing.xl,
+                      ),
+                      itemCount: entries.length,
+                      itemBuilder: (_, i) {
+                        final entry = entries[i];
+                        return CollectionGameTile(
+                          entry: entry,
+                          ratingBusy: _rating == entry.gameId,
+                          onRate: (r) => _rate(entry, r),
+                          onTap: () =>
+                              context.push(AppRoutes.gameDetail(entry.gameId)),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -429,9 +973,86 @@ class _CollectionTab extends ConsumerWidget {
       },
     );
   }
+
+  Widget _shelfEmpty(AppLocalizations l10n) {
+    final (icon, title, body, browse) = switch (widget.filter) {
+      CollectionFilter.wishlisted => (
+          Icons.bookmark_rounded,
+          l10n.libraryEmptyWishlistTitle,
+          l10n.libraryEmptyWishlistBody,
+          true,
+        ),
+      CollectionFilter.favorited => (
+          Icons.favorite_rounded,
+          l10n.libraryEmptyFavoritesTitle,
+          l10n.libraryEmptyFavoritesBody,
+          false,
+        ),
+      _ => (
+          Icons.shelves,
+          l10n.libraryEmptyCollectionTitle,
+          l10n.libraryEmptyCollectionBody,
+          true,
+        ),
+    };
+    return _EmptyPanel(
+      radius: 48,
+      vertical: 96,
+      icon: icon,
+      title: title,
+      body: body,
+      titleStyle: AppTypography.headlineSmall.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+      action: browse
+          ? _GradientPill(
+              key: const Key('library-browse'),
+              label: l10n.libraryBrowseGames,
+              onTap: widget.onBrowse,
+            )
+          : null,
+    );
+  }
 }
 
-/// Owned / wishlist / favourite icons shown on a card corner.
+/// `px-6 py-3 rounded-full bg-gradient-to-r from-primary to-primary-container`.
+class _GradientPill extends StatelessWidget {
+  const _GradientPill({super.key, required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: AppSpacing.borderRadiusFull,
+        ),
+        child: Material(
+          color: AppColors.transparent,
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.md,
+              ),
+              child: Text(
+                label,
+                style: AppTypography.titleSmall.copyWith(
+                  color: AppColors.onPrimary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+/// Owned / wishlist / favourite icons shown on a card corner (onboarding
+/// add-game grid).
 class CollectionBadges extends StatelessWidget {
   const CollectionBadges({super.key, required this.entry});
 
@@ -467,37 +1088,6 @@ class CollectionBadges extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      showCheckmark: false,
-      side: BorderSide.none,
-      shape: const StadiumBorder(),
-      backgroundColor: AppColors.surfaceContainerHighest,
-      selectedColor: AppColors.secondaryContainer,
-      labelStyle: AppTypography.labelLarge.copyWith(
-        color: selected
-            ? AppColors.onSecondaryContainer
-            : AppColors.onSurfaceVariant,
       ),
     );
   }

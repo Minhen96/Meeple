@@ -22,6 +22,8 @@ _$GameImpl _$$GameImplFromJson(Map<String, dynamic> json) => _$GameImpl(
       averageRating: (json['bggRating'] as num?)?.toDouble(),
       complexity: (json['complexityWeight'] as num?)?.toDouble(),
       rank: (json['rank'] as num?)?.toInt(),
+      usersRated: (json['usersRated'] as num?)?.toInt(),
+      gameType: json['gameType'] as String?,
       bggId: (json['bggId'] as num?)?.toInt(),
       bggUrl: json['bggUrl'] as String?,
       categories: (json['categories'] as List<dynamic>?)
@@ -40,6 +42,14 @@ _$GameImpl _$$GameImplFromJson(Map<String, dynamic> json) => _$GameImpl(
               ?.map((e) => e as String)
               .toList() ??
           [],
+      families: (json['families'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      honors: (json['honors'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
       hasRulebook: json['hasRulebook'] as bool? ?? false,
       friendAvgRating: (json['friendAvgRating'] as num?)?.toDouble(),
       friendRatingCount: (json['friendRatingCount'] as num?)?.toInt() ?? 0,
@@ -65,12 +75,16 @@ Map<String, dynamic> _$$GameImplToJson(_$GameImpl instance) =>
       'bggRating': instance.averageRating,
       'complexityWeight': instance.complexity,
       'rank': instance.rank,
+      'usersRated': instance.usersRated,
+      'gameType': instance.gameType,
       'bggId': instance.bggId,
       'bggUrl': instance.bggUrl,
       'categories': instance.categories,
       'mechanics': instance.mechanics,
       'designers': instance.designers,
       'publishers': instance.publishers,
+      'families': instance.families,
+      'honors': instance.honors,
       'hasRulebook': instance.hasRulebook,
       'friendAvgRating': instance.friendAvgRating,
       'friendRatingCount': instance.friendRatingCount,

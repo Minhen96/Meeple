@@ -14,6 +14,7 @@ import 'package:meeple_hearth/features/library/domain/game_model.dart';
 import 'package:meeple_hearth/features/library/domain/user_game_model.dart';
 import 'package:meeple_hearth/features/library/presentation/library_screen.dart';
 import 'package:meeple_hearth/features/library/presentation/widgets/how_to_play_section.dart';
+import 'package:meeple_hearth/features/library/presentation/widgets/library_widgets.dart';
 import 'package:meeple_hearth/features/notifications/domain/notification_model.dart';
 import 'package:meeple_hearth/features/notifications/presentation/notification_prefs_screen.dart';
 import 'package:meeple_hearth/features/notifications/presentation/notification_text.dart';
@@ -227,12 +228,45 @@ void main() {
       expect(game.copyWith(maxPlayers: 3).playersLabel, '3');
       expect(game.copyWith(maxPlayers: null).playersLabel, '3+');
       expect(game.copyWith(minPlayers: null, maxPlayers: null).playersLabel, isNull);
-      expect(
-        gameMatchesFilters(game, players: PlayerFilter.four, duration: DurationFilter.from1to2h, weight: WeightFilter.medium),
-        isTrue,
+      // Library browse query: only set filters are sent; value equality.
+      expect(const GameBrowseQuery().toQueryParams(), {'sort': 'rank'});
+      expect(const GameBrowseQuery(query: 'cat').toQueryParams(), {'q': 'cat'});
+      final browse = const GameBrowseQuery(sort: 'usersRated,desc').copyWith(
+        genre: () => 'Party',
+        minPlayers: () => 2,
+        maxPlayers: () => 4,
+        minPlaytime: () => 30,
+        maxPlaytime: () => 90,
+        minComplexity: () => 1.0,
+        maxComplexity: () => 2.0,
+        minRating: () => 7.5,
       );
-      expect(gameMatchesFilters(game, duration: DurationFilter.under30), isFalse);
-      expect(gameMatchesFilters(game, weight: WeightFilter.heavy), isFalse);
+      expect(browse.toQueryParams(), {
+        'genre': 'Party',
+        'minPlayers': 2,
+        'maxPlayers': 4,
+        'minPlaytime': 30,
+        'maxPlaytime': 90,
+        'minComplexity': 1.0,
+        'maxComplexity': 2.0,
+        'minRating': 7.5,
+        'sort': 'usersRated,desc',
+      });
+      expect(browse.activeFilterCount, 5);
+      expect(browse.withoutFilters(), const GameBrowseQuery(sort: 'usersRated,desc'));
+      expect(browse.withoutFilters().activeFilterCount, 0);
+      expect(browse == browse.copyWith(), isTrue);
+      expect(browse.hashCode, browse.copyWith().hashCode);
+      expect(browse == browse.copyWith(genre: () => null), isFalse);
+      expect(browse.copyWith(query: 'x').query, 'x');
+      // Five-star rating over the 1–10 personal rating.
+      expect(starsFromRating(null), 0);
+      expect(starsFromRating(0.5), 0);
+      expect(starsFromRating(7), 4);
+      expect(starsFromRating(12), 5);
+      expect(ratingForStarTap(3, null), 6);
+      expect(ratingForStarTap(3, 6), 0);
+      expect(ratingForStarTap(9, 2), 10);
       expect(LibraryScreen.tabIndexOf('favorites'), 3);
       expect(LibraryScreen.tabIndexOf(null), 0);
       final removed = UserGame.fromJson({...userGameJson(), 'id': null});

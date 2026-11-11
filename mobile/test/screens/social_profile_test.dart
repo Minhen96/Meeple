@@ -145,15 +145,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await settle(tester);
 
-    expect(find.text('Games'), findsOneWidget);
-    expect(find.text('Players'), findsOneWidget);
+    expect(find.text('GAMES'), findsOneWidget);
+    expect(find.text('PLAYERS'), findsOneWidget);
     expect(find.text('Catan Night'), findsOneWidget);
     expect(find.byKey(const ValueKey('add-friend-f1')), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('search-input')), '');
     await tester.pump(const Duration(milliseconds: 500));
     await settle(tester);
-    expect(find.text('Recent searches'), findsOneWidget);
+    expect(find.text('RECENT SEARCHES'), findsOneWidget);
     expect(find.text('cat'), findsOneWidget);
   });
 
@@ -227,7 +227,11 @@ void main() {
       });
     await pumpApp(tester, api: api, location: '/matching');
 
-    expect(find.text('No active match requests.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('match-tab-requests')));
+    await settle(tester);
+    expect(find.text('No active requests'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('match-new')));
+    await settle(tester);
     await tester.tap(find.byKey(const Key('match-pick-game')));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('pick-g1')));

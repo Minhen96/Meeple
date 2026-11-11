@@ -134,7 +134,7 @@ void main() {
     for (final (key, title) in [
       ('friends', 'Friends'),
       ('bookmarks', 'Saved posts'),
-      ('matching', 'Matching'),
+      ('matching', 'Match'),
       ('settings', 'Settings'),
     ]) {
       testWidgets('opens $key', (tester) async {
@@ -275,19 +275,42 @@ void main() {
         ])
         ..delete('/api/v1/matches/requests/mr1', const FakeResponse.noContent());
       await pumpApp(tester, api: api, location: '/matching');
-      expect(find.text('No match suggestions right now.'), findsOneWidget);
+      expect(find.text('No matches yet'), findsOneWidget);
 
+      await tester.tap(find.byKey(const Key('match-new')));
+      await settle(tester);
       await tester.tap(find.byKey(const Key('match-submit')));
       await settle(tester);
       expect(find.text('Pick a game first.'), findsOneWidget);
 
-      await tester.tap(find.descendant(
-        of: find.byKey(const ValueKey('match-request-mr1')),
-        matching: find.text('Cancel'),
-      ));
+      await tester.tap(find.byKey(const ValueKey('match-tab-requests')));
+      await settle(tester);
+      expect(find.text('Dec 1 – Dec 1'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('match-cancel-mr1')));
       await settle(tester);
       expect(api.called('DELETE', '/api/v1/matches/requests/mr1'), isTrue);
       expect(find.byKey(const ValueKey('match-request-mr1')), findsNothing);
+    });
+
+    testWidgets('matching: a suggestion card shows the match and dismisses',
+        (tester) async {
+      api
+        ..get('/api/v1/matches/suggestions', [matchGroupJson()])
+        ..get('/api/v1/matches/requests/mine', <Object>[])
+        ..post('/api/v1/matches/mg1/dismiss', const FakeResponse.noContent());
+      await pumpApp(tester, api: api, location: '/matching');
+
+      expect(find.text('Suggestions (1)'), findsOneWidget);
+      expect(find.text('MATCH FOUND!'), findsOneWidget);
+      expect(find.byKey(const ValueKey('match-create-mg1')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('match-dismiss-mg1')));
+      await settle(tester);
+      expect(api.called('POST', '/api/v1/matches/mg1/dismiss'), isTrue);
+      expect(find.text('No matches yet'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('match-tab-requests')));
+      await settle(tester);
+      expect(find.text('No active requests'), findsOneWidget);
     });
   });
 }

@@ -2369,4 +2369,429 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commentReportShort => '举报';
+
+  @override
+  String get librarySearchCatalog => '搜索游戏库…';
+
+  @override
+  String get librarySearchCollection => '搜索你的游戏…';
+
+  @override
+  String libraryNoMatch(String query) {
+    return '此列表中没有与“$query”匹配的游戏。';
+  }
+
+  @override
+  String get librarySortLabel => '排序';
+
+  @override
+  String get librarySortRecommended => '为你推荐 ✨';
+
+  @override
+  String get librarySortRank => '排名';
+
+  @override
+  String get librarySortPopularity => '热度';
+
+  @override
+  String get librarySortNewest => '最新';
+
+  @override
+  String get librarySortShortest => '时长最短';
+
+  @override
+  String get librarySpotlightCategory => '本周游戏';
+
+  @override
+  String get librarySpotlightDescription => '踏上史诗般的传承战役，体验 95 个以上的战术战斗与角色成长剧本。';
+
+  @override
+  String get librarySpotlightExplore => '探索';
+
+  @override
+  String get librarySpotlightSave => '加入最爱';
+
+  @override
+  String librarySpotlightSaved(String title) {
+    return '已将 $title 加入最爱！';
+  }
+
+  @override
+  String get libraryFiltersTitle => '发现筛选';
+
+  @override
+  String get libraryFiltersGenre => '类型';
+
+  @override
+  String get libraryFiltersComplexity => '复杂度';
+
+  @override
+  String get libraryFiltersPlayers => '玩家人数';
+
+  @override
+  String get libraryFiltersMinMax => '最少 - 最多';
+
+  @override
+  String get libraryFiltersMin => '最少';
+
+  @override
+  String get libraryFiltersMax => '最多';
+
+  @override
+  String get libraryFiltersPlaytime => '游戏时长（分钟）';
+
+  @override
+  String get libraryFiltersMinRating => '最低评分';
+
+  @override
+  String get libraryFiltersReset => '重置';
+
+  @override
+  String get libraryFiltersApply => '应用筛选';
+
+  @override
+  String get libraryGenreStrategy => '策略';
+
+  @override
+  String get libraryGenreParty => '聚会';
+
+  @override
+  String get libraryGenreFamily => '家庭';
+
+  @override
+  String get libraryGenreTwoPlayer => '双人';
+
+  @override
+  String get libraryGenreAbstract => '抽象';
+
+  @override
+  String get libraryComplexityLight => '轻度';
+
+  @override
+  String get libraryComplexityMedium => '中度';
+
+  @override
+  String get libraryComplexityHeavy => '重度';
+
+  @override
+  String get libraryFeedTitle => '游戏库';
+
+  @override
+  String libraryFeedResults(String count) {
+    return '$count 个结果';
+  }
+
+  @override
+  String get libraryFeedNoRecommendations => '暂无推荐';
+
+  @override
+  String get libraryFeedNoRecommendationsBody => '收藏游戏或记录对局，即可获得个性化推荐。';
+
+  @override
+  String get libraryFeedEmpty => '游戏库空空如也';
+
+  @override
+  String get libraryFeedEmptyBody => '调整筛选条件以查看更多游戏。';
+
+  @override
+  String get libraryFeedEnd => '已经到底了';
+
+  @override
+  String get libraryBadgeWishlist => '心愿单';
+
+  @override
+  String get libraryRatingLabel => '你的评分';
+
+  @override
+  String libraryRatingStar(int count) {
+    return '评 $count 星（满分 5 星）';
+  }
+
+  @override
+  String get libraryRatingSaveFailed => '无法保存评分';
+
+  @override
+  String get gameStatPlayers => '玩家';
+
+  @override
+  String get gameStatTime => '时长';
+
+  @override
+  String get gameStatComplexity => '复杂度';
+
+  @override
+  String gameRatingsCount(String count) {
+    return '（$count 个评分）';
+  }
+
+  @override
+  String gameBggRank(String rank) {
+    return 'BGG 第 $rank 名';
+  }
+
+  @override
+  String gameBy(String names) {
+    return '设计：$names';
+  }
+
+  @override
+  String gameFriendAvgOne(String rating) {
+    return '1 位好友评 $rating 分';
+  }
+
+  @override
+  String get gameActionOwn => '拥有';
+
+  @override
+  String get gameActionFavorite => '最爱';
+
+  @override
+  String get gameActionFavorited => '已设为最爱';
+
+  @override
+  String get gameActionAskAi => '问 AI';
+
+  @override
+  String get gameTabHowToPlay => '玩法';
+
+  @override
+  String get gameAbout => '简介';
+
+  @override
+  String get gameAwards => '奖项';
+
+  @override
+  String get gameDesigners => '设计师';
+
+  @override
+  String get gamePublishers => '发行商';
+
+  @override
+  String get gameMinAge => '最低年龄';
+
+  @override
+  String gameAgePlus(int age) {
+    return '$age 岁以上';
+  }
+
+  @override
+  String get gameTypeLabel => '类型';
+
+  @override
+  String get gameViewOnBgg => '在 BoardGameGeek 上查看';
+
+  @override
+  String gamePlayHistory(int count) {
+    return '对局记录（$count）';
+  }
+
+  @override
+  String get gameLatestPlay => '最新';
+
+  @override
+  String gamePlayerCount(int count) {
+    return '$count 位玩家';
+  }
+
+  @override
+  String get gameFromPost => '来自动态';
+
+  @override
+  String get gameDeletePlay => '删除对局';
+
+  @override
+  String get gamePlayDeleted => '对局已删除';
+
+  @override
+  String get gameNotesPlaceholder => '心得、自定义规则、游戏技巧……';
+
+  @override
+  String get gameNotesSaving => '保存中…';
+
+  @override
+  String get gameLoadFailed => '加载失败，请重试。';
+
+  @override
+  String get logPlayTitle => '记录一局';
+
+  @override
+  String get logPlayDuration => '时长（分钟）';
+
+  @override
+  String get logPlayNotesPlaceholder => '谁赢了？有什么难忘的瞬间？';
+
+  @override
+  String get logPlaySubmit => '记录对局';
+
+  @override
+  String logPlaySuccess(String title) {
+    return '已为 $title 记录一局！';
+  }
+
+  @override
+  String get aiTitle => '规则助手';
+
+  @override
+  String aiWelcome(String title) {
+    return '你好！我可以解答关于 $title 的问题。欢迎询问游戏准备、回合顺序、规则或棘手的特殊情况！';
+  }
+
+  @override
+  String get aiClear => '清空对话';
+
+  @override
+  String get aiSourceRulebook => '规则书';
+
+  @override
+  String get aiSourceGeneral => '通用 AI';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiAssistant => '助手';
+
+  @override
+  String get aiPlaceholder => '询问规则问题…';
+
+  @override
+  String get aiFooterDisclaimer => 'AI 可能会出错，重要规则请以官方规则书为准。';
+
+  @override
+  String aiDailyLimit(int count) {
+    return '你已达到每日上限（$count 个问题），明天再来吧！';
+  }
+
+  @override
+  String get matchTitle => '匹配';
+
+  @override
+  String get matchNew => '新建请求';
+
+  @override
+  String get matchLookingToPlay => '想玩…';
+
+  @override
+  String get matchSearchGame => '搜索游戏';
+
+  @override
+  String get matchUntil => '结束时间';
+
+  @override
+  String get matchSubmitting => '提交中…';
+
+  @override
+  String get matchSubmitRequest => '提交请求';
+
+  @override
+  String get matchTabSuggestions => '推荐';
+
+  @override
+  String matchTabSuggestionsCount(int count) {
+    return '推荐（$count）';
+  }
+
+  @override
+  String get matchTabRequests => '我的请求';
+
+  @override
+  String get matchEmptySuggestionsTitle => '暂无匹配';
+
+  @override
+  String get matchEmptySuggestionsBody => '提交匹配请求，我们会帮你找到想玩同一款游戏的好友。';
+
+  @override
+  String get matchEmptyRequestsTitle => '没有进行中的请求';
+
+  @override
+  String get matchEmptyRequestsBody => '点击“新建请求”，寻找一起玩的好友。';
+
+  @override
+  String get matchAnyTime => '任意时间';
+
+  @override
+  String get matchCancelRequest => '取消请求';
+
+  @override
+  String get matchFound => '找到匹配！';
+
+  @override
+  String get matchCreateEvent => '创建活动';
+
+  @override
+  String get searchPlaceholder => '搜索游戏、玩家、活动';
+
+  @override
+  String get searchCloseLabel => '关闭搜索';
+
+  @override
+  String get searchClearInput => '清空搜索';
+
+  @override
+  String searchRemoveRecent(String query) {
+    return '从最近搜索中移除“$query”';
+  }
+
+  @override
+  String get htpEyebrow => 'AI 规则提取';
+
+  @override
+  String get htpSubtitle => '掌握这些核心规则，快速开始游戏。';
+
+  @override
+  String get htpGenerateTitle => '生成规则指南';
+
+  @override
+  String get htpGenerateBody => '获取这款游戏的快速入门摘要。';
+
+  @override
+  String get htpGenerateShort => '生成';
+
+  @override
+  String get htpGeneratingTitle => '正在生成指南…';
+
+  @override
+  String get htpGeneratingBody => 'AI 正在阅读规则书并提取关键信息，大约需要 20–30 秒。';
+
+  @override
+  String get htpSourceRulebook => '来自官方规则书';
+
+  @override
+  String get htpSourceAi => 'AI 通用知识';
+
+  @override
+  String get htpFailedTitle => '指南生成失败';
+
+  @override
+  String get htpSectionComponents => '游戏配件';
+
+  @override
+  String get htpSectionCards => '卡牌';
+
+  @override
+  String get htpSectionBoard => '游戏版图';
+
+  @override
+  String get htpSectionRoles => '玩家角色';
+
+  @override
+  String get htpSectionFlow => '游戏流程';
+
+  @override
+  String get htpSectionVariants => '变体规则';
+
+  @override
+  String get htpSectionWin => '如何获胜';
+
+  @override
+  String get htpSectionTips => '新手提示';
+
+  @override
+  String get logPlayPlayers => '玩家人数';
+
+  @override
+  String get searchFailed => '搜索失败，请重试。';
+
+  @override
+  String get logPlaySelected => '已选择';
 }
