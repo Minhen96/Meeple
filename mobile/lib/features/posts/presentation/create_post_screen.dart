@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/core/constants/app_shadows.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/network/upload_repository.dart';
@@ -19,7 +20,7 @@ import 'package:meeple_hearth/features/posts/providers/post_provider.dart';
 import 'package:meeple_hearth/features/social/presentation/friend_picker.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/models/user_summary.dart';
-import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
+import 'package:meeple_hearth/shared/widgets/user_widgets.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/confirm_sheet.dart';
@@ -137,8 +138,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final picker = ImagePicker();
     final picked = camera
         ? [
-            if (await picker.pickImage(source: ImageSource.camera,
-                    maxWidth: 2400) case final x?)
+            if (await picker.pickImage(
+                    source: ImageSource.camera, maxWidth: 2400)
+                case final x?)
               x,
           ]
         : await picker.pickMultiImage(maxWidth: 2400);
@@ -241,9 +243,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final l10n = context.l10n;
     final leave = await showConfirmSheet(
       context,
-      title: widget.isEdit
-          ? l10n.postDiscardChangesTitle
-          : l10n.postDiscardTitle,
+      title:
+          widget.isEdit ? l10n.postDiscardChangesTitle : l10n.postDiscardTitle,
       message: widget.isEdit
           ? l10n.postDiscardChangesMessage
           : l10n.postDiscardMessage,
@@ -272,56 +273,94 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       },
       child: Scaffold(
         appBar: MeepleAppBar(
-          title: widget.isEdit ? l10n.postEditTitle : l10n.postNewTitle,
-          leading: IconButton(
+          centerTitle: true,
+          leading: _SquareBackButton(
             tooltip: l10n.commonClose,
-            icon: const Icon(Icons.close_rounded),
             onPressed: () => _dirty
                 ? _confirmLeave()
                 : context.canPop()
                     ? context.pop()
                     : context.go(AppRoutes.home),
           ),
+          // Balances the back button so the title is centred like the web.
+          actions: const [SizedBox(width: 44)],
+          titleWidget: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.isEdit ? l10n.postEditTitle : l10n.postNewTitle,
+                style: AppTypography.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w900,
+                  height: widget.eventId == null ? null : 1.1,
+                ),
+              ),
+              if (widget.eventId != null && !widget.isEdit)
+                Text(
+                  l10n.postForEvent.toUpperCase(),
+                  style: AppTypography.overline.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.tertiary,
+                    height: 1.2,
+                  ),
+                ),
+            ],
+          ),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.xxl,
+                ),
                 children: [
                   if (!widget.isEdit) ...[
-                    _ImagesRow(
+                    _PhotosPanel(
                       images: _images,
                       compressing: _compressing,
                       onRemove: (i) => setState(() => _images.removeAt(i)),
                       onGallery: () => _addPhotos(camera: false),
                       onCamera: () => _addPhotos(camera: true),
                     ),
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapXl,
                   ],
-                  TextField(
-                    key: const Key('post-caption'),
-                    controller: _caption,
-                    maxLength: 2000,
-                    minLines: 3,
-                    maxLines: 8,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(hintText: l10n.postCaptionHint),
-                  ),
-                  AppSpacing.vGapSm,
-                  _OptionTile(
-                    icon: Icons.sports_esports_outlined,
-                    label: _game?.name ?? l10n.postTagGame,
+                  _CaptionCard(
+                      controller: _caption, onChanged: () => setState(() {})),
+                  AppSpacing.vGapXl,
+                  _OptionRow(
+                    key: const Key('post-tag-game'),
+                    icon: Icons.casino_outlined,
+                    tint: AppColors.primary,
+                    title: _game?.name ?? l10n.postTagGame,
+                    hint: l10n.postWhichGame,
                     onTap: () async {
                       final g = await showGamePicker(context);
                       if (g != null && mounted) setState(() => _game = g);
                     },
-                    onClear: _game == null ? null : () => setState(() => _game = null),
+                    trailing: _game == null
+                        ? null
+                        : IconButton(
+                            key: const Key('post-clear-game'),
+                            tooltip: l10n.commonClose,
+                            iconSize: 16,
+                            color: AppColors.onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => setState(() => _game = null),
+                          ),
                   ),
-                  _OptionTile(
-                    icon: Icons.group_add_outlined,
-                    label: _tagged.isEmpty
+                  AppSpacing.vGapMd,
+                  _OptionRow(
+                    key: const Key('post-tag-friends'),
+                    icon: Icons.group_outlined,
+                    tint: AppColors.secondary,
+                    title: _tagged.isEmpty
                         ? l10n.postTagFriends
                         : l10n.postTaggedCount(_tagged.length),
+                    hint: l10n.postWhoPlayed,
                     onTap: () async {
                       final picked = await showFriendPicker(
                         context,
@@ -334,63 +373,100 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     },
                     trailing: _tagged.isEmpty
                         ? null
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (final u in _tagged.take(3))
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 2),
-                                  child: AppAvatar(
-                                    imageUrl: u.avatarUrl,
-                                    displayName: u.displayName,
-                                    size: AvatarSize.xs,
-                                  ),
-                                ),
-                            ],
-                          ),
+                        : AvatarStack(users: _tagged, max: 3),
                   ),
-                  _OptionTile(
-                    icon: Icons.calendar_month_outlined,
-                    label: l10n.postPlayedOn(AppDateUtils.formatDate(_playedAt)),
+                  AppSpacing.vGapMd,
+                  _FieldRow(
+                    icon: Icons.location_on_outlined,
+                    tint: AppColors.tertiary,
+                    label: l10n.postLocationLabel,
+                    child: TextField(
+                      key: const Key('post-location'),
+                      controller: _location,
+                      maxLength: 100,
+                      onChanged: (_) => setState(() {}),
+                      style: AppTypography.titleSmall,
+                      decoration: InputDecoration(
+                        hintText: l10n.postLocationHint,
+                        hintStyle: AppTypography.bodyMedium.copyWith(
+                          color:
+                              AppColors.onSurfaceVariant.withValues(alpha: 0.4),
+                        ),
+                        counterText: '',
+                        filled: false,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vGapMd,
+                  _FieldRow(
+                    key: const Key('post-played-at'),
+                    icon: Icons.schedule_rounded,
+                    tint: AppColors.onSurfaceVariant,
+                    neutral: true,
+                    label: l10n.postDatePlayed,
                     onTap: _pickDate,
-                  ),
-                  AppSpacing.vGapSm,
-                  TextField(
-                    key: const Key('post-location'),
-                    controller: _location,
-                    maxLength: 255,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                      labelText: l10n.eventFieldLocation,
-                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    child: Text(
+                      AppDateUtils.formatDate(_playedAt),
+                      style: AppTypography.titleSmall,
                     ),
                   ),
                   if (_progress != null) ...[
-                    AppSpacing.vGapSm,
+                    AppSpacing.vGapLg,
                     const LinearProgressIndicator(),
                     AppSpacing.vGapXs,
                     Text(_progress!, style: AppTypography.bodySmall),
                   ],
+                  const SizedBox(height: AppSpacing.xl + AppSpacing.lg),
+                  AppButton(
+                    key: const Key('post-submit'),
+                    label: widget.isEdit ? l10n.commonSave : l10n.postShare,
+                    icon: widget.isEdit ? null : Icons.send_rounded,
+                    height: 64,
+                    size: AppButtonSize.lg,
+                    isLoading: _submitting,
+                    onPressed: _compressing ? null : _submit,
+                  ),
                 ],
               ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: AppButton(
-              key: const Key('post-submit'),
-              label: widget.isEdit ? l10n.commonSave : l10n.postPublish,
-              isLoading: _submitting,
-              onPressed: _compressing ? null : _submit,
-            ),
-          ),
-        ),
       ),
     );
   }
 }
 
-class _ImagesRow extends StatelessWidget {
-  const _ImagesRow({
+/// 44px rounded-2xl frosted back button (web create-post header).
+class _SquareBackButton extends StatelessWidget {
+  const _SquareBackButton({required this.onPressed, required this.tooltip});
+
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Material(
+          key: const Key('post-close'),
+          color: AppColors.surfaceContainerLow.withValues(alpha: 0.8),
+          borderRadius: AppSpacing.borderRadiusLg,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            child: const SizedBox.square(
+              dimension: 44,
+              child: Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+            ),
+          ),
+        ),
+      );
+}
+
+/// "PHOTOS (n/10)" with the big "Add Photos" panel, or the photo strip.
+class _PhotosPanel extends StatelessWidget {
+  const _PhotosPanel({
     required this.images,
     required this.compressing,
     required this.onRemove,
@@ -408,115 +484,389 @@ class _ImagesRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final full = images.length >= CreatePostScreen.maxImages;
+    final canAdd = !full && !compressing;
+    final linkStyle = AppTypography.labelSmall.copyWith(
+      fontWeight: FontWeight.w700,
+      color: AppColors.primary,
+    );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                key: const Key('post-add-photos'),
-                onPressed: full || compressing ? null : onGallery,
-                icon: const Icon(Icons.photo_library_outlined),
-                label: Text(l10n.postAddPhotos),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  (compressing
+                          ? l10n.postCompressing
+                          : l10n.postPhotosCount(images.length))
+                      .toUpperCase(),
+                  style: AppTypography.eyebrow.copyWith(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              if (canAdd)
+                InkWell(
+                  key: const Key('post-take-photo'),
+                  onTap: onCamera,
+                  borderRadius: AppSpacing.borderRadiusFull,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.photo_camera_outlined,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        AppSpacing.hGapXs,
+                        Text(l10n.postTakePhoto.toUpperCase(),
+                            style: linkStyle),
+                      ],
+                    ),
+                  ),
+                ),
+              if (canAdd && images.isNotEmpty) ...[
+                AppSpacing.hGapMd,
+                InkWell(
+                  onTap: onGallery,
+                  child: Text(l10n.postAddMore.toUpperCase(), style: linkStyle),
+                ),
+              ],
+            ],
+          ),
+        ),
+        AppSpacing.vGapMd,
+        if (images.isEmpty)
+          Material(
+            color: AppColors.surfaceContainerLow,
+            borderRadius:
+                const BorderRadius.all(Radius.circular(AppRadius.panel)),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              key: const Key('post-add-photos'),
+              onTap: canAdd ? onGallery : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceContainerHigh,
+                        borderRadius: AppSpacing.borderRadiusLg,
+                      ),
+                      child: const Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 30,
+                        color: AppColors.tertiary,
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    Text(
+                      l10n.postAddPhotos,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      l10n.postPickerHint.toUpperCase(),
+                      style: AppTypography.labelSmall.copyWith(
+                        letterSpacing: -0.3,
+                        color:
+                            AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            AppSpacing.hGapSm,
-            IconButton.filledTonal(
-              tooltip: l10n.postTakePhoto,
-              onPressed: full || compressing ? null : onCamera,
-              icon: const Icon(Icons.photo_camera_outlined),
-            ),
-          ],
-        ),
-        AppSpacing.vGapXs,
-        Text(
-          compressing
-              ? l10n.postCompressing
-              : '${images.length}/${CreatePostScreen.maxImages}',
-          style: AppTypography.labelSmall,
-        ),
-        if (images.isNotEmpty) ...[
-          AppSpacing.vGapSm,
+          )
+        else
           SizedBox(
-            height: 96,
+            height: 128,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: images.length,
-              separatorBuilder: (_, __) => AppSpacing.hGapSm,
-              itemBuilder: (_, i) => Stack(
-                children: [
-                  ClipRRect(
+              itemCount: images.length + (canAdd ? 1 : 0),
+              separatorBuilder: (_, __) => AppSpacing.hGapMd,
+              itemBuilder: (_, i) {
+                if (i == images.length) {
+                  return Material(
+                    color: AppColors.surfaceContainerLow,
                     borderRadius: AppSpacing.borderRadiusLg,
-                    child: Image.file(
-                      images[i],
-                      width: 96,
-                      height: 96,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: IconButton.filled(
-                      tooltip: l10n.postRemovePhoto,
-                      iconSize: 16,
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.inverseSurface,
-                        minimumSize: const Size(28, 28),
+                    child: InkWell(
+                      key: const Key('post-add-more'),
+                      borderRadius: AppSpacing.borderRadiusLg,
+                      onTap: onGallery,
+                      child: const SizedBox.square(
+                        dimension: 128,
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: AppColors.onSurfaceVariant,
+                        ),
                       ),
-                      onPressed: () => onRemove(i),
-                      icon: const Icon(Icons.close_rounded),
                     ),
-                  ),
-                ],
-              ),
+                  );
+                }
+                return Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: AppSpacing.borderRadiusLg,
+                      child: Image.file(
+                        images[i],
+                        width: 128,
+                        height: 128,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Tooltip(
+                        message: l10n.postRemovePhoto,
+                        child: GestureDetector(
+                          key: ValueKey('post-remove-photo-$i'),
+                          onTap: () => onRemove(i),
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-        ],
       ],
     );
   }
 }
 
-class _OptionTile extends StatelessWidget {
-  const _OptionTile({
+/// `rounded-[2rem] bg-surface-container-low p-6` caption card with a filled
+/// textarea and a "n/2000" counter.
+class _CaptionCard extends StatelessWidget {
+  const _CaptionCard({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.all(Radius.circular(AppRadius.panel)),
+        boxShadow: AppShadows.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            key: const Key('post-caption'),
+            controller: controller,
+            maxLength: 2000,
+            minLines: 4,
+            maxLines: 8,
+            onChanged: (_) => onChanged(),
+            style: AppTypography.bodyLarge,
+            decoration: InputDecoration(
+              hintText: l10n.postCaptionHint,
+              hintStyle: AppTypography.bodyLarge.copyWith(
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
+              counterText: '',
+              filled: true,
+              fillColor: AppColors.surfaceContainerHighest,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
+              border: const OutlineInputBorder(
+                borderRadius: AppSpacing.borderRadiusLg,
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: AppSpacing.borderRadiusLg,
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppSpacing.borderRadiusLg,
+                borderSide: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+          AppSpacing.vGapSm,
+          Text(
+            l10n.postCaptionCount(controller.text.length),
+            textAlign: TextAlign.right,
+            style: AppTypography.labelSmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Round tinted icon tile (`w-10 h-10 rounded-xl bg-<tint>/10`).
+class _IconTile extends StatelessWidget {
+  const _IconTile({
     required this.icon,
-    required this.label,
+    required this.tint,
+    this.neutral = false,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final bool neutral;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: neutral
+              ? AppColors.surfaceContainerHigh
+              : tint.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 20, color: tint),
+      );
+}
+
+/// Tag Game / Tag Friends row: icon tile, bold title and a tiny hint.
+class _OptionRow extends StatelessWidget {
+  const _OptionRow({
+    super.key,
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.hint,
     required this.onTap,
-    this.onClear,
     this.trailing,
   });
 
   final IconData icon;
-  final String label;
+  final Color tint;
+  final String title;
+  final String hint;
   final VoidCallback onTap;
-  final VoidCallback? onClear;
   final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: Material(
-          color: AppColors.surfaceContainerLow,
-          borderRadius: AppSpacing.borderRadiusLg,
-          child: ListTile(
-            shape: const RoundedRectangleBorder(
-              borderRadius: AppSpacing.borderRadiusLg,
+  Widget build(BuildContext context) => Material(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: AppSpacing.borderRadiusLg,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              children: [
+                _IconTile(icon: icon, tint: tint),
+                AppSpacing.hGapLg,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.titleSmall,
+                      ),
+                      Text(
+                        hint.toUpperCase(),
+                        style: AppTypography.labelSmall.copyWith(
+                          letterSpacing: -0.3,
+                          color:
+                              AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
             ),
-            leading: Icon(icon, color: AppColors.primary),
-            title: Text(label, style: AppTypography.bodyMedium),
-            onTap: onTap,
-            trailing: onClear != null
-                ? IconButton(
-                    tooltip: context.l10n.commonClose,
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: onClear,
-                  )
-                : trailing,
           ),
         ),
       );
+}
+
+/// Location / Date played row: icon tile with a tiny label over a value.
+class _FieldRow extends StatelessWidget {
+  const _FieldRow({
+    super.key,
+    required this.icon,
+    required this.tint,
+    required this.label,
+    required this.child,
+    this.neutral = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String label;
+  final Widget child;
+  final bool neutral;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        children: [
+          _IconTile(icon: icon, tint: tint, neutral: neutral),
+          AppSpacing.hGapLg,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: AppTypography.labelSmall.copyWith(
+                    letterSpacing: -0.3,
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+                child,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    return Material(
+      color: AppColors.surfaceContainerLow,
+      borderRadius: AppSpacing.borderRadiusLg,
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null ? content : InkWell(onTap: onTap, child: content),
+    );
+  }
 }
 
 /// The editable fields of a post, compared to detect unsaved edits.
@@ -546,6 +896,6 @@ final class _EditSnapshot {
       other.taggedIds.containsAll(taggedIds);
 
   @override
-  int get hashCode =>
-      Object.hash(caption, location, gameId, Object.hashAllUnordered(taggedIds));
+  int get hashCode => Object.hash(
+      caption, location, gameId, Object.hashAllUnordered(taggedIds));
 }

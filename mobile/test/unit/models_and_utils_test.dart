@@ -302,12 +302,20 @@ void main() {
 
     test('dates and grouping', () {
       final now = DateTime(2026, 5, 10, 12);
-      expect(AppDateUtils.timeAgo(now, en, now: now), 'just now');
+      expect(AppDateUtils.timeAgo(now, en, now: now), 'Just now');
       expect(AppDateUtils.timeAgo(now.subtract(const Duration(minutes: 5)), en, now: now), '5m ago');
       expect(AppDateUtils.timeAgo(now.subtract(const Duration(hours: 3)), en, now: now), '3h ago');
-      expect(AppDateUtils.timeAgo(now.subtract(const Duration(days: 1)), en, now: now), 'yesterday');
+      expect(AppDateUtils.timeAgo(now.subtract(const Duration(hours: 23)), en, now: now), '23h ago');
+      expect(AppDateUtils.timeAgo(now.subtract(const Duration(days: 1)), en, now: now), '1d ago');
+      expect(AppDateUtils.timeAgo(now.subtract(const Duration(hours: 23)), zh, now: now), '23 小时前');
       expect(AppDateUtils.timeAgo(now.subtract(const Duration(days: 4)), zh, now: now), '4 天前');
-      expect(AppDateUtils.timeAgo(DateTime(2026, 1, 2), en, now: now), contains('2026'));
+      expect(AppDateUtils.timeAgo(DateTime(2026, 1, 2), en, now: now), 'Jan 2');
+      expect(AppDateUtils.timeAgoCompact(now, en, now: now), 'just now');
+      expect(AppDateUtils.timeAgoCompact(now.subtract(const Duration(minutes: 5)), en, now: now), '5m');
+      expect(AppDateUtils.timeAgoCompact(now.subtract(const Duration(hours: 3)), en, now: now), '3h');
+      expect(AppDateUtils.timeAgoCompact(now.subtract(const Duration(days: 2)), en, now: now), '2d');
+      expect(AppDateUtils.timeAgoCompact(now.subtract(const Duration(days: 2)), zh, now: now), '2 天前');
+      expect(AppDateUtils.timeAgoCompact(DateTime(2026, 1, 2), en, now: now), 'Jan 2');
       expect(AppDateUtils.formatHhMm(7, 5), '07:05');
       expect(AppDateUtils.isSameDay(now, now.add(const Duration(hours: 1))), isTrue);
       expect(AppDateUtils.formatMonthShort(now), 'MAY');

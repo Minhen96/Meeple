@@ -1301,13 +1301,13 @@ abstract class AppLocalizations {
   /// No description provided for @eventCancelMessage.
   ///
   /// In en, this message translates to:
-  /// **'Everyone who joined or was invited will be notified.'**
+  /// **'Everyone going will be notified. This cannot be undone.'**
   String get eventCancelMessage;
 
   /// No description provided for @eventCancelTitle.
   ///
   /// In en, this message translates to:
-  /// **'Cancel this event?'**
+  /// **'Cancel event?'**
   String get eventCancelTitle;
 
   /// No description provided for @eventCancelledBanner.
@@ -1451,7 +1451,7 @@ abstract class AppLocalizations {
   /// No description provided for @eventInvitesSent.
   ///
   /// In en, this message translates to:
-  /// **'Invites sent.'**
+  /// **'Invites sent'**
   String get eventInvitesSent;
 
   /// No description provided for @eventJoin.
@@ -1475,13 +1475,13 @@ abstract class AppLocalizations {
   /// No description provided for @eventKickMessage.
   ///
   /// In en, this message translates to:
-  /// **'{name} will be removed from this event.'**
+  /// **'Remove {name} from this event? They will be notified.'**
   String eventKickMessage(String name);
 
   /// No description provided for @eventKickTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove participant?'**
+  /// **'Remove player?'**
   String get eventKickTitle;
 
   /// No description provided for @eventLeave.
@@ -1499,7 +1499,7 @@ abstract class AppLocalizations {
   /// No description provided for @eventLeaveTitle.
   ///
   /// In en, this message translates to:
-  /// **'Leave this event?'**
+  /// **'Leave event?'**
   String get eventLeaveTitle;
 
   /// No description provided for @eventLocationHint.
@@ -2801,7 +2801,7 @@ abstract class AppLocalizations {
   /// No description provided for @postCaptionHint.
   ///
   /// In en, this message translates to:
-  /// **'What happened at the table?'**
+  /// **'Share the story behind this session…'**
   String get postCaptionHint;
 
   /// No description provided for @postComment.
@@ -2915,7 +2915,7 @@ abstract class AppLocalizations {
   /// No description provided for @postNewTitle.
   ///
   /// In en, this message translates to:
-  /// **'New post'**
+  /// **'New Post'**
   String get postNewTitle;
 
   /// No description provided for @postPlayedOn.
@@ -2957,13 +2957,13 @@ abstract class AppLocalizations {
   /// No description provided for @postTagFriends.
   ///
   /// In en, this message translates to:
-  /// **'Tag friends'**
+  /// **'Tag Friends'**
   String get postTagFriends;
 
   /// No description provided for @postTagGame.
   ///
   /// In en, this message translates to:
-  /// **'Tag a game'**
+  /// **'Tag Game'**
   String get postTagGame;
 
   /// No description provided for @postTaggedCount.
@@ -3889,6 +3889,534 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your password'**
   String get authPasswordHint;
+
+  /// No description provided for @eventsPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Nights'**
+  String get eventsPageTitle;
+
+  /// No description provided for @eventsPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your next adventure at a table near you.'**
+  String get eventsPageSubtitle;
+
+  /// No description provided for @eventsTabCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get eventsTabCommunity;
+
+  /// No description provided for @eventsViewList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get eventsViewList;
+
+  /// No description provided for @eventsViewCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get eventsViewCalendar;
+
+  /// No description provided for @eventsEmptyCommunityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No public events yet.'**
+  String get eventsEmptyCommunityTitle;
+
+  /// No description provided for @eventsEmptyCommunityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Public game nights will show up here.'**
+  String get eventsEmptyCommunityBody;
+
+  /// No description provided for @eventsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get eventsLoadMore;
+
+  /// No description provided for @eventCreateCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Event'**
+  String get eventCreateCta;
+
+  /// No description provided for @eventCardInvited.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re invited'**
+  String get eventCardInvited;
+
+  /// No description provided for @eventCardGoing.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re going'**
+  String get eventCardGoing;
+
+  /// No description provided for @eventCardPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/{max}'**
+  String eventCardPlayers(int count, int max);
+
+  /// No description provided for @calendarPrevMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get calendarPrevMonth;
+
+  /// No description provided for @calendarNextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get calendarNextMonth;
+
+  /// No description provided for @calendarToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get calendarToday;
+
+  /// No description provided for @calendarEventsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Events on {date}'**
+  String calendarEventsOn(String date);
+
+  /// No description provided for @calendarNoEventsDay.
+  ///
+  /// In en, this message translates to:
+  /// **'No events on this day.'**
+  String get calendarNoEventsDay;
+
+  /// No description provided for @eventDetailHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Host'**
+  String get eventDetailHost;
+
+  /// No description provided for @eventDetailWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'When'**
+  String get eventDetailWhen;
+
+  /// No description provided for @eventDetailWhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Where'**
+  String get eventDetailWhere;
+
+  /// No description provided for @eventLocationHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact location shared after you join'**
+  String get eventLocationHidden;
+
+  /// No description provided for @eventLocationTbd.
+  ///
+  /// In en, this message translates to:
+  /// **'To be decided'**
+  String get eventLocationTbd;
+
+  /// No description provided for @eventDetailPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing'**
+  String get eventDetailPlaying;
+
+  /// No description provided for @eventDetailPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Players'**
+  String get eventDetailPlayers;
+
+  /// No description provided for @eventDetailSpots.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} going · {left} spots left'**
+  String eventDetailSpots(int count, int left);
+
+  /// No description provided for @eventDetailNoOneYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No one else yet. Invite some friends!'**
+  String get eventDetailNoOneYet;
+
+  /// No description provided for @eventVisPublicEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Public event'**
+  String get eventVisPublicEvent;
+
+  /// No description provided for @eventVisFriendsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends only'**
+  String get eventVisFriendsOnly;
+
+  /// No description provided for @eventInviteOnlyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'You need an invite to join this event.'**
+  String get eventInviteOnlyNotice;
+
+  /// No description provided for @eventManageParticipants.
+  ///
+  /// In en, this message translates to:
+  /// **'View participants'**
+  String get eventManageParticipants;
+
+  /// No description provided for @eventParticipantsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Participants'**
+  String get eventParticipantsTitle;
+
+  /// No description provided for @eventMemoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memories'**
+  String get eventMemoriesTitle;
+
+  /// No description provided for @eventShareMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a memory'**
+  String get eventShareMemory;
+
+  /// No description provided for @eventKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep event'**
+  String get eventKeep;
+
+  /// No description provided for @eventStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay'**
+  String get eventStay;
+
+  /// No description provided for @eventLeaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get eventLeaveConfirm;
+
+  /// No description provided for @eventInviteSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send invites'**
+  String get eventInviteSend;
+
+  /// No description provided for @eventRsvpInvited.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited'**
+  String get eventRsvpInvited;
+
+  /// No description provided for @eventRsvpAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Going'**
+  String get eventRsvpAccepted;
+
+  /// No description provided for @eventRsvpDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get eventRsvpDeclined;
+
+  /// No description provided for @eventRsvpLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get eventRsvpLeft;
+
+  /// No description provided for @eventRsvpKicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get eventRsvpKicked;
+
+  /// No description provided for @eventFormCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Event'**
+  String get eventFormCreateTitle;
+
+  /// No description provided for @eventFormEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Event'**
+  String get eventFormEditTitle;
+
+  /// No description provided for @eventFormSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gather your party'**
+  String get eventFormSubtitle;
+
+  /// No description provided for @eventFormFromMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-filled from your match'**
+  String get eventFormFromMatch;
+
+  /// No description provided for @eventFieldDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get eventFieldDate;
+
+  /// No description provided for @eventFieldTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get eventFieldTime;
+
+  /// No description provided for @eventTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Heavy Euro Night'**
+  String get eventTitleHint;
+
+  /// No description provided for @eventPlayersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} players'**
+  String eventPlayersLabel(int count);
+
+  /// No description provided for @eventVisPublicDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone can see and join'**
+  String get eventVisPublicDesc;
+
+  /// No description provided for @eventVisFriendsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends can see it; invited friends can join'**
+  String get eventVisFriendsDesc;
+
+  /// No description provided for @eventVisInviteOnlyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Only people you invite'**
+  String get eventVisInviteOnlyDesc;
+
+  /// No description provided for @eventInviteSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search friends'**
+  String get eventInviteSearch;
+
+  /// No description provided for @eventSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String eventSelectedCount(int count);
+
+  /// No description provided for @eventFieldDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get eventFieldDescriptionLabel;
+
+  /// No description provided for @eventDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules, food plan, or what to bring…'**
+  String get eventDescriptionHint;
+
+  /// No description provided for @eventCharCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/{max}'**
+  String eventCharCount(int count, int max);
+
+  /// No description provided for @eventSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get eventSaveChanges;
+
+  /// No description provided for @postCommentsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get postCommentsLabel;
+
+  /// No description provided for @postBackHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Home'**
+  String get postBackHome;
+
+  /// No description provided for @postPhotosCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos ({count}/10)'**
+  String postPhotosCount(int count);
+
+  /// No description provided for @postPickerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional · up to 10 photos'**
+  String get postPickerHint;
+
+  /// No description provided for @postAddMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more'**
+  String get postAddMore;
+
+  /// No description provided for @postCaptionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/2000'**
+  String postCaptionCount(int count);
+
+  /// No description provided for @postWhichGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Which board game?'**
+  String get postWhichGame;
+
+  /// No description provided for @postWhoPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Who played with you?'**
+  String get postWhoPlayed;
+
+  /// No description provided for @postLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get postLocationLabel;
+
+  /// No description provided for @postLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where did you play?'**
+  String get postLocationHint;
+
+  /// No description provided for @postDatePlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Date played'**
+  String get postDatePlayed;
+
+  /// No description provided for @postShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Post'**
+  String get postShare;
+
+  /// No description provided for @postForEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing memories from an event'**
+  String get postForEvent;
+
+  /// No description provided for @savedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved posts yet. Tap the bookmark on a post to keep it here.'**
+  String get savedEmpty;
+
+  /// No description provided for @notificationsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get notificationsDelete;
+
+  /// No description provided for @timeJustNowSocial.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNowSocial;
+
+  /// No description provided for @timeCompactMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}m'**
+  String timeCompactMinutes(int n);
+
+  /// No description provided for @timeCompactHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}h'**
+  String timeCompactHours(int n);
+
+  /// No description provided for @timeCompactDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}d'**
+  String timeCompactDays(int n);
+
+  /// No description provided for @createSheetPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get createSheetPost;
+
+  /// No description provided for @createSheetPostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a game night memory'**
+  String get createSheetPostHint;
+
+  /// No description provided for @createSheetEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get createSheetEvent;
+
+  /// No description provided for @createSheetEventHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize a game night'**
+  String get createSheetEventHint;
+
+  /// No description provided for @createSheetGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Game'**
+  String get createSheetGame;
+
+  /// No description provided for @createSheetGameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a game to your collection'**
+  String get createSheetGameHint;
+
+  /// No description provided for @createSheetMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Find Match'**
+  String get createSheetMatch;
+
+  /// No description provided for @createSheetMatchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Find friends to play with'**
+  String get createSheetMatchHint;
+
+  /// No description provided for @postWithLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'With'**
+  String get postWithLabel;
+
+  /// No description provided for @commentReportShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get commentReportShort;
 }
 
 class _AppLocalizationsDelegate

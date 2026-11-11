@@ -344,8 +344,8 @@
   "deleteWarning": "Your account will be deactivated immediately and permanently deleted after 30 days. Your collection, friendships, match requests and notifications are removed now; posts and comments show as \"Deleted User\". Log in within 30 days to reactivate.",
   "eventAccept": "Accept",
   "eventCancelConfirm": "Cancel event",
-  "eventCancelMessage": "Everyone who joined or was invited will be notified.",
-  "eventCancelTitle": "Cancel this event?",
+  "eventCancelMessage": "Everyone going will be notified. This cannot be undone.",
+  "eventCancelTitle": "Cancel event?",
   "eventCancelledBanner": "This event has been cancelled.",
   "eventChangeToGoing": "Change to Going",
   "eventChooseFriends": "Choose friends",
@@ -397,11 +397,11 @@
       }
     }
   },
-  "eventInvitesSent": "Invites sent.",
+  "eventInvitesSent": "Invites sent",
   "eventJoin": "Join",
   "eventJoined": "You're going!",
   "eventKick": "Remove",
-  "eventKickMessage": "{name} will be removed from this event.",
+  "eventKickMessage": "Remove {name} from this event? They will be notified.",
   "@eventKickMessage": {
     "placeholders": {
       "name": {
@@ -409,10 +409,10 @@
       }
     }
   },
-  "eventKickTitle": "Remove participant?",
+  "eventKickTitle": "Remove player?",
   "eventLeave": "Leave Event",
   "eventLeaveMessage": "Your spot will open up for someone else.",
-  "eventLeaveTitle": "Leave this event?",
+  "eventLeaveTitle": "Leave event?",
   "eventLocationHint": "Address, venue name, or 'Online'",
   "eventManage": "Manage Event",
   "eventNoMemories": "No memories shared yet.",
@@ -961,7 +961,7 @@
   "playPlayers": "Players",
   "postAddComment": "Add a comment…",
   "postAddPhotos": "Add Photos",
-  "postCaptionHint": "What happened at the table?",
+  "postCaptionHint": "Share the story behind this session…",
   "postComment": "Comment",
   "postCommentsTitle": "{count, plural, =0{Comments} =1{1 comment} other{{count} comments}}",
   "@postCommentsTitle": {
@@ -994,7 +994,7 @@
       }
     }
   },
-  "postNewTitle": "New post",
+  "postNewTitle": "New Post",
   "postPlayedOn": "Played on {date}",
   "@postPlayedOn": {
     "placeholders": {
@@ -1008,8 +1008,8 @@
   "postRemovePhoto": "Remove photo",
   "postRemoved": "This post has been removed.",
   "postSave": "Save",
-  "postTagFriends": "Tag friends",
-  "postTagGame": "Tag a game",
+  "postTagFriends": "Tag Friends",
+  "postTagGame": "Tag Game",
   "postTaggedCount": "{count, plural, =1{1 friend tagged} other{{count} friends tagged}}",
   "@postTaggedCount": {
     "placeholders": {
@@ -1240,5 +1240,179 @@
   "authHeroTitle": "Board game app",
   "authHeroBody": "Welcome back to your board game community. Discover, track and play.",
   "authNewPlayer": "New player?",
-  "authPasswordHint": "Your password"
+  "authPasswordHint": "Your password",
+  "eventsPageTitle": "Game Nights",
+  "eventsPageSubtitle": "Find your next adventure at a table near you.",
+  "eventsTabCommunity": "Community",
+  "eventsViewList": "List",
+  "eventsViewCalendar": "Calendar",
+  "eventsEmptyCommunityTitle": "No public events yet.",
+  "eventsEmptyCommunityBody": "Public game nights will show up here.",
+  "eventsLoadMore": "Load more",
+  "eventCreateCta": "Create Event",
+  "eventCardInvited": "You're invited",
+  "eventCardGoing": "You're going",
+  "eventCardPlayers": "{count}/{max}",
+  "@eventCardPlayers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarPrevMonth": "Previous month",
+  "calendarNextMonth": "Next month",
+  "calendarToday": "Today",
+  "calendarEventsOn": "Events on {date}",
+  "@calendarEventsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarNoEventsDay": "No events on this day.",
+  "eventDetailHost": "Host",
+  "eventDetailWhen": "When",
+  "eventDetailWhere": "Where",
+  "eventLocationHidden": "Exact location shared after you join",
+  "eventLocationTbd": "To be decided",
+  "eventDetailPlaying": "Playing",
+  "eventDetailPlayers": "Players",
+  "eventDetailSpots": "{count} going · {left} spots left",
+  "@eventDetailSpots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "eventDetailNoOneYet": "No one else yet. Invite some friends!",
+  "eventVisPublicEvent": "Public event",
+  "eventVisFriendsOnly": "Friends only",
+  "eventInviteOnlyNotice": "You need an invite to join this event.",
+  "eventManageParticipants": "View participants",
+  "eventParticipantsTitle": "Participants",
+  "eventMemoriesTitle": "Memories",
+  "eventShareMemory": "Share a memory",
+  "eventKeep": "Keep event",
+  "eventStay": "Stay",
+  "eventLeaveConfirm": "Leave",
+  "eventInviteSend": "Send invites",
+  "eventRsvpInvited": "Invited",
+  "eventRsvpAccepted": "Going",
+  "eventRsvpDeclined": "Declined",
+  "eventRsvpLeft": "Left",
+  "eventRsvpKicked": "Removed",
+  "eventFormCreateTitle": "New Event",
+  "eventFormEditTitle": "Edit Event",
+  "eventFormSubtitle": "Gather your party",
+  "eventFormFromMatch": "Pre-filled from your match",
+  "eventFieldDate": "Date",
+  "eventFieldTime": "Time",
+  "eventTitleHint": "e.g. Heavy Euro Night",
+  "eventPlayersLabel": "{count} players",
+  "@eventPlayersLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventVisPublicDesc": "Anyone can see and join",
+  "eventVisFriendsDesc": "Friends can see it; invited friends can join",
+  "eventVisInviteOnlyDesc": "Only people you invite",
+  "eventInviteSearch": "Search friends",
+  "eventSelectedCount": "{count} selected",
+  "@eventSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventFieldDescriptionLabel": "Description",
+  "eventDescriptionHint": "Rules, food plan, or what to bring…",
+  "eventCharCount": "{count}/{max}",
+  "@eventCharCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "eventSaveChanges": "Save Changes",
+  "postCommentsLabel": "Comments",
+  "postBackHome": "Back to Home",
+  "postPhotosCount": "Photos ({count}/10)",
+  "@postPhotosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "postPickerHint": "Optional · up to 10 photos",
+  "postAddMore": "Add more",
+  "postCaptionCount": "{count}/2000",
+  "@postCaptionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "postWhichGame": "Which board game?",
+  "postWhoPlayed": "Who played with you?",
+  "postLocationLabel": "Location",
+  "postLocationHint": "Where did you play?",
+  "postDatePlayed": "Date played",
+  "postShare": "Share Post",
+  "postForEvent": "Sharing memories from an event",
+  "savedEmpty": "No saved posts yet. Tap the bookmark on a post to keep it here.",
+  "notificationsDelete": "Delete",
+  "timeJustNowSocial": "Just now",
+  "timeCompactMinutes": "{n}m",
+  "@timeCompactMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "timeCompactHours": "{n}h",
+  "@timeCompactHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "timeCompactDays": "{n}d",
+  "@timeCompactDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "createSheetPost": "Post",
+  "createSheetPostHint": "Share a game night memory",
+  "createSheetEvent": "Event",
+  "createSheetEventHint": "Organize a game night",
+  "createSheetGame": "Add Game",
+  "createSheetGameHint": "Add a game to your collection",
+  "createSheetMatch": "Find Match",
+  "createSheetMatchHint": "Find friends to play with",
+  "postWithLabel": "With",
+  "commentReportShort": "Report"
 }

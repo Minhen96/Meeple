@@ -9,6 +9,7 @@ import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/push/push_providers.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/shell/create_sheet.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/status_banners.dart';
 
@@ -74,56 +75,9 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 }
 
-/// The FAB's create sheet (PLAN §3.8 / GAP §6.6).
-Future<void> showCreateSheet(BuildContext context) {
-  final l10n = context.l10n;
-  final options = [
-    (Icons.photo_camera_outlined, l10n.createPost, AppRoutes.createPost),
-    (Icons.event_available_outlined, l10n.createEvent, AppRoutes.createEvent),
-    (Icons.add_box_outlined, l10n.createAddGame, '${AppRoutes.library}?filter=all'),
-    (Icons.group_add_outlined, l10n.createFindMatch, AppRoutes.matching),
-  ];
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    backgroundColor: AppColors.surfaceContainerLowest,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final (icon, label, route) in options)
-              ListTile(
-                key: ValueKey('create-$route'),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppSpacing.borderRadiusLg,
-                ),
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.primaryFixed,
-                  child: Icon(icon, color: AppColors.primary),
-                ),
-                title: Text(label, style: AppTypography.titleMedium),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  if (route.startsWith(AppRoutes.library)) {
-                    context.go(route);
-                  } else {
-                    context.push(route);
-                  }
-                },
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
+/// The FAB's create sheet (PLAN §3.8 / GAP §6.6) — see [CreateSheet].
+Future<void> showCreateSheet(BuildContext context) =>
+    showCreateActionsSheet(context);
 
 /// Bottom navigation (web `BottomNav.svelte`): frosted surface with a
 /// rounded top (`rounded-t-[2rem]`), a soft upward shadow, and pill tabs —

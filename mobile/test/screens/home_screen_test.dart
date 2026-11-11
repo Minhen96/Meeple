@@ -92,10 +92,15 @@ void main() {
     await tester.tap(find.byKey(const Key('create-fab')));
     await settle(tester);
 
-    expect(find.text('Post a game night'), findsOneWidget);
+    expect(find.text('Create'), findsOneWidget);
+    expect(find.text('Share a game night memory'), findsOneWidget);
     expect(find.byKey(const ValueKey('create-/events/create')), findsOneWidget);
-    expect(find.text('Add a game'), findsOneWidget);
-    expect(find.text('Find players'), findsOneWidget);
+    expect(find.text('Add Game'), findsOneWidget);
+    expect(find.text('Find Match'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('create-/events/create')));
+    await settle(tester);
+    expect(find.text('New Event'), findsOneWidget);
   });
 
   testWidgets('feed card shows the web post layout: played game, tagged '

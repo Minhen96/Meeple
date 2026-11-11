@@ -1,3 +1,6 @@
+import 'dart:ui' show ImageFilter;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,20 +13,21 @@ import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/events/domain/event_model.dart';
 import 'package:meeple_hearth/features/events/providers/events_provider.dart';
 import 'package:meeple_hearth/features/library/domain/game_model.dart';
-import 'package:meeple_hearth/features/library/presentation/widgets/game_card.dart';
 import 'package:meeple_hearth/features/library/presentation/widgets/game_picker.dart';
 import 'package:meeple_hearth/features/library/providers/library_provider.dart';
 import 'package:meeple_hearth/features/matching/providers/matching_provider.dart';
-import 'package:meeple_hearth/features/social/presentation/friend_picker.dart';
+import 'package:meeple_hearth/features/social/providers/social_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/models/user_summary.dart';
 import 'package:meeple_hearth/shared/widgets/app_avatar.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
+import 'package:meeple_hearth/shared/widgets/app_text_field.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/meeple_app_bar.dart';
 
-/// Create or edit an event (SCREENS §6.5): game, title, date & time,
-/// location, max players, visibility, invited friends, description.
+/// Create or edit an event (SCREENS §6.5 / web `EventForm`): game, title,
+/// date & time, location; max players and visibility; invited friends;
+/// description — in rounded panels with eyebrow labels and filled inputs.
 /// `?matchGroupId=` pre-fills game, time and invitees from a match.
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({
@@ -39,6 +43,10 @@ class CreateEventScreen extends ConsumerStatefulWidget {
 
   bool get isEdit => editEventId != null;
 
+  static const minPlayers = 2;
+  static const maxPlayers = 50;
+  static const descriptionMax = 1000;
+
   @override
   ConsumerState<CreateEventScreen> createState() => _CreateEventScreenState();
 }
@@ -49,8 +57,11 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   final _location = TextEditingController();
   final _description = TextEditingController();
   Game? _game;
-  DateTime? _date;
-  TimeOfDay? _time;
+
+  // Web default: tomorrow at 19:00.
+  DateTime? _date =
+      DateUtils.dateOnly(DateTime.now()).add(const Duration(days: 1));
+  TimeOfDay? _time = const TimeOfDay(hour: 19, minute: 0);
   int _maxPlayers = 8;
   EventVisibility _visibility = EventVisibility.inviteOnly;
   List<UserSummary> _invited = [];
@@ -62,6 +73,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   @override
   void initState() {
     super.initState();
+    _description.addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) => _prefill());
   }
 
@@ -76,7 +88,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   Future<void> _prefill() async {
     try {
       if (widget.isEdit) {
-        final e = await ref.read(eventDetailProvider(widget.editEventId!).future);
+        final e =
+            await ref.read(eventDetailProvider(widget.editEventId!).future);
         if (!mounted) return;
         final local = e.scheduledAt.toLocal();
         setState(() {
@@ -93,7 +106,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       } else if (widget.matchGroupId != null) {
         final groups = await ref.read(matchSuggestionsProvider.future);
         final me = ref.read(authNotifierProvider).valueOrNull;
-        final group = groups.where((g) => g.id == widget.matchGroupId).firstOrNull;
+        final group =
+            groups.where((g) => g.id == widget.matchGroupId).firstOrNull;
         if (!mounted || group == null) return;
         final start = group.overlapStart?.toLocal();
         setState(() {
@@ -118,7 +132,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   void _setGame(Game? game) {
     _game = game;
     if (!_titleEdited) {
-      _title.text = game == null ? '' : context.l10n.eventDefaultTitle(game.name);
+      _title.text =
+          game == null ? '' : context.l10n.eventDefaultTitle(game.name);
     }
   }
 
@@ -156,6 +171,13 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     final hour = picked.minute >= 45 ? (picked.hour + 1) % 24 : picked.hour;
     setState(() => _time = TimeOfDay(hour: hour, minute: minute));
   }
+
+  void _setPlayers(int n) => setState(
+        () => _maxPlayers = n.clamp(
+          CreateEventScreen.minPlayers,
+          CreateEventScreen.maxPlayers,
+        ),
+      );
 
   Future<void> _submit() async {
     final l10n = context.l10n;
@@ -207,237 +229,452 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final at = _scheduledAt;
+    final subtitle = widget.isEdit
+        ? null
+        : widget.matchGroupId != null
+            ? l10n.eventFormFromMatch
+            : l10n.eventFormSubtitle;
     return Scaffold(
       appBar: MeepleAppBar(
-        title: widget.isEdit ? l10n.eventEdit : l10n.createEvent,
         showBackButton: true,
         fallbackRoute: AppRoutes.events,
+        titleWidget: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.isEdit
+                    ? l10n.eventFormEditTitle
+                    : l10n.eventFormCreateTitle,
+                style: AppTypography.headlineMedium.copyWith(
+                  fontWeight: FontWeight.w900,
+                  height: 1.1,
+                ),
+              ),
+              if (subtitle != null)
+                Text(
+                  subtitle.toUpperCase(),
+                  style: AppTypography.overline.copyWith(
+                    fontSize: 11,
+                    height: 1.2,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
       body: !_prefilled && (widget.isEdit || widget.matchGroupId != null)
           ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _form,
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  _Label(l10n.eventFieldGame),
-                  if (_game == null)
-                    OutlinedButton.icon(
-                      key: const Key('event-pick-game'),
-                      onPressed: () async {
-                        final g = await showGamePicker(context);
-                        if (g == null || !mounted) return;
-                        setState(() => _setGame(g));
-                      },
-                      icon: const Icon(Icons.search_rounded),
-                      label: Text(l10n.eventPickGame),
-                    )
-                  else
-                    Material(
-                      color: AppColors.surfaceContainerLow,
-                      borderRadius: AppSpacing.borderRadiusLg,
-                      child: GameListTile(
-                        game: _game!,
-                        trailing: IconButton(
-                          tooltip: l10n.eventRemoveGame,
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () => setState(() => _setGame(null)),
-                        ),
-                      ),
+          : Stack(
+              children: [
+                Form(
+                  key: _form,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      128,
                     ),
-                  AppSpacing.vGapLg,
-                  TextFormField(
-                    key: const Key('event-title'),
-                    controller: _title,
-                    maxLength: 100,
-                    onChanged: (_) => _titleEdited = true,
-                    decoration: InputDecoration(labelText: l10n.eventFieldTitle),
-                    validator: (v) => (v ?? '').trim().length < 3
-                        ? l10n.eventTitleTooShort
-                        : null,
-                  ),
-                  AppSpacing.vGapSm,
-                  _Label(l10n.eventFieldDateTime),
-                  Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          key: const Key('event-date'),
-                          onPressed: _pickDate,
-                          icon: const Icon(Icons.calendar_month_outlined),
-                          label: Text(
-                            _date == null
-                                ? l10n.eventPickDate
-                                : AppDateUtils.formatDate(_date!),
-                          ),
-                        ),
-                      ),
-                      AppSpacing.hGapSm,
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          key: const Key('event-time'),
-                          onPressed: _pickTime,
-                          icon: const Icon(Icons.schedule_rounded),
-                          label: Text(
-                            _time == null
-                                ? l10n.eventPickTime
-                                : _time!.format(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (at != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.xs),
-                      child: Text(
-                        AppDateUtils.formatDateTime(at),
-                        style: AppTypography.bodySmall,
-                      ),
-                    ),
-                  if (_dateError != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.xs),
-                      child: Text(
-                        _dateError!,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.error,
-                        ),
-                      ),
-                    ),
-                  AppSpacing.vGapLg,
-                  TextFormField(
-                    key: const Key('event-location'),
-                    controller: _location,
-                    maxLength: 100,
-                    decoration: InputDecoration(
-                      labelText: l10n.eventFieldLocation,
-                      hintText: l10n.eventLocationHint,
-                    ),
-                  ),
-                  _Label(l10n.eventFieldMaxPlayers),
-                  Row(
-                    children: [
-                      IconButton.filledTonal(
-                        tooltip: l10n.playFewerPlayers,
-                        onPressed: _maxPlayers <= 2
-                            ? null
-                            : () => setState(() => _maxPlayers--),
-                        icon: const Icon(Icons.remove_rounded),
-                      ),
-                      SizedBox(
-                        width: 56,
-                        child: Text(
-                          '$_maxPlayers',
-                          key: const Key('event-max-players'),
-                          textAlign: TextAlign.center,
-                          style: AppTypography.titleLarge,
-                        ),
-                      ),
-                      IconButton.filledTonal(
-                        tooltip: l10n.playMorePlayers,
-                        onPressed: _maxPlayers >= 50
-                            ? null
-                            : () => setState(() => _maxPlayers++),
-                        icon: const Icon(Icons.add_rounded),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.vGapLg,
-                  _Label(l10n.eventFieldVisibility),
-                  SegmentedButton<EventVisibility>(
-                    key: const Key('event-visibility'),
-                    segments: [
-                      ButtonSegment(
-                        value: EventVisibility.inviteOnly,
-                        icon: const Icon(Icons.lock_outline_rounded),
-                        label: Text(l10n.visibilityInviteOnly),
-                      ),
-                      ButtonSegment(
-                        value: EventVisibility.friends,
-                        icon: const Icon(Icons.group_outlined),
-                        label: Text(l10n.visibilityFriends),
-                      ),
-                      ButtonSegment(
-                        value: EventVisibility.public,
-                        icon: const Icon(Icons.public_rounded),
-                        label: Text(l10n.visibilityPublic),
-                      ),
-                    ],
-                    selected: {_visibility},
-                    onSelectionChanged: (s) =>
-                        setState(() => _visibility = s.first),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.xs),
-                    child: Text(
-                      switch (_visibility) {
-                        EventVisibility.inviteOnly =>
-                          l10n.visibilityInviteOnlyHint,
-                        EventVisibility.friends => l10n.visibilityFriendsHint,
-                        EventVisibility.public => l10n.visibilityPublicHint,
-                      },
-                      style: AppTypography.bodySmall,
-                    ),
-                  ),
-                  AppSpacing.vGapLg,
-                  _Label(l10n.eventInviteFriends),
-                  if (_invited.isNotEmpty)
-                    Wrap(
-                      spacing: AppSpacing.xs,
-                      children: [
-                        for (final u in _invited)
-                          InputChip(
-                            avatar: AppAvatar(
-                              imageUrl: u.avatarUrl,
-                              displayName: u.displayName,
-                              size: AvatarSize.xs,
+                      _detailsPanel(l10n),
+                      const SizedBox(height: 20),
+                      _settingsPanel(l10n),
+                      if (!widget.isEdit) ...[
+                        const SizedBox(height: 20),
+                        _Panel(
+                          children: [
+                            _Label(l10n.eventInviteFriends),
+                            _InviteFriends(
+                              selected: _invited,
+                              onChanged: (list) =>
+                                  setState(() => _invited = list),
                             ),
-                            label: Text(u.displayName),
-                            side: BorderSide.none,
-                            shape: const StadiumBorder(),
-                            onDeleted: () =>
-                                setState(() => _invited.remove(u)),
-                          ),
+                          ],
+                        ),
                       ],
-                    ),
-                  TextButton.icon(
-                    key: const Key('event-invite'),
-                    onPressed: () async {
-                      final picked = await showFriendPicker(
-                        context,
-                        title: l10n.eventInviteFriends,
-                        initial: _invited,
-                      );
-                      if (picked == null || !mounted) return;
-                      setState(() => _invited = picked);
-                    },
-                    icon: const Icon(Icons.person_add_alt_outlined),
-                    label: Text(l10n.eventChooseFriends),
+                      const SizedBox(height: 20),
+                      _Panel(
+                        children: [
+                          _Label(l10n.eventFieldDescriptionLabel),
+                          TextFormField(
+                            key: const Key('event-description'),
+                            controller: _description,
+                            maxLength: CreateEventScreen.descriptionMax,
+                            minLines: 4,
+                            maxLines: 8,
+                            style: AppTypography.bodyMedium,
+                            decoration: _fieldDecoration(
+                              l10n.eventDescriptionHint,
+                              radius: AppRadius.panel,
+                            ).copyWith(counterText: ''),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+                            child: Text(
+                              l10n.eventCharCount(
+                                _description.text.length,
+                                CreateEventScreen.descriptionMax,
+                              ),
+                              textAlign: TextAlign.right,
+                              style: AppTypography.bodySmall.copyWith(
+                                fontSize: 11,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  AppSpacing.vGapSm,
-                  TextFormField(
-                    key: const Key('event-description'),
-                    controller: _description,
-                    maxLength: 1000,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      labelText: l10n.eventFieldDescription,
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                      child: ColoredBox(
+                        color: AppColors.surface.withValues(alpha: 0.8),
+                        child: SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.md,
+                            ),
+                            child: AppButton(
+                              key: const Key('event-submit'),
+                              label: widget.isEdit
+                                  ? l10n.eventSaveChanges
+                                  : l10n.eventCreateCta,
+                              height: 56,
+                              isLoading: _saving,
+                              onPressed: _submit,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  AppSpacing.vGapXxl,
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _detailsPanel(AppLocalizations l10n) {
+    return _Panel(
+      children: [
+        _Label(l10n.eventFieldGame),
+        if (_game == null)
+          _FieldButton(
+            key: const Key('event-pick-game'),
+            icon: Icons.search_rounded,
+            text: l10n.eventPickGame,
+            placeholder: true,
+            onTap: () async {
+              final g = await showGamePicker(context);
+              if (g == null || !mounted) return;
+              setState(() => _setGame(g));
+            },
+          )
+        else
+          _PickedGame(
+            game: _game!,
+            onClear: () => setState(() => _setGame(null)),
+          ),
+        const SizedBox(height: 20),
+        _Label(l10n.eventFieldTitle),
+        TextFormField(
+          key: const Key('event-title'),
+          controller: _title,
+          maxLength: 100,
+          onChanged: (_) => _titleEdited = true,
+          style: AppTypography.bodyMedium,
+          decoration:
+              _fieldDecoration(l10n.eventTitleHint).copyWith(counterText: ''),
+          validator: (v) =>
+              (v ?? '').trim().length < 3 ? l10n.eventTitleTooShort : null,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Label(l10n.eventFieldDate),
+                  _FieldButton(
+                    key: const Key('event-date'),
+                    icon: Icons.calendar_today_outlined,
+                    trailingIcon: true,
+                    text: _date == null
+                        ? l10n.eventPickDate
+                        : AppDateUtils.formatDate(_date!),
+                    placeholder: _date == null,
+                    onTap: _pickDate,
+                  ),
                 ],
               ),
             ),
-      bottomNavigationBar: SafeArea(
+            AppSpacing.hGapMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Label(l10n.eventFieldTime),
+                  _FieldButton(
+                    key: const Key('event-time'),
+                    icon: Icons.schedule_rounded,
+                    trailingIcon: true,
+                    text: _time == null
+                        ? l10n.eventPickTime
+                        : _time!.format(context),
+                    placeholder: _time == null,
+                    onTap: _pickTime,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (_dateError != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, AppSpacing.sm, 4, 0),
+            child: Text(
+              _dateError!,
+              style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+            ),
+          ),
+        const SizedBox(height: 20),
+        _Label(l10n.eventFieldLocation),
+        TextFormField(
+          key: const Key('event-location'),
+          controller: _location,
+          maxLength: 100,
+          style: AppTypography.bodyMedium,
+          decoration: _fieldDecoration(l10n.eventLocationHint)
+              .copyWith(counterText: ''),
+        ),
+      ],
+    );
+  }
+
+  Widget _settingsPanel(AppLocalizations l10n) {
+    final options = [
+      (
+        EventVisibility.public,
+        Icons.public_rounded,
+        l10n.visibilityPublic,
+        l10n.eventVisPublicDesc,
+      ),
+      (
+        EventVisibility.friends,
+        Icons.group_outlined,
+        l10n.visibilityFriends,
+        l10n.eventVisFriendsDesc,
+      ),
+      (
+        EventVisibility.inviteOnly,
+        Icons.lock_outline_rounded,
+        l10n.visibilityInviteOnly,
+        l10n.eventVisInviteOnlyDesc,
+      ),
+    ];
+    return _Panel(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _Label(l10n.eventFieldMaxPlayers, bottom: 0)),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withValues(alpha: 0.1),
+                borderRadius: AppSpacing.borderRadiusFull,
+              ),
+              child: Text(
+                l10n.eventPlayersLabel(_maxPlayers),
+                key: const Key('event-max-players'),
+                style: AppTypography.labelMedium.copyWith(
+                  fontFamily: AppTypography.titleSmall.fontFamily,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.secondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        AppSpacing.vGapSm,
+        Row(
+          children: [
+            _StepButton(
+              icon: Icons.remove_rounded,
+              tooltip: l10n.playFewerPlayers,
+              onPressed: _maxPlayers <= CreateEventScreen.minPlayers
+                  ? null
+                  : () => _setPlayers(_maxPlayers - 1),
+            ),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 6,
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: AppColors.surfaceContainerHighest,
+                  thumbColor: AppColors.primary,
+                  overlayShape: SliderComponentShape.noOverlay,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 9),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Slider(
+                    key: const Key('event-players-slider'),
+                    value: _maxPlayers.toDouble(),
+                    min: CreateEventScreen.minPlayers.toDouble(),
+                    max: CreateEventScreen.maxPlayers.toDouble(),
+                    divisions: CreateEventScreen.maxPlayers -
+                        CreateEventScreen.minPlayers,
+                    onChanged: (v) => _setPlayers(v.round()),
+                  ),
+                ),
+              ),
+            ),
+            _StepButton(
+              icon: Icons.add_rounded,
+              tooltip: l10n.playMorePlayers,
+              onPressed: _maxPlayers >= CreateEventScreen.maxPlayers
+                  ? null
+                  : () => _setPlayers(_maxPlayers + 1),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _Label(l10n.eventFieldVisibility),
+        for (final (value, icon, label, desc) in options)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _VisibilityOption(
+              key: ValueKey('visibility-${value.name}'),
+              icon: icon,
+              label: label,
+              description: desc,
+              selected: _visibility == value,
+              onTap: () => setState(() => _visibility = value),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+InputDecoration _fieldDecoration(String hint,
+        {double radius = AppRadius.panel}) =>
+    appFieldDecoration(
+      hint: hint,
+      fill: AppColors.surfaceContainerHighest,
+      radius: radius,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+    ).copyWith(
+      hintStyle: AppTypography.bodyMedium.copyWith(
+        color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
+    );
+
+/// `bg-surface-container-low rounded-lg p-5` form section.
+class _Panel extends StatelessWidget {
+  const _Panel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceContainerLow,
+          borderRadius: BorderRadius.all(Radius.circular(AppRadius.panel)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      );
+}
+
+/// Web form label: 10px black uppercase, widest tracking.
+class _Label extends StatelessWidget {
+  const _Label(this.text, {this.bottom = AppSpacing.sm});
+
+  final String text;
+  final double bottom;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.fromLTRB(4, 0, 4, bottom),
+        child: Text(text.toUpperCase(), style: AppTypography.eyebrow),
+      );
+}
+
+/// A filled input-looking button (date, time, game search).
+class _FieldButton extends StatelessWidget {
+  const _FieldButton({
+    super.key,
+    required this.icon,
+    required this.text,
+    required this.onTap,
+    this.placeholder = false,
+    this.trailingIcon = false,
+  });
+
+  final IconData icon;
+  final String text;
+  final VoidCallback onTap;
+  final bool placeholder;
+  final bool trailingIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconWidget = Icon(icon, size: 18, color: AppColors.onSurfaceVariant);
+    return Material(
+      color: AppColors.surfaceContainerHighest,
+      borderRadius: const BorderRadius.all(Radius.circular(AppRadius.panel)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: AppButton(
-            key: const Key('event-submit'),
-            label: widget.isEdit ? l10n.commonSave : l10n.createEvent,
-            isLoading: _saving,
-            onPressed: _submit,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              if (!trailingIcon) ...[iconWidget, AppSpacing.hGapSm],
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: placeholder
+                        ? AppColors.onSurfaceVariant.withValues(alpha: 0.6)
+                        : AppColors.onSurface,
+                  ),
+                ),
+              ),
+              if (trailingIcon) iconWidget,
+            ],
           ),
         ),
       ),
@@ -445,14 +682,447 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   }
 }
 
-class _Label extends StatelessWidget {
-  const _Label(this.text);
+/// Chosen game (web `GamePicker` selected state) with a remove button.
+class _PickedGame extends StatelessWidget {
+  const _PickedGame({required this.game, required this.onClear});
 
-  final String text;
+  final Game game;
+  final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: Text(text, style: AppTypography.titleSmall),
+  Widget build(BuildContext context) {
+    final url = game.coverUrl;
+    final fallback = ColoredBox(
+      color: AppColors.primary.withValues(alpha: 0.1),
+      child: const Icon(Icons.casino_outlined, color: AppColors.primary),
+    );
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.all(Radius.circular(AppRadius.panel)),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius:
+                const BorderRadius.all(Radius.circular(AppRadius.panel)),
+            child: SizedBox.square(
+              dimension: 48,
+              child: url == null || url.isEmpty
+                  ? fallback
+                  : CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => fallback,
+                    ),
+            ),
+          ),
+          AppSpacing.hGapMd,
+          Expanded(
+            child: Text(
+              game.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.titleSmall.copyWith(fontSize: 16),
+            ),
+          ),
+          Tooltip(
+            message: context.l10n.eventRemoveGame,
+            child: Material(
+              color: AppColors.surfaceContainerHighest,
+              shape: const CircleBorder(),
+              child: InkWell(
+                key: const Key('event-remove-game'),
+                customBorder: const CircleBorder(),
+                onTap: onClear,
+                child: const SizedBox.square(
+                  dimension: 36,
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 40px rounded square − / + button.
+class _StepButton extends StatelessWidget {
+  const _StepButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Opacity(
+          opacity: onPressed == null ? 0.4 : 1,
+          child: Material(
+            color: AppColors.surfaceContainerHigh,
+            borderRadius: AppSpacing.borderRadiusLg,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onPressed,
+              child: SizedBox.square(
+                dimension: 40,
+                child: Icon(icon, color: AppColors.onSurface),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+/// Visibility option card: icon tile, label and description; the selected
+/// one is tinted primary with a ring.
+class _VisibilityOption extends StatelessWidget {
+  const _VisibilityOption({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String description;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const radius = BorderRadius.all(Radius.circular(AppRadius.panel));
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: selected
+            ? AppColors.primary.withValues(alpha: 0.1)
+            : AppColors.surfaceContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: selected
+              ? const BorderSide(color: AppColors.primary, width: 2)
+              : BorderSide.none,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.surfaceContainerHighest,
+                    borderRadius: AppSpacing.borderRadiusLg,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: selected
+                        ? AppColors.onPrimary
+                        : AppColors.onSurfaceVariant,
+                  ),
+                ),
+                AppSpacing.hGapLg,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: AppTypography.titleSmall.copyWith(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.onSurface,
+                        ),
+                      ),
+                      Text(
+                        description,
+                        style: AppTypography.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Inline friend picker (web `FriendPicker`): chosen friends as removable
+/// chips, a search field and a checkbox list of friends.
+class _InviteFriends extends ConsumerStatefulWidget {
+  const _InviteFriends({required this.selected, required this.onChanged});
+
+  final List<UserSummary> selected;
+  final ValueChanged<List<UserSummary>> onChanged;
+
+  @override
+  ConsumerState<_InviteFriends> createState() => _InviteFriendsState();
+}
+
+class _InviteFriendsState extends ConsumerState<_InviteFriends> {
+  String _query = '';
+
+  void _toggle(UserSummary u) {
+    final chosen = widget.selected.any((s) => s.id == u.id);
+    widget.onChanged(
+      chosen
+          ? widget.selected.where((s) => s.id != u.id).toList()
+          : [...widget.selected, u],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final friends = ref.watch(friendsListProvider);
+    final chosenIds = {for (final u in widget.selected) u.id};
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.selected.isNotEmpty) ...[
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final u in widget.selected)
+                Semantics(
+                  button: true,
+                  label: u.displayName,
+                  child: GestureDetector(
+                    key: ValueKey('invitee-${u.id}'),
+                    onTap: () => _toggle(u),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: AppSpacing.borderRadiusFull,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppAvatar(
+                            imageUrl: u.avatarUrl,
+                            displayName: u.displayName,
+                            size: AvatarSize.xs,
+                          ),
+                          const SizedBox(width: 6),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 128),
+                            child: Text(
+                              u.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.labelMedium.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.close_rounded,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          AppSpacing.vGapSm,
+          Text(
+            l10n.eventSelectedCount(widget.selected.length),
+            style: AppTypography.labelSmall.copyWith(fontSize: 11),
+          ),
+          AppSpacing.vGapMd,
+        ],
+        ...friends.when(
+          loading: () => [
+            for (var i = 0; i < 3; i++)
+              Container(
+                height: 48,
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceContainerHigh,
+                  borderRadius:
+                      BorderRadius.all(Radius.circular(AppRadius.panel)),
+                ),
+              ),
+          ],
+          error: (e, _) => [
+            Text(
+              localizedError(l10n, e),
+              style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
+            ),
+          ],
+          data: (s) {
+            if (s.items.isEmpty) {
+              return [
+                Text(
+                  l10n.friendPickerEmpty,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ];
+            }
+            final q = _query.toLowerCase();
+            final visible = s.items
+                .where(
+                  (u) =>
+                      q.isEmpty ||
+                      u.displayName.toLowerCase().contains(q) ||
+                      u.username.toLowerCase().contains(q),
+                )
+                .toList();
+            return [
+              TextField(
+                key: const Key('event-invite-search'),
+                onChanged: (v) => setState(() => _query = v.trim()),
+                style: AppTypography.bodyMedium,
+                decoration: appFieldDecoration(
+                  hint: l10n.eventInviteSearch,
+                  prefixIcon: Icons.search_rounded,
+                  fill: AppColors.surfaceContainerHighest,
+                  radius: AppRadius.panel,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+              AppSpacing.vGapSm,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 256),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    if (visible.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Text(
+                          l10n.friendPickerEmpty,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    for (final u in visible)
+                      _FriendRow(
+                        friend: u,
+                        selected: chosenIds.contains(u.id),
+                        onTap: () => _toggle(u),
+                      ),
+                  ],
+                ),
+              ),
+            ];
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _FriendRow extends StatelessWidget {
+  const _FriendRow({
+    required this.friend,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final UserSummary friend;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: selected
+            ? AppColors.primary.withValues(alpha: 0.1)
+            : AppColors.transparent,
+        borderRadius: const BorderRadius.all(Radius.circular(AppRadius.panel)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: ValueKey('invite-pick-${friend.id}'),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                SizedBox.square(
+                  dimension: 20,
+                  child: Checkbox(
+                    value: selected,
+                    onChanged: (_) => onTap(),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                AppSpacing.hGapMd,
+                AppAvatar(
+                  imageUrl: friend.avatarUrl,
+                  displayName: friend.displayName,
+                  size: AvatarSize.sm,
+                ),
+                AppSpacing.hGapMd,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        friend.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.titleSmall,
+                      ),
+                      Text(
+                        '@${friend.username}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
 }
