@@ -37,20 +37,29 @@ Future<void> goToNextOnboardingStep(
   }
 }
 
-/// Layout of steps 2–5: step dots and Skip in the top bar.
+/// Horizontal padding of the onboarding steps (web `px-6`).
+const onboardingGutter = AppSpacing.xl;
+
+/// Layout of steps 2–5 (web onboarding layout): step dots and "Skip" in a
+/// slim top row, a 24px bold title (optional icon and subtitle) and the
+/// step's content; [bottom] holds the primary action.
 class OnboardingScaffold extends ConsumerWidget {
   const OnboardingScaffold({
     super.key,
     required this.route,
     required this.title,
-    required this.subtitle,
     required this.child,
+    this.subtitle,
+    this.titleIcon,
     this.bottom,
   });
 
   final String route;
   final String title;
-  final String subtitle;
+  final String? subtitle;
+
+  /// Primary icon before the title (web BGG step `inventory_2`).
+  final IconData? titleIcon;
   final Widget child;
   final Widget? bottom;
 
@@ -59,68 +68,127 @@ class OnboardingScaffold extends ConsumerWidget {
     final l10n = context.l10n;
     final step = onboardingSteps.indexOf(route);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.transparent,
-        automaticallyImplyLeading: false,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < onboardingSteps.length; i++)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == step ? 20 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: i <= step
-                      ? AppColors.primary
-                      : AppColors.surfaceContainerHigh,
-                  borderRadius: AppSpacing.borderRadiusFull,
-                ),
-              ),
-          ],
-        ),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            key: const Key('onboarding-skip'),
-            onPressed: () => goToNextOnboardingStep(context, ref, route),
-            child: Text(l10n.commonSkip),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
+                onboardingGutter,
                 AppSpacing.sm,
-                AppSpacing.lg,
-                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  OnboardingStepDots(
+                    total: onboardingSteps.length,
+                    current: step,
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    key: const Key('onboarding-skip'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.onSurfaceVariant,
+                      textStyle: AppTypography.labelLarge,
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: () =>
+                        goToNextOnboardingStep(context, ref, route),
+                    child: Text(l10n.commonSkip),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                onboardingGutter,
+                AppSpacing.sm,
+                onboardingGutter,
+                AppSpacing.xl,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTypography.headlineMedium),
-                  AppSpacing.vGapSm,
-                  Text(
-                    subtitle,
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                    ),
+                  Row(
+                    children: [
+                      if (titleIcon != null) ...[
+                        Icon(titleIcon, size: 28, color: AppColors.primary),
+                        AppSpacing.hGapMd,
+                      ],
+                      Expanded(
+                        child: Text(title, style: AppTypography.headlineMedium),
+                      ),
+                    ],
                   ),
+                  if (subtitle != null) ...[
+                    AppSpacing.vGapSm,
+                    Text(
+                      subtitle!,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
             Expanded(child: child),
             if (bottom != null)
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  onboardingGutter,
+                  AppSpacing.md,
+                  onboardingGutter,
+                  AppSpacing.lg,
+                ),
                 child: bottom,
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Web `StepDots`: the current step is a 24px primary pill, done steps are
+/// primary/60 dots, later ones surface-container-highest.
+class OnboardingStepDots extends StatelessWidget {
+  const OnboardingStepDots({
+    super.key,
+    required this.total,
+    required this.current,
+  });
+
+  final int total;
+
+  /// Zero-based index of the current step.
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: context.l10n.onboardingProgress(current + 1, total),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < total; i++) ...[
+            if (i > 0) AppSpacing.hGapSm,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: i == current ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: i == current
+                    ? AppColors.primary
+                    : i < current
+                        ? AppColors.primary.withValues(alpha: 0.6)
+                        : AppColors.surfaceContainerHighest,
+                borderRadius: AppSpacing.borderRadiusFull,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

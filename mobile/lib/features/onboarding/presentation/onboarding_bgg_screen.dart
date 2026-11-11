@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/onboarding/presentation/onboarding_scaffold.dart';
 import 'package:meeple_hearth/features/settings/presentation/bgg_import_screen.dart';
@@ -15,10 +14,11 @@ class OnboardingBggScreen extends ConsumerWidget {
     final l10n = context.l10n;
     return OnboardingScaffold(
       route: AppRoutes.onboardingBgg,
-      title: l10n.onboardingBggTitle,
-      subtitle: l10n.onboardingBggBody,
+      title: l10n.bggImportTitle,
+      titleIcon: Icons.inventory_2_outlined,
+      subtitle: l10n.bggImportBody,
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        padding: const EdgeInsets.symmetric(horizontal: onboardingGutter),
         children: [
           BggImportPanel(
             onDone: () =>

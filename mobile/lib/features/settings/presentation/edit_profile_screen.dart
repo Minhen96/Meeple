@@ -1,13 +1,17 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
-import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
+import 'package:meeple_hearth/features/auth/domain/user_model.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/profile/data/user_repository.dart';
 import 'package:meeple_hearth/features/profile/presentation/widgets/avatar_picker.dart';
 import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
+import 'package:meeple_hearth/features/settings/presentation/widgets/settings_widgets.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
@@ -24,12 +28,34 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _form = GlobalKey<FormState>();
-  late final _user = ref.read(authNotifierProvider).valueOrNull;
-  late final _displayName = TextEditingController(text: _user?.displayName);
-  late final _username = TextEditingController(text: _user?.username);
-  late final _bio = TextEditingController(text: _user?.bio);
-  late final _location = TextEditingController(text: _user?.location);
+  User? _user;
+  final _displayName = TextEditingController();
+  final _username = TextEditingController();
+  final _bio = TextEditingController();
+  final _location = TextEditingController();
   bool _saving = false;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Opened by a deep link the session may still be loading: fill the form
+    // once the user arrives (never overwrite what was typed).
+    ref.listenManual(authNotifierProvider, (_, next) {
+      final user = next.valueOrNull;
+      if (_user != null || user == null) return;
+      void fill() {
+        _user = user;
+        _displayName.text = user.displayName;
+        _username.text = user.username;
+        _bio.text = user.bio ?? '';
+        _location.text = user.location ?? '';
+      }
+
+      _initialized ? setState(fill) : fill();
+    }, fireImmediately: true);
+    _initialized = true;
+  }
 
   static final _usernamePattern = RegExp(r'^[a-z0-9][a-z0-9_]*$');
 
@@ -79,36 +105,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       appBar: MeepleAppBar(
         title: l10n.settingsEditProfile,
         showBackButton: true,
+        compactTitle: true,
         fallbackRoute: AppRoutes.settings,
       ),
       body: Form(
         key: _form,
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: settingsPagePadding,
           children: [
-            const Center(child: AvatarPicker()),
-            AppSpacing.vGapXl,
-            TextFormField(
-              key: const Key('edit-display-name'),
+            Center(
+              child: AvatarPicker(
+                size: 96,
+                showBadge: false,
+                label: l10n.avatarChange,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SettingsField(
+              fieldKey: const Key('edit-display-name'),
+              label: l10n.profileDisplayName,
               controller: _displayName,
               maxLength: 50,
-              decoration: InputDecoration(labelText: l10n.profileDisplayName),
               validator: (v) => (v ?? '').trim().length < 2
                   ? l10n.profileDisplayNameTooShort
                   : null,
             ),
-            AppSpacing.vGapSm,
-            TextFormField(
-              key: const Key('edit-username'),
+            const SizedBox(height: 20),
+            SettingsField(
+              fieldKey: const Key('edit-username'),
+              label: l10n.profileUsername,
               controller: _username,
               enabled: daysLeft == 0,
               maxLength: 20,
-              decoration: InputDecoration(
-                labelText: l10n.profileUsername,
-                prefixText: '@',
-                helperText:
-                    daysLeft > 0 ? l10n.profileUsernameChangeIn(daysLeft) : null,
-              ),
+              prefixText: '@',
+              helper: daysLeft > 0
+                  ? l10n.profileUsernameChangeIn(daysLeft)
+                  : l10n.profileUsernameOnce,
               validator: (v) {
                 final value = (v ?? '').trim();
                 if (value.length < 3) return l10n.profileUsernameInvalid;
@@ -118,37 +150,51 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 return null;
               },
             ),
-            AppSpacing.vGapSm,
-            TextFormField(
-              key: const Key('edit-bio'),
+            const SizedBox(height: 20),
+            SettingsField(
+              fieldKey: const Key('edit-bio'),
+              label: l10n.profileBio,
               controller: _bio,
+              hint: l10n.profileBioHint,
               maxLength: 200,
               maxLines: 3,
-              decoration: InputDecoration(labelText: l10n.profileBio),
+              showCounter: true,
             ),
-            AppSpacing.vGapSm,
-            TextFormField(
-              key: const Key('edit-location'),
+            const SizedBox(height: 20),
+            SettingsField(
+              fieldKey: const Key('edit-location'),
+              label: l10n.profileLocation,
               controller: _location,
+              hint: l10n.profileLocationHint,
               maxLength: 100,
-              decoration: InputDecoration(
-                labelText: l10n.eventFieldLocation,
-                hintText: l10n.profileLocationHint,
-              ),
             ),
-            AppSpacing.vGapSm,
-            Text(l10n.profileEmailNote, style: AppTypography.bodySmall),
+            AppSpacing.vGapLg,
+            SettingsNote(l10n.profileEmailNote),
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: AppButton(
-            key: const Key('edit-save'),
-            label: l10n.commonSave,
-            isLoading: _saving,
-            onPressed: _save,
+      bottomNavigationBar: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: ColoredBox(
+            color: AppColors.surface.withValues(alpha: 0.9),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: AppButton(
+                  key: const Key('edit-save'),
+                  label: l10n.commonSave,
+                  isLoading: _saving,
+                  onPressed: _save,
+                ),
+              ),
+            ),
           ),
         ),
       ),

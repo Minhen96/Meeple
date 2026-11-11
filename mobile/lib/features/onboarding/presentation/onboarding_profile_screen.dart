@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
+import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/onboarding/presentation/onboarding_scaffold.dart';
 import 'package:meeple_hearth/features/profile/data/user_repository.dart';
 import 'package:meeple_hearth/features/profile/presentation/widgets/avatar_picker.dart';
 import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
+import 'package:meeple_hearth/features/settings/presentation/widgets/settings_widgets.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
@@ -23,13 +26,23 @@ class OnboardingProfileScreen extends ConsumerStatefulWidget {
 class _OnboardingProfileScreenState
     extends ConsumerState<OnboardingProfileScreen> {
   final _form = GlobalKey<FormState>();
-  late final _name = TextEditingController(
-    text: ref.read(authNotifierProvider).valueOrNull?.displayName,
-  );
-  late final _location = TextEditingController(
-    text: ref.read(authNotifierProvider).valueOrNull?.location,
-  );
+  final _name = TextEditingController();
+  final _location = TextEditingController();
   bool _saving = false;
+  bool _filled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // The session may still be loading: prefill once the user arrives.
+    ref.listenManual(authNotifierProvider, (_, next) {
+      final user = next.valueOrNull;
+      if (_filled || user == null) return;
+      _filled = true;
+      if (_name.text.isEmpty) _name.text = user.displayName;
+      if (_location.text.isEmpty) _location.text = user.location ?? '';
+    }, fireImmediately: true);
+  }
 
   @override
   void dispose() {
@@ -64,7 +77,6 @@ class _OnboardingProfileScreenState
     return OnboardingScaffold(
       route: AppRoutes.onboardingProfile,
       title: l10n.onboardingProfileTitle,
-      subtitle: l10n.onboardingProfileBody,
       bottom: AppButton(
         key: const Key('onboarding-profile-continue'),
         label: l10n.commonContinue,
@@ -74,27 +86,32 @@ class _OnboardingProfileScreenState
       child: Form(
         key: _form,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(horizontal: onboardingGutter),
           children: [
-            const Center(child: AvatarPicker()),
-            AppSpacing.vGapXl,
-            TextFormField(
-              key: const Key('onboarding-display-name'),
+            const Center(child: AvatarPicker(size: 112)),
+            AppSpacing.vGapMd,
+            Text(
+              l10n.onboardingAvatarHint,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall
+                  .copyWith(color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            SettingsField(
+              fieldKey: const Key('onboarding-display-name'),
+              label: l10n.profileDisplayName,
               controller: _name,
               maxLength: 50,
-              decoration: InputDecoration(labelText: l10n.profileDisplayName),
               validator: (v) => (v ?? '').trim().length < 2
                   ? l10n.profileDisplayNameTooShort
                   : null,
             ),
-            AppSpacing.vGapSm,
-            TextFormField(
+            const SizedBox(height: 20),
+            SettingsField(
+              label: l10n.profileLocation,
+              hint: l10n.profileLocationHint,
               controller: _location,
               maxLength: 100,
-              decoration: InputDecoration(
-                labelText: l10n.eventFieldLocation,
-                hintText: l10n.profileLocationHint,
-              ),
             ),
           ],
         ),

@@ -105,7 +105,8 @@ class _AppButtonState extends State<AppButton>
     super.dispose();
   }
 
-  (Gradient?, Color?, Color, List<BoxShadow>?) _style() => switch (widget.variant) {
+  (Gradient?, Color?, Color, List<BoxShadow>?) _style() =>
+      switch (widget.variant) {
         AppButtonVariant.primary => (
             AppColors.primaryGradient,
             null,
@@ -203,12 +204,15 @@ class _AppButtonState extends State<AppButton>
                     Icon(widget.icon, color: fg, size: size.fontSize + 4),
                     AppSpacing.hGapSm,
                   ],
-                  Text(
-                    widget.label,
-                    maxLines: 1,
-                    style: AppTypography.button(
-                      fontSize: size.fontSize,
-                      color: fg,
+                  Flexible(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.button(
+                        fontSize: size.fontSize,
+                        color: fg,
+                      ),
                     ),
                   ),
                 ],

@@ -349,7 +349,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authBackToSignIn => 'Back to Sign In';
+  String get authBackToSignIn => 'Back to login';
 
   @override
   String get authCheckInbox => 'Check your inbox';
@@ -446,25 +446,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authPasswordsMismatch => 'Passwords don\'t match';
 
   @override
-  String get authResendEmail => 'Resend Email';
+  String get authResendEmail => 'Resend verification email';
 
   @override
   String get authResetLinkExpired =>
-      'This link has expired. Request a new one.';
+      'This password reset link is invalid or has expired.';
 
   @override
   String get authResetPasswordTitle => 'Reset Password';
 
   @override
   String authResetSentTo(String email) {
-    return 'If $email is registered, you\'ll receive a reset link.';
+    return 'If $email is registered, you\'ll receive a reset link shortly.';
   }
 
   @override
   String get authSendResetLink => 'Send Reset Link';
 
   @override
-  String get authSetNewPassword => 'Create a new password';
+  String get authSetNewPassword => 'Set new password';
 
   @override
   String get authSignIn => 'Log In';
@@ -490,7 +490,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authUsernameRequired => 'Username is required';
 
   @override
-  String get authVerificationResent => 'Email resent!';
+  String get authVerificationResent => 'Sent! Check your inbox again.';
 
   @override
   String get authVerifyBody =>
@@ -505,7 +505,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get avatarChange => 'Change profile photo';
+  String get avatarChange => 'Change Photo';
 
   @override
   String get avatarCropTitle => 'Crop Photo';
@@ -524,7 +524,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bggImportBody =>
-      'Enter your BoardGameGeek username to import your collection.';
+      'Enter your BoardGameGeek username to import the games you own.';
 
   @override
   String bggImportDone(int imported, int skipped, int failed) {
@@ -543,7 +543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bggImportStart => 'Import Collection';
 
   @override
-  String get bggImportStarting => 'Starting import…';
+  String get bggImportStarting => 'Connecting to BoardGameGeek…';
 
   @override
   String get bggImportTitle => 'Import your collection';
@@ -578,18 +578,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeEmailCurrentPassword => 'Current password';
 
   @override
-  String get changeEmailNew => 'New email';
+  String get changeEmailNew => 'New email address';
 
   @override
   String changeEmailSentBody(String email) {
-    return 'Open the link we sent to $email to confirm the change.';
+    return 'We sent a confirmation link to $email. Your email changes when you open it.';
   }
 
   @override
   String get changeEmailSentTitle => 'Check your new inbox';
 
   @override
-  String get changeEmailSubmit => 'Send verification link';
+  String get changeEmailSubmit => 'Send Confirmation Link';
 
   @override
   String changePasswordBody(String email) {
@@ -601,14 +601,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Request a reset link with the email you registered with.';
 
   @override
-  String get changePasswordSend => 'Send reset link';
+  String get changePasswordSend => 'Send Reset Link';
 
   @override
   String get changePasswordSentBody =>
-      'Follow the link in the email to choose a new password.';
+      'Check your email for a link to set a new password.';
 
   @override
-  String get changePasswordSentTitle => 'Reset link sent';
+  String get changePasswordSentTitle => 'Reset link sent!';
 
   @override
   String get collectionNoPlays => 'No plays logged yet.';
@@ -646,7 +646,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteConfirmMessage =>
-      'This will delete your account. You have 30 days to reactivate it by logging in again.';
+      'This will delete your account. You have 30 days to reactivate it.';
 
   @override
   String get deleteConfirmTitle => 'Are you absolutely sure?';
@@ -969,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Find people you play with and add them as friends.';
 
   @override
-  String get friendsEmptyTitle => 'No friends yet';
+  String get friendsEmptyTitle => 'No friends yet.';
 
   @override
   String get friendsNoRequests => 'No pending friend requests.';
@@ -982,13 +982,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendsReceived => 'Received';
 
   @override
-  String get friendsSearchHint => 'Search by name or username';
+  String get friendsSearchHint => 'Search for people…';
 
   @override
   String get friendsSent => 'Sent';
 
   @override
-  String get friendsSuggestions => 'People you may know';
+  String get friendsSuggestions => 'Suggested for you';
 
   @override
   String get friendsTabFind => 'Find';
@@ -1483,7 +1483,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationAnEvent => 'an event';
 
   @override
-  String get notificationPrefsTitle => 'Notification preferences';
+  String get notificationPrefsTitle => 'Notification Preferences';
 
   @override
   String get notificationSomeone => 'Someone';
@@ -1510,7 +1510,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsToday => 'Today';
 
   @override
-  String get onboardingAddGameBody => 'Add a few games you own to get started.';
+  String get onboardingAddGameBody =>
+      'Search for a game to add to your collection.';
 
   @override
   String onboardingAddGameConfirm(String game) {
@@ -1528,7 +1529,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingBggTitle => 'Import from BoardGameGeek';
 
   @override
-  String get onboardingFinish => 'Finish';
+  String get onboardingFinish => 'Done';
 
   @override
   String get onboardingFriendsBody =>
@@ -1801,7 +1802,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prefRulebookUnderReview => 'Rulebook under review';
 
   @override
-  String get prefTypeHeader => 'Notification';
+  String get prefTypeHeader => 'Type';
 
   @override
   String get profileBio => 'Bio';
@@ -1820,7 +1821,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileBlocked => 'User blocked.';
 
   @override
-  String get profileDisplayName => 'Display name';
+  String get profileDisplayName => 'Display Name';
 
   @override
   String get profileDisplayNameTooShort => 'Must be at least 2 characters';
@@ -1894,8 +1895,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVerified => 'Verified';
 
   @override
-  String get quietHoursBody =>
-      'Push notifications are paused during quiet hours.';
+  String get quietHoursBody => 'Push notifications paused during quiet hours';
 
   @override
   String quietHoursFrom(String time) {
@@ -2042,7 +2042,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsEditProfile => 'Edit Profile';
 
   @override
-  String get settingsExport => 'Export my data';
+  String get settingsExport => 'Download My Data';
 
   @override
   String get settingsExportRequested =>
@@ -2073,7 +2073,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSessions => 'Active Sessions';
 
   @override
-  String get settingsSignOut => 'Log out';
+  String get settingsSignOut => 'Log Out';
 
   @override
   String get settingsSignOutMessage =>
@@ -2101,7 +2101,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statFriends => 'Friends';
 
   @override
-  String get statGamesOwned => 'Games Owned';
+  String get statGamesOwned => 'Owned';
 
   @override
   String statMostPlayed(String game, int count) {
@@ -2131,13 +2131,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Anyone in the community can find and join.';
 
   @override
-  String get welcomeEvents => 'Organize game nights with friends';
+  String get welcomeEvents => 'Organize and join events with friends.';
 
   @override
-  String get welcomeLibrary => 'Track the games you own and love';
+  String get welcomeLibrary => 'Browse and track every board game you own.';
 
   @override
-  String get welcomeMatching => 'Get matched with friends who want to play';
+  String get welcomeMatching =>
+      'Match with friends who want to play the same games.';
 
   @override
   String get welcomeStart => 'Get Started';
@@ -2198,4 +2199,289 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPasswordHint => 'Your password';
+
+  @override
+  String statFavoriteCategory(String category) {
+    return 'Favorite category: $category';
+  }
+
+  @override
+  String statMostPlayedWith(String name, int count) {
+    return 'Plays most with $name ($count)';
+  }
+
+  @override
+  String get profileNoPostsOwn =>
+      'No posts yet. Share your first game night with the + button.';
+
+  @override
+  String get profileNoTagged => 'No tagged posts yet.';
+
+  @override
+  String get profileNoFavoritesOther => 'No favorite games yet.';
+
+  @override
+  String get profileCollectionFriendsOnly =>
+      'Add each other as friends to see this collection.';
+
+  @override
+  String get profileNoCollectionOwn =>
+      'Your collection is empty. Add games from the Library.';
+
+  @override
+  String get profileNoCollection => 'No games in this collection yet.';
+
+  @override
+  String get friendAcceptRequest => 'Accept Request';
+
+  @override
+  String friendsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count friends',
+      one: '1 friend',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String friendsTabRequestsCount(int count) {
+    return 'Requests ($count)';
+  }
+
+  @override
+  String friendsUnfriendTitle(String name) {
+    return 'Remove $name from your friends?';
+  }
+
+  @override
+  String get friendsUnfriendBody => 'They won\'t be notified.';
+
+  @override
+  String get friendsRemoved => 'Friend removed';
+
+  @override
+  String get friendsFindPeople => 'Find people';
+
+  @override
+  String get friendsNoReceived => 'No pending requests.';
+
+  @override
+  String get friendsNoSent => 'You haven\'t sent any requests.';
+
+  @override
+  String get friendAccepted => 'You are now friends';
+
+  @override
+  String get friendDeclined => 'Request declined';
+
+  @override
+  String get friendCancelled => 'Request cancelled';
+
+  @override
+  String get settingsQuietHours => 'Quiet Hours';
+
+  @override
+  String get settingsThemeDark => 'Dark';
+
+  @override
+  String get settingsThemeSystem => 'System';
+
+  @override
+  String get settingsThemeHint => 'Dark and System themes are coming soon.';
+
+  @override
+  String changeEmailCurrent(String email) {
+    return 'Current email: $email';
+  }
+
+  @override
+  String get changeEmailGoogleOnly =>
+      'You sign in with Google, so your email follows your Google account. Change it with Google.';
+
+  @override
+  String get sessionsConfirmTitle => 'Sign out other devices?';
+
+  @override
+  String sessionsConfirmBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count other devices will be signed out immediately.',
+      one: '1 other device will be signed out immediately.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sessionsOthersSignedOut => 'All other devices were signed out';
+
+  @override
+  String get sessionsSignedOut => 'Device signed out';
+
+  @override
+  String get deleteWarningTitle =>
+      'Your account will be scheduled for deletion';
+
+  @override
+  String get deleteConsequenceGrace =>
+      'You have 30 days to change your mind: log in again to reactivate.';
+
+  @override
+  String get deleteConsequenceImmediate =>
+      'Your collection, friends, match requests and notifications are removed now.';
+
+  @override
+  String get deleteConsequencePermanent =>
+      'After 30 days your profile, posts and photos are deleted permanently.';
+
+  @override
+  String get deletePasswordLabel => 'Enter your password to confirm';
+
+  @override
+  String get profileUsernameOnce =>
+      'You can change your username once every 30 days.';
+
+  @override
+  String get profileBioHint => 'Tell people about yourself…';
+
+  @override
+  String get profileLocation => 'Location';
+
+  @override
+  String get bggSettingsTitle => 'BoardGameGeek import';
+
+  @override
+  String bggImportSuccess(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Imported $count games!',
+      one: 'Imported 1 game!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bggImportSuccessNone => 'Your collection is already up to date.';
+
+  @override
+  String bggImportSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count were already in your collection.',
+      one: '1 was already in your collection.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bggImportAgain => 'Import again';
+
+  @override
+  String get bggViewLibrary => 'View my library';
+
+  @override
+  String get notificationPrefsIntro =>
+      'Choose what reaches you in the app and as push notifications.';
+
+  @override
+  String get quietHoursStartLabel => 'From';
+
+  @override
+  String get quietHoursEndLabel => 'To';
+
+  @override
+  String quietHoursTimezone(String zone) {
+    return 'Time zone: $zone';
+  }
+
+  @override
+  String get welcomeLibraryTitle => 'Game Library';
+
+  @override
+  String get welcomeEventsTitle => 'Game Nights';
+
+  @override
+  String get welcomeMatchingTitle => 'Find Players';
+
+  @override
+  String onboardingProgress(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get onboardingAvatarHint => 'Tap to add a photo (optional)';
+
+  @override
+  String get onboardingFriendsSearchHint => 'Search by username or name';
+
+  @override
+  String onboardingFriendsNoResults(String query) {
+    return 'No players found for \'$query\'';
+  }
+
+  @override
+  String get onboardingGameSearchHint => 'Search games…';
+
+  @override
+  String get onboardingInCollection => 'In collection';
+
+  @override
+  String get commonBack => 'Go back';
+
+  @override
+  String get authEmailAddress => 'Email address';
+
+  @override
+  String get registerEmailHint => 'Your email';
+
+  @override
+  String get registerUsernameHint => 'Username';
+
+  @override
+  String get registerPasswordHint => 'At least 8 characters';
+
+  @override
+  String get registerConfirmHint => 'Repeat password';
+
+  @override
+  String get registerHeroLead => 'Join the';
+
+  @override
+  String get registerHeroAccent => 'table.';
+
+  @override
+  String get registerPerkCommunity => 'Meet board game players near you';
+
+  @override
+  String get registerPerkCollection => 'Manage and track your collection';
+
+  @override
+  String get authUpdatePassword => 'Update Password';
+
+  @override
+  String get authResetInvalidTitle => 'Invalid link';
+
+  @override
+  String get authRequestNewLink => 'Request a new link';
+
+  @override
+  String get authVerifying => 'Verifying…';
+
+  @override
+  String get authVerifyExpiredTitle => 'Link expired';
+
+  @override
+  String get authVerifyExpiredBody =>
+      'This verification link is invalid or has expired. Request a new one below.';
+
+  @override
+  String get authVerifySentBody =>
+      'We sent a verification link to your email address.';
+
+  @override
+  String get authVerifyResendHint => 'Didn\'t get it? Enter your email';
 }

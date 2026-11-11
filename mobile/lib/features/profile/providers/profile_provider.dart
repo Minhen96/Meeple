@@ -52,7 +52,8 @@ final class ProfileActions {
   /// Uploads a (cropped, compressed) avatar and saves its URL.
   Future<User> updateAvatar(File file) async {
     ensureOnline(_ref);
-    final uploaded = await _ref.read(uploadRepositoryProvider).uploadImage(file);
+    final uploaded =
+        await _ref.read(uploadRepositoryProvider).uploadImage(file);
     return update(ProfileUpdate(avatarUrl: uploaded.publicUrl));
   }
 }

@@ -73,7 +73,7 @@ class _PushPermissionScreenState extends ConsumerState<PushPermissionScreen> {
               AppSpacing.vGapMd,
               Text(
                 l10n.pushPromptBody,
-                style: AppTypography.bodyLarge.copyWith(
+                style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -88,6 +88,11 @@ class _PushPermissionScreenState extends ConsumerState<PushPermissionScreen> {
               AppSpacing.vGapSm,
               TextButton(
                 key: const Key('push-not-now'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.onSurfaceVariant,
+                  textStyle: AppTypography.bodyMedium,
+                  shape: const StadiumBorder(),
+                ),
                 onPressed: _busy ? null : _notNow,
                 child: Text(l10n.pushPromptNotNow),
               ),
