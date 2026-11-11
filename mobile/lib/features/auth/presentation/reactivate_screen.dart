@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
-import 'package:meeple_hearth/core/constants/app_typography.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/data/google_auth_client.dart';
+import 'package:meeple_hearth/features/auth/presentation/widgets/auth_layout.dart';
+import 'package:meeple_hearth/features/auth/presentation/widgets/auth_page.dart';
 import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
@@ -75,83 +75,65 @@ class _ReactivateScreenState extends ConsumerState<ReactivateScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.transparent,
-        leading: IconButton(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+    return AuthCenteredPage(
+      children: [
+        AuthBackLink(
           onPressed: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.login),
         ),
-      ),
-      body: SafeArea(
-        child: Form(
+        AppSpacing.vGapXl,
+        AuthStatusBlock(
+          icon: Icons.restore_rounded,
+          title: l10n.reactivateTitle,
+          body: l10n.reactivateBody,
+        ),
+        AppSpacing.vGapXl,
+        Form(
           key: _form,
-          child: ListView(
-            padding: AppSpacing.pagePadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
-                Icons.restore_rounded,
-                size: 56,
-                color: AppColors.tertiary,
-              ),
-              AppSpacing.vGapLg,
-              Text(
-                l10n.reactivateTitle,
-                style: AppTypography.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              AppSpacing.vGapSm,
-              Text(
-                l10n.reactivateBody,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              AppSpacing.vGapXl,
               AuthTextField(
                 key: const Key('reactivate-identifier'),
                 label: l10n.authEmailOrUsername,
                 controller: _identifier,
-                prefixIcon: Icons.person_outline_rounded,
                 validator: (v) => (v ?? '').trim().isEmpty
                     ? l10n.authEmailOrUsernameRequired
                     : null,
               ),
-              AppSpacing.vGapMd,
+              const SizedBox(height: 20),
               AuthTextField(
                 key: const Key('reactivate-password'),
                 label: l10n.authPassword,
                 controller: _password,
                 isPassword: true,
                 textInputAction: TextInputAction.done,
-                prefixIcon: Icons.lock_outline_rounded,
                 validator: (v) =>
                     (v ?? '').isEmpty ? l10n.authPasswordRequired : null,
                 onFieldSubmitted: (_) => _reactivate(),
               ),
-              AppSpacing.vGapXl,
-              AppButton(
-                key: const Key('reactivate-submit'),
-                label: l10n.reactivateSubmit,
-                isLoading: _loading,
-                onPressed: _reactivate,
-              ),
-              if (ref.watch(googleAuthClientProvider).isAvailable) ...[
-                AppSpacing.vGapMd,
-                TextButton.icon(
-                  key: const Key('reactivate-google'),
-                  onPressed: _loading ? null : _reactivateWithGoogle,
-                  icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
-                  label: Text(l10n.reactivateWithGoogle),
-                ),
-              ],
             ],
           ),
         ),
-      ),
+        AppSpacing.vGapXl,
+        AppButton(
+          key: const Key('reactivate-submit'),
+          label: l10n.reactivateSubmit,
+          size: AppButtonSize.lg,
+          isLoading: _loading,
+          onPressed: _reactivate,
+        ),
+        if (ref.watch(googleAuthClientProvider).isAvailable) ...[
+          const AuthOrDivider(),
+          AppButton(
+            key: const Key('reactivate-google'),
+            label: l10n.reactivateWithGoogle,
+            icon: Icons.g_mobiledata_rounded,
+            variant: AppButtonVariant.ghost,
+            onPressed: _loading ? null : _reactivateWithGoogle,
+          ),
+        ],
+      ],
     );
   }
 }

@@ -55,10 +55,7 @@ class AuthNotifier extends _$AuthNotifier {
   Future<User?> build() async {
     // A rejected refresh token ends the session: drop to logged-out so the
     // router sends the user to login.
-    final sub = ref
-        .read(authSessionManagerProvider)
-        .sessionExpired
-        .listen((_) {
+    final sub = ref.read(authSessionManagerProvider).sessionExpired.listen((_) {
       state = const AsyncValue.data(null);
       // Same local cleanup as an explicit logout: the next account to sign
       // in on this device must not see this one's cached data.

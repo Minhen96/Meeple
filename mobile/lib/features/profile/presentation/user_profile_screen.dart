@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/config/app_config.dart';
-import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/network/api_exception.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/profile/presentation/own_profile_screen.dart';
+import 'package:meeple_hearth/features/posts/providers/post_provider.dart';
 import 'package:meeple_hearth/features/profile/presentation/profile_view.dart';
+import 'package:meeple_hearth/features/profile/presentation/widgets/profile_action_sheet.dart';
 import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
 import 'package:meeple_hearth/features/social/presentation/friend_button.dart';
 import 'package:meeple_hearth/features/social/presentation/report_sheet.dart';
@@ -17,7 +19,7 @@ import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/confirm_sheet.dart';
 import 'package:meeple_hearth/shared/widgets/empty_state.dart';
 import 'package:meeple_hearth/shared/widgets/error_state.dart';
-import 'package:meeple_hearth/shared/widgets/meeple_app_bar.dart';
+import 'package:meeple_hearth/shared/widgets/meeple_back_brand_bar.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Another user's profile (SCREENS §8.2): friend actions, block, report.
@@ -29,37 +31,29 @@ class UserProfileScreen extends ConsumerWidget {
 
   Future<void> _menu(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      builder: (sheet) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: Text(l10n.profileShare),
-              onTap: () => Navigator.of(sheet).pop('share'),
-            ),
-            ListTile(
-              key: const Key('profile-block'),
-              leading: const Icon(Icons.block_rounded, color: AppColors.error),
-              title: Text(
-                l10n.profileBlock,
-                style: const TextStyle(color: AppColors.error),
-              ),
-              onTap: () => Navigator.of(sheet).pop('block'),
-            ),
-            ListTile(
-              key: const Key('profile-report'),
-              leading: const Icon(Icons.flag_outlined),
-              title: Text(l10n.profileReport),
-              onTap: () => Navigator.of(sheet).pop('report'),
-            ),
-          ],
+    final choice = await showProfileActionSheet(
+      context,
+      keyPrefix: 'profile',
+      actions: [
+        (
+          id: 'share',
+          icon: Icons.share_outlined,
+          label: l10n.profileShare,
+          danger: false
         ),
-      ),
+        (
+          id: 'report',
+          icon: Icons.flag_outlined,
+          label: l10n.profileReport,
+          danger: false
+        ),
+        (
+          id: 'block',
+          icon: Icons.block_rounded,
+          label: l10n.profileBlock,
+          danger: true
+        ),
+      ],
     );
     if (!context.mounted || choice == null) return;
     switch (choice) {
@@ -83,7 +77,8 @@ class UserProfileScreen extends ConsumerWidget {
           if (context.mounted) showErrorToast(context, e);
         }
       case 'report':
-        await showReportSheet(context, ref, targetType: 'user', targetId: userId);
+        await showReportSheet(context, ref,
+            targetType: 'user', targetId: userId);
     }
   }
 
@@ -94,18 +89,7 @@ class UserProfileScreen extends ConsumerWidget {
     if (me?.id == userId) return const OwnProfileScreen();
     final profile = ref.watch(userProfileProvider(userId));
     return Scaffold(
-      appBar: MeepleAppBar(
-        showBackButton: true,
-        actions: [
-          if (profile.hasValue)
-            IconButton(
-              key: const Key('user-profile-menu'),
-              tooltip: l10n.commonMore,
-              icon: const Icon(Icons.more_vert_rounded),
-              onPressed: () => _menu(context, ref),
-            ),
-        ],
-      ),
+      appBar: const MeepleBackBrandBar(fallbackRoute: AppRoutes.home),
       body: profile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => e is NotFoundException
@@ -117,10 +101,33 @@ class UserProfileScreen extends ConsumerWidget {
                 error: e,
                 onRetry: () => ref.invalidate(userProfileProvider(userId)),
               ),
-        data: (user) => ProfileView(
-          user: user,
-          isSelf: false,
-          actions: Center(child: FriendButton(userId: userId)),
+        data: (user) => RefreshIndicator(
+          notificationPredicate: (n) => n.depth == 0,
+          onRefresh: () async {
+            ref
+              ..invalidate(userProfileProvider(userId))
+              ..invalidate(userStatsProvider(userId))
+              ..invalidate(userFavoritesProvider(userId))
+              ..invalidate(userCollectionProvider(userId))
+              ..invalidate(userPostsProvider(userId))
+              ..invalidate(taggedPostsProvider(userId))
+              ..invalidate(friendStatusNotifierProvider(userId));
+          },
+          child: ProfileView(
+            user: user,
+            isSelf: false,
+            actions: Row(
+              children: [
+                Expanded(child: FriendButton(userId: userId)),
+                AppSpacing.hGapSm,
+                ProfileMoreButton(
+                  key: const Key('user-profile-menu'),
+                  tooltip: l10n.commonMore,
+                  onPressed: () => _menu(context, ref),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

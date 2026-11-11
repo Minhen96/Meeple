@@ -180,7 +180,7 @@
       }
     }
   },
-  "authBackToSignIn": "Back to Sign In",
+  "authBackToSignIn": "Back to login",
   "authCheckInbox": "Check your inbox",
   "authConfirmNewPassword": "Confirm new password",
   "authConfirmPassword": "Confirm password",
@@ -211,10 +211,10 @@
   "authPasswordUpdated": "Password updated!",
   "authPasswordUpdatedBody": "Your password has been reset. Sign in with your new password.",
   "authPasswordsMismatch": "Passwords don't match",
-  "authResendEmail": "Resend Email",
-  "authResetLinkExpired": "This link has expired. Request a new one.",
+  "authResendEmail": "Resend verification email",
+  "authResetLinkExpired": "This password reset link is invalid or has expired.",
   "authResetPasswordTitle": "Reset Password",
-  "authResetSentTo": "If {email} is registered, you'll receive a reset link.",
+  "authResetSentTo": "If {email} is registered, you'll receive a reset link shortly.",
   "@authResetSentTo": {
     "placeholders": {
       "email": {
@@ -223,7 +223,7 @@
     }
   },
   "authSendResetLink": "Send Reset Link",
-  "authSetNewPassword": "Create a new password",
+  "authSetNewPassword": "Set new password",
   "authSignIn": "Log In",
   "authSignInLink": "Log in",
   "authSignInSubtitle": "Welcome back",
@@ -231,7 +231,7 @@
   "authTermsNote": "By creating an account you agree to our Terms of Service and Privacy Policy.",
   "authUsernameLength": "3–20 lowercase letters, numbers or underscores",
   "authUsernameRequired": "Username is required",
-  "authVerificationResent": "Email resent!",
+  "authVerificationResent": "Sent! Check your inbox again.",
   "authVerifyBody": "Click the link in the email to activate your account.",
   "authVerifyFirst": "Please verify your email first.",
   "authVerifySentTo": "We sent a verification link to {email}",
@@ -242,13 +242,13 @@
       }
     }
   },
-  "avatarChange": "Change profile photo",
+  "avatarChange": "Change Photo",
   "avatarCropTitle": "Crop Photo",
   "avatarUploadFailed": "Upload failed. Try again.",
   "badgeFavorited": "Favorite",
   "badgeOwned": "Owned",
   "badgeWishlisted": "On wishlist",
-  "bggImportBody": "Enter your BoardGameGeek username to import your collection.",
+  "bggImportBody": "Enter your BoardGameGeek username to import the games you own.",
   "bggImportDone": "Imported {imported} games ({skipped} skipped, {failed} failed).",
   "@bggImportDone": {
     "placeholders": {
@@ -276,7 +276,7 @@
     }
   },
   "bggImportStart": "Import Collection",
-  "bggImportStarting": "Starting import…",
+  "bggImportStarting": "Connecting to BoardGameGeek…",
   "bggImportTitle": "Import your collection",
   "bggPrivacyNote": "We only read your public collection.",
   "bggUsername": "BGG username",
@@ -287,8 +287,8 @@
   "bookmarksTitle": "Saved posts",
   "changeEmailBody": "We'll send a verification link to your new address. Your email changes once you confirm it.",
   "changeEmailCurrentPassword": "Current password",
-  "changeEmailNew": "New email",
-  "changeEmailSentBody": "Open the link we sent to {email} to confirm the change.",
+  "changeEmailNew": "New email address",
+  "changeEmailSentBody": "We sent a confirmation link to {email}. Your email changes when you open it.",
   "@changeEmailSentBody": {
     "placeholders": {
       "email": {
@@ -297,7 +297,7 @@
     }
   },
   "changeEmailSentTitle": "Check your new inbox",
-  "changeEmailSubmit": "Send verification link",
+  "changeEmailSubmit": "Send Confirmation Link",
   "changePasswordBody": "For your security, password changes go through email. We'll send a reset link to {email}.",
   "@changePasswordBody": {
     "placeholders": {
@@ -307,9 +307,9 @@
     }
   },
   "changePasswordNoEmail": "Request a reset link with the email you registered with.",
-  "changePasswordSend": "Send reset link",
-  "changePasswordSentBody": "Follow the link in the email to choose a new password.",
-  "changePasswordSentTitle": "Reset link sent",
+  "changePasswordSend": "Send Reset Link",
+  "changePasswordSentBody": "Check your email for a link to set a new password.",
+  "changePasswordSentTitle": "Reset link sent!",
   "collectionNoPlays": "No plays logged yet.",
   "collectionNotes": "Notes",
   "collectionPlayHistory": "Play history",
@@ -334,7 +334,7 @@
   "commentDeleteMessage": "This comment will be removed.",
   "commentDeleteTitle": "Delete comment?",
   "commentEditTitle": "Edit comment",
-  "deleteConfirmMessage": "This will delete your account. You have 30 days to reactivate it by logging in again.",
+  "deleteConfirmMessage": "This will delete your account. You have 30 days to reactivate it.",
   "deleteConfirmTitle": "Are you absolutely sure?",
   "deleteDone": "Your account is scheduled for deletion.",
   "deletePasswordless": "I signed up with Google (no password)",
@@ -490,13 +490,13 @@
   "friendUnfriendMessage": "You will no longer see each other's friends-only content.",
   "friendUnfriendTitle": "Remove friend?",
   "friendsEmptyBody": "Find people you play with and add them as friends.",
-  "friendsEmptyTitle": "No friends yet",
+  "friendsEmptyTitle": "No friends yet.",
   "friendsNoRequests": "No pending friend requests.",
   "friendsNoSuggestions": "No suggestions yet. Search for friends by username.",
   "friendsReceived": "Received",
-  "friendsSearchHint": "Search by name or username",
+  "friendsSearchHint": "Search for people…",
   "friendsSent": "Sent",
-  "friendsSuggestions": "People you may know",
+  "friendsSuggestions": "Suggested for you",
   "friendsTabFind": "Find",
   "friendsTabFriends": "Friends",
   "friendsTabRequests": "Requests",
@@ -917,7 +917,7 @@
   },
   "notificationAGame": "a game",
   "notificationAnEvent": "an event",
-  "notificationPrefsTitle": "Notification preferences",
+  "notificationPrefsTitle": "Notification Preferences",
   "notificationSomeone": "Someone",
   "notificationsEarlier": "Earlier",
   "notificationsEmptyBody": "Notifications will appear here.",
@@ -926,7 +926,7 @@
   "notificationsThisWeek": "This Week",
   "notificationsTitle": "Notifications",
   "notificationsToday": "Today",
-  "onboardingAddGameBody": "Add a few games you own to get started.",
+  "onboardingAddGameBody": "Search for a game to add to your collection.",
   "onboardingAddGameConfirm": "Add {game} to your collection?",
   "@onboardingAddGameConfirm": {
     "placeholders": {
@@ -938,7 +938,7 @@
   "onboardingAddGameTitle": "What do you love to play?",
   "onboardingBggBody": "Already on BoardGameGeek? Bring your collection over.",
   "onboardingBggTitle": "Import from BoardGameGeek",
-  "onboardingFinish": "Finish",
+  "onboardingFinish": "Done",
   "onboardingFriendsBody": "Send friend requests to people you play with.",
   "onboardingFriendsTitle": "Find your friends",
   "onboardingPopular": "Popular games",
@@ -1067,13 +1067,13 @@
   "prefRulebookApproved": "Rulebook approved",
   "prefRulebookRejected": "Rulebook rejected",
   "prefRulebookUnderReview": "Rulebook under review",
-  "prefTypeHeader": "Notification",
+  "prefTypeHeader": "Type",
   "profileBio": "Bio",
   "profileBlock": "Block",
   "profileBlockMessage": "You'll no longer be friends and won't see each other's content.",
   "profileBlockTitle": "Block this user?",
   "profileBlocked": "User blocked.",
-  "profileDisplayName": "Display name",
+  "profileDisplayName": "Display Name",
   "profileDisplayNameTooShort": "Must be at least 2 characters",
   "profileEdit": "Edit Profile",
   "profileEmailNote": "To change your email, go to Settings › Change Email.",
@@ -1101,7 +1101,7 @@
   },
   "profileUsernameInvalid": "3–20 lowercase letters, numbers or underscores",
   "profileVerified": "Verified",
-  "quietHoursBody": "Push notifications are paused during quiet hours.",
+  "quietHoursBody": "Push notifications paused during quiet hours",
   "quietHoursFrom": "From {time}",
   "@quietHoursFrom": {
     "placeholders": {
@@ -1174,7 +1174,7 @@
   "settingsComingSoon": "Coming soon",
   "settingsDeleteAccount": "Delete Account",
   "settingsEditProfile": "Edit Profile",
-  "settingsExport": "Export my data",
+  "settingsExport": "Download My Data",
   "settingsExportRequested": "We'll email you a download link when your export is ready.",
   "settingsFeedback": "Send Feedback",
   "settingsLanguage": "Language",
@@ -1184,7 +1184,7 @@
   "settingsPrivacySettings": "Privacy Settings",
   "settingsSecurity": "Security",
   "settingsSessions": "Active Sessions",
-  "settingsSignOut": "Log out",
+  "settingsSignOut": "Log Out",
   "settingsSignOutMessage": "You'll need to log in again on this device.",
   "settingsSignOutTitle": "Log out?",
   "settingsTerms": "Terms of Service",
@@ -1193,7 +1193,7 @@
   "settingsTitle": "Settings",
   "settingsVersion": "App Version",
   "statFriends": "Friends",
-  "statGamesOwned": "Games Owned",
+  "statGamesOwned": "Owned",
   "statMostPlayed": "Most played: {game} ({count})",
   "@statMostPlayed": {
     "placeholders": {
@@ -1212,9 +1212,9 @@
   "visibilityInviteOnlyHint": "Only people you invite can see it.",
   "visibilityPublic": "Public",
   "visibilityPublicHint": "Anyone in the community can find and join.",
-  "welcomeEvents": "Organize game nights with friends",
-  "welcomeLibrary": "Track the games you own and love",
-  "welcomeMatching": "Get matched with friends who want to play",
+  "welcomeEvents": "Organize and join events with friends.",
+  "welcomeLibrary": "Browse and track every board game you own.",
+  "welcomeMatching": "Match with friends who want to play the same games.",
   "welcomeStart": "Get Started",
   "welcomeTagline": "Track your games. Organize game nights. Build memories.",
   "authShowPassword": "Show password",
@@ -1657,5 +1657,170 @@
   "htpSectionTips": "Tips for New Players",
   "logPlayPlayers": "Players",
   "searchFailed": "Search failed. Try again.",
-  "logPlaySelected": "Selected"
+  "logPlaySelected": "Selected",
+  "statFavoriteCategory": "Favorite category: {category}",
+  "@statFavoriteCategory": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "statMostPlayedWith": "Plays most with {name} ({count})",
+  "@statMostPlayedWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileNoPostsOwn": "No posts yet. Share your first game night with the + button.",
+  "profileNoTagged": "No tagged posts yet.",
+  "profileNoFavoritesOther": "No favorite games yet.",
+  "profileCollectionFriendsOnly": "Add each other as friends to see this collection.",
+  "profileNoCollectionOwn": "Your collection is empty. Add games from the Library.",
+  "profileNoCollection": "No games in this collection yet.",
+  "friendAcceptRequest": "Accept Request",
+  "friendsCount": "{count, plural, =1{1 friend} other{{count} friends}}",
+  "@friendsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "friendsTabRequestsCount": "Requests ({count})",
+  "@friendsTabRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "friendsUnfriendTitle": "Remove {name} from your friends?",
+  "@friendsUnfriendTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "friendsUnfriendBody": "They won't be notified.",
+  "friendsRemoved": "Friend removed",
+  "friendsFindPeople": "Find people",
+  "friendsNoReceived": "No pending requests.",
+  "friendsNoSent": "You haven't sent any requests.",
+  "friendAccepted": "You are now friends",
+  "friendDeclined": "Request declined",
+  "friendCancelled": "Request cancelled",
+  "settingsQuietHours": "Quiet Hours",
+  "settingsThemeDark": "Dark",
+  "settingsThemeSystem": "System",
+  "settingsThemeHint": "Dark and System themes are coming soon.",
+  "changeEmailCurrent": "Current email: {email}",
+  "@changeEmailCurrent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "changeEmailGoogleOnly": "You sign in with Google, so your email follows your Google account. Change it with Google.",
+  "sessionsConfirmTitle": "Sign out other devices?",
+  "sessionsConfirmBody": "{count, plural, =1{1 other device will be signed out immediately.} other{{count} other devices will be signed out immediately.}}",
+  "@sessionsConfirmBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionsOthersSignedOut": "All other devices were signed out",
+  "sessionsSignedOut": "Device signed out",
+  "deleteWarningTitle": "Your account will be scheduled for deletion",
+  "deleteConsequenceGrace": "You have 30 days to change your mind: log in again to reactivate.",
+  "deleteConsequenceImmediate": "Your collection, friends, match requests and notifications are removed now.",
+  "deleteConsequencePermanent": "After 30 days your profile, posts and photos are deleted permanently.",
+  "deletePasswordLabel": "Enter your password to confirm",
+  "profileUsernameOnce": "You can change your username once every 30 days.",
+  "profileBioHint": "Tell people about yourself…",
+  "profileLocation": "Location",
+  "bggSettingsTitle": "BoardGameGeek import",
+  "bggImportSuccess": "{count, plural, =1{Imported 1 game!} other{Imported {count} games!}}",
+  "@bggImportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bggImportSuccessNone": "Your collection is already up to date.",
+  "bggImportSkipped": "{count, plural, =1{1 was already in your collection.} other{{count} were already in your collection.}}",
+  "@bggImportSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bggImportAgain": "Import again",
+  "bggViewLibrary": "View my library",
+  "notificationPrefsIntro": "Choose what reaches you in the app and as push notifications.",
+  "quietHoursStartLabel": "From",
+  "quietHoursEndLabel": "To",
+  "quietHoursTimezone": "Time zone: {zone}",
+  "@quietHoursTimezone": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeLibraryTitle": "Game Library",
+  "welcomeEventsTitle": "Game Nights",
+  "welcomeMatchingTitle": "Find Players",
+  "onboardingProgress": "Step {current} of {total}",
+  "@onboardingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingAvatarHint": "Tap to add a photo (optional)",
+  "onboardingFriendsSearchHint": "Search by username or name",
+  "onboardingFriendsNoResults": "No players found for '{query}'",
+  "@onboardingFriendsNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingGameSearchHint": "Search games…",
+  "onboardingInCollection": "In collection",
+  "commonBack": "Go back",
+  "authEmailAddress": "Email address",
+  "registerEmailHint": "Your email",
+  "registerUsernameHint": "Username",
+  "registerPasswordHint": "At least 8 characters",
+  "registerConfirmHint": "Repeat password",
+  "registerHeroLead": "Join the",
+  "registerHeroAccent": "table.",
+  "registerPerkCommunity": "Meet board game players near you",
+  "registerPerkCollection": "Manage and track your collection",
+  "authUpdatePassword": "Update Password",
+  "authResetInvalidTitle": "Invalid link",
+  "authRequestNewLink": "Request a new link",
+  "authVerifying": "Verifying…",
+  "authVerifyExpiredTitle": "Link expired",
+  "authVerifyExpiredBody": "This verification link is invalid or has expired. Request a new one below.",
+  "authVerifySentBody": "We sent a verification link to your email address.",
+  "authVerifyResendHint": "Didn't get it? Enter your email"
 }

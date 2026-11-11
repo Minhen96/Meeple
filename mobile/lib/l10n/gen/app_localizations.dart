@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @authBackToSignIn.
   ///
   /// In en, this message translates to:
-  /// **'Back to Sign In'**
+  /// **'Back to login'**
   String get authBackToSignIn;
 
   /// No description provided for @authCheckInbox.
@@ -893,13 +893,13 @@ abstract class AppLocalizations {
   /// No description provided for @authResendEmail.
   ///
   /// In en, this message translates to:
-  /// **'Resend Email'**
+  /// **'Resend verification email'**
   String get authResendEmail;
 
   /// No description provided for @authResetLinkExpired.
   ///
   /// In en, this message translates to:
-  /// **'This link has expired. Request a new one.'**
+  /// **'This password reset link is invalid or has expired.'**
   String get authResetLinkExpired;
 
   /// No description provided for @authResetPasswordTitle.
@@ -911,7 +911,7 @@ abstract class AppLocalizations {
   /// No description provided for @authResetSentTo.
   ///
   /// In en, this message translates to:
-  /// **'If {email} is registered, you\'ll receive a reset link.'**
+  /// **'If {email} is registered, you\'ll receive a reset link shortly.'**
   String authResetSentTo(String email);
 
   /// No description provided for @authSendResetLink.
@@ -923,7 +923,7 @@ abstract class AppLocalizations {
   /// No description provided for @authSetNewPassword.
   ///
   /// In en, this message translates to:
-  /// **'Create a new password'**
+  /// **'Set new password'**
   String get authSetNewPassword;
 
   /// No description provided for @authSignIn.
@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @authVerificationResent.
   ///
   /// In en, this message translates to:
-  /// **'Email resent!'**
+  /// **'Sent! Check your inbox again.'**
   String get authVerificationResent;
 
   /// No description provided for @authVerifyBody.
@@ -995,7 +995,7 @@ abstract class AppLocalizations {
   /// No description provided for @avatarChange.
   ///
   /// In en, this message translates to:
-  /// **'Change profile photo'**
+  /// **'Change Photo'**
   String get avatarChange;
 
   /// No description provided for @avatarCropTitle.
@@ -1031,7 +1031,7 @@ abstract class AppLocalizations {
   /// No description provided for @bggImportBody.
   ///
   /// In en, this message translates to:
-  /// **'Enter your BoardGameGeek username to import your collection.'**
+  /// **'Enter your BoardGameGeek username to import the games you own.'**
   String get bggImportBody;
 
   /// No description provided for @bggImportDone.
@@ -1061,7 +1061,7 @@ abstract class AppLocalizations {
   /// No description provided for @bggImportStarting.
   ///
   /// In en, this message translates to:
-  /// **'Starting import…'**
+  /// **'Connecting to BoardGameGeek…'**
   String get bggImportStarting;
 
   /// No description provided for @bggImportTitle.
@@ -1127,13 +1127,13 @@ abstract class AppLocalizations {
   /// No description provided for @changeEmailNew.
   ///
   /// In en, this message translates to:
-  /// **'New email'**
+  /// **'New email address'**
   String get changeEmailNew;
 
   /// No description provided for @changeEmailSentBody.
   ///
   /// In en, this message translates to:
-  /// **'Open the link we sent to {email} to confirm the change.'**
+  /// **'We sent a confirmation link to {email}. Your email changes when you open it.'**
   String changeEmailSentBody(String email);
 
   /// No description provided for @changeEmailSentTitle.
@@ -1145,7 +1145,7 @@ abstract class AppLocalizations {
   /// No description provided for @changeEmailSubmit.
   ///
   /// In en, this message translates to:
-  /// **'Send verification link'**
+  /// **'Send Confirmation Link'**
   String get changeEmailSubmit;
 
   /// No description provided for @changePasswordBody.
@@ -1163,19 +1163,19 @@ abstract class AppLocalizations {
   /// No description provided for @changePasswordSend.
   ///
   /// In en, this message translates to:
-  /// **'Send reset link'**
+  /// **'Send Reset Link'**
   String get changePasswordSend;
 
   /// No description provided for @changePasswordSentBody.
   ///
   /// In en, this message translates to:
-  /// **'Follow the link in the email to choose a new password.'**
+  /// **'Check your email for a link to set a new password.'**
   String get changePasswordSentBody;
 
   /// No description provided for @changePasswordSentTitle.
   ///
   /// In en, this message translates to:
-  /// **'Reset link sent'**
+  /// **'Reset link sent!'**
   String get changePasswordSentTitle;
 
   /// No description provided for @collectionNoPlays.
@@ -1241,7 +1241,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'This will delete your account. You have 30 days to reactivate it by logging in again.'**
+  /// **'This will delete your account. You have 30 days to reactivate it.'**
   String get deleteConfirmMessage;
 
   /// No description provided for @deleteConfirmTitle.
@@ -1823,7 +1823,7 @@ abstract class AppLocalizations {
   /// No description provided for @friendsEmptyTitle.
   ///
   /// In en, this message translates to:
-  /// **'No friends yet'**
+  /// **'No friends yet.'**
   String get friendsEmptyTitle;
 
   /// No description provided for @friendsNoRequests.
@@ -1847,7 +1847,7 @@ abstract class AppLocalizations {
   /// No description provided for @friendsSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search by name or username'**
+  /// **'Search for people…'**
   String get friendsSearchHint;
 
   /// No description provided for @friendsSent.
@@ -1859,7 +1859,7 @@ abstract class AppLocalizations {
   /// No description provided for @friendsSuggestions.
   ///
   /// In en, this message translates to:
-  /// **'People you may know'**
+  /// **'Suggested for you'**
   String get friendsSuggestions;
 
   /// No description provided for @friendsTabFind.
@@ -2621,7 +2621,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationPrefsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Notification preferences'**
+  /// **'Notification Preferences'**
   String get notificationPrefsTitle;
 
   /// No description provided for @notificationSomeone.
@@ -2675,7 +2675,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingAddGameBody.
   ///
   /// In en, this message translates to:
-  /// **'Add a few games you own to get started.'**
+  /// **'Search for a game to add to your collection.'**
   String get onboardingAddGameBody;
 
   /// No description provided for @onboardingAddGameConfirm.
@@ -2705,7 +2705,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFinish.
   ///
   /// In en, this message translates to:
-  /// **'Finish'**
+  /// **'Done'**
   String get onboardingFinish;
 
   /// No description provided for @onboardingFriendsBody.
@@ -3167,7 +3167,7 @@ abstract class AppLocalizations {
   /// No description provided for @prefTypeHeader.
   ///
   /// In en, this message translates to:
-  /// **'Notification'**
+  /// **'Type'**
   String get prefTypeHeader;
 
   /// No description provided for @profileBio.
@@ -3203,7 +3203,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDisplayName.
   ///
   /// In en, this message translates to:
-  /// **'Display name'**
+  /// **'Display Name'**
   String get profileDisplayName;
 
   /// No description provided for @profileDisplayNameTooShort.
@@ -3329,7 +3329,7 @@ abstract class AppLocalizations {
   /// No description provided for @quietHoursBody.
   ///
   /// In en, this message translates to:
-  /// **'Push notifications are paused during quiet hours.'**
+  /// **'Push notifications paused during quiet hours'**
   String get quietHoursBody;
 
   /// No description provided for @quietHoursFrom.
@@ -3599,7 +3599,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsExport.
   ///
   /// In en, this message translates to:
-  /// **'Export my data'**
+  /// **'Download My Data'**
   String get settingsExport;
 
   /// No description provided for @settingsExportRequested.
@@ -3659,7 +3659,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSignOut.
   ///
   /// In en, this message translates to:
-  /// **'Log out'**
+  /// **'Log Out'**
   String get settingsSignOut;
 
   /// No description provided for @settingsSignOutMessage.
@@ -3713,7 +3713,7 @@ abstract class AppLocalizations {
   /// No description provided for @statGamesOwned.
   ///
   /// In en, this message translates to:
-  /// **'Games Owned'**
+  /// **'Owned'**
   String get statGamesOwned;
 
   /// No description provided for @statMostPlayed.
@@ -3767,19 +3767,19 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeEvents.
   ///
   /// In en, this message translates to:
-  /// **'Organize game nights with friends'**
+  /// **'Organize and join events with friends.'**
   String get welcomeEvents;
 
   /// No description provided for @welcomeLibrary.
   ///
   /// In en, this message translates to:
-  /// **'Track the games you own and love'**
+  /// **'Browse and track every board game you own.'**
   String get welcomeLibrary;
 
   /// No description provided for @welcomeMatching.
   ///
   /// In en, this message translates to:
-  /// **'Get matched with friends who want to play'**
+  /// **'Match with friends who want to play the same games.'**
   String get welcomeMatching;
 
   /// No description provided for @welcomeStart.
@@ -5203,6 +5203,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Selected'**
   String get logPlaySelected;
+
+  /// No description provided for @statFavoriteCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite category: {category}'**
+  String statFavoriteCategory(String category);
+
+  /// No description provided for @statMostPlayedWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays most with {name} ({count})'**
+  String statMostPlayedWith(String name, int count);
+
+  /// No description provided for @profileNoPostsOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts yet. Share your first game night with the + button.'**
+  String get profileNoPostsOwn;
+
+  /// No description provided for @profileNoTagged.
+  ///
+  /// In en, this message translates to:
+  /// **'No tagged posts yet.'**
+  String get profileNoTagged;
+
+  /// No description provided for @profileNoFavoritesOther.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite games yet.'**
+  String get profileNoFavoritesOther;
+
+  /// No description provided for @profileCollectionFriendsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Add each other as friends to see this collection.'**
+  String get profileCollectionFriendsOnly;
+
+  /// No description provided for @profileNoCollectionOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection is empty. Add games from the Library.'**
+  String get profileNoCollectionOwn;
+
+  /// No description provided for @profileNoCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'No games in this collection yet.'**
+  String get profileNoCollection;
+
+  /// No description provided for @friendAcceptRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept Request'**
+  String get friendAcceptRequest;
+
+  /// No description provided for @friendsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 friend} other{{count} friends}}'**
+  String friendsCount(int count);
+
+  /// No description provided for @friendsTabRequestsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests ({count})'**
+  String friendsTabRequestsCount(int count);
+
+  /// No description provided for @friendsUnfriendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from your friends?'**
+  String friendsUnfriendTitle(String name);
+
+  /// No description provided for @friendsUnfriendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They won\'t be notified.'**
+  String get friendsUnfriendBody;
+
+  /// No description provided for @friendsRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Friend removed'**
+  String get friendsRemoved;
+
+  /// No description provided for @friendsFindPeople.
+  ///
+  /// In en, this message translates to:
+  /// **'Find people'**
+  String get friendsFindPeople;
+
+  /// No description provided for @friendsNoReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending requests.'**
+  String get friendsNoReceived;
+
+  /// No description provided for @friendsNoSent.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t sent any requests.'**
+  String get friendsNoSent;
+
+  /// No description provided for @friendAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'You are now friends'**
+  String get friendAccepted;
+
+  /// No description provided for @friendDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Request declined'**
+  String get friendDeclined;
+
+  /// No description provided for @friendCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Request cancelled'**
+  String get friendCancelled;
+
+  /// No description provided for @settingsQuietHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiet Hours'**
+  String get settingsQuietHours;
+
+  /// No description provided for @settingsThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDark;
+
+  /// No description provided for @settingsThemeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingsThemeSystem;
+
+  /// No description provided for @settingsThemeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark and System themes are coming soon.'**
+  String get settingsThemeHint;
+
+  /// No description provided for @changeEmailCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current email: {email}'**
+  String changeEmailCurrent(String email);
+
+  /// No description provided for @changeEmailGoogleOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'You sign in with Google, so your email follows your Google account. Change it with Google.'**
+  String get changeEmailGoogleOnly;
+
+  /// No description provided for @sessionsConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out other devices?'**
+  String get sessionsConfirmTitle;
+
+  /// No description provided for @sessionsConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 other device will be signed out immediately.} other{{count} other devices will be signed out immediately.}}'**
+  String sessionsConfirmBody(int count);
+
+  /// No description provided for @sessionsOthersSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'All other devices were signed out'**
+  String get sessionsOthersSignedOut;
+
+  /// No description provided for @sessionsSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Device signed out'**
+  String get sessionsSignedOut;
+
+  /// No description provided for @deleteWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account will be scheduled for deletion'**
+  String get deleteWarningTitle;
+
+  /// No description provided for @deleteConsequenceGrace.
+  ///
+  /// In en, this message translates to:
+  /// **'You have 30 days to change your mind: log in again to reactivate.'**
+  String get deleteConsequenceGrace;
+
+  /// No description provided for @deleteConsequenceImmediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection, friends, match requests and notifications are removed now.'**
+  String get deleteConsequenceImmediate;
+
+  /// No description provided for @deleteConsequencePermanent.
+  ///
+  /// In en, this message translates to:
+  /// **'After 30 days your profile, posts and photos are deleted permanently.'**
+  String get deleteConsequencePermanent;
+
+  /// No description provided for @deletePasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password to confirm'**
+  String get deletePasswordLabel;
+
+  /// No description provided for @profileUsernameOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change your username once every 30 days.'**
+  String get profileUsernameOnce;
+
+  /// No description provided for @profileBioHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell people about yourself…'**
+  String get profileBioHint;
+
+  /// No description provided for @profileLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get profileLocation;
+
+  /// No description provided for @bggSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BoardGameGeek import'**
+  String get bggSettingsTitle;
+
+  /// No description provided for @bggImportSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Imported 1 game!} other{Imported {count} games!}}'**
+  String bggImportSuccess(int count);
+
+  /// No description provided for @bggImportSuccessNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection is already up to date.'**
+  String get bggImportSuccessNone;
+
+  /// No description provided for @bggImportSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 was already in your collection.} other{{count} were already in your collection.}}'**
+  String bggImportSkipped(int count);
+
+  /// No description provided for @bggImportAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Import again'**
+  String get bggImportAgain;
+
+  /// No description provided for @bggViewLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'View my library'**
+  String get bggViewLibrary;
+
+  /// No description provided for @notificationPrefsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what reaches you in the app and as push notifications.'**
+  String get notificationPrefsIntro;
+
+  /// No description provided for @quietHoursStartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get quietHoursStartLabel;
+
+  /// No description provided for @quietHoursEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get quietHoursEndLabel;
+
+  /// No description provided for @quietHoursTimezone.
+  ///
+  /// In en, this message translates to:
+  /// **'Time zone: {zone}'**
+  String quietHoursTimezone(String zone);
+
+  /// No description provided for @welcomeLibraryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Library'**
+  String get welcomeLibraryTitle;
+
+  /// No description provided for @welcomeEventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Nights'**
+  String get welcomeEventsTitle;
+
+  /// No description provided for @welcomeMatchingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find Players'**
+  String get welcomeMatchingTitle;
+
+  /// No description provided for @onboardingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String onboardingProgress(int current, int total);
+
+  /// No description provided for @onboardingAvatarHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to add a photo (optional)'**
+  String get onboardingAvatarHint;
+
+  /// No description provided for @onboardingFriendsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by username or name'**
+  String get onboardingFriendsSearchHint;
+
+  /// No description provided for @onboardingFriendsNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No players found for \'{query}\''**
+  String onboardingFriendsNoResults(String query);
+
+  /// No description provided for @onboardingGameSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search games…'**
+  String get onboardingGameSearchHint;
+
+  /// No description provided for @onboardingInCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'In collection'**
+  String get onboardingInCollection;
+
+  /// No description provided for @commonBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get commonBack;
+
+  /// No description provided for @authEmailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get authEmailAddress;
+
+  /// No description provided for @registerEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your email'**
+  String get registerEmailHint;
+
+  /// No description provided for @registerUsernameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get registerUsernameHint;
+
+  /// No description provided for @registerPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters'**
+  String get registerPasswordHint;
+
+  /// No description provided for @registerConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat password'**
+  String get registerConfirmHint;
+
+  /// No description provided for @registerHeroLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the'**
+  String get registerHeroLead;
+
+  /// No description provided for @registerHeroAccent.
+  ///
+  /// In en, this message translates to:
+  /// **'table.'**
+  String get registerHeroAccent;
+
+  /// No description provided for @registerPerkCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Meet board game players near you'**
+  String get registerPerkCommunity;
+
+  /// No description provided for @registerPerkCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage and track your collection'**
+  String get registerPerkCollection;
+
+  /// No description provided for @authUpdatePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Password'**
+  String get authUpdatePassword;
+
+  /// No description provided for @authResetInvalidTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid link'**
+  String get authResetInvalidTitle;
+
+  /// No description provided for @authRequestNewLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Request a new link'**
+  String get authRequestNewLink;
+
+  /// No description provided for @authVerifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying…'**
+  String get authVerifying;
+
+  /// No description provided for @authVerifyExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link expired'**
+  String get authVerifyExpiredTitle;
+
+  /// No description provided for @authVerifyExpiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This verification link is invalid or has expired. Request a new one below.'**
+  String get authVerifyExpiredBody;
+
+  /// No description provided for @authVerifySentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a verification link to your email address.'**
+  String get authVerifySentBody;
+
+  /// No description provided for @authVerifyResendHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t get it? Enter your email'**
+  String get authVerifyResendHint;
 }
 
 class _AppLocalizationsDelegate

@@ -166,7 +166,8 @@ class SentRequests extends _$SentRequests {
     }
     final current = state.valueOrNull;
     if (current != null) {
-      state = AsyncValue.data(current.where((r) => r.id != request.id).toList());
+      state =
+          AsyncValue.data(current.where((r) => r.id != request.id).toList());
     }
     ref.invalidate(friendStatusNotifierProvider(request.receiver.id));
   }

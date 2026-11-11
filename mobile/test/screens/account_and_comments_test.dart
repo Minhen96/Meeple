@@ -76,6 +76,7 @@ void main() {
       expect(find.byKey(const Key('delete-passwordless')), findsNothing);
       expect(find.byKey(const Key('delete-password')), findsNothing);
       await tester.enterText(find.byKey(const Key('delete-confirm')), 'DELETE');
+      await tester.pump();
       await tester.tap(find.byKey(const Key('delete-submit')));
       await settle(tester);
       await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
@@ -115,6 +116,8 @@ void main() {
           'refresh_token=r');
       await tester.tap(find.byKey(const Key('revoke-others')));
       await settle(tester);
+      await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
+      await settle(tester);
       expect(
         api
             .calls('POST', '/api/v1/auth/sessions/revoke-others')
@@ -141,6 +144,8 @@ void main() {
 
       await tester.tap(find.byKey(const Key('revoke-others')));
       await settle(tester);
+      await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
+      await settle(tester);
 
       expect(find.textContaining("couldn't verify this device"), findsOneWidget);
       expect(api.calls('GET', '/api/v1/auth/sessions'), hasLength(loads + 1));
@@ -160,6 +165,8 @@ void main() {
         );
       await pumpApp(tester, api: api, location: '/settings/sessions');
       await tester.tap(find.byKey(const Key('revoke-others')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('confirm-sheet-confirm')));
       await settle(tester);
       expect(find.textContaining("couldn't verify this device"), findsNothing);
       expect(find.text('Chrome on Mac'), findsOneWidget);

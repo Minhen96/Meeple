@@ -425,17 +425,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authPasswordsMismatch => '两次输入的密码不一致';
 
   @override
-  String get authResendEmail => '重新发送邮件';
+  String get authResendEmail => '重新发送验证邮件';
 
   @override
-  String get authResetLinkExpired => '该链接已过期，请重新申请。';
+  String get authResetLinkExpired => '此密码重置链接无效或已过期。';
 
   @override
   String get authResetPasswordTitle => '重置密码';
 
   @override
   String authResetSentTo(String email) {
-    return '如果 $email 已注册，你将收到重置链接。';
+    return '如果 $email 已注册，你将很快收到重置链接。';
   }
 
   @override
@@ -466,7 +466,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authUsernameRequired => '请输入用户名';
 
   @override
-  String get authVerificationResent => '邮件已重新发送！';
+  String get authVerificationResent => '已发送！请再次查看收件箱。';
 
   @override
   String get authVerifyBody => '点击邮件中的链接以激活账号。';
@@ -498,7 +498,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get badgeWishlisted => '在心愿单中';
 
   @override
-  String get bggImportBody => '输入 BoardGameGeek 用户名以导入你的收藏。';
+  String get bggImportBody => '输入你的 BoardGameGeek 用户名，导入你拥有的游戏。';
 
   @override
   String bggImportDone(int imported, int skipped, int failed) {
@@ -517,7 +517,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bggImportStart => '导入收藏';
 
   @override
-  String get bggImportStarting => '正在开始导入…';
+  String get bggImportStarting => '正在连接 BoardGameGeek…';
 
   @override
   String get bggImportTitle => '导入你的收藏';
@@ -550,18 +550,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changeEmailCurrentPassword => '当前密码';
 
   @override
-  String get changeEmailNew => '新邮箱';
+  String get changeEmailNew => '新邮箱地址';
 
   @override
   String changeEmailSentBody(String email) {
-    return '请打开发送至 $email 的链接以确认更改。';
+    return '我们已向 $email 发送确认链接，打开后邮箱即会更改。';
   }
 
   @override
   String get changeEmailSentTitle => '请查收新邮箱';
 
   @override
-  String get changeEmailSubmit => '发送验证链接';
+  String get changeEmailSubmit => '发送确认链接';
 
   @override
   String changePasswordBody(String email) {
@@ -575,10 +575,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changePasswordSend => '发送重置链接';
 
   @override
-  String get changePasswordSentBody => '请按照邮件中的链接设置新密码。';
+  String get changePasswordSentBody => '请查收邮件中的新密码设置链接。';
 
   @override
-  String get changePasswordSentTitle => '重置链接已发送';
+  String get changePasswordSentTitle => '重置链接已发送！';
 
   @override
   String get collectionNoPlays => '还没有对局记录。';
@@ -615,7 +615,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commentEditTitle => '编辑评论';
 
   @override
-  String get deleteConfirmMessage => '你的账号将被删除。30 天内重新登录即可恢复。';
+  String get deleteConfirmMessage => '这将删除你的账号。你可以在 30 天内恢复。';
 
   @override
   String get deleteConfirmTitle => '你确定吗？';
@@ -929,7 +929,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get friendsEmptyBody => '找到一起玩的人，加为好友吧。';
 
   @override
-  String get friendsEmptyTitle => '还没有好友';
+  String get friendsEmptyTitle => '还没有好友。';
 
   @override
   String get friendsNoRequests => '没有待处理的好友请求。';
@@ -941,13 +941,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get friendsReceived => '收到的请求';
 
   @override
-  String get friendsSearchHint => '按名称或用户名搜索';
+  String get friendsSearchHint => '搜索用户…';
 
   @override
   String get friendsSent => '发出的请求';
 
   @override
-  String get friendsSuggestions => '你可能认识的人';
+  String get friendsSuggestions => '为你推荐';
 
   @override
   String get friendsTabFind => '查找';
@@ -1440,11 +1440,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notificationsToday => '今天';
 
   @override
-  String get onboardingAddGameBody => '添加几款你拥有的游戏，开始吧。';
+  String get onboardingAddGameBody => '搜索游戏并加入你的收藏。';
 
   @override
   String onboardingAddGameConfirm(String game) {
-    return '将 $game 加入你的收藏？';
+    return '把 $game 加入你的收藏？';
   }
 
   @override
@@ -1708,7 +1708,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get prefRulebookUnderReview => '规则书审核中';
 
   @override
-  String get prefTypeHeader => '通知类型';
+  String get prefTypeHeader => '类型';
 
   @override
   String get profileBio => '个人简介';
@@ -1791,7 +1791,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileVerified => '已认证';
 
   @override
-  String get quietHoursBody => '免打扰时段内将暂停推送通知。';
+  String get quietHoursBody => '免打扰时段内暂停推送通知';
 
   @override
   String quietHoursFrom(String time) {
@@ -1934,7 +1934,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsEditProfile => '编辑资料';
 
   @override
-  String get settingsExport => '导出我的数据';
+  String get settingsExport => '下载我的数据';
 
   @override
   String get settingsExportRequested => '导出完成后，我们会通过邮件发送下载链接。';
@@ -1991,7 +1991,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get statFriends => '好友';
 
   @override
-  String get statGamesOwned => '拥有游戏';
+  String get statGamesOwned => '拥有';
 
   @override
   String statMostPlayed(String game, int count) {
@@ -2020,13 +2020,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get visibilityPublicHint => '社区中的任何人都可以找到并加入。';
 
   @override
-  String get welcomeEvents => '和好友组织游戏之夜';
+  String get welcomeEvents => '与好友组织和参加活动。';
 
   @override
-  String get welcomeLibrary => '记录你拥有和喜爱的游戏';
+  String get welcomeLibrary => '浏览并记录你拥有的每一款桌游。';
 
   @override
-  String get welcomeMatching => '与想玩的好友自动匹配';
+  String get welcomeMatching => '与想玩同一款游戏的好友匹配。';
 
   @override
   String get welcomeStart => '开始';
@@ -2794,4 +2794,254 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get logPlaySelected => '已选择';
+
+  @override
+  String statFavoriteCategory(String category) {
+    return '最爱类别：$category';
+  }
+
+  @override
+  String statMostPlayedWith(String name, int count) {
+    return '最常一起玩：$name（$count）';
+  }
+
+  @override
+  String get profileNoPostsOwn => '还没有帖子。用 + 按钮分享你的第一次游戏之夜吧。';
+
+  @override
+  String get profileNoTagged => '还没有被标记的帖子。';
+
+  @override
+  String get profileNoFavoritesOther => '还没有最爱游戏。';
+
+  @override
+  String get profileCollectionFriendsOnly => '互相成为好友后才能查看此收藏。';
+
+  @override
+  String get profileNoCollectionOwn => '你的收藏是空的，去游戏库添加游戏吧。';
+
+  @override
+  String get profileNoCollection => '收藏中还没有游戏。';
+
+  @override
+  String get friendAcceptRequest => '接受请求';
+
+  @override
+  String friendsCount(int count) {
+    return '$count 位好友';
+  }
+
+  @override
+  String friendsTabRequestsCount(int count) {
+    return '请求（$count）';
+  }
+
+  @override
+  String friendsUnfriendTitle(String name) {
+    return '将 $name 从好友中删除？';
+  }
+
+  @override
+  String get friendsUnfriendBody => '对方不会收到通知。';
+
+  @override
+  String get friendsRemoved => '已删除好友';
+
+  @override
+  String get friendsFindPeople => '寻找用户';
+
+  @override
+  String get friendsNoReceived => '没有待处理的请求。';
+
+  @override
+  String get friendsNoSent => '你还没有发出任何请求。';
+
+  @override
+  String get friendAccepted => '你们已成为好友';
+
+  @override
+  String get friendDeclined => '已拒绝请求';
+
+  @override
+  String get friendCancelled => '已撤回请求';
+
+  @override
+  String get settingsQuietHours => '免打扰时段';
+
+  @override
+  String get settingsThemeDark => '深色';
+
+  @override
+  String get settingsThemeSystem => '跟随系统';
+
+  @override
+  String get settingsThemeHint => '深色和跟随系统主题即将推出。';
+
+  @override
+  String changeEmailCurrent(String email) {
+    return '当前邮箱：$email';
+  }
+
+  @override
+  String get changeEmailGoogleOnly =>
+      '你使用 Google 登录，邮箱随 Google 账号变化。请在 Google 中修改。';
+
+  @override
+  String get sessionsConfirmTitle => '退出其他设备？';
+
+  @override
+  String sessionsConfirmBody(int count) {
+    return '$count 台其他设备将立即退出登录。';
+  }
+
+  @override
+  String get sessionsOthersSignedOut => '所有其他设备已退出登录';
+
+  @override
+  String get sessionsSignedOut => '该设备已退出登录';
+
+  @override
+  String get deleteWarningTitle => '你的账号将被计划删除';
+
+  @override
+  String get deleteConsequenceGrace => '你有 30 天时间反悔：重新登录即可恢复。';
+
+  @override
+  String get deleteConsequenceImmediate => '你的收藏、好友、匹配请求和通知将立即删除。';
+
+  @override
+  String get deleteConsequencePermanent => '30 天后，你的个人资料、帖子和照片将被永久删除。';
+
+  @override
+  String get deletePasswordLabel => '输入密码以确认';
+
+  @override
+  String get profileUsernameOnce => '用户名每 30 天只能修改一次。';
+
+  @override
+  String get profileBioHint => '介绍一下你自己…';
+
+  @override
+  String get profileLocation => '所在地';
+
+  @override
+  String get bggSettingsTitle => 'BoardGameGeek 导入';
+
+  @override
+  String bggImportSuccess(int count) {
+    return '已导入 $count 款游戏！';
+  }
+
+  @override
+  String get bggImportSuccessNone => '你的收藏已是最新。';
+
+  @override
+  String bggImportSkipped(int count) {
+    return '$count 款游戏已在你的收藏中。';
+  }
+
+  @override
+  String get bggImportAgain => '重新导入';
+
+  @override
+  String get bggViewLibrary => '查看我的游戏库';
+
+  @override
+  String get notificationPrefsIntro => '选择哪些通知在应用内显示，哪些以推送方式发送。';
+
+  @override
+  String get quietHoursStartLabel => '开始';
+
+  @override
+  String get quietHoursEndLabel => '结束';
+
+  @override
+  String quietHoursTimezone(String zone) {
+    return '时区：$zone';
+  }
+
+  @override
+  String get welcomeLibraryTitle => '游戏库';
+
+  @override
+  String get welcomeEventsTitle => '游戏之夜';
+
+  @override
+  String get welcomeMatchingTitle => '寻找玩家';
+
+  @override
+  String onboardingProgress(int current, int total) {
+    return '第 $current 步，共 $total 步';
+  }
+
+  @override
+  String get onboardingAvatarHint => '点击添加照片（可选）';
+
+  @override
+  String get onboardingFriendsSearchHint => '按用户名或名称搜索';
+
+  @override
+  String onboardingFriendsNoResults(String query) {
+    return '没有找到“$query”相关的玩家';
+  }
+
+  @override
+  String get onboardingGameSearchHint => '搜索游戏…';
+
+  @override
+  String get onboardingInCollection => '已收藏';
+
+  @override
+  String get commonBack => '返回';
+
+  @override
+  String get authEmailAddress => '邮箱地址';
+
+  @override
+  String get registerEmailHint => '你的邮箱';
+
+  @override
+  String get registerUsernameHint => '用户名';
+
+  @override
+  String get registerPasswordHint => '至少 8 个字符';
+
+  @override
+  String get registerConfirmHint => '再次输入密码';
+
+  @override
+  String get registerHeroLead => '加入';
+
+  @override
+  String get registerHeroAccent => '牌桌。';
+
+  @override
+  String get registerPerkCommunity => '认识附近的桌游玩家';
+
+  @override
+  String get registerPerkCollection => '管理并记录你的收藏';
+
+  @override
+  String get authUpdatePassword => '更新密码';
+
+  @override
+  String get authResetInvalidTitle => '链接无效';
+
+  @override
+  String get authRequestNewLink => '重新获取链接';
+
+  @override
+  String get authVerifying => '正在验证…';
+
+  @override
+  String get authVerifyExpiredTitle => '链接已失效';
+
+  @override
+  String get authVerifyExpiredBody => '此验证链接无效或已过期，请在下方重新获取。';
+
+  @override
+  String get authVerifySentBody => '我们已向你的邮箱发送验证链接。';
+
+  @override
+  String get authVerifyResendHint => '没收到？输入你的邮箱';
 }

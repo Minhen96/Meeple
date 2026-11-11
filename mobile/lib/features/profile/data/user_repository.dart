@@ -10,8 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'user_repository.g.dart';
 
 @riverpod
-UserRepository userRepository(Ref ref) =>
-    UserRepository(ref.read(dioProvider));
+UserRepository userRepository(Ref ref) => UserRepository(ref.read(dioProvider));
 
 /// Fields of `PUT /users/me` (`UpdateProfileRequest`; only non-null ones are
 /// sent). [username] can change once per 30 days (400

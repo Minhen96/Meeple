@@ -4,21 +4,30 @@ import 'package:go_router/go_router.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
 import 'package:meeple_hearth/core/constants/app_spacing.dart';
 import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/core/constants/text_style_weight.dart';
 import 'package:meeple_hearth/core/router/app_router.dart';
 import 'package:meeple_hearth/core/utils/app_date_utils.dart';
 import 'package:meeple_hearth/features/auth/domain/user_model.dart';
-import 'package:meeple_hearth/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
+import 'package:meeple_hearth/features/settings/presentation/widgets/settings_widgets.dart';
 import 'package:meeple_hearth/features/settings/providers/settings_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
 import 'package:meeple_hearth/shared/widgets/app_button.dart';
 import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 import 'package:meeple_hearth/shared/widgets/confirm_sheet.dart';
-import 'package:meeple_hearth/shared/widgets/empty_state.dart';
 import 'package:meeple_hearth/shared/widgets/error_state.dart';
 import 'package:meeple_hearth/shared/widgets/meeple_app_bar.dart';
+import 'package:meeple_hearth/shared/widgets/skeleton_widget.dart';
 
 final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+/// Header of every settings sub-page (web `PageHeader`: 20px title).
+PreferredSizeWidget settingsSubPageBar(String title) => MeepleAppBar(
+      title: title,
+      showBackButton: true,
+      compactTitle: true,
+      fallbackRoute: AppRoutes.settings,
+    );
 
 /// `POST /users/me/change-email {currentPassword, newEmail}`.
 class ChangeEmailScreen extends ConsumerStatefulWidget {
@@ -61,56 +70,63 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final user = ref.watch(authNotifierProvider).valueOrNull;
+    final current = user?.email;
     return Scaffold(
-      appBar: MeepleAppBar(
-        title: l10n.settingsChangeEmail,
-        showBackButton: true,
-        fallbackRoute: AppRoutes.settings,
-      ),
-      body: _sent
-          ? EmptyState(
-              icon: Icons.mark_email_unread_outlined,
-              title: l10n.changeEmailSentTitle,
-              subtitle: l10n.changeEmailSentBody(_email.text.trim()),
-            )
-          : Form(
-              key: _form,
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  Text(l10n.changeEmailBody, style: AppTypography.bodyMedium),
-                  AppSpacing.vGapLg,
-                  AuthTextField(
-                    key: const Key('change-email-new'),
-                    label: l10n.changeEmailNew,
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    prefixIcon: Icons.alternate_email_rounded,
-                    validator: (v) => _emailPattern.hasMatch((v ?? '').trim())
-                        ? null
-                        : l10n.authInvalidEmail,
-                  ),
-                  AppSpacing.vGapMd,
-                  AuthTextField(
-                    key: const Key('change-email-password'),
-                    label: l10n.changeEmailCurrentPassword,
-                    controller: _password,
-                    isPassword: true,
-                    textInputAction: TextInputAction.done,
-                    prefixIcon: Icons.lock_outline_rounded,
-                    validator: (v) =>
-                        (v ?? '').isEmpty ? l10n.authPasswordRequired : null,
-                  ),
-                  AppSpacing.vGapXl,
-                  AppButton(
-                    key: const Key('change-email-submit'),
-                    label: l10n.changeEmailSubmit,
-                    isLoading: _saving,
-                    onPressed: _submit,
-                  ),
-                ],
+      appBar: settingsSubPageBar(l10n.settingsChangeEmail),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: settingsPagePadding,
+          children: [
+            if (current != null && current.isNotEmpty) ...[
+              SettingsNote(l10n.changeEmailCurrent(current)),
+              AppSpacing.vGapXl,
+            ],
+            if (user?.hasPassword == false)
+              SettingsInfoPanel(l10n.changeEmailGoogleOnly)
+            else if (_sent)
+              SettingsSentState(
+                title: l10n.changeEmailSentTitle,
+                body: l10n.changeEmailSentBody(_email.text.trim()),
+              )
+            else ...[
+              SettingsField(
+                fieldKey: const Key('change-email-new'),
+                label: l10n.changeEmailNew,
+                controller: _email,
+                onChanged: (_) => setState(() {}),
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                validator: (v) => _emailPattern.hasMatch((v ?? '').trim())
+                    ? null
+                    : l10n.authInvalidEmail,
               ),
-            ),
+              AppSpacing.vGapLg,
+              SettingsField(
+                fieldKey: const Key('change-email-password'),
+                label: l10n.changeEmailCurrentPassword,
+                controller: _password,
+                onChanged: (_) => setState(() {}),
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.password],
+                validator: (v) =>
+                    (v ?? '').isEmpty ? l10n.authPasswordRequired : null,
+              ),
+              AppSpacing.vGapLg,
+              AppButton(
+                key: const Key('change-email-submit'),
+                label: l10n.changeEmailSubmit,
+                isLoading: _saving,
+                onPressed: _email.text.trim().isEmpty || _password.text.isEmpty
+                    ? null
+                    : _submit,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -145,43 +161,36 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     final l10n = context.l10n;
     final email = ref.watch(authNotifierProvider).valueOrNull?.email;
     return Scaffold(
-      appBar: MeepleAppBar(
-        title: l10n.settingsChangePassword,
-        showBackButton: true,
-        fallbackRoute: AppRoutes.settings,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: _sent
-            ? EmptyState(
-                icon: Icons.mark_email_read_outlined,
-                title: l10n.changePasswordSentTitle,
-                subtitle: l10n.changePasswordSentBody,
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    email == null
-                        ? l10n.changePasswordNoEmail
-                        : l10n.changePasswordBody(email),
-                    style: AppTypography.bodyLarge,
+      appBar: settingsSubPageBar(l10n.settingsChangePassword),
+      body: ListView(
+        padding: settingsPagePadding,
+        children: _sent
+            ? [
+                SettingsSentState(
+                  title: l10n.changePasswordSentTitle,
+                  body: l10n.changePasswordSentBody,
+                ),
+              ]
+            : [
+                SettingsNote(
+                  email == null
+                      ? l10n.changePasswordNoEmail
+                      : l10n.changePasswordBody(email),
+                ),
+                AppSpacing.vGapXl,
+                if (email != null)
+                  AppButton(
+                    key: const Key('change-password-send'),
+                    label: l10n.changePasswordSend,
+                    isLoading: _sending,
+                    onPressed: () => _send(email),
+                  )
+                else
+                  AppButton(
+                    label: l10n.authForgotPassword,
+                    onPressed: () => context.push(AppRoutes.forgotPassword),
                   ),
-                  AppSpacing.vGapXl,
-                  if (email != null)
-                    AppButton(
-                      key: const Key('change-password-send'),
-                      label: l10n.changePasswordSend,
-                      isLoading: _sending,
-                      onPressed: () => _send(email),
-                    )
-                  else
-                    AppButton(
-                      label: l10n.authForgotPassword,
-                      onPressed: () => context.push(AppRoutes.forgotPassword),
-                    ),
-                ],
-              ),
+              ],
       ),
     );
   }
@@ -191,52 +200,78 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 class ActiveSessionsScreen extends ConsumerWidget {
   const ActiveSessionsScreen({super.key});
 
+  Future<void> _revokeOthers(
+    BuildContext context,
+    WidgetRef ref,
+    int count,
+  ) async {
+    final l10n = context.l10n;
+    final ok = await showConfirmSheet(
+      context,
+      title: l10n.sessionsConfirmTitle,
+      message: l10n.sessionsConfirmBody(count),
+      confirmLabel: l10n.sessionsRevokeOthers,
+      icon: Icons.devices_outlined,
+    );
+    if (!ok) return;
+    try {
+      await ref.read(activeSessionsProvider.notifier).revokeOthers();
+      if (context.mounted) {
+        showToast(context, l10n.sessionsOthersSignedOut,
+            type: ToastType.success);
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ActiveSessions.isSessionInvalid(e)
+          ? showToast(context, l10n.sessionsInvalid, type: ToastType.error)
+          : showErrorToast(context, e);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final sessions = ref.watch(activeSessionsProvider);
     return Scaffold(
-      appBar: MeepleAppBar(
-        title: l10n.settingsSessions,
-        showBackButton: true,
-        fallbackRoute: AppRoutes.settings,
-      ),
+      appBar: settingsSubPageBar(l10n.settingsSessions),
       body: sessions.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => ListView(
+          padding: settingsPagePadding,
+          children: [
+            for (var i = 0; i < 3; i++) ...[
+              const SkeletonBox(
+                height: 72,
+                borderRadius: AppSpacing.borderRadiusLg,
+              ),
+              AppSpacing.vGapSm,
+            ],
+          ],
+        ),
         error: (e, _) => ErrorState(
           error: e,
           onRetry: () => ref.invalidate(activeSessionsProvider),
         ),
-        data: (list) => ListView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-          children: [
-            for (final s in list) _SessionTile(session: s),
-            if (list.length > 1)
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: AppOutlinedButton(
+        data: (list) {
+          final others = list.where((s) => !s.current).length;
+          return ListView(
+            padding: settingsPagePadding,
+            children: [
+              for (final s in list) ...[
+                _SessionTile(session: s),
+                AppSpacing.vGapSm,
+              ],
+              if (others > 0) ...[
+                AppSpacing.vGapLg,
+                AppButton(
                   key: const Key('revoke-others'),
                   label: l10n.sessionsRevokeOthers,
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(activeSessionsProvider.notifier)
-                          .revokeOthers();
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ActiveSessions.isSessionInvalid(e)
-                          ? showToast(
-                              context,
-                              l10n.sessionsInvalid,
-                              type: ToastType.error,
-                            )
-                          : showErrorToast(context, e);
-                    }
-                  },
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => _revokeOthers(context, ref, others),
                 ),
-              ),
-          ],
-        ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -251,31 +286,113 @@ class _SessionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final s = session;
-    final info = s.deviceInfo ?? l10n.sessionsUnknownDevice;
-    final mobile = RegExp('android|iphone|ios|mobile|dart', caseSensitive: false)
-        .hasMatch(info);
-    return ListTile(
+    final info = (s.deviceInfo == null || s.deviceInfo!.isEmpty)
+        ? l10n.sessionsUnknownDevice
+        : s.deviceInfo!;
+    final mobile =
+        RegExp('android|iphone|ios|mobile|dart', caseSensitive: false)
+            .hasMatch(info);
+    return Container(
       key: ValueKey('session-${s.id}'),
-      leading: Icon(mobile ? Icons.smartphone_rounded : Icons.computer_rounded),
-      title: Text(info, maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        [
-          if (s.current) l10n.sessionsThisDevice,
-          if (s.lastUsedAt != null)
-            l10n.sessionsLastActive(AppDateUtils.timeAgo(s.lastUsedAt!, l10n)),
-        ].join(' · '),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: AppSpacing.borderRadiusLg,
       ),
-      trailing: TextButton(
-        onPressed: s.current
-            ? null
-            : () async {
-                try {
-                  await ref.read(activeSessionsProvider.notifier).revoke(s.id);
-                } catch (e) {
-                  if (context.mounted) showErrorToast(context, e);
-                }
-              },
-        child: Text(l10n.sessionsSignOut),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.secondaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              mobile ? Icons.smartphone_rounded : Icons.computer_rounded,
+              size: 20,
+              color: AppColors.onSecondaryContainer,
+            ),
+          ),
+          AppSpacing.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        info,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.titleSmall,
+                      ),
+                    ),
+                    if (s.current) ...[
+                      AppSpacing.hGapSm,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 2,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: AppColors.tertiaryContainer,
+                          borderRadius: AppSpacing.borderRadiusFull,
+                        ),
+                        child: Text(
+                          l10n.sessionsThisDevice.toUpperCase(),
+                          style: AppTypography.labelSmall
+                              .weight(FontWeight.w700)
+                              .copyWith(
+                                letterSpacing: 0.5,
+                                color: AppColors.onTertiaryContainer,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (s.lastUsedAt != null)
+                  Text(
+                    l10n.sessionsLastActive(
+                      AppDateUtils.timeAgo(s.lastUsedAt!, l10n),
+                    ),
+                    style: AppTypography.bodySmall
+                        .copyWith(color: AppColors.onSurfaceVariant),
+                  ),
+              ],
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              textStyle: AppTypography.bodySmall.weight(FontWeight.w700),
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              minimumSize: Size.zero,
+            ),
+            onPressed: s.current
+                ? null
+                : () async {
+                    try {
+                      await ref
+                          .read(activeSessionsProvider.notifier)
+                          .revoke(s.id);
+                      if (context.mounted) {
+                        showToast(context, l10n.sessionsSignedOut,
+                            type: ToastType.success);
+                      }
+                    } catch (e) {
+                      if (context.mounted) showErrorToast(context, e);
+                    }
+                  },
+            child: Text(l10n.sessionsSignOut),
+          ),
+        ],
       ),
     );
   }
@@ -299,9 +416,14 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   /// Whether the account has a password, from `GET /users/me`; null when
   /// unknown, in which case the user picks the confirmation method.
-  late final bool? _hasPassword =
+  bool? get _hasPassword =>
       ref.read(authNotifierProvider).valueOrNull?.hasPassword;
-  late bool _passwordless = _hasPassword == false;
+
+  /// The user's pick when [_hasPassword] is unknown.
+  bool _passwordlessChoice = false;
+
+  bool get _passwordless =>
+      _hasPassword == false || (_hasPassword == null && _passwordlessChoice);
   bool _deleting = false;
 
   @override
@@ -318,7 +440,8 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
       context,
       title: l10n.deleteConfirmTitle,
       message: l10n.deleteConfirmMessage,
-      confirmLabel: l10n.deleteSubmit,
+      confirmLabel: l10n.settingsDeleteAccount,
+      icon: Icons.person_remove_outlined,
     );
     if (!ok || !mounted) return;
     setState(() => _deleting = true);
@@ -338,79 +461,128 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    ref.watch(authNotifierProvider);
+    final ready = _passwordless
+        ? _confirm.text.trim() == 'DELETE'
+        : _password.text.isNotEmpty;
+    final bullet =
+        AppTypography.bodyMedium.copyWith(color: AppColors.onSurfaceVariant);
     return Scaffold(
-      appBar: MeepleAppBar(
-        title: l10n.settingsDeleteAccount,
-        showBackButton: true,
-        fallbackRoute: AppRoutes.settings,
-      ),
+      appBar: settingsSubPageBar(l10n.settingsDeleteAccount),
       body: Form(
         key: _form,
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: settingsPagePadding,
           children: [
             Container(
+              key: const Key('delete-warning'),
               padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: const BoxDecoration(
-                color: AppColors.errorContainer,
-                borderRadius: AppSpacing.borderRadiusXl,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
               ),
-              child: Text(
-                l10n.deleteWarning,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.onErrorContainer,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.deleteWarningTitle,
+                    style: AppTypography.bodyMedium
+                        .weight(FontWeight.w600)
+                        .copyWith(color: AppColors.error),
+                  ),
+                  AppSpacing.vGapSm,
+                  for (final line in [
+                    l10n.deleteConsequenceGrace,
+                    l10n.deleteConsequenceImmediate,
+                    l10n.deleteConsequencePermanent,
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: AppSpacing.xs,
+                        bottom: AppSpacing.xs,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('•  ', style: bullet),
+                          Expanded(child: Text(line, style: bullet)),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
-            AppSpacing.vGapLg,
-            if (_hasPassword == null)
-              SwitchListTile(
+            AppSpacing.vGapXl,
+            if (_hasPassword == null) ...[
+              AppTileGroupSwitch(
                 key: const Key('delete-passwordless'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.deletePasswordless),
+                title: l10n.deletePasswordless,
                 value: _passwordless,
-                onChanged: (v) => setState(() => _passwordless = v),
+                onChanged: (v) => setState(() => _passwordlessChoice = v),
               ),
+              AppSpacing.vGapLg,
+            ],
             if (_passwordless)
-              TextFormField(
-                key: const Key('delete-confirm'),
+              SettingsField(
+                fieldKey: const Key('delete-confirm'),
+                label: l10n.deleteTypeConfirm,
+                hint: 'DELETE',
                 controller: _confirm,
-                decoration: InputDecoration(labelText: l10n.deleteTypeConfirm),
+                onChanged: (_) => setState(() {}),
+                danger: true,
+                textCapitalization: TextCapitalization.characters,
                 validator: (v) =>
                     v?.trim() == 'DELETE' ? null : l10n.deleteTypeConfirmError,
               )
             else
-              AuthTextField(
-                key: const Key('delete-password'),
-                label: l10n.authPassword,
+              SettingsField(
+                fieldKey: const Key('delete-password'),
+                label: l10n.deletePasswordLabel,
                 controller: _password,
+                onChanged: (_) => setState(() {}),
                 isPassword: true,
+                danger: true,
                 textInputAction: TextInputAction.done,
-                prefixIcon: Icons.lock_outline_rounded,
                 validator: (v) =>
                     (v ?? '').isEmpty ? l10n.authPasswordRequired : null,
               ),
-            AppSpacing.vGapXl,
-            FilledButton(
+            AppSpacing.vGapLg,
+            AppButton(
               key: const Key('delete-submit'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: AppColors.onError,
-                minimumSize: const Size.fromHeight(52),
-                shape: const StadiumBorder(),
-              ),
-              onPressed: _deleting ? null : _delete,
-              child: _deleting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.deleteSubmit),
+              label: l10n.deleteSubmit,
+              variant: AppButtonVariant.danger,
+              isLoading: _deleting,
+              onPressed: _deleting || !ready ? null : _delete,
             ),
           ],
         ),
       ),
     );
   }
+}
+
+/// A white rounded row with a trailing switch (settings style).
+class AppTileGroupSwitch extends StatelessWidget {
+  const AppTileGroupSwitch({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        clipBehavior: Clip.antiAlias,
+        child: SwitchListTile(
+          title: Text(title, style: AppTypography.bodyMedium),
+          value: value,
+          onChanged: onChanged,
+        ),
+      );
 }

@@ -118,7 +118,8 @@ class _FriendPickerState extends ConsumerState<FriendPicker> {
                   .toList();
               if (list.isEmpty) {
                 return Center(
-                  child: Text(l10n.friendPickerEmpty, style: AppTypography.bodyMedium),
+                  child: Text(l10n.friendPickerEmpty,
+                      style: AppTypography.bodyMedium),
                 );
               }
               return ListView.builder(

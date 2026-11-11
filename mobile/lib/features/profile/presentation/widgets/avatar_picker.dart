@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meeple_hearth/core/constants/app_colors.dart';
+import 'package:meeple_hearth/core/constants/app_spacing.dart';
+import 'package:meeple_hearth/core/constants/app_typography.dart';
+import 'package:meeple_hearth/core/constants/text_style_weight.dart';
 import 'package:meeple_hearth/features/auth/providers/auth_provider.dart';
 import 'package:meeple_hearth/features/profile/providers/profile_provider.dart';
 import 'package:meeple_hearth/l10n/l10n.dart';
@@ -15,9 +18,20 @@ import 'package:meeple_hearth/shared/widgets/app_toast.dart';
 /// Tap-to-change avatar: pick → 1:1 crop → WebP compress → upload
 /// (MOBILE_FLUTTER §9), with a spinner overlay while uploading.
 class AvatarPicker extends ConsumerStatefulWidget {
-  const AvatarPicker({super.key, this.size = AvatarSize.xxl});
+  const AvatarPicker({
+    super.key,
+    this.size = AvatarSize.xxl,
+    this.label,
+    this.showBadge = true,
+  });
 
   final double size;
+
+  /// Primary text link under the avatar (web "Change Photo").
+  final String? label;
+
+  /// The gradient camera badge on the avatar's corner.
+  final bool showBadge;
 
   @override
   ConsumerState<AvatarPicker> createState() => _AvatarPickerState();
@@ -38,7 +52,8 @@ class _AvatarPickerState extends ConsumerState<AvatarPicker> {
           toolbarTitle: l10n.avatarCropTitle,
           lockAspectRatio: true,
         ),
-        IOSUiSettings(title: l10n.avatarCropTitle, aspectRatioLockEnabled: true),
+        IOSUiSettings(
+            title: l10n.avatarCropTitle, aspectRatioLockEnabled: true),
       ],
     );
     if (cropped == null) return null;
@@ -73,7 +88,7 @@ class _AvatarPickerState extends ConsumerState<AvatarPicker> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authNotifierProvider).valueOrNull;
-    return Semantics(
+    final picker = Semantics(
       button: true,
       label: context.l10n.avatarChange,
       child: GestureDetector(
@@ -99,26 +114,44 @@ class _AvatarPickerState extends ConsumerState<AvatarPicker> {
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
-                  size: 16,
-                  color: AppColors.onPrimary,
+            if (widget.showBadge)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    size: 16,
+                    color: AppColors.onPrimary,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
+    );
+    if (widget.label == null) return picker;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        picker,
+        AppSpacing.vGapMd,
+        TextButton(
+          key: const Key('avatar-change-link'),
+          onPressed: _uploading ? null : _change,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            textStyle: AppTypography.bodyMedium.weight(FontWeight.w600),
+          ),
+          child: Text(widget.label!),
+        ),
+      ],
     );
   }
 }

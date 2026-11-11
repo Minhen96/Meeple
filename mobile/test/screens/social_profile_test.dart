@@ -52,7 +52,10 @@ void main() {
 
     await tester.tap(find.text('Collection').last);
     await settle(tester);
-    expect(find.text('See all'), findsOneWidget);
+    // Favorite Games "See all" stays hidden without favourites; the
+    // collection panel has its own.
+    expect(find.text('See all'), findsWidgets);
+    expect(find.text('Catan'), findsWidgets);
   });
 
   testWidgets('other profile: Add Friend → Pending → cancel', (tester) async {
@@ -118,7 +121,7 @@ void main() {
 
     expect(find.text('Tina'), findsOneWidget);
 
-    await tester.tap(find.text('Requests'));
+    await tester.tap(find.text('Requests (1)'));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('request-accept-fr9')));
     await settle(tester);
@@ -180,11 +183,7 @@ void main() {
     await pumpApp(tester, api: api, location: '/profile/f1');
     await tester.tap(find.text('Tagged'));
     await settle(tester);
-    expect(find.text('Tagged posts'), findsOneWidget);
-    expect(
-      find.text('Posts this player is tagged in will appear here.'),
-      findsOneWidget,
-    );
+    expect(find.text('No tagged posts yet.'), findsOneWidget);
   });
 
   testWidgets('cancelling a request that is already gone refreshes the status',
