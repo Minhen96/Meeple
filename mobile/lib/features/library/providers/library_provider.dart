@@ -120,7 +120,9 @@ class CollectionNotifier extends _$CollectionNotifier {
         isFavorited: next.isFavorited,
       );
       state = AsyncValue.data(
-        saved.id == null ? _current.without(game.id) : _current.withEntry(saved),
+        saved.id == null
+            ? _current.without(game.id)
+            : _current.withEntry(saved),
       );
     } catch (_) {
       state = AsyncValue.data(before);
@@ -166,7 +168,8 @@ class CollectionNotifier extends _$CollectionNotifier {
     final existing = _current.entryFor(game.id);
     if (existing != null) {
       state = AsyncValue.data(
-        _current.withEntry(existing.copyWith(playCount: existing.playCount + 1)),
+        _current
+            .withEntry(existing.copyWith(playCount: existing.playCount + 1)),
       );
     } else {
       // The backend creates the entry on first play; fetch it.
@@ -202,6 +205,53 @@ class GameSearchNotifier extends _$GameSearchNotifier {
       state = AsyncValue.data(
         PaginatedResult(
           content: [...current.content, ...next.content],
+          page: next.page,
+          size: next.size,
+          totalElements: next.totalElements,
+          totalPages: next.totalPages,
+          last: next.last,
+        ),
+      );
+    } finally {
+      _loading = false;
+    }
+  }
+}
+
+/// Library "All Games" feed: the catalogue with the web's discovery filters
+/// and sort, page-based with infinite scroll.
+@riverpod
+class LibraryBrowse extends _$LibraryBrowse {
+  static const _pageSize = 20;
+
+  @override
+  Future<PaginatedResult<Game>> build(GameBrowseQuery browse) =>
+      ref.read(gameRepositoryProvider).browseGames(
+            browse,
+            params: const PageParams(size: _pageSize),
+          );
+
+  bool _loading = false;
+
+  /// Whether a next page is being fetched (the grid's loading-more row).
+  bool get isLoadingMore => _loading;
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore || _loading) return;
+    _loading = true;
+    try {
+      final next = await ref.read(gameRepositoryProvider).browseGames(
+            browse,
+            params: PageParams(page: current.page + 1, size: _pageSize),
+          );
+      final seen = {for (final g in current.content) g.id};
+      state = AsyncValue.data(
+        PaginatedResult(
+          content: [
+            ...current.content,
+            ...next.content.where((g) => !seen.contains(g.id)),
+          ],
           page: next.page,
           size: next.size,
           totalElements: next.totalElements,
@@ -398,8 +448,7 @@ final class _Poller {
     Duration interval, {
     required Future<T> Function() fetch,
     required void Function(T value) onData,
-    required void Function(Object error, StackTrace stackTrace)
-        onTerminalError,
+    required void Function(Object error, StackTrace stackTrace) onTerminalError,
   }) {
     cancel();
     final gen = generation;

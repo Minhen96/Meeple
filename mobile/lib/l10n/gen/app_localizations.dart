@@ -3889,6 +3889,792 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your password'**
   String get authPasswordHint;
+
+  /// No description provided for @librarySearchCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Search catalog…'**
+  String get librarySearchCatalog;
+
+  /// No description provided for @librarySearchCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your games…'**
+  String get librarySearchCollection;
+
+  /// No description provided for @libraryNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No games in this list match “{query}”.'**
+  String libraryNoMatch(String query);
+
+  /// No description provided for @librarySortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get librarySortLabel;
+
+  /// No description provided for @librarySortRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended ✨'**
+  String get librarySortRecommended;
+
+  /// No description provided for @librarySortRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank'**
+  String get librarySortRank;
+
+  /// No description provided for @librarySortPopularity.
+  ///
+  /// In en, this message translates to:
+  /// **'Popularity'**
+  String get librarySortPopularity;
+
+  /// No description provided for @librarySortNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest'**
+  String get librarySortNewest;
+
+  /// No description provided for @librarySortShortest.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest'**
+  String get librarySortShortest;
+
+  /// No description provided for @librarySpotlightCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Game of the Week'**
+  String get librarySpotlightCategory;
+
+  /// No description provided for @librarySpotlightDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Embark on an epic legacy campaign with over 95 scenarios of tactical combat and character progression.'**
+  String get librarySpotlightDescription;
+
+  /// No description provided for @librarySpotlightExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get librarySpotlightExplore;
+
+  /// No description provided for @librarySpotlightSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get librarySpotlightSave;
+
+  /// No description provided for @librarySpotlightSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} added to favorites!'**
+  String librarySpotlightSaved(String title);
+
+  /// No description provided for @libraryFiltersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery Filters'**
+  String get libraryFiltersTitle;
+
+  /// No description provided for @libraryFiltersGenre.
+  ///
+  /// In en, this message translates to:
+  /// **'Genre'**
+  String get libraryFiltersGenre;
+
+  /// No description provided for @libraryFiltersComplexity.
+  ///
+  /// In en, this message translates to:
+  /// **'Complexity Level'**
+  String get libraryFiltersComplexity;
+
+  /// No description provided for @libraryFiltersPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Player Count'**
+  String get libraryFiltersPlayers;
+
+  /// No description provided for @libraryFiltersMinMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Min - Max'**
+  String get libraryFiltersMinMax;
+
+  /// No description provided for @libraryFiltersMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get libraryFiltersMin;
+
+  /// No description provided for @libraryFiltersMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get libraryFiltersMax;
+
+  /// No description provided for @libraryFiltersPlaytime.
+  ///
+  /// In en, this message translates to:
+  /// **'Playtime (Mins)'**
+  String get libraryFiltersPlaytime;
+
+  /// No description provided for @libraryFiltersMinRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Min Rating'**
+  String get libraryFiltersMinRating;
+
+  /// No description provided for @libraryFiltersReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get libraryFiltersReset;
+
+  /// No description provided for @libraryFiltersApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Results'**
+  String get libraryFiltersApply;
+
+  /// No description provided for @libraryGenreStrategy.
+  ///
+  /// In en, this message translates to:
+  /// **'Strategy'**
+  String get libraryGenreStrategy;
+
+  /// No description provided for @libraryGenreParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Party'**
+  String get libraryGenreParty;
+
+  /// No description provided for @libraryGenreFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get libraryGenreFamily;
+
+  /// No description provided for @libraryGenreTwoPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'2 Player'**
+  String get libraryGenreTwoPlayer;
+
+  /// No description provided for @libraryGenreAbstract.
+  ///
+  /// In en, this message translates to:
+  /// **'Abstract'**
+  String get libraryGenreAbstract;
+
+  /// No description provided for @libraryComplexityLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get libraryComplexityLight;
+
+  /// No description provided for @libraryComplexityMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get libraryComplexityMedium;
+
+  /// No description provided for @libraryComplexityHeavy.
+  ///
+  /// In en, this message translates to:
+  /// **'Heavy'**
+  String get libraryComplexityHeavy;
+
+  /// No description provided for @libraryFeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Library Feed'**
+  String get libraryFeedTitle;
+
+  /// No description provided for @libraryFeedResults.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Results'**
+  String libraryFeedResults(String count);
+
+  /// No description provided for @libraryFeedNoRecommendations.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommendations yet'**
+  String get libraryFeedNoRecommendations;
+
+  /// No description provided for @libraryFeedNoRecommendationsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite or log some plays to get personalized suggestions.'**
+  String get libraryFeedNoRecommendationsBody;
+
+  /// No description provided for @libraryFeedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The library feels empty'**
+  String get libraryFeedEmpty;
+
+  /// No description provided for @libraryFeedEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust your filters to see more games.'**
+  String get libraryFeedEmptyBody;
+
+  /// No description provided for @libraryFeedEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the end of the catalog'**
+  String get libraryFeedEnd;
+
+  /// No description provided for @libraryBadgeWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Wishlist'**
+  String get libraryBadgeWishlist;
+
+  /// No description provided for @libraryRatingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your rating'**
+  String get libraryRatingLabel;
+
+  /// No description provided for @libraryRatingStar.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate {count} of 5 stars'**
+  String libraryRatingStar(int count);
+
+  /// No description provided for @libraryRatingSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save rating'**
+  String get libraryRatingSaveFailed;
+
+  /// No description provided for @gameStatPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Players'**
+  String get gameStatPlayers;
+
+  /// No description provided for @gameStatTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get gameStatTime;
+
+  /// No description provided for @gameStatComplexity.
+  ///
+  /// In en, this message translates to:
+  /// **'Complexity'**
+  String get gameStatComplexity;
+
+  /// No description provided for @gameRatingsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'({count} ratings)'**
+  String gameRatingsCount(String count);
+
+  /// No description provided for @gameBggRank.
+  ///
+  /// In en, this message translates to:
+  /// **'BGG #{rank}'**
+  String gameBggRank(String rank);
+
+  /// No description provided for @gameBy.
+  ///
+  /// In en, this message translates to:
+  /// **'by {names}'**
+  String gameBy(String names);
+
+  /// No description provided for @gameFriendAvgOne.
+  ///
+  /// In en, this message translates to:
+  /// **'{rating} from 1 friend'**
+  String gameFriendAvgOne(String rating);
+
+  /// No description provided for @gameActionOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'Own'**
+  String get gameActionOwn;
+
+  /// No description provided for @gameActionFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get gameActionFavorite;
+
+  /// No description provided for @gameActionFavorited.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorited'**
+  String get gameActionFavorited;
+
+  /// No description provided for @gameActionAskAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask AI'**
+  String get gameActionAskAi;
+
+  /// No description provided for @gameTabHowToPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'How to Play'**
+  String get gameTabHowToPlay;
+
+  /// No description provided for @gameAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get gameAbout;
+
+  /// No description provided for @gameAwards.
+  ///
+  /// In en, this message translates to:
+  /// **'Awards'**
+  String get gameAwards;
+
+  /// No description provided for @gameDesigners.
+  ///
+  /// In en, this message translates to:
+  /// **'Designers'**
+  String get gameDesigners;
+
+  /// No description provided for @gamePublishers.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishers'**
+  String get gamePublishers;
+
+  /// No description provided for @gameMinAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Min Age'**
+  String get gameMinAge;
+
+  /// No description provided for @gameAgePlus.
+  ///
+  /// In en, this message translates to:
+  /// **'{age}+'**
+  String gameAgePlus(int age);
+
+  /// No description provided for @gameTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get gameTypeLabel;
+
+  /// No description provided for @gameViewOnBgg.
+  ///
+  /// In en, this message translates to:
+  /// **'View on BoardGameGeek'**
+  String get gameViewOnBgg;
+
+  /// No description provided for @gamePlayHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Play history ({count})'**
+  String gamePlayHistory(int count);
+
+  /// No description provided for @gameLatestPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get gameLatestPlay;
+
+  /// No description provided for @gamePlayerCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} players'**
+  String gamePlayerCount(int count);
+
+  /// No description provided for @gameFromPost.
+  ///
+  /// In en, this message translates to:
+  /// **'From a post'**
+  String get gameFromPost;
+
+  /// No description provided for @gameDeletePlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete play'**
+  String get gameDeletePlay;
+
+  /// No description provided for @gamePlayDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Play deleted'**
+  String get gamePlayDeleted;
+
+  /// No description provided for @gameNotesPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Any thoughts, house rules, play tips…'**
+  String get gameNotesPlaceholder;
+
+  /// No description provided for @gameNotesSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get gameNotesSaving;
+
+  /// No description provided for @gameLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this. Try again.'**
+  String get gameLoadFailed;
+
+  /// No description provided for @logPlayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a Play'**
+  String get logPlayTitle;
+
+  /// No description provided for @logPlayDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration (minutes)'**
+  String get logPlayDuration;
+
+  /// No description provided for @logPlayNotesPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Who won? Any memorable moments?'**
+  String get logPlayNotesPlaceholder;
+
+  /// No description provided for @logPlaySubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Play'**
+  String get logPlaySubmit;
+
+  /// No description provided for @logPlaySuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Play logged for {title}!'**
+  String logPlaySuccess(String title);
+
+  /// No description provided for @aiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules Assistant'**
+  String get aiTitle;
+
+  /// No description provided for @aiWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi! I\'m ready to answer questions about {title}. Ask me about setup, turn order, rules, or tricky edge cases!'**
+  String aiWelcome(String title);
+
+  /// No description provided for @aiClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear chat'**
+  String get aiClear;
+
+  /// No description provided for @aiSourceRulebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Rulebook'**
+  String get aiSourceRulebook;
+
+  /// No description provided for @aiSourceGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General AI'**
+  String get aiSourceGeneral;
+
+  /// No description provided for @aiYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get aiYou;
+
+  /// No description provided for @aiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get aiAssistant;
+
+  /// No description provided for @aiPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a rule question…'**
+  String get aiPlaceholder;
+
+  /// No description provided for @aiFooterDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'AI can make mistakes. Verify critical rules with the official rulebook.'**
+  String get aiFooterDisclaimer;
+
+  /// No description provided for @aiDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the daily limit ({count} questions). Come back tomorrow!'**
+  String aiDailyLimit(int count);
+
+  /// No description provided for @matchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Match'**
+  String get matchTitle;
+
+  /// No description provided for @matchNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New Request'**
+  String get matchNew;
+
+  /// No description provided for @matchLookingToPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking to play…'**
+  String get matchLookingToPlay;
+
+  /// No description provided for @matchSearchGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a game'**
+  String get matchSearchGame;
+
+  /// No description provided for @matchUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Until'**
+  String get matchUntil;
+
+  /// No description provided for @matchSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitting…'**
+  String get matchSubmitting;
+
+  /// No description provided for @matchSubmitRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Request'**
+  String get matchSubmitRequest;
+
+  /// No description provided for @matchTabSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get matchTabSuggestions;
+
+  /// No description provided for @matchTabSuggestionsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions ({count})'**
+  String matchTabSuggestionsCount(int count);
+
+  /// No description provided for @matchTabRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'My Requests'**
+  String get matchTabRequests;
+
+  /// No description provided for @matchEmptySuggestionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches yet'**
+  String get matchEmptySuggestionsTitle;
+
+  /// No description provided for @matchEmptySuggestionsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit a match request and we\'ll find friends who want to play the same game.'**
+  String get matchEmptySuggestionsBody;
+
+  /// No description provided for @matchEmptyRequestsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No active requests'**
+  String get matchEmptyRequestsTitle;
+
+  /// No description provided for @matchEmptyRequestsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap \"New Request\" to find friends to play with.'**
+  String get matchEmptyRequestsBody;
+
+  /// No description provided for @matchAnyTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Any time'**
+  String get matchAnyTime;
+
+  /// No description provided for @matchCancelRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel request'**
+  String get matchCancelRequest;
+
+  /// No description provided for @matchFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Match Found!'**
+  String get matchFound;
+
+  /// No description provided for @matchCreateEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Event'**
+  String get matchCreateEvent;
+
+  /// No description provided for @searchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search games, players, events'**
+  String get searchPlaceholder;
+
+  /// No description provided for @searchCloseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get searchCloseLabel;
+
+  /// No description provided for @searchClearInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get searchClearInput;
+
+  /// No description provided for @searchRemoveRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{query}\" from recent searches'**
+  String searchRemoveRecent(String query);
+
+  /// No description provided for @htpEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Rule Extraction'**
+  String get htpEyebrow;
+
+  /// No description provided for @htpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow these essential rules to get the game started quickly.'**
+  String get htpSubtitle;
+
+  /// No description provided for @htpGenerateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a rules guide'**
+  String get htpGenerateTitle;
+
+  /// No description provided for @htpGenerateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a quick-start summary for this game.'**
+  String get htpGenerateBody;
+
+  /// No description provided for @htpGenerateShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get htpGenerateShort;
+
+  /// No description provided for @htpGeneratingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating your guide…'**
+  String get htpGeneratingTitle;
+
+  /// No description provided for @htpGeneratingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is reading the rulebook and extracting key information. This takes about 20–30 seconds.'**
+  String get htpGeneratingBody;
+
+  /// No description provided for @htpSourceRulebook.
+  ///
+  /// In en, this message translates to:
+  /// **'From Official Rulebook'**
+  String get htpSourceRulebook;
+
+  /// No description provided for @htpSourceAi.
+  ///
+  /// In en, this message translates to:
+  /// **'AI General Knowledge'**
+  String get htpSourceAi;
+
+  /// No description provided for @htpFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Guide generation failed'**
+  String get htpFailedTitle;
+
+  /// No description provided for @htpSectionComponents.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s in the Box'**
+  String get htpSectionComponents;
+
+  /// No description provided for @htpSectionCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get htpSectionCards;
+
+  /// No description provided for @htpSectionBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'The Board'**
+  String get htpSectionBoard;
+
+  /// No description provided for @htpSectionRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'Player Roles'**
+  String get htpSectionRoles;
+
+  /// No description provided for @htpSectionFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Flow'**
+  String get htpSectionFlow;
+
+  /// No description provided for @htpSectionVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Variants'**
+  String get htpSectionVariants;
+
+  /// No description provided for @htpSectionWin.
+  ///
+  /// In en, this message translates to:
+  /// **'How to Win'**
+  String get htpSectionWin;
+
+  /// No description provided for @htpSectionTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Tips for New Players'**
+  String get htpSectionTips;
+
+  /// No description provided for @logPlayPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Players'**
+  String get logPlayPlayers;
+
+  /// No description provided for @searchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed. Try again.'**
+  String get searchFailed;
+
+  /// No description provided for @logPlaySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get logPlaySelected;
 }
 
 class _AppLocalizationsDelegate

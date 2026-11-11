@@ -39,6 +39,8 @@ mixin _$Game {
   @JsonKey(name: 'complexityWeight')
   double? get complexity => throw _privateConstructorUsedError;
   int? get rank => throw _privateConstructorUsedError;
+  int? get usersRated => throw _privateConstructorUsedError;
+  String? get gameType => throw _privateConstructorUsedError;
   int? get bggId => throw _privateConstructorUsedError;
   String? get bggUrl => throw _privateConstructorUsedError;
   @JsonKey(defaultValue: <String>[])
@@ -49,6 +51,8 @@ mixin _$Game {
   List<String> get designers => throw _privateConstructorUsedError;
   @JsonKey(defaultValue: <String>[])
   List<String> get publishers => throw _privateConstructorUsedError;
+  List<String> get families => throw _privateConstructorUsedError;
+  List<String> get honors => throw _privateConstructorUsedError;
   bool get hasRulebook => throw _privateConstructorUsedError;
 
   /// GAP §6.1 [WP4] additions to `GameDetailResponse`.
@@ -85,12 +89,16 @@ abstract class $GameCopyWith<$Res> {
       @JsonKey(name: 'bggRating') double? averageRating,
       @JsonKey(name: 'complexityWeight') double? complexity,
       int? rank,
+      int? usersRated,
+      String? gameType,
       int? bggId,
       String? bggUrl,
       @JsonKey(defaultValue: <String>[]) List<String> categories,
       @JsonKey(defaultValue: <String>[]) List<String> mechanics,
       @JsonKey(defaultValue: <String>[]) List<String> designers,
       @JsonKey(defaultValue: <String>[]) List<String> publishers,
+      List<String> families,
+      List<String> honors,
       bool hasRulebook,
       double? friendAvgRating,
       int friendRatingCount,
@@ -126,12 +134,16 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
     Object? averageRating = freezed,
     Object? complexity = freezed,
     Object? rank = freezed,
+    Object? usersRated = freezed,
+    Object? gameType = freezed,
     Object? bggId = freezed,
     Object? bggUrl = freezed,
     Object? categories = null,
     Object? mechanics = null,
     Object? designers = null,
     Object? publishers = null,
+    Object? families = null,
+    Object? honors = null,
     Object? hasRulebook = null,
     Object? friendAvgRating = freezed,
     Object? friendRatingCount = null,
@@ -194,6 +206,14 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
           ? _value.rank
           : rank // ignore: cast_nullable_to_non_nullable
               as int?,
+      usersRated: freezed == usersRated
+          ? _value.usersRated
+          : usersRated // ignore: cast_nullable_to_non_nullable
+              as int?,
+      gameType: freezed == gameType
+          ? _value.gameType
+          : gameType // ignore: cast_nullable_to_non_nullable
+              as String?,
       bggId: freezed == bggId
           ? _value.bggId
           : bggId // ignore: cast_nullable_to_non_nullable
@@ -217,6 +237,14 @@ class _$GameCopyWithImpl<$Res, $Val extends Game>
       publishers: null == publishers
           ? _value.publishers
           : publishers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      families: null == families
+          ? _value.families
+          : families // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      honors: null == honors
+          ? _value.honors
+          : honors // ignore: cast_nullable_to_non_nullable
               as List<String>,
       hasRulebook: null == hasRulebook
           ? _value.hasRulebook
@@ -260,12 +288,16 @@ abstract class _$$GameImplCopyWith<$Res> implements $GameCopyWith<$Res> {
       @JsonKey(name: 'bggRating') double? averageRating,
       @JsonKey(name: 'complexityWeight') double? complexity,
       int? rank,
+      int? usersRated,
+      String? gameType,
       int? bggId,
       String? bggUrl,
       @JsonKey(defaultValue: <String>[]) List<String> categories,
       @JsonKey(defaultValue: <String>[]) List<String> mechanics,
       @JsonKey(defaultValue: <String>[]) List<String> designers,
       @JsonKey(defaultValue: <String>[]) List<String> publishers,
+      List<String> families,
+      List<String> honors,
       bool hasRulebook,
       double? friendAvgRating,
       int friendRatingCount,
@@ -298,12 +330,16 @@ class __$$GameImplCopyWithImpl<$Res>
     Object? averageRating = freezed,
     Object? complexity = freezed,
     Object? rank = freezed,
+    Object? usersRated = freezed,
+    Object? gameType = freezed,
     Object? bggId = freezed,
     Object? bggUrl = freezed,
     Object? categories = null,
     Object? mechanics = null,
     Object? designers = null,
     Object? publishers = null,
+    Object? families = null,
+    Object? honors = null,
     Object? hasRulebook = null,
     Object? friendAvgRating = freezed,
     Object? friendRatingCount = null,
@@ -366,6 +402,14 @@ class __$$GameImplCopyWithImpl<$Res>
           ? _value.rank
           : rank // ignore: cast_nullable_to_non_nullable
               as int?,
+      usersRated: freezed == usersRated
+          ? _value.usersRated
+          : usersRated // ignore: cast_nullable_to_non_nullable
+              as int?,
+      gameType: freezed == gameType
+          ? _value.gameType
+          : gameType // ignore: cast_nullable_to_non_nullable
+              as String?,
       bggId: freezed == bggId
           ? _value.bggId
           : bggId // ignore: cast_nullable_to_non_nullable
@@ -389,6 +433,14 @@ class __$$GameImplCopyWithImpl<$Res>
       publishers: null == publishers
           ? _value._publishers
           : publishers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      families: null == families
+          ? _value._families
+          : families // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      honors: null == honors
+          ? _value._honors
+          : honors // ignore: cast_nullable_to_non_nullable
               as List<String>,
       hasRulebook: null == hasRulebook
           ? _value.hasRulebook
@@ -428,12 +480,16 @@ class _$GameImpl extends _Game {
       @JsonKey(name: 'bggRating') this.averageRating,
       @JsonKey(name: 'complexityWeight') this.complexity,
       this.rank,
+      this.usersRated,
+      this.gameType,
       this.bggId,
       this.bggUrl,
       @JsonKey(defaultValue: <String>[]) required final List<String> categories,
       @JsonKey(defaultValue: <String>[]) required final List<String> mechanics,
       @JsonKey(defaultValue: <String>[]) required final List<String> designers,
       @JsonKey(defaultValue: <String>[]) required final List<String> publishers,
+      final List<String> families = const <String>[],
+      final List<String> honors = const <String>[],
       this.hasRulebook = false,
       this.friendAvgRating,
       this.friendRatingCount = 0,
@@ -442,6 +498,8 @@ class _$GameImpl extends _Game {
         _mechanics = mechanics,
         _designers = designers,
         _publishers = publishers,
+        _families = families,
+        _honors = honors,
         _ownedByFriends = ownedByFriends,
         super._();
 
@@ -482,6 +540,10 @@ class _$GameImpl extends _Game {
   @override
   final int? rank;
   @override
+  final int? usersRated;
+  @override
+  final String? gameType;
+  @override
   final int? bggId;
   @override
   final String? bggUrl;
@@ -521,6 +583,24 @@ class _$GameImpl extends _Game {
     return EqualUnmodifiableListView(_publishers);
   }
 
+  final List<String> _families;
+  @override
+  @JsonKey()
+  List<String> get families {
+    if (_families is EqualUnmodifiableListView) return _families;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_families);
+  }
+
+  final List<String> _honors;
+  @override
+  @JsonKey()
+  List<String> get honors {
+    if (_honors is EqualUnmodifiableListView) return _honors;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_honors);
+  }
+
   @override
   @JsonKey()
   final bool hasRulebook;
@@ -542,7 +622,7 @@ class _$GameImpl extends _Game {
 
   @override
   String toString() {
-    return 'Game(id: $id, name: $name, description: $description, imageUrl: $imageUrl, thumbnailUrl: $thumbnailUrl, yearPublished: $yearPublished, minPlayers: $minPlayers, maxPlayers: $maxPlayers, minAge: $minAge, minPlayTimeMinutes: $minPlayTimeMinutes, maxPlayTimeMinutes: $maxPlayTimeMinutes, averageRating: $averageRating, complexity: $complexity, rank: $rank, bggId: $bggId, bggUrl: $bggUrl, categories: $categories, mechanics: $mechanics, designers: $designers, publishers: $publishers, hasRulebook: $hasRulebook, friendAvgRating: $friendAvgRating, friendRatingCount: $friendRatingCount, ownedByFriends: $ownedByFriends)';
+    return 'Game(id: $id, name: $name, description: $description, imageUrl: $imageUrl, thumbnailUrl: $thumbnailUrl, yearPublished: $yearPublished, minPlayers: $minPlayers, maxPlayers: $maxPlayers, minAge: $minAge, minPlayTimeMinutes: $minPlayTimeMinutes, maxPlayTimeMinutes: $maxPlayTimeMinutes, averageRating: $averageRating, complexity: $complexity, rank: $rank, usersRated: $usersRated, gameType: $gameType, bggId: $bggId, bggUrl: $bggUrl, categories: $categories, mechanics: $mechanics, designers: $designers, publishers: $publishers, families: $families, honors: $honors, hasRulebook: $hasRulebook, friendAvgRating: $friendAvgRating, friendRatingCount: $friendRatingCount, ownedByFriends: $ownedByFriends)';
   }
 
   @override
@@ -574,6 +654,10 @@ class _$GameImpl extends _Game {
             (identical(other.complexity, complexity) ||
                 other.complexity == complexity) &&
             (identical(other.rank, rank) || other.rank == rank) &&
+            (identical(other.usersRated, usersRated) ||
+                other.usersRated == usersRated) &&
+            (identical(other.gameType, gameType) ||
+                other.gameType == gameType) &&
             (identical(other.bggId, bggId) || other.bggId == bggId) &&
             (identical(other.bggUrl, bggUrl) || other.bggUrl == bggUrl) &&
             const DeepCollectionEquality()
@@ -584,6 +668,8 @@ class _$GameImpl extends _Game {
                 .equals(other._designers, _designers) &&
             const DeepCollectionEquality()
                 .equals(other._publishers, _publishers) &&
+            const DeepCollectionEquality().equals(other._families, _families) &&
+            const DeepCollectionEquality().equals(other._honors, _honors) &&
             (identical(other.hasRulebook, hasRulebook) ||
                 other.hasRulebook == hasRulebook) &&
             (identical(other.friendAvgRating, friendAvgRating) ||
@@ -612,12 +698,16 @@ class _$GameImpl extends _Game {
         averageRating,
         complexity,
         rank,
+        usersRated,
+        gameType,
         bggId,
         bggUrl,
         const DeepCollectionEquality().hash(_categories),
         const DeepCollectionEquality().hash(_mechanics),
         const DeepCollectionEquality().hash(_designers),
         const DeepCollectionEquality().hash(_publishers),
+        const DeepCollectionEquality().hash(_families),
+        const DeepCollectionEquality().hash(_honors),
         hasRulebook,
         friendAvgRating,
         friendRatingCount,
@@ -656,12 +746,16 @@ abstract class _Game extends Game {
       @JsonKey(name: 'bggRating') final double? averageRating,
       @JsonKey(name: 'complexityWeight') final double? complexity,
       final int? rank,
+      final int? usersRated,
+      final String? gameType,
       final int? bggId,
       final String? bggUrl,
       @JsonKey(defaultValue: <String>[]) required final List<String> categories,
       @JsonKey(defaultValue: <String>[]) required final List<String> mechanics,
       @JsonKey(defaultValue: <String>[]) required final List<String> designers,
       @JsonKey(defaultValue: <String>[]) required final List<String> publishers,
+      final List<String> families,
+      final List<String> honors,
       final bool hasRulebook,
       final double? friendAvgRating,
       final int friendRatingCount,
@@ -704,6 +798,10 @@ abstract class _Game extends Game {
   @override
   int? get rank;
   @override
+  int? get usersRated;
+  @override
+  String? get gameType;
+  @override
   int? get bggId;
   @override
   String? get bggUrl;
@@ -719,6 +817,10 @@ abstract class _Game extends Game {
   @override
   @JsonKey(defaultValue: <String>[])
   List<String> get publishers;
+  @override
+  List<String> get families;
+  @override
+  List<String> get honors;
   @override
   bool get hasRulebook;
 

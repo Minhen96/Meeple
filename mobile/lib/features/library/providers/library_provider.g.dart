@@ -743,6 +743,171 @@ class _GameSearchNotifierProviderElement
   String get query => (origin as GameSearchNotifierProvider).query;
 }
 
+String _$libraryBrowseHash() => r'cba9d26694cc3429e7b796c418c9fb3fe582c6b9';
+
+abstract class _$LibraryBrowse
+    extends BuildlessAutoDisposeAsyncNotifier<PaginatedResult<Game>> {
+  late final GameBrowseQuery browse;
+
+  FutureOr<PaginatedResult<Game>> build(
+    GameBrowseQuery browse,
+  );
+}
+
+/// Library "All Games" feed: the catalogue with the web's discovery filters
+/// and sort, page-based with infinite scroll.
+///
+/// Copied from [LibraryBrowse].
+@ProviderFor(LibraryBrowse)
+const libraryBrowseProvider = LibraryBrowseFamily();
+
+/// Library "All Games" feed: the catalogue with the web's discovery filters
+/// and sort, page-based with infinite scroll.
+///
+/// Copied from [LibraryBrowse].
+class LibraryBrowseFamily extends Family<AsyncValue<PaginatedResult<Game>>> {
+  /// Library "All Games" feed: the catalogue with the web's discovery filters
+  /// and sort, page-based with infinite scroll.
+  ///
+  /// Copied from [LibraryBrowse].
+  const LibraryBrowseFamily();
+
+  /// Library "All Games" feed: the catalogue with the web's discovery filters
+  /// and sort, page-based with infinite scroll.
+  ///
+  /// Copied from [LibraryBrowse].
+  LibraryBrowseProvider call(
+    GameBrowseQuery browse,
+  ) {
+    return LibraryBrowseProvider(
+      browse,
+    );
+  }
+
+  @override
+  LibraryBrowseProvider getProviderOverride(
+    covariant LibraryBrowseProvider provider,
+  ) {
+    return call(
+      provider.browse,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'libraryBrowseProvider';
+}
+
+/// Library "All Games" feed: the catalogue with the web's discovery filters
+/// and sort, page-based with infinite scroll.
+///
+/// Copied from [LibraryBrowse].
+class LibraryBrowseProvider extends AutoDisposeAsyncNotifierProviderImpl<
+    LibraryBrowse, PaginatedResult<Game>> {
+  /// Library "All Games" feed: the catalogue with the web's discovery filters
+  /// and sort, page-based with infinite scroll.
+  ///
+  /// Copied from [LibraryBrowse].
+  LibraryBrowseProvider(
+    GameBrowseQuery browse,
+  ) : this._internal(
+          () => LibraryBrowse()..browse = browse,
+          from: libraryBrowseProvider,
+          name: r'libraryBrowseProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$libraryBrowseHash,
+          dependencies: LibraryBrowseFamily._dependencies,
+          allTransitiveDependencies:
+              LibraryBrowseFamily._allTransitiveDependencies,
+          browse: browse,
+        );
+
+  LibraryBrowseProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.browse,
+  }) : super.internal();
+
+  final GameBrowseQuery browse;
+
+  @override
+  FutureOr<PaginatedResult<Game>> runNotifierBuild(
+    covariant LibraryBrowse notifier,
+  ) {
+    return notifier.build(
+      browse,
+    );
+  }
+
+  @override
+  Override overrideWith(LibraryBrowse Function() create) {
+    return ProviderOverride(
+      origin: this,
+      override: LibraryBrowseProvider._internal(
+        () => create()..browse = browse,
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        browse: browse,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeAsyncNotifierProviderElement<LibraryBrowse, PaginatedResult<Game>>
+      createElement() {
+    return _LibraryBrowseProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LibraryBrowseProvider && other.browse == browse;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, browse.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin LibraryBrowseRef
+    on AutoDisposeAsyncNotifierProviderRef<PaginatedResult<Game>> {
+  /// The parameter `browse` of this provider.
+  GameBrowseQuery get browse;
+}
+
+class _LibraryBrowseProviderElement
+    extends AutoDisposeAsyncNotifierProviderElement<LibraryBrowse,
+        PaginatedResult<Game>> with LibraryBrowseRef {
+  _LibraryBrowseProviderElement(super.provider);
+
+  @override
+  GameBrowseQuery get browse => (origin as LibraryBrowseProvider).browse;
+}
+
 String _$gameSessionsHash() => r'a571059ee7d76b7eb58e14ed31f11a66b18e68bc';
 
 abstract class _$GameSessions

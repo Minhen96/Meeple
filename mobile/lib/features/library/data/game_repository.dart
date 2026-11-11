@@ -11,8 +11,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'game_repository.g.dart';
 
 @riverpod
-GameRepository gameRepository(Ref ref) =>
-    GameRepository(ref.read(dioProvider));
+GameRepository gameRepository(Ref ref) => GameRepository(ref.read(dioProvider));
 
 final class GameRepository {
   const GameRepository(this._dio);
@@ -33,6 +32,26 @@ final class GameRepository {
           queryParameters: {
             if (query.isNotEmpty) 'q': query,
             if (query.isEmpty) 'sort': 'rank',
+            ...params.toQueryParams(),
+          },
+        );
+        return PaginatedResult.fromJson(
+          res.data!,
+          (item) => Game.fromJson(item! as Map<String, dynamic>),
+        );
+      });
+
+  /// Library catalogue browse (`GET /games` with the web's discovery
+  /// filters and sort). Only set filters are sent.
+  Future<PaginatedResult<Game>> browseGames(
+    GameBrowseQuery browse, {
+    PageParams params = const PageParams(),
+  }) =>
+      guardApi(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          _games,
+          queryParameters: {
+            ...browse.toQueryParams(),
             ...params.toQueryParams(),
           },
         );

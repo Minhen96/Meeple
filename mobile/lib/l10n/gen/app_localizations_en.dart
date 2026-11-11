@@ -2198,4 +2198,436 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPasswordHint => 'Your password';
+
+  @override
+  String get librarySearchCatalog => 'Search catalog…';
+
+  @override
+  String get librarySearchCollection => 'Search your games…';
+
+  @override
+  String libraryNoMatch(String query) {
+    return 'No games in this list match “$query”.';
+  }
+
+  @override
+  String get librarySortLabel => 'Sort';
+
+  @override
+  String get librarySortRecommended => 'Recommended ✨';
+
+  @override
+  String get librarySortRank => 'Rank';
+
+  @override
+  String get librarySortPopularity => 'Popularity';
+
+  @override
+  String get librarySortNewest => 'Newest';
+
+  @override
+  String get librarySortShortest => 'Shortest';
+
+  @override
+  String get librarySpotlightCategory => 'Game of the Week';
+
+  @override
+  String get librarySpotlightDescription =>
+      'Embark on an epic legacy campaign with over 95 scenarios of tactical combat and character progression.';
+
+  @override
+  String get librarySpotlightExplore => 'Explore';
+
+  @override
+  String get librarySpotlightSave => 'Add to favorites';
+
+  @override
+  String librarySpotlightSaved(String title) {
+    return '$title added to favorites!';
+  }
+
+  @override
+  String get libraryFiltersTitle => 'Discovery Filters';
+
+  @override
+  String get libraryFiltersGenre => 'Genre';
+
+  @override
+  String get libraryFiltersComplexity => 'Complexity Level';
+
+  @override
+  String get libraryFiltersPlayers => 'Player Count';
+
+  @override
+  String get libraryFiltersMinMax => 'Min - Max';
+
+  @override
+  String get libraryFiltersMin => 'Min';
+
+  @override
+  String get libraryFiltersMax => 'Max';
+
+  @override
+  String get libraryFiltersPlaytime => 'Playtime (Mins)';
+
+  @override
+  String get libraryFiltersMinRating => 'Min Rating';
+
+  @override
+  String get libraryFiltersReset => 'Reset';
+
+  @override
+  String get libraryFiltersApply => 'Apply Results';
+
+  @override
+  String get libraryGenreStrategy => 'Strategy';
+
+  @override
+  String get libraryGenreParty => 'Party';
+
+  @override
+  String get libraryGenreFamily => 'Family';
+
+  @override
+  String get libraryGenreTwoPlayer => '2 Player';
+
+  @override
+  String get libraryGenreAbstract => 'Abstract';
+
+  @override
+  String get libraryComplexityLight => 'Light';
+
+  @override
+  String get libraryComplexityMedium => 'Medium';
+
+  @override
+  String get libraryComplexityHeavy => 'Heavy';
+
+  @override
+  String get libraryFeedTitle => 'Library Feed';
+
+  @override
+  String libraryFeedResults(String count) {
+    return '$count Results';
+  }
+
+  @override
+  String get libraryFeedNoRecommendations => 'No recommendations yet';
+
+  @override
+  String get libraryFeedNoRecommendationsBody =>
+      'Favorite or log some plays to get personalized suggestions.';
+
+  @override
+  String get libraryFeedEmpty => 'The library feels empty';
+
+  @override
+  String get libraryFeedEmptyBody => 'Adjust your filters to see more games.';
+
+  @override
+  String get libraryFeedEnd => 'You\'ve reached the end of the catalog';
+
+  @override
+  String get libraryBadgeWishlist => 'Wishlist';
+
+  @override
+  String get libraryRatingLabel => 'Your rating';
+
+  @override
+  String libraryRatingStar(int count) {
+    return 'Rate $count of 5 stars';
+  }
+
+  @override
+  String get libraryRatingSaveFailed => 'Could not save rating';
+
+  @override
+  String get gameStatPlayers => 'Players';
+
+  @override
+  String get gameStatTime => 'Time';
+
+  @override
+  String get gameStatComplexity => 'Complexity';
+
+  @override
+  String gameRatingsCount(String count) {
+    return '($count ratings)';
+  }
+
+  @override
+  String gameBggRank(String rank) {
+    return 'BGG #$rank';
+  }
+
+  @override
+  String gameBy(String names) {
+    return 'by $names';
+  }
+
+  @override
+  String gameFriendAvgOne(String rating) {
+    return '$rating from 1 friend';
+  }
+
+  @override
+  String get gameActionOwn => 'Own';
+
+  @override
+  String get gameActionFavorite => 'Favorite';
+
+  @override
+  String get gameActionFavorited => 'Favorited';
+
+  @override
+  String get gameActionAskAi => 'Ask AI';
+
+  @override
+  String get gameTabHowToPlay => 'How to Play';
+
+  @override
+  String get gameAbout => 'About';
+
+  @override
+  String get gameAwards => 'Awards';
+
+  @override
+  String get gameDesigners => 'Designers';
+
+  @override
+  String get gamePublishers => 'Publishers';
+
+  @override
+  String get gameMinAge => 'Min Age';
+
+  @override
+  String gameAgePlus(int age) {
+    return '$age+';
+  }
+
+  @override
+  String get gameTypeLabel => 'Type';
+
+  @override
+  String get gameViewOnBgg => 'View on BoardGameGeek';
+
+  @override
+  String gamePlayHistory(int count) {
+    return 'Play history ($count)';
+  }
+
+  @override
+  String get gameLatestPlay => 'Latest';
+
+  @override
+  String gamePlayerCount(int count) {
+    return '$count players';
+  }
+
+  @override
+  String get gameFromPost => 'From a post';
+
+  @override
+  String get gameDeletePlay => 'Delete play';
+
+  @override
+  String get gamePlayDeleted => 'Play deleted';
+
+  @override
+  String get gameNotesPlaceholder => 'Any thoughts, house rules, play tips…';
+
+  @override
+  String get gameNotesSaving => 'Saving…';
+
+  @override
+  String get gameLoadFailed => 'Could not load this. Try again.';
+
+  @override
+  String get logPlayTitle => 'Log a Play';
+
+  @override
+  String get logPlayDuration => 'Duration (minutes)';
+
+  @override
+  String get logPlayNotesPlaceholder => 'Who won? Any memorable moments?';
+
+  @override
+  String get logPlaySubmit => 'Log Play';
+
+  @override
+  String logPlaySuccess(String title) {
+    return 'Play logged for $title!';
+  }
+
+  @override
+  String get aiTitle => 'Rules Assistant';
+
+  @override
+  String aiWelcome(String title) {
+    return 'Hi! I\'m ready to answer questions about $title. Ask me about setup, turn order, rules, or tricky edge cases!';
+  }
+
+  @override
+  String get aiClear => 'Clear chat';
+
+  @override
+  String get aiSourceRulebook => 'Rulebook';
+
+  @override
+  String get aiSourceGeneral => 'General AI';
+
+  @override
+  String get aiYou => 'You';
+
+  @override
+  String get aiAssistant => 'Assistant';
+
+  @override
+  String get aiPlaceholder => 'Ask a rule question…';
+
+  @override
+  String get aiFooterDisclaimer =>
+      'AI can make mistakes. Verify critical rules with the official rulebook.';
+
+  @override
+  String aiDailyLimit(int count) {
+    return 'You\'ve reached the daily limit ($count questions). Come back tomorrow!';
+  }
+
+  @override
+  String get matchTitle => 'Match';
+
+  @override
+  String get matchNew => 'New Request';
+
+  @override
+  String get matchLookingToPlay => 'Looking to play…';
+
+  @override
+  String get matchSearchGame => 'Search for a game';
+
+  @override
+  String get matchUntil => 'Until';
+
+  @override
+  String get matchSubmitting => 'Submitting…';
+
+  @override
+  String get matchSubmitRequest => 'Submit Request';
+
+  @override
+  String get matchTabSuggestions => 'Suggestions';
+
+  @override
+  String matchTabSuggestionsCount(int count) {
+    return 'Suggestions ($count)';
+  }
+
+  @override
+  String get matchTabRequests => 'My Requests';
+
+  @override
+  String get matchEmptySuggestionsTitle => 'No matches yet';
+
+  @override
+  String get matchEmptySuggestionsBody =>
+      'Submit a match request and we\'ll find friends who want to play the same game.';
+
+  @override
+  String get matchEmptyRequestsTitle => 'No active requests';
+
+  @override
+  String get matchEmptyRequestsBody =>
+      'Tap \"New Request\" to find friends to play with.';
+
+  @override
+  String get matchAnyTime => 'Any time';
+
+  @override
+  String get matchCancelRequest => 'Cancel request';
+
+  @override
+  String get matchFound => 'Match Found!';
+
+  @override
+  String get matchCreateEvent => 'Create Event';
+
+  @override
+  String get searchPlaceholder => 'Search games, players, events';
+
+  @override
+  String get searchCloseLabel => 'Close search';
+
+  @override
+  String get searchClearInput => 'Clear search';
+
+  @override
+  String searchRemoveRecent(String query) {
+    return 'Remove \"$query\" from recent searches';
+  }
+
+  @override
+  String get htpEyebrow => 'AI Rule Extraction';
+
+  @override
+  String get htpSubtitle =>
+      'Follow these essential rules to get the game started quickly.';
+
+  @override
+  String get htpGenerateTitle => 'Generate a rules guide';
+
+  @override
+  String get htpGenerateBody => 'Get a quick-start summary for this game.';
+
+  @override
+  String get htpGenerateShort => 'Generate';
+
+  @override
+  String get htpGeneratingTitle => 'Generating your guide…';
+
+  @override
+  String get htpGeneratingBody =>
+      'AI is reading the rulebook and extracting key information. This takes about 20–30 seconds.';
+
+  @override
+  String get htpSourceRulebook => 'From Official Rulebook';
+
+  @override
+  String get htpSourceAi => 'AI General Knowledge';
+
+  @override
+  String get htpFailedTitle => 'Guide generation failed';
+
+  @override
+  String get htpSectionComponents => 'What\'s in the Box';
+
+  @override
+  String get htpSectionCards => 'Cards';
+
+  @override
+  String get htpSectionBoard => 'The Board';
+
+  @override
+  String get htpSectionRoles => 'Player Roles';
+
+  @override
+  String get htpSectionFlow => 'Game Flow';
+
+  @override
+  String get htpSectionVariants => 'Variants';
+
+  @override
+  String get htpSectionWin => 'How to Win';
+
+  @override
+  String get htpSectionTips => 'Tips for New Players';
+
+  @override
+  String get logPlayPlayers => 'Players';
+
+  @override
+  String get searchFailed => 'Search failed. Try again.';
+
+  @override
+  String get logPlaySelected => 'Selected';
 }

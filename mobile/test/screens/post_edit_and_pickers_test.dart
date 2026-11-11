@@ -146,7 +146,14 @@ void main() {
     });
 
     testWidgets('matching availability', (tester) async {
-      await leaveWhilePickerOpen(tester, '/matching', const Key('match-from'));
+      final c = await pumpApp(tester, api: api, location: '/matching');
+      await tester.tap(find.byKey(const Key('match-new')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('match-from')));
+      await settle(tester, 4);
+      c.read(appRouterProvider).go('/');
+      await settle(tester);
+      expect(tester.takeException(), isNull);
     });
   });
 }

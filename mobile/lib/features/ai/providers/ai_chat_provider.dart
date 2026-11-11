@@ -12,12 +12,16 @@ final class AiMessage {
     required this.question,
     this.answer,
     this.disclaimer,
+    this.sourceMode,
     this.error,
   });
 
   final String question;
   final String? answer;
   final String? disclaimer;
+
+  /// `rulebook` | `general` — where the answer came from.
+  final String? sourceMode;
 
   /// Set when this question failed (rate limit, AI error).
   final Object? error;
@@ -65,6 +69,7 @@ class AiChat extends _$AiChat {
           question: q,
           answer: answer.answer,
           disclaimer: answer.disclaimer,
+          sourceMode: answer.sourceMode,
         ),
       );
     } on ApiException catch (e) {
